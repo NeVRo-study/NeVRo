@@ -198,7 +198,7 @@ class ECGplot:
                                                                                                            str(r),
                                                                                                            coaster)
                     if os.path.isfile(rating_filename):
-                        rating_file = np.genfromtxt(rating_filename, delimiter=',')[:, 1]  # take only col with ratings
+                        rating_file = np.genfromtxt(rating_filename, delimiter=',')[:, 1]  # only load col with ratings
 
                         # Fill in right slot of ratings_dic
                         ratings_key = ''
