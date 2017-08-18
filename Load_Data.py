@@ -230,11 +230,14 @@ class DataSet(object):
         :param eeg: EEG data
         :param ratings: Rating Data
         """
+        # TODO this assert needs to be adapted according to the sampling freq: s-freq(eeg) >= s-freq(ratings)
+        assert eeg.shape[0] == ratings[0], "eeg.shape: {}, ratings.shape: {}".format(eeg.shape, ratings.shape)
         self._num_time_slices = eeg.shape[0]
         self._eeg = eeg  # input
         self._ratings = ratings  # target
         self._epochs_completed = 0
         self._index_in_epoch = 0
+        # TODO include subject-option
 
     @property
     def eeg(self):
@@ -260,5 +263,20 @@ class DataSet(object):
         """
         start = self._index_in_epoch
         self._index_in_epoch += batch_size
+        if self._index_in_epoch > self._num_time_slices:
+            self._epochs_completed += 1
+
+            perm = np.arrange(self._num_time_slices)
+            np.random.shuffle(perm)  # TODO check whether makes sense for LSTM
+            self._eeg = self._eeg[perm]
+            self._ratings = self._ratings[perm]
+
+            start = 0
+            self._index_in_epoch = batch_size
+            assert batch_size <= self._num_time_slices
+
+        end = self._index_in_epoch
+
+        return self._eeg[start:end], self._ratings[start:end]
+
         # TODO continue here:
-        pass
