@@ -169,7 +169,9 @@ def load_rating_files(samp_freq=1):
     :param samp_freq: sampling frequency, either 1Hz [default], oder 50Hz
     :return:  Rating Dict
     """
+
     # Check whether input correct
+    # assert (samp_freq == 1 or samp_freq == 50), "samp_freq must be either 1 or 50 Hz"
     if not (samp_freq == 1 or samp_freq == 50):
         raise ValueError("samp_freq must be either 1 or 50 Hz")
     # Load Table of Conditions
@@ -217,3 +219,46 @@ Rating_dic = load_rating_files(samp_freq=1)  # samp_freq=1 or samp_freq=50
 # TODO create Batches
 
 # TODO S-FOLD: train-test-set split
+
+class DataSet(object):
+    """
+    Utility class (http://wiki.c2.com/?UtilityClasses) to handle dataset structure
+    """
+    def __init__(self, eeg, ratings):
+        """
+        Builds dataset with EEG data and Ratings
+        :param eeg: EEG data
+        :param ratings: Rating Data
+        """
+        self._num_time_slices = eeg.shape[0]
+        self._eeg = eeg  # input
+        self._ratings = ratings  # target
+        self._epochs_completed = 0
+        self._index_in_epoch = 0
+
+    @property
+    def eeg(self):
+        return self._eeg
+
+    @property
+    def ratings(self):
+        return self._ratings
+
+    @property
+    def num_time_slices(self):
+        return self._num_time_slices
+
+    @property
+    def epochs_completed(self):
+        return self._epochs_completed
+
+    def next_batch(self, batch_size):
+        """
+        Return the next 'batch_size' examples from this data set
+        :param batch_size: Batch size
+        :return: Next batch
+        """
+        start = self._index_in_epoch
+        self._index_in_epoch += batch_size
+        # TODO continue here:
+        pass
