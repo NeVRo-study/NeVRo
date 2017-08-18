@@ -100,7 +100,6 @@ SSD_dic = load_ssd_files()
 # print(SSD_dic["channels"].shape)
 
 
-# TODO below...
 def load_ssd_component():
     """
     Loads 2 best SSD components (files) of each subject in subjects
@@ -108,39 +107,45 @@ def load_ssd_component():
     """
     count = 0
     # Create SSD Component Dictionary
-    # dic = {k: v for k, v in [("comp1", [])]}
-    # dic.update({newkey: newkey_value})
-    ssd_comp_dic_keys = ["components"] + [str(i) for i in subjects]
-    ssd_comp_dic = dict.fromkeys(ssd_comp_dic_keys, {})  # creats dict from given sequence and given value (could be empty =None)
-    ssd_comp_dic_keys.pop(0)  # remove channels-key again
-    # create sub_dic for each roller coaster (time, df)
-    coast_dic = {}
-    coast_dic.update((key, {"t_steps": [], "df": []}) for key in roller_coasters)
-    # each subejct has a sub-dic for each roller coaster
-    ssd_comp_dic.update((key, copy.deepcopy(coast_dic)) for key in ssd_comp_dic_keys)  # deep.copy(!)
+    ssd_comp_dic_keys = [str(i) for i in subjects]  # these keys also work int
+    ssd_comp_dic = {}
+    ssd_comp_dic.update((key, dict.fromkeys(roller_coasters, [])) for key in ssd_comp_dic_keys)
+    ssd_comp_dic.update({"components": []})
     # # Test
     # print("ssd_comp_dic\n", ssd_comp_dic)
-    # ssd_comp_dic["36"]['Ande_NoMov']["df"] = 999
+    # ssd_comp_dic["36"]['Ande_NoMov'] = 999
     # print("ssd_comp_dic\n", ssd_comp_dic)  # ssd_comp_dic["36"] is ssd_comp_dic["37"]
 
     for subject in subjects:
         for num, coaster in enumerate(roller_coasters):
             count += 1
+            n_comp = 0  # init
             file_name = wdic_Comp + "S{}_{}_Components.txt".format(str(subject).zfill(2), coaster)  # adapt file_name
 
             if os.path.isfile(file_name):
                 if count == 1:  # do only once
                     # x = x.split("\t")  # '\t' divides values
-                    components = np.genfromtxt(file_name, delimiter="\t", dtype="str")[1:, 0]
-                    ssd_comp_dic["channels"] = components  # 32 components; shape=(32,)
-                sub_df = np.genfromtxt(file_name, delimiter="\t")[0:, 1:-1]  # first row:= time; in last col only NAs
-                # Sampling Frequency = 250
-                time_steps = sub_df[0, :]  # shape=(24276,) for S36_Ande_NoMov
-                sub_df = sub_df[1:, :]  # shape=(32, 24276) for S36_Ande_NoMov
-                # Fill in SSD Dictionary: ssd_comp_dic
-                ssd_comp_dic[str(subject)][coaster]["t_steps"] = copy.copy(time_steps)
-                ssd_comp_dic[str(subject)][coaster]["df"] = copy.copy(sub_df)
+                    # N≈20 components sorted from 1-N according to the signal-to-noise-ration (SNR), i.e. "good to bad"
+                    # TO
+                    components = np.genfromtxt(file_name, delimiter=";", dtype="str")[0].split("\t")[:-1]  # last=' '
+                    for idx, comp in enumerate(components):
+                        components[idx] = "comp_" + comp
+                    ssd_comp_dic["components"] = components  # 32 components; shape=(32,)
+                    n_comp = len(components)
 
+                # columns = components, rows value per timestep
+                pre_sub_df = np.genfromtxt(file_name, delimiter=";", dtype="str")[1:]  # leave first row = comp. names
+                sub_df = np.zeros((pre_sub_df.shape[0], n_comp))
+                for row in range(pre_sub_df.shape[0]):
+                    values_at_t = pre_sub_df[row].split("\t")
+                    sub_df[row] = list(map(float, values_at_t))  # == [float(i) for i in values_at_t]
+                del pre_sub_df  # save WM
+
+                # sub_df.shape=(38267, n_comp=22) for S36_Space_NoMov | Samp. Freq. = 250 | 38267/250 = 153.068sec
+                # Fill in SSD Dictionary: ssd_comp_dic
+                ssd_comp_dic[str(subject)][coaster] = copy.copy(sub_df)
+
+                # TODO below...
                 # Check times:
                 if not (np.round(t_roller_coasters[num], 1) == np.round(time_steps[-1] / 1000, 1)
                         and np.round(time_steps[-1] / 1000, 1) == np.round(len(time_steps) / 250, 1)):
