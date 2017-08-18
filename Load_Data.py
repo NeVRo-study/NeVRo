@@ -212,3 +212,8 @@ def load_rating_files(samp_freq=1):
     return rating_dic
 
 Rating_dic = load_rating_files(samp_freq=1)  # samp_freq=1 or samp_freq=50
+
+
+# TODO create Batches
+
+# TODO S-FOLD: train-test-set split
