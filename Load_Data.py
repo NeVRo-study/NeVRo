@@ -1,3 +1,4 @@
+# coding=utf-8
 """
 Load Data for LSTM Model
     • Load Data
@@ -11,6 +12,9 @@ import os.path
 import copy
 # from Meta_Functions import *
 
+# import tensorflow as tf
+from tensorflow.contrib.learn.python.learn.datasets import base
+
 # Change to Folder which contains files
 wdic = "../../Data/EEG_SSD/"
 wdic_Comp = "../../Data/EEG_SSD/Components/"
@@ -19,15 +23,19 @@ wdic_Data = "../../Data/"
 wdic_cropECG = "../../Data/Data EEG export/NeVRo_ECG_Cropped/"
 
 # initialize variables
-subjects = [36, 37]
+subjects = [36]  # [36, 37]
 n_sub = len(subjects)
 # roller_coasters = np.array(['Space_NoMov', 'Space_Mov', 'Ande_Mov', 'Ande_NoMov'])
 roller_coasters = np.array(['Space_NoMov', 'Ande_NoMov'])  # for testing
 t_roller_coasters = np.zeros((len(roller_coasters)))  # init
 
+# Sampling Frequencies
+s_freq_rating = 1.
+s_freq_eeg = 250.
+
 
 def update_coaster_lengths(empty_t_array):
-    sfreq = 500
+    sfreq = 500.
     for sub in subjects:
         for n, coast in enumerate(roller_coasters):
             time_ecg_fname = wdic_cropECG + "NVR_S{}_{}.txt".format(str(sub).zfill(2), coast)
@@ -45,7 +53,7 @@ t_roller_coasters = update_coaster_lengths(empty_t_array=t_roller_coasters)
 
 
 # Load file
-def load_ssd_files():
+def load_ssd_files(samp_freq=s_freq_eeg):
     """
     Loads all channel SSD files of each subject in subjects
     :return: SSD files [channels, time_steps, sub_df] in form of dictionary
@@ -86,23 +94,24 @@ def load_ssd_files():
                 ssd_dic[str(subject)][coaster]["df"] = copy.copy(sub_df)
 
                 # Check times:
-                if not (np.round(t_roller_coasters[num], 1) == np.round(time_steps[-1]/1000, 1)
-                        and np.round(time_steps[-1]/1000, 1) == np.round(len(time_steps)/250, 1)):
+                # samp_freq = 250.
+                if not (np.round(t_roller_coasters[num], 1) == np.round(time_steps[-1]/1000., 1)
+                        and np.round(time_steps[-1]/1000., 1) == np.round(len(time_steps)/samp_freq, 1)):
                     print("Should be all approx. the same:\nt_roller_coasters[num]: {} \ntime_steps[-1]/1000: {}"
                           "\nlen(time_steps)/sfreq(250): {}".format(t_roller_coasters[num],
-                                                                    time_steps[-1]/1000,
-                                                                    len(time_steps)/250))
+                                                                    time_steps[-1]/1000.,
+                                                                    len(time_steps)/samp_freq))
 
     return ssd_dic
 
-SSD_dic = load_ssd_files()
+# SSD_dic = load_ssd_files(samp_freq=s_freq_eeg)
 # print(SSD_dic[str(subjects[0])][roller_coasters[0]]["df"].shape)  # roller_coasters[0] == 'Space_NoMov'
 # print(SSD_dic[str(subjects[0])][roller_coasters[0]]["df"].shape)  # str(subjects[0]) == '36'
 # print(SSD_dic[str(subjects[0])][roller_coasters[0]]["t_steps"].shape)
 # print(SSD_dic["channels"].shape)
 
 
-def load_ssd_component():
+def load_ssd_component(samp_freq=s_freq_eeg):
     """
     Loads SSD components (files) of each subject in subjects
     :return: SSD component files [sub_df] in form of dictionary
@@ -140,30 +149,30 @@ def load_ssd_component():
                 ssd_comp_dic[str(subject)][coaster] = copy.copy(sub_df)
 
                 # Check times:
-                samp_freq = 250
+                # samp_freq = 250.
                 if not (np.round(t_roller_coasters[num], 1) == np.round(sub_df.shape[0]/samp_freq, 1)):
                     print("Should be all approx. the same:\nTime of {}: {}\nLength of sub_df/samp_freq(250): {}".format(
                         roller_coasters[num], t_roller_coasters[num], sub_df.shape[0] / samp_freq))
 
     return ssd_comp_dic
 
-SSD_Comp_dic = load_ssd_component()
+SSD_Comp_dic = load_ssd_component(samp_freq=s_freq_eeg)
 # print(SSD_Comp_dic[str(subjects[0])][roller_coasters[0]].shape,
 #       "=",
-#       SSD_Comp_dic[str(subjects[0])][roller_coasters[0]].shape[0]/250,
+#       SSD_Comp_dic[str(subjects[0])][roller_coasters[0]].shape[0]/s_freq_eeg,
 #       "sec\t|",
 #       SSD_Comp_dic[str(subjects[0])][roller_coasters[0]].shape[1],
 #       "components")
 # print(SSD_Comp_dic[str(subjects[0])][roller_coasters[1]].shape,
 #       "=",
-#       SSD_Comp_dic[str(subjects[0])][roller_coasters[1]].shape[0]/250,
+#       SSD_Comp_dic[str(subjects[0])][roller_coasters[1]].shape[0]/s_freq_eeg,
 #       "sec\t|",
 #       SSD_Comp_dic[str(subjects[0])][roller_coasters[1]].shape[1],
 #       "components")
 
 
 # @function_timed  # after executing following function this returns runtime
-def load_rating_files(samp_freq=1):
+def load_rating_files(samp_freq=s_freq_rating):
     """
     Loads (z-scored) Ratings files of each subject in subjects (ignore other files, since fluctuating samp.freq.).
     :param samp_freq: sampling frequency, either 1Hz [default], oder 50Hz
@@ -172,7 +181,7 @@ def load_rating_files(samp_freq=1):
 
     # Check whether input correct
     # assert (samp_freq == 1 or samp_freq == 50), "samp_freq must be either 1 or 50 Hz"
-    if not (samp_freq == 1 or samp_freq == 50):
+    if not (samp_freq == 1. or samp_freq == 50.):
         raise ValueError("samp_freq must be either 1 or 50 Hz")
     # Load Table of Conditions
     table_of_condition = np.genfromtxt(wdic_Data + "Table_of_Conditions.csv", delimiter=";")
@@ -195,7 +204,7 @@ def load_rating_files(samp_freq=1):
 
             rating_filename = wdic_Rating + "{}/{}_z/{}Hz/NVR_S{}_run_{}_{}_rat_z.txt".format(coast,
                                                                                               coast,
-                                                                                              str(samp_freq),
+                                                                                              str(int(samp_freq)),
                                                                                               str(subject).zfill(2),
                                                                                               runs,
                                                                                               coast)
@@ -213,12 +222,8 @@ def load_rating_files(samp_freq=1):
 
     return rating_dic
 
-Rating_dic = load_rating_files(samp_freq=1)  # samp_freq=1 or samp_freq=50
+Rating_dic = load_rating_files(samp_freq=s_freq_rating)  # samp_freq=1. or samp_freq=50.
 
-
-# TODO create Batches
-
-# TODO S-FOLD: train-test-set split
 
 class DataSet(object):
     """
@@ -255,6 +260,7 @@ class DataSet(object):
     def epochs_completed(self):
         return self._epochs_completed
 
+    # TODO create Batches
     def next_batch(self, batch_size):
         """
         Return the next 'batch_size' examples from this data set
@@ -279,4 +285,55 @@ class DataSet(object):
 
         return self._eeg[start:end], self._ratings[start:end]
 
-        # TODO continue here:
+
+def read_data_sets(data_dir, validation_size=0):
+    """
+    Returns the dataset read from data_dir.
+    Uses or not uses one-hot encoding for the labels.
+    Subsamples validation set with specified size if necessary.
+    Args:
+        data_dir: Data directory.
+        validation_size: Size of validation set
+    Returns:
+        Train, Test, Validation Datasets
+    """
+
+    # TODO Extract NeVRo EEG data, split it two sets
+    # TODO S-FOLD (for tuning hyper-parameter): train-test-set split
+    # S-Fold Validation, S=5: [ |-Train-|-Train-|-Train-|-Valid-|-Train-|] Dataset
+
+    train_eeg, test_eeg = load_ssd_component()
+    train_ratings, test_ratings = load_rating_files()
+
+    # Subsample the validation set from the train set
+    if not 0 <= validation_size <= len(train_eeg):
+        raise ValueError("Validation size should be between 0 and {0}. Received: {1}.".format(
+            len(train_eeg), validation_size))
+
+    validation_eeg = train_eeg[:validation_size]
+    validation_ratings = train_ratings[:validation_size]
+    train_eeg = train_eeg[validation_size:]
+    train_ratings = train_ratings[validation_size:]
+
+    # Create datasets
+    train = DataSet(train_eeg, train_ratings)
+    validation = DataSet(validation_eeg, validation_ratings)
+    test = DataSet(test_eeg, test_ratings)
+
+    return base.Datasets(train=train, validation=validation, test=test)
+
+
+def get_nevro_data(data_dir=wdic_Data, validation_size=0):
+    """
+      Prepares NeVRo dataset.
+      Args:
+        data_dir: Data directory.
+        validation_size: Size of validation set
+      Returns:
+        Train, Validation, Test Datasets
+      """
+
+    return read_data_sets(data_dir, validation_size)
+
+
+# TODO continue here:
