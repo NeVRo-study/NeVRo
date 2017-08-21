@@ -4,6 +4,24 @@ Load Data for LSTM Model
     • Load Data
     • Create Batches
 
+......................................................................................................................
+Model 1) Feed to best SSD-extracted alpha components (250Hz), i.e. 2 channels, into LSTM to predict ratings (1Hz)
+
+
+Comp1: [x1_0, ..., x1_250], [x1_251, ..., x1_500], ... ]  ==> LSTM \
+                                                                    ==>> Rating [y0, y1, ... ]
+Comp2: [x2_0, ..., x2_250], [x2_251, ..., x2_500], ... ]  ==> LSTM /
+
+......................................................................................................................
+MODEL 2: Feed slightly pre-processed channels data, i.e. 30 channels, into LSTM to predict ratings
+
+Channel01: [x01_0, ..., x01_250], [x01_251, ..., x01_500], ... ]  ==> LSTM \
+Channel02: [x02_0, ..., x02_250], [x02_251, ..., x02_500], ... ]  ==> LSTM  \
+...                                                                          ==>> Rating [y0, y1, ... ]
+...                                                                         /
+Channel30: [x30_0, ..., x30_250], [x30_251, ..., x30_500], ... ]  ==> LSTM /
+......................................................................................................................
+
 Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017
 """
 
@@ -229,20 +247,29 @@ class DataSet(object):
     """
     Utility class (http://wiki.c2.com/?UtilityClasses) to handle dataset structure
     """
-    def __init__(self, eeg, ratings):
+    def __init__(self, eeg, ratings, subject, condition, eeg_samp_freq=250., rating_samp_freq=1.):
         """
         Builds dataset with EEG data and Ratings
-        :param eeg: EEG data
-        :param ratings: Rating Data
+        :param eeg: eeg data, concatenated of Space and Ande Coaster in one run (so far only NoMov)
+        :param ratings: rating data, concatenated of Space and Ande Coaster in one run
+        :param subject: Subject Nummer
+        :param condition: Subject condition
+        :param eeg_samp_freq: sampling frequency of EEG data (default = 250Hz)
+        :param rating_samp_freq: sampling frequency of Rating data (default = 1Hz)
         """
         # TODO this assert needs to be adapted according to the sampling freq: s-freq(eeg) >= s-freq(ratings)
-        assert eeg.shape[0] == ratings[0], "eeg.shape: {}, ratings.shape: {}".format(eeg.shape, ratings.shape)
-        self._num_time_slices = eeg.shape[0]
+        assert eeg.shape[0] == ratings.shape[0], "eeg.shape: {}, ratings.shape: {}".format(eeg.shape, ratings.shape)
+
+        self.eeg_samp_freq = eeg_samp_freq
+        self.rating_samp_freq = rating_samp_freq
+        self._num_time_slices = int(eeg.shape[0]/eeg_samp_freq)+1  # TODO adapt
         self._eeg = eeg  # input
         self._ratings = ratings  # target
         self._epochs_completed = 0
-        self._index_in_epoch = 0
-        # TODO include subject-option
+        self._index_in_eeg_epoch = 0
+        self._index_in_rating_epoch = 0
+        self.subject = subject
+        self.condition = condition
 
     @property
     def eeg(self):
@@ -260,80 +287,136 @@ class DataSet(object):
     def epochs_completed(self):
         return self._epochs_completed
 
-    # TODO create Batches
-    def next_batch(self, batch_size):
+    def next_batch(self, batch_size=None):
         """
         Return the next 'batch_size' examples from this data set
+        For MODEL 1: the batch size = Sampl.Freq.(EEG)=250, i.e. input 250 datapoints, gives 1 output (rating),
+        aka. many-to-one
         :param batch_size: Batch size
         :return: Next batch
         """
-        start = self._index_in_epoch
-        self._index_in_epoch += batch_size
-        if self._index_in_epoch > self._num_time_slices:
+
+        if batch_size is None:
+            batch_size = self.eeg_samp_freq
+
+        start_eeg = self._index_in_eeg_epoch
+        start_rating = self._index_in_rating_epoch
+
+        self._index_in_eeg_epoch += batch_size
+        # if self._index_in_eeg_epoch/self.eeg_samp_freq > self._num_time_slices:
+        if self._index_in_rating_epoch > self._num_time_slices:
             self._epochs_completed += 1
 
-            perm = np.arrange(self._num_time_slices)
-            np.random.shuffle(perm)  # TODO check whether makes sense for LSTM
-            self._eeg = self._eeg[perm]
-            self._ratings = self._ratings[perm]
+            # # Shuffling only makes sense if we consider batches as independent, what we don't for later models
+            # perm = np.arrange(self._num_time_slices)
+            # np.random.shuffle(perm)
+            # self._eeg = self._eeg[perm]
+            # self._ratings = self._ratings[perm]
 
-            start = 0
-            self._index_in_epoch = batch_size
-            assert batch_size <= self._num_time_slices
+            start_eeg = 0
+            start_rating = 0
+            self._index_in_eeg_epoch = batch_size
+            self._index_in_rating_epoch = 1
 
-        end = self._index_in_epoch
+        end_eeg = self._index_in_eeg_epoch
+        end_rating = self._index_in_rating_epoch
 
-        return self._eeg[start:end], self._ratings[start:end]
+        return self._eeg[start_eeg:end_eeg], self._ratings[start_rating:end_rating]
 
 
-def read_data_sets(data_dir, validation_size=0):
+def concatenate(array1, array2):
+    return np.concatenate((array1, array2), axis=0)
+
+
+def splitter(array_to_split, n_splits):
+    n_prune = 0
+    while True:
+        try:
+            array_to_split = np.array(np.split(array_to_split, n_splits, axis=0))
+        except ValueError as err:
+            # print(err)
+            array_to_split = array_to_split[0:-1]  # prune until split is possible
+            n_prune += 1
+
+        else:
+            print("Input array was pruned by", n_prune)
+            break
+
+    return array_to_split
+
+
+def read_data_sets(subject, s_fold_idx, s_fold=10):
     """
-    Returns the dataset read from data_dir.
-    Uses or not uses one-hot encoding for the labels.
-    Subsamples validation set with specified size if necessary.
+    Returns the s-fold-prepared dataset.
+    S-Fold Validation, S=5: [ |-Train-|-Train-|-Train-|-Valid-|-Train-|] Dataset
     Args:
-        data_dir: Data directory.
-        validation_size: Size of validation set
+        subject: Subject Nr., subject dataset for training
+        s_fold_idx: index which of the folds is taken as validation set
+        s_fold: s-value of S-Fold Validation [default=5]
     Returns:
-        Train, Test, Validation Datasets
+        Train, Validation Datasets
     """
 
     # TODO Extract NeVRo EEG data, split it two sets
     # TODO S-FOLD (for tuning hyper-parameter): train-test-set split
-    # S-Fold Validation, S=5: [ |-Train-|-Train-|-Train-|-Valid-|-Train-|] Dataset
 
-    train_eeg, test_eeg = load_ssd_component()
-    train_ratings, test_ratings = load_rating_files()
+    eeg_data = load_ssd_component()
+    rating_data = load_rating_files()
+    condition = rating_data[str(subject)]["condition"]
 
     # Subsample the validation set from the train set
-    if not 0 <= validation_size <= len(train_eeg):
-        raise ValueError("Validation size should be between 0 and {0}. Received: {1}.".format(
-            len(train_eeg), validation_size))
+    # 0) Concatenate Space and Ande Coaster:
+    eeg_concat = concatenate(array1=eeg_data[str(subject)]["Space_NoMov"][:, 0:2],  # TODO <=> now: first 2 components
+                             array2=eeg_data[str(subject)]["Ande_NoMov"][:, 0:2])
 
-    validation_eeg = train_eeg[:validation_size]
-    validation_ratings = train_ratings[:validation_size]
-    train_eeg = train_eeg[validation_size:]
-    train_ratings = train_ratings[validation_size:]
+    rating_concat = concatenate(array1=rating_data[str(subject)]["Space_NoMov"],
+                                array2=rating_data[str(subject)]["Ande_NoMov"])
+
+    # 1) Split data in S(=s_fold) sets
+    # np.split(np.array([1,2,3,4,5,6]), 3) >> [array([1, 2]), array([3, 4]), array([5, 6])]
+    eeg_concat_split = splitter(eeg_concat, n_splits=s_freq_eeg)  # First split EEG data w.r.t. to samp.-freq.
+    # eeg_concat_split[0][0:] first to  250th value in time
+    # eeg_concat_split[1][0:] 250...500th value in time
+    rating_split = splitter(array_to_split=rating_concat, n_splits=s_fold)
+    eeg_split = splitter(array_to_split=eeg_concat_split, n_splits=s_fold)
+
+    # eeg_concat_split.shape    # (n_chunks[in 1sec], n_samples_per_chunk [250Hz], channels)
+    # eeg_split.shape           # (s_fold, n_chunks_per_fold, n_samples_per_chunk, channels)
+    # rating_split.shape        # (s_fold, n_samples_per_fold,)
+
+    # Assign variables accordingly:
+    validation_eeg = eeg_split[s_fold_idx]
+    validation_ratings = rating_split[s_fold_idx]
+    # TODO merge the rest again
+    train_eeg = np.delete(arr=eeg_split, obj=s_fold_idx, axis=0)
+    train_ratings = np.delete(arr=rating_split, obj=s_fold_idx, axis=0)
 
     # Create datasets
-    train = DataSet(train_eeg, train_ratings)
-    validation = DataSet(validation_eeg, validation_ratings)
-    test = DataSet(test_eeg, test_ratings)
+    train = DataSet(eeg=train_eeg, ratings=train_ratings, subject=subject, condition=condition)
+    validation = DataSet(eeg=validation_eeg, ratings=validation_ratings, subject=subject, condition=condition)
+    # test = DataSet(eeg=test_eeg, ratings=test_ratings, subject=subject, condition=condition)  # TODO
+    test = None
 
-    return base.Datasets(train=train, validation=validation, test=test)
+    return base.Datasets(train=train, validation=validation, test=test), s_fold_idx
 
 
-def get_nevro_data(data_dir=wdic_Data, validation_size=0):
+def get_nevro_data(subject, s_fold_idx, s_fold=5):
     """
       Prepares NeVRo dataset.
       Args:
-        data_dir: Data directory.
-        validation_size: Size of validation set
+        subject: Which subject data to train
+        s_fold_idx: index which of the folds is taken as validation set
+        s_fold: s-value of S-Fold Validation [default=5]
       Returns:
-        Train, Validation, Test Datasets
+        Train, Validation Datasets (TODO: +Test?)
       """
 
-    return read_data_sets(data_dir, validation_size)
+    return read_data_sets(subject=subject, s_fold_idx=s_fold_idx, s_fold=s_fold)
 
 
 # TODO continue here:
+
+len(SSD_Comp_dic["36"]['Space_NoMov']) / s_freq_eeg
+len(Rating_dic["36"]['Space_NoMov'])
+len(SSD_Comp_dic["36"]['Ande_NoMov']) / s_freq_eeg
+len(Rating_dic["36"]['Ande_NoMov'])
