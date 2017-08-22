@@ -138,6 +138,8 @@ for subject in range(1, nSub+1):
                 # 2) Fill a vector of original file length and indicate with 1 [0, 0, 0, 1, 0, 0,...]
                 file_name_crop = "NVR_S{}_{}_T_R.txt".format(str(subject).zfill(2), phase)
                 file_name_crop_v01 = "NVR_S{}_{}_T_R_v01.txt".format(str(subject).zfill(2), phase)
+                file_name_crop_trim = "NVR_S{}_{}_T_R.txt".format(str(subject).zfill(2), phase)
+                file_name_crop_v01_trim = "NVR_S{}_{}_T_R_v01.txt".format(str(subject).zfill(2), phase)
 
                 t_cut_pts = 0  # time to cut
                 for cut_sum in range(phase_count):
@@ -197,7 +199,6 @@ for subject in range(1, nSub+1):
                         export_file.close()
 
                     # Export vector_01
-
                     export_file_v01 = open(wdic_cropTR + file_name_crop_v01, "w")
                     for zero_or_one in vec_01_phase:
                         export_file_v01.write("{}\n".format(int(zero_or_one)))
@@ -249,6 +250,94 @@ np.savetxt(wdic_cropTR + "HR_per_phase_{}.csv".format(str(nSub).zfill(2)),
 a = m_HR_df[:, -1]
 a = np.delete(a, np.where(a == 0)[0])  # cut out zero values
 plt.hist(a)
+
+
+# Create trimmed data files
+
+wdic_cropTR_trim = "../../Data/ECG/TR_cropped/trimmed/"
+
+trim_time = 5.
+trimmed_time_space = 153. - trim_time
+trimmed_time_ande = 97. - trim_time
+
+# first for Space and Ande
+for file in os.listdir(wdic_cropTR):
+    if "Space" in file or "Ande" in file:
+        trimmed_time = trimmed_time_space if "Space" in file else trimmed_time_ande  # if "Ande" in file
+
+        to_trim = np.genfromtxt(wdic_cropTR + file, delimiter="\n")
+        if "v01" not in file:
+            # Trim 2.5sec in the beginning:
+            trim_start = np.where(to_trim < trim_time/2)[0][-1] + 1
+            try:
+                # this should be only for S01 a problem
+                trim_end = np.where(to_trim > trimmed_time+(trim_time/2))[0][0]
+            except:
+                print("trim_end adapted for:", file)
+                trim_end = len(to_trim) - 1
+
+            trimmed = to_trim[trim_start:trim_end]
+            trimmed -= trim_time/2
+
+            # print(file[4:7] + " T_R[last] - T_R[first) =", trimmed[-1]-trimmed[0])
+
+        else:
+            # Trim 2.5sec*samp.freq in the beginning:
+            trim_start = int(s_freq * trim_time/2)
+            trim_end = int(s_freq*(trimmed_time + trim_time/2))
+            trimmed = to_trim[trim_start:trim_end]
+            # print(file[4:7] + " v01_length/sampling freq=", len(trimmed)/s_freq)
+
+    # Save trimmed data
+    with open(wdic_cropTR_trim + file, "w") as export_file:
+        if len(trimmed) > 0:
+            for trimtem in trimmed:
+                exp_item = trimtem if "v01" not in file else int(trimtem)
+                export_file.write("{}\n".format(exp_item))
+                # export_file.write("{}\n".format(int(trimtem)))  # in case of v01
+
+# now for breaks
+for file in os.listdir(wdic_cropTR):
+    if "Break" in file:
+        trimmed_time = 30.
+
+        to_trim = np.genfromtxt(wdic_cropTR + file, delimiter="\n")
+        if "v01" not in file:
+            # Trim 2.5sec in the beginning:
+            trim_start = 0
+            try:
+                # this should be only for S01 a problem
+                trim_end = np.where(to_trim > trimmed_time)[0][0]
+            except:
+                # print(file)
+                trim_end = len(to_trim) - 1
+
+            trimmed = to_trim[trim_start:trim_end]
+
+            # print(file[4:7] + " T_R[last]", trimmed[-1])
+
+        else:
+            # Trim 2.5sec*samp.freq in the beginning:
+            trim_start = 0
+            trim_end = int(s_freq * trimmed_time)
+            trimmed = to_trim[trim_start:trim_end]
+            # print(file[4:7] + " v01_length/sampling freq=", len(trimmed)/s_freq)
+
+    # Save trimmed data
+    with open(wdic_cropTR_trim + file, "w") as export_file:
+        if len(trimmed) > 0:
+            for trimtem in trimmed:
+                exp_item = trimtem if "v01" not in file else int(trimtem)
+                export_file.write("{}\n".format(exp_item))
+                # export_file.write("{}\n".format(int(trimtem)))  # in case of v01
+
+
+
+
+
+
+
+
 
 
 # # Calculate Marker, take mean of 2 random subjects

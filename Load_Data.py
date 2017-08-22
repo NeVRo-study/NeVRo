@@ -257,17 +257,18 @@ class DataSet(object):
         :param eeg_samp_freq: sampling frequency of EEG data (default = 250Hz)
         :param rating_samp_freq: sampling frequency of Rating data (default = 1Hz)
         """
-        # TODO this assert needs to be adapted according to the sampling freq: s-freq(eeg) >= s-freq(ratings)
+
         assert eeg.shape[0] == ratings.shape[0], "eeg.shape: {}, ratings.shape: {}".format(eeg.shape, ratings.shape)
 
         self.eeg_samp_freq = eeg_samp_freq
         self.rating_samp_freq = rating_samp_freq
-        self._num_time_slices = int(eeg.shape[0]/eeg_samp_freq)+1  # TODO adapt
+        self._num_time_slices = eeg.shape[0]
         self._eeg = eeg  # input
         self._ratings = ratings  # target
         self._epochs_completed = 0
-        self._index_in_eeg_epoch = 0
-        self._index_in_rating_epoch = 0
+        self._index_in_epoch = 0
+        self._index_in_eeg_epoch = 0  # for alternative _next_batch() method
+        self._index_in_rating_epoch = 0  # for alternative _next_batch() method
         self.subject = subject
         self.condition = condition
 
@@ -287,8 +288,47 @@ class DataSet(object):
     def epochs_completed(self):
         return self._epochs_completed
 
-    def next_batch(self, batch_size=None):
+    def next_batch(self, batch_size=1):
         """
+        Return the next 'batch_size' examples from this data set
+        For MODEL 1: the batch size = Sampl.Freq.(EEG)=250, i.e. input 250 datapoints, gives 1 output (rating),
+        aka. many-to-one
+        :param batch_size: Batch size
+        :return: Next batch
+        """
+
+        if batch_size > 1:
+            raise ValueError("A batch_size of > 1 is not recommanded at this point")
+
+        start = self._index_in_epoch
+
+        self._index_in_epoch += batch_size
+        # if self._index_in_eeg_epoch/self.eeg_samp_freq > self._num_time_slices:
+        if self._index_in_rating_epoch > self._num_time_slices:
+            self._epochs_completed += 1
+
+            # # Shuffling only makes sense if we consider batches as independent, what we don't for later models
+            # perm = np.arrange(self._num_time_slices)
+            # np.random.shuffle(perm)
+            # self._eeg = self._eeg[perm]
+            # self._ratings = self._ratings[perm]
+
+            start = 0
+
+            self._index_in_epoch = batch_size
+
+        end = self._index_in_epoch
+
+        if batch_size == 1:
+            return self._eeg[start:end][0], self._ratings[start:end]
+        else:  # batch_size > 1
+            return self._eeg[start:end][0:batch_size], self._ratings[start:end]
+
+    def _next_batch(self, batch_size=None):
+        """
+        _THIS IS A BACKUP:
+        Potential solution for different preparation of data
+
         Return the next 'batch_size' examples from this data set
         For MODEL 1: the batch size = Sampl.Freq.(EEG)=250, i.e. input 250 datapoints, gives 1 output (rating),
         aka. many-to-one
@@ -360,6 +400,9 @@ def read_data_sets(subject, s_fold_idx, s_fold=10):
     # TODO Extract NeVRo EEG data, split it two sets
     # TODO S-FOLD (for tuning hyper-parameter): train-test-set split
 
+    assert s_fold_idx < s_fold, "s_fold_idx (={}) must be in the range of the number of folds (={})".format(s_fold_idx,
+                                                                                                            s_fold)
+
     eeg_data = load_ssd_component()
     rating_data = load_rating_files()
     condition = rating_data[str(subject)]["condition"]
@@ -387,9 +430,11 @@ def read_data_sets(subject, s_fold_idx, s_fold=10):
     # Assign variables accordingly:
     validation_eeg = eeg_split[s_fold_idx]
     validation_ratings = rating_split[s_fold_idx]
-    # TODO merge the rest again
     train_eeg = np.delete(arr=eeg_split, obj=s_fold_idx, axis=0)
     train_ratings = np.delete(arr=rating_split, obj=s_fold_idx, axis=0)
+    # Merge the training sets again (concatenate for 2D & vstack for >=3D)
+    train_eeg = np.vstack(train_eeg)  # == np.concatenate(train_eeg, axis=0)
+    train_ratings = np.concatenate(train_ratings, axis=0)
 
     # Create datasets
     train = DataSet(eeg=train_eeg, ratings=train_ratings, subject=subject, condition=condition)
@@ -397,7 +442,8 @@ def read_data_sets(subject, s_fold_idx, s_fold=10):
     # test = DataSet(eeg=test_eeg, ratings=test_ratings, subject=subject, condition=condition)  # TODO
     test = None
 
-    return base.Datasets(train=train, validation=validation, test=test), s_fold_idx
+    # return base.Datasets(train=train, validation=validation, test=test), s_fold_idx  #TODO
+    return {"train": train, "validation": validation,"test": test}, s_fold_idx
 
 
 def get_nevro_data(subject, s_fold_idx, s_fold=5):
