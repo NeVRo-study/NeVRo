@@ -332,14 +332,6 @@ for file in os.listdir(wdic_cropTR):
                 # export_file.write("{}\n".format(int(trimtem)))  # in case of v01
 
 
-
-
-
-
-
-
-
-
 # # Calculate Marker, take mean of 2 random subjects
 # # Date: 2017.07.18 (S_44)
 # Mk2 = 0
