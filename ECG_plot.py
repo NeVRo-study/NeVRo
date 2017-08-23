@@ -40,20 +40,11 @@ class ECGplot:
                                                           dropouts_array=self.dropouts,
                                                           selected_array=self.subject_selection)
 
-        self.phases = ["Resting_Open",
-                       "Resting_Close",
-                       "Space_Mov",
-                       "Break_Mov",
-                       "Ande_Mov",
-                       "Rating_Space_Mov",
-                       "Rating_Break_Mov",
-                       "Rating_Ande_Mov",
-                       "Space_NoMov",
-                       "Break_NoMov",
-                       "Ande_NoMov",
-                       "Rating_Space_NoMov",
-                       "Rating_Break_NoMov",
-                       "Rating_Ande_NoMov"]
+        self.phases = ["Resting_Open", "Resting_Close",
+                       "Space_Mov",          "Break_Mov",          "Ande_Mov",
+                       "Rating_Space_Mov",   "Rating_Break_Mov",   "Rating_Ande_Mov",
+                       "Space_NoMov",        "Break_NoMov",        "Ande_NoMov",
+                       "Rating_Space_NoMov", "Rating_Break_NoMov", "Rating_Ande_NoMov"]
 
         # Trimmed time
         self.trimmed = trimmed
@@ -61,6 +52,7 @@ class ECGplot:
         self.trimmed_time_space = 153. - self.trim_time
         self.trimmed_break = 30.
         self.trimmed_time_ande = 97. - self.trim_time
+        self.trimmed_resting = 300.
 
         # Get phase-times (=max length of phases of all subjects)
         self.phase_lengths = np.zeros((len(self.phases),))
@@ -70,20 +62,11 @@ class ECGplot:
             self.phase_lengths_int[2:] -= 1
 
         # Will contain z-scored HR for each phase, i.e. z-scored within one phase.
-        self.each_phases_z = {"Resting_Open": [],
-                              "Resting_Close": [],
-                              "Space_Mov": [],
-                              "Break_Mov": [],
-                              "Ande_Mov": [],
-                              "Rating_Space_Mov": [],
-                              "Rating_Break_Mov": [],
-                              "Rating_Ande_Mov": [],
-                              "Space_NoMov": [],
-                              "Break_NoMov": [],
-                              "Ande_NoMov": [],
-                              "Rating_Space_NoMov": [],
-                              "Rating_Break_NoMov": [],
-                              "Rating_Ande_NoMov": []}
+        self.each_phases_z = {"Resting_Open": [], "Resting_Close": [],
+                              "Space_Mov": [],          "Break_Mov": [],          "Ande_Mov": [],
+                              "Rating_Space_Mov": [],   "Rating_Break_Mov": [],   "Rating_Ande_Mov": [],
+                              "Space_NoMov": [],        "Break_NoMov": [],        "Ande_NoMov": [],
+                              "Rating_Space_NoMov": [], "Rating_Break_NoMov": [], "Rating_Ande_NoMov": []}
 
         # Will contain each phase separately, and various concatenated versions (all-phases):
         # 'all_phases', 'all_phases_z'*, 'all_phases_z_smooth'* || *z-scored across all concatenated phases
@@ -92,7 +75,7 @@ class ECGplot:
         self._create_z_scores()  # will update self.all_phases
 
         self.w_size = smooth_w_size  # McCall has a window of 3 (see: SCRIPT_paperAnalyses_HR.m)
-        self._create_smoothing()
+        self._create_smoothing(mode=0)  # modes:=["ontop"[0], "hanging"[1]]
 
         self.ratings_dic = {}
         self._update_ratings_dic()
@@ -195,18 +178,19 @@ class ECGplot:
         return plot_answer, save_answer
 
     def _update_phase_lengths(self):
-        for sub in self.subjects:
-            for num, phase in enumerate(self.phases):
-                tr_file_name = self.wdic_cropRR + "NVR_S{}_{}_T_R.txt".format(str(sub).zfill(2), phase)
-                if os.path.isfile(tr_file_name):
-                    tr_file = np.loadtxt(tr_file_name)
-                    self.phase_lengths[num] = tr_file[-1] if tr_file[-1] > self.phase_lengths[num] \
-                        else self.phase_lengths[num]
 
         if self.trimmed:
             t_vec = np.array([self.trimmed_time_space, self.trimmed_break, self.trimmed_time_ande])
-            # leave Resting States out
-            self.phase_lengths[2:] = np.tile(t_vec, 4)
+            self.phase_lengths[:] = np.append(np.tile(self.trimmed_resting, 2), np.tile(t_vec, 4))
+
+        else:
+            for sub in self.subjects:
+                for num, phase in enumerate(self.phases):
+                    tr_file_name = self.wdic_cropRR + "NVR_S{}_{}_T_R.txt".format(str(sub).zfill(2), phase)
+                    if os.path.isfile(tr_file_name):
+                        tr_file = np.loadtxt(tr_file_name)
+                        self.phase_lengths[num] = tr_file[-1] if tr_file[-1] > self.phase_lengths[num] \
+                            else self.phase_lengths[num]
 
         print("Length of each phase:\n", self.phase_lengths)
 
@@ -311,9 +295,11 @@ class ECGplot:
                 # fig_phase.legend(labels=phase, handles=...)
 
             for sub_idx, sub in enumerate(self.subjects):
-                # TODO adapt to trim
-                tr_file_name = self.wdic_cropRR + "NVR_S{}_{}_T_R.txt".format(str(sub).zfill(2), phase)
+
+                wdic = self.wdic_cropTR_trim if self.trimmed else self.wdic_cropRR
+                tr_file_name = wdic + "NVR_S{}_{}_T_R.txt".format(str(sub).zfill(2), phase)
                 if os.path.isfile(tr_file_name):
+
                     tr_file = np.loadtxt(tr_file_name)
                     # rr_file = np.array([tr_file[i]-tr_file[i-1] for i in range(1, len(tr_file))])
                     # hr_file = 60/rr_file  # HR (B/min)
@@ -321,8 +307,7 @@ class ECGplot:
                     # Convert from T_R to HR file, down-sample HR file to 1Hz
                     hr_file_ds = self._tr_to_hr(tr_array=tr_file)
 
-                    # calculate z_score
-
+                    # calculate z_score within phase (!)
                     z_hr_file_ds = self._z_score_hr(hr_array=hr_file_ds)
 
                     # Fill in each_phases_z:
@@ -351,10 +336,13 @@ class ECGplot:
                             # U18, 18 for max-length of str (n characters) of col_names
                             events = events[:, 1:]  # drop start=0
 
+                            # Events need to be shifted, if trimmed
+                            subtractor = self.trim_time / 2 if self.trimmed else 0
+
                             for idxe, event in enumerate(events[0, :]):
-                                t_event = int(events[1, idxe])  # timepoint of event
+                                t_event = float(events[1, idxe]) - subtractor  # timepoint of event
                                 shift = 0 if idxe % 2 == 0 else 1
-                                plt.vlines(x=t_event, ymin=-(y_min_max-shift), ymax=mean_z[t_event],
+                                plt.vlines(x=t_event, ymin=-(y_min_max-shift), ymax=mean_z[int(t_event)],
                                            linestyles="dotted", alpha=0.3)
                                 plt.text(x=t_event, y=-(y_min_max-shift), s=event)
 
@@ -363,11 +351,13 @@ class ECGplot:
                             events = np.genfromtxt(self.wdic + "ande_events.csv", delimiter=",", dtype="|U12")
                             # U12, 12 for max-length of str (n characters) of col_names
                             events = events[:, 1:]  # drop start=0
+                            # Events need to be shifted, if trimmed
+                            subtractor = self.trim_time / 2 if self.trimmed else 0
 
                             for idxe, event in enumerate(events[0, :]):
-                                t_event = int(events[1, idxe])  # timepoint of event
+                                t_event = float(events[1, idxe]) - subtractor   # timepoint of event
                                 shift = 0 if idxe % 2 == 0 else 1
-                                plt.vlines(x=t_event, ymin=-(y_min_max-shift), ymax=mean_z[t_event],
+                                plt.vlines(x=t_event, ymin=-(y_min_max-shift), ymax=mean_z[int(t_event)],
                                            linestyles="dotted", alpha=0.3)
                                 plt.text(x=t_event, y=-(y_min_max-shift), s=event)
 
@@ -388,7 +378,7 @@ class ECGplot:
                 # phase_lengths_int[num] == all_phases[phase][sub].shape[0]
                 idx += self.all_phases[phase][sub].shape[0]
                 self.all_phases["all_phases"][sub][old_idx: idx] = self.all_phases[phase][sub]
-                if num < 11:
+                if num < 13:
                     old_idx = idx
 
     def _create_z_scores(self):
@@ -399,7 +389,7 @@ class ECGplot:
             sub_std = np.nanstd(self.all_phases["all_phases"][sub])
             self.all_phases["all_phases_z"][sub] = (copy.copy(self.all_phases["all_phases"][sub]) - sub_mean) / sub_std
 
-    def _create_smoothing(self):
+    def _create_smoothing(self, mode=0):
         # smoothing the HR: try 3data-point sliding-window [1,2,3] average and write over last value
         # Update dic
         self.all_phases.update({"all_phases_smooth": copy.copy(self.all_phases["all_phases"])})
@@ -407,7 +397,7 @@ class ECGplot:
         # all_phases.keys()  # 'all_phases', 'all_phases_z'
 
         s_modes = ["ontop", "hanging"]
-        s_mode = s_modes[0]  # can be changed
+        s_mode = s_modes[mode]  # can be changed
         # w_size = 3  # can be changed, w_size € [3, 5, 11, 21]
         for i in range(self.n_sub):
             self.all_phases["all_phases_smooth"][i, :] = self.smooth(
@@ -765,6 +755,9 @@ class ECGplot:
                     # U12, 12 for max-length of str (n characters) of col_names
 
                 events = events[:, 1:]  # drop start=0
+
+                subtractor = self.trim_time/2 if self.trimmed else 0  # Events need to be shifted, if trimmed
+
                 shift_counter = 0
                 for idxe, event in enumerate(events[0, :]):
                     shift_counter += 1
@@ -772,13 +765,13 @@ class ECGplot:
                         shift_counter = 1
                     shift = 1 if shift_counter > 2 else 0  # switch between 1 and zero
 
-                    t_event = int(events[1, idxe])  # timepoint of event
+                    t_event = float(events[1, idxe]) - subtractor  # timepoint of event
                     up_down = -1 if idxe % 2 == 0 else 1
 
                     if up_down > 0:
-                        y_max_value = np.min((var1[t_event], var2[t_event]))
+                        y_max_value = np.min((var1[int(t_event)], var2[int(t_event)]))
                     else:  # up_down < 0:
-                        y_max_value = np.max((var1[t_event], var2[t_event]))
+                        y_max_value = np.max((var1[int(t_event)], var2[int(t_event)]))
 
                     plt.vlines(x=t_event, ymin=(ylims-shift)*up_down, ymax=y_max_value, linestyles="dotted",
                                alpha=0.3)
