@@ -13,13 +13,13 @@ import os.path
 import matplotlib.pyplot as plt
 import copy
 
-# TODO save function
+# TODO 2.1) RE-z-score heart rate as was done for ratings (concatenate two coasters + break then z-score)
 
 
 class ECGplot:
 
-    def __init__(self, n_sub=45, dropouts=[1, 12, 32, 33, 35, 38, 41, 42, 45], subject_selection=[],
-                 smooth_w_size=3, trimmed=True):
+    def __init__(self, n_sub=45, dropouts=[1, 12, 32, 33, 35, 38, 41, 42, 45], subject_selection=[], smooth_w_size=3,
+                 trimmed=True):
 
         # Change to folder which contains files
         self.wdic = "../../Data/"
@@ -461,19 +461,19 @@ class ECGplot:
         sba_keys_mov = []
         sba_keys_no_mov = []
         for key in sba_keys:
-            if "NoMov" in key and not "Rating" in key:
+            if "NoMov" in key and "Rating" not in key:
                 sba_keys_no_mov.append(key)
-            elif "_Mov" in key and not "Rating" in key:
+            elif "_Mov" in key and "Rating" not in key:
                 sba_keys_mov.append(key)
 
         sba_order = ["S", "B", "A"]  # SBA
         sba_keys_mov_ordered = np.repeat("____________", len(sba_order))
         sba_keys_no_mov_ordered = np.repeat("____________", len(sba_order))
-        for odx, ord in enumerate(sba_order):
+        for odx, ords in enumerate(sba_order):
             for i in range(len(sba_order)):
-                if ord in sba_keys_mov[i]:
+                if ords in sba_keys_mov[i]:
                     sba_keys_mov_ordered[odx] = sba_keys_mov[i]
-                if ord in sba_keys_no_mov[i]:
+                if ords in sba_keys_no_mov[i]:
                     sba_keys_no_mov_ordered[odx] = sba_keys_no_mov[i]
         sba_keys_mov, sba_keys_no_mov = sba_keys_mov_ordered, sba_keys_no_mov_ordered
         # sba_keys_mov = np.flip(np.roll(sba_keys_mov, 2), 0)  # should be right order: Space, Break, Ande
@@ -560,10 +560,9 @@ class ECGplot:
 
         return sba
 
-    # TODO save SBA
     def save_sba(self):
         sba_keys = [key for key in self.SBA.keys()]  # ['zSBA', 'SBA']
-        cond_keys = [key for key in self.SBA[sba_keys[0]].keys()]
+        cond_keys = [key for key in self.SBA[sba_keys[0]].keys()]  # ['NoMov', 'Mov']
 
         for key in sba_keys:
             for sub_idx, sub in enumerate(self.subjects):
@@ -571,7 +570,8 @@ class ECGplot:
                     # extract file to save
                     file_to_save = self.SBA[key][cond][sub_idx, :]  # takes file per subject
                     # Define file_name for specific folder
-                    file_name = self.wdic_SBA + cond + "/NVR_S{}_SBA_{}.txt".format(str(sub).zfill(2), cond)
+                    subfolder = "z_scored_alltog/" if "z" in key else "not_z_scored/"
+                    file_name = self.wdic_SBA + subfolder + cond + "/NVR_S{}_SBA_{}.txt".format(str(sub).zfill(2), cond)
                     # Save the file
                     with open(file_name, "w") as file:
                         for item in file_to_save:
@@ -805,7 +805,7 @@ class ECGplot:
         # print(pearsonr(var1, var1))
 
     # TODO run cross-correlation with ratings
-    # 2.1) RE-z-score heart rate as was done for ratings (concatenate two coasters then z-score)
+    # 2.1) RE-z-score heart rate as was done for ratings (concatenate two coasters + break then z-score)
     # 2.2) cross-cor rz-ratings with corresponding Re-z-HR of each phase
 
 
