@@ -290,7 +290,6 @@ class ECGplot:
         """Concatenate all phases per subject"""
 
         all_length = sum(self.phase_lengths_int)
-
         all_phase = np.reshape(np.repeat(np.nan, self.n_sub * all_length), newshape=(self.n_sub, all_length))
         # Update dic
         self.all_phases.update({"all_phases": copy.copy(all_phase)})
@@ -301,7 +300,7 @@ class ECGplot:
         for num, phase in enumerate(self.phases):
 
             # Update dict: all_phase_z
-            phase_table = np.reshape(np.repeat(np.nan, (int(self.phase_lengths[num])+1) * self.n_sub),
+            phase_table = np.reshape(np.repeat(np.nan, self.phase_lengths_int[num] * self.n_sub),
                                      newshape=(self.n_sub, -1))
             self.each_phases_z[phase] = copy.copy(phase_table)
             self.all_phases[phase] = copy.copy(phase_table)
@@ -312,6 +311,7 @@ class ECGplot:
                 # fig_phase.legend(labels=phase, handles=...)
 
             for sub_idx, sub in enumerate(self.subjects):
+                # TODO adapt to trim
                 tr_file_name = self.wdic_cropRR + "NVR_S{}_{}_T_R.txt".format(str(sub).zfill(2), phase)
                 if os.path.isfile(tr_file_name):
                     tr_file = np.loadtxt(tr_file_name)
