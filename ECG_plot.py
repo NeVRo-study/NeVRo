@@ -13,18 +13,22 @@ import os.path
 import matplotlib.pyplot as plt
 import copy
 
-# TODO create and save following data: concantenated and then z-scored data of "Space", "Break" and "Ande" (SBA)
-# TODO save
+# TODO save function
+
 
 class ECGplot:
 
-    def __init__(self, n_sub=45, dropouts=[1, 12, 32, 33, 35, 38, 41, 42, 45], subject_selection=[], smooth_w_size=3):
+    def __init__(self, n_sub=45, dropouts=[1, 12, 32, 33, 35, 38, 41, 42, 45], subject_selection=[],
+                 smooth_w_size=3, trimmed=True):
 
         # Change to folder which contains files
         self.wdic = "../../Data/"
         self.wdic_plots = "../../Data/Plots/"
         self.wdic_cropRR = "../../Data/ECG/TR_cropped/"
-        self.wdic_Rating = "../../Data/Ratings/"
+        self.wdic_SBA = "../../Data/ECG/SBA/"
+        self.wdic_Rating = "../../Data/ratings/preprocessed/z_scored_alltog/"
+        self.wdic_cropTR_trim = "../../Data/ECG/TR_cropped/trimmed/"
+
         # Set variables
         self.n_sub = n_sub  # number of all Subjects
         self.subjects = np.arange(1, n_sub+1)  # Array of all subjects
@@ -36,17 +40,34 @@ class ECGplot:
                                                           dropouts_array=self.dropouts,
                                                           selected_array=self.subject_selection)
 
-        self.phases = ["Resting_Open", "Resting_Close",
-                       "Space_Mov", "Break_Mov", "Ande_Mov",
-                       "Rating_Space_Mov", "Rating_Ande_Mov",
-                       "Space_NoMov", "Break_NoMov", "Ande_NoMov",
-                       "Rating_Space_NoMov", "Rating_Ande_NoMov"]
+        self.phases = ["Resting_Open",
+                       "Resting_Close",
+                       "Space_Mov",
+                       "Break_Mov",
+                       "Ande_Mov",
+                       "Rating_Space_Mov",
+                       "Rating_Break_Mov",
+                       "Rating_Ande_Mov",
+                       "Space_NoMov",
+                       "Break_NoMov",
+                       "Ande_NoMov",
+                       "Rating_Space_NoMov",
+                       "Rating_Break_NoMov",
+                       "Rating_Ande_NoMov"]
+
+        # Trimmed time
+        self.trimmed = trimmed
+        self.trim_time = 5.
+        self.trimmed_time_space = 153. - self.trim_time
+        self.trimmed_break = 30.
+        self.trimmed_time_ande = 97. - self.trim_time
 
         # Get phase-times (=max length of phases of all subjects)
         self.phase_lengths = np.zeros((len(self.phases),))
         self._update_phase_lengths()
         self.phase_lengths_int = np.array([int(self.phase_lengths[i])+1 for i in range(len(self.phase_lengths))])
-        # For each phase plot RR/HR trajectories per subject and mean across subjects (RR/HR) bold
+        if self.trimmed:
+            self.phase_lengths_int[2:] -= 1
 
         # Will contain z-scored HR for each phase, i.e. z-scored within one phase.
         self.each_phases_z = {"Resting_Open": [],
@@ -55,11 +76,13 @@ class ECGplot:
                               "Break_Mov": [],
                               "Ande_Mov": [],
                               "Rating_Space_Mov": [],
+                              "Rating_Break_Mov": [],
                               "Rating_Ande_Mov": [],
                               "Space_NoMov": [],
                               "Break_NoMov": [],
                               "Ande_NoMov": [],
                               "Rating_Space_NoMov": [],
+                              "Rating_Break_NoMov": [],
                               "Rating_Ande_NoMov": []}
 
         # Will contain each phase separately, and various concatenated versions (all-phases):
@@ -74,6 +97,9 @@ class ECGplot:
         self.ratings_dic = {}
         self._update_ratings_dic()
         self.roller_coaster = np.array(['Space_NoMov', 'Space_Mov', 'Ande_Mov', 'Ande_NoMov'])
+
+        # "Space", "Break" and "Ande" (SBA) concatenated. Raw and z-scored
+        self.SBA = self._create_sba()
 
     @staticmethod
     def close(n=1):
@@ -177,46 +203,81 @@ class ECGplot:
                     self.phase_lengths[num] = tr_file[-1] if tr_file[-1] > self.phase_lengths[num] \
                         else self.phase_lengths[num]
 
+        if self.trimmed:
+            t_vec = np.array([self.trimmed_time_space, self.trimmed_break, self.trimmed_time_ande])
+            # leave Resting States out
+            self.phase_lengths[2:] = np.tile(t_vec, 4)
+
         print("Length of each phase:\n", self.phase_lengths)
 
-    def _update_ratings_dic(self):
-        """Load z-rating files and write them in ratings_dic"""
-        len_space = self.all_phases["Space_Mov"].shape[1]  # same length for NoMov
-        len_ande = self.all_phases["Ande_Mov"].shape[1]  # same length for NoMov
-        space_init = np.reshape(np.repeat(np.nan, self.n_sub * len_space), newshape=(self.n_sub, len_space))
-        ande_init = np.reshape(np.repeat(np.nan, self.n_sub * len_ande), newshape=(self.n_sub, len_ande))
-
-        self.ratings_dic = {"Space_Mov": copy.copy(space_init),
-                            "Ande_Mov": copy.copy(ande_init),
-                            "Space_NoMov": copy.copy(space_init),
-                            "Ande_NoMov": copy.copy(ande_init)}
-
-        r_coasters = ["space", "andes"]
-        runs = [1, 2]
-
+    def subject_condition(self, subject_id):
         table_of_condition = np.genfromtxt(self.wdic + "Table_of_Conditions.csv", delimiter=";")
         table_of_condition = table_of_condition[1:, ]  # remove first column (sub-nr, condition, gender (1=f, 2=m))
 
+        sub_cond = int(table_of_condition[np.where(table_of_condition[:, 0] == subject_id), 1])
+
+        return sub_cond
+
+    def _update_ratings_dic(self):
+        """Load z-rating files and write them in ratings_dic"""
+        if self.trimmed:
+            len_space = int(self.trimmed_time_space)
+            len_break = int(self.trimmed_break)
+            len_ande = int(self.trimmed_time_ande)
+        else:
+            len_space = self.all_phases["Space_Mov"].shape[1]  # same length for NoMov
+            len_break = self.all_phases["Break_Mov"].shape[1]
+            len_ande = self.all_phases["Ande_Mov"].shape[1]
+
+        space_init = np.reshape(np.repeat(np.nan, self.n_sub * len_space), newshape=(self.n_sub, len_space))
+        break_init = np.reshape(np.repeat(np.nan, self.n_sub * len_break), newshape=(self.n_sub, len_break))
+        ande_init = np.reshape(np.repeat(np.nan, self.n_sub * len_ande), newshape=(self.n_sub, len_ande))
+
+        self.ratings_dic = {"Space_Mov": copy.copy(space_init),
+                            "Break_Mov": copy.copy(break_init),
+                            "Ande_Mov": copy.copy(ande_init),
+                            "Space_NoMov": copy.copy(space_init),
+                            "Break_NoMov": copy.copy(break_init),
+                            "Ande_NoMov": copy.copy(ande_init)}
+
+        r_coasters = ["space", "break", "andes"]
+        condition = ["move", "nomove"]
+
         for sub_idx, sub in enumerate(self.subjects):
             for num, coaster in enumerate(r_coasters):
-                for r in runs:
-                    rating_filename = self.wdic_Rating + \
-                                      "/{}/{}_z/1Hz/NVR_S{}_run_{}_{}_rat_z.txt".format(coaster,
-                                                                                        coaster,
-                                                                                        str(sub).zfill(2),
-                                                                                        str(r),
-                                                                                        coaster)
+                for cond in condition:
+                    try:
+                        sub_cond = self.subject_condition(subject_id=sub)  # cond of sub
+                    except Exception:
+                        sub_cond = "NaN"  # in case of S12
+                    r = 1 if (sub_cond == 12 and cond == "move") or (sub_cond == 21 and cond == "nomove") else 2  # run
+                    rating_filename = self.wdic_Rating + "{}/{}/1Hz/NVR_S{}_run_{}_{}_rat_z.txt".format(
+                        coaster,
+                        cond,
+                        str(sub).zfill(2),
+                        str(r),
+                        coaster)
+
                     if os.path.isfile(rating_filename):
                         rating_file = np.genfromtxt(rating_filename, delimiter=',')[:, 1]  # only load col with ratings
 
                         # Fill in right slot of ratings_dic
                         ratings_key = ''
-                        ratings_key += "Space_" if coaster == "space" else "Ande_"
-                        sub_cond = int(table_of_condition[np.where(table_of_condition[:, 0] == sub), 1])  # cond of sub
-                        mov = "Mov" if (sub_cond == 12 and r == 1) or (sub_cond == 21 and r == 2) else "NoMov"
+                        if coaster == 'space':
+                            key_add = "Space_"
+                        elif coaster == "break":
+                            key_add = "Break_"
+                        else:  # coaster == "andes"
+                            key_add = "Ande_"
+                        ratings_key += key_add
+                        mov = "Mov" if cond == 'move' else "NoMov"
                         ratings_key += mov
                         # print("ratings_key:", ratings_key)
                         if self.ratings_dic[ratings_key][sub_idx, :].shape[0] != len(rating_file):
+                            print("For Subject {} in {}:".format(sub, ratings_key))
+                            print("self.ratings_dic[ratings_key][sub_idx, :].shape[0]={} \n"
+                                  "len(rating_file)={}".format(self.ratings_dic[ratings_key][sub_idx, :].shape[0],
+                                                               len(rating_file)))
                             raise ValueError("Rating_file: '{}' has not same length as HR_file!".format(
                                 rating_filename))
                         # print("Update Subject{}:".format(str(sub)), ratings_key)
@@ -227,9 +288,9 @@ class ECGplot:
 
     def _concat_all_phases(self):
         """Concatenate all phases per subject"""
-        all_length = 0
-        for phase in self.phase_lengths:
-            all_length += (int(phase)+1)
+
+        all_length = sum(self.phase_lengths_int)
+
         all_phase = np.reshape(np.repeat(np.nan, self.n_sub * all_length), newshape=(self.n_sub, all_length))
         # Update dic
         self.all_phases.update({"all_phases": copy.copy(all_phase)})
@@ -257,19 +318,13 @@ class ECGplot:
                     # rr_file = np.array([tr_file[i]-tr_file[i-1] for i in range(1, len(tr_file))])
                     # hr_file = 60/rr_file  # HR (B/min)
 
-                    # downsample HR file to 1Hz
-                    hr_file_ds = np.zeros(shape=(int(tr_file[-1]) + 1,))
-                    for i in range(len(hr_file_ds)):
-                        # bender = len(hr_file_ds)/len(HR_file)
-                        if len(tr_file[tr_file < i]) > 1:
-                            rr_int_i = (tr_file[tr_file < i][-1] - tr_file[tr_file < i][-2])
-                            hr_i = 60/rr_int_i
-                            hr_file_ds[i] = hr_i
+                    # Convert from T_R to HR file, down-sample HR file to 1Hz
+                    hr_file_ds = self._tr_to_hr(tr_array=tr_file)
 
                     # calculate z_score
-                    hr_file_ds[np.where(hr_file_ds == 0)] = np.nan  # replace zeros with NaN
-                    z_hr_file_ds = hr_file_ds - np.nanmean(hr_file_ds)
-                    z_hr_file_ds /= np.nanstd(hr_file_ds)
+
+                    z_hr_file_ds = self._z_score_hr(hr_array=hr_file_ds)
+
                     # Fill in each_phases_z:
                     for idx, item in enumerate(z_hr_file_ds):
                         self.each_phases_z[phase][sub_idx, idx] = item
@@ -359,6 +414,178 @@ class ECGplot:
                 array_to_smooth=self.all_phases["all_phases"][i, :], sliding_mode=s_mode)
             self.all_phases["all_phases_z_smooth"][i, :] = self.smooth(
                 array_to_smooth=self.all_phases["all_phases_z"][i, :], sliding_mode=s_mode)
+
+    @staticmethod
+    def _tr_to_hr(tr_array, exp_time=None):
+        """
+        Convert T_R array to HR_file (1Hz)
+        :param tr_array: Array of T_R values
+        :return: hr_array
+        """
+        if exp_time is None:
+            exp_time = int(tr_array[-1]) + 1
+        else:
+            exp_time = int(exp_time)
+
+        # down-sample HR file to 1Hz
+        hr_array = np.zeros(shape=(exp_time,))
+        for i in range(len(hr_array)):
+            # bender = len(hr_file_ds)/len(HR_file)
+            if len(tr_array[tr_array < i]) > 1:
+                rr_int_i = (tr_array[tr_array < i][-1] - tr_array[tr_array < i][-2])
+                hr_i = 60 / rr_int_i
+                hr_array[i] = hr_i
+
+        hr_array[np.where(hr_array == 0)] = np.nan  # replace zeros with NaN
+
+        return hr_array
+
+    @staticmethod
+    def _z_score_hr(hr_array):
+        """
+        Calculate z_score of given HR array
+        :param hr_array: HR array
+        :return: z-scored HR array
+        """
+
+        z_hr_array = hr_array - np.nanmean(hr_array)
+        z_hr_array /= np.nanstd(hr_array)
+
+        return z_hr_array
+
+    def _create_sba(self):
+        """
+        Create and save following data: concantenated and then z-scored data of "Space", "Break" and "Ande" (SBA)
+        For this data-set we used trimmed versions of the coasters.
+        At this point, ignore ECG during Ratings.
+        """
+        sba = {"SBA": {"Mov": [], "NoMov": []},
+               "zSBA": {"Mov": [], "NoMov": []}}
+
+        # Check with ECG_crop_RR.py
+        all_trims = [self.trimmed_time_space, self.trimmed_break, self.trimmed_time_ande]
+        total_trim_len = int(sum(all_trims))
+
+        # Prepare Keys
+        sba_keys = [key for key in self.each_phases_z.keys()]
+        sba_keys_mov = []
+        sba_keys_no_mov = []
+        for key in sba_keys:
+            if "NoMov" in key and not "Rating" in key:
+                sba_keys_no_mov.append(key)
+            elif "_Mov" in key and not "Rating" in key:
+                sba_keys_mov.append(key)
+
+        sba_order = ["S", "B", "A"]  # SBA
+        sba_keys_mov_ordered = np.repeat("____________", len(sba_order))
+        sba_keys_no_mov_ordered = np.repeat("____________", len(sba_order))
+        for odx, ord in enumerate(sba_order):
+            for i in range(len(sba_order)):
+                if ord in sba_keys_mov[i]:
+                    sba_keys_mov_ordered[odx] = sba_keys_mov[i]
+                if ord in sba_keys_no_mov[i]:
+                    sba_keys_no_mov_ordered[odx] = sba_keys_no_mov[i]
+        sba_keys_mov, sba_keys_no_mov = sba_keys_mov_ordered, sba_keys_no_mov_ordered
+        # sba_keys_mov = np.flip(np.roll(sba_keys_mov, 2), 0)  # should be right order: Space, Break, Ande
+        # sba_keys_no_mov = np.roll(sba_keys_no_mov, 1)
+        for i in range(len(sba_order)):
+            if not sba_order[i] in sba_keys_mov[i] or not sba_order[i] in sba_keys_no_mov[i]:
+                raise ValueError("Order not right")
+
+        # Prepare dataframes
+        sba_mov_all = np.reshape(np.repeat(np.nan, self.n_sub*total_trim_len), newshape=(self.n_sub, total_trim_len))
+        sba_no_mov_all = copy.copy(sba_mov_all)
+        zsba_mov_all = copy.copy(sba_mov_all)
+        zsba_no_mov_all = copy.copy(sba_mov_all)
+
+        # Create files for NoMov and Mov, for each normal and z-scored SBA
+        if len(os.listdir(self.wdic_cropTR_trim)) > 0:
+            for sub_idx, sub in enumerate(self.subjects):
+
+                # For Movement condition
+                mov_sba = np.array([])
+                for kdx, mov_key in enumerate(sba_keys_mov):
+                    # e.g., "NVR_S01_Space_Mov_T_R.txt"
+                    mov_file_name = self.wdic_cropTR_trim + "NVR_S{}_{}_T_R.txt".format(str(sub).zfill(2), mov_key)
+                    if os.path.isfile(mov_file_name):
+                        mov_file = np.loadtxt(mov_file_name)
+                        # Create HR out of TR files
+                        mov_hr_file_ds = self._tr_to_hr(tr_array=mov_file, exp_time=all_trims[kdx])
+                        # Check length:
+                        if not len(mov_hr_file_ds) == all_trims[kdx]:
+                            print("Length Problem with S{} in {}".format(sub, mov_key))
+                            print("len(no_mov_hr_file_ds)={}, all_trims[kdx]={}".format(len(mov_hr_file_ds),
+                                                                                        all_trims[kdx]))
+                            # raise ValueError("mov_hr_file_ds and actual trim length differ")
+                        # Concatenate
+                        mov_sba = np.append(mov_sba, mov_hr_file_ds)
+
+                # Check length
+                if not mov_sba.shape[0] == total_trim_len:
+                    print("For Sub{} in mov-cond does the concatenated file diverge from expected length".format(sub))
+                    print("mov_sba.shape[0]={}, total_trim_len={}".format(mov_sba.shape[0], total_trim_len))
+                else:
+                    # Create z-score
+                    z_mov_sba = self._z_score_hr(hr_array=mov_sba)
+                    # Save in sba_mov_all
+                    sba_mov_all[sub_idx, :] = mov_sba
+                    zsba_mov_all[sub_idx, :] = z_mov_sba
+
+                # For No-Movement condition
+                no_mov_sba = np.array([])
+                for kdx, no_mov_key in enumerate(sba_keys_no_mov):
+                    no_mov_file_name = self.wdic_cropTR_trim + "NVR_S{}_{}_T_R.txt".format(str(sub).zfill(2),
+                                                                                           no_mov_key)
+                    if os.path.isfile(no_mov_file_name):
+                        no_mov_file = np.loadtxt(no_mov_file_name)
+                        # Create HR out of TR files
+                        no_mov_hr_file_ds = self._tr_to_hr(tr_array=no_mov_file, exp_time=all_trims[kdx])
+                        # Check length:
+                        if not len(no_mov_hr_file_ds) == all_trims[kdx]:
+                            print("Length Problem with S{} in {}".format(sub, no_mov_key))
+                            print("len(no_mov_hr_file_ds)={}, all_trims[kdx]={}".format(len(no_mov_hr_file_ds),
+                                                                                        all_trims[kdx]))
+                            # raise ValueError("no_mov_hr_file_ds and actual trim length differ")
+
+                        # Concatenate
+                        no_mov_sba = np.append(no_mov_sba, no_mov_hr_file_ds)
+
+                # Check length
+                if not no_mov_sba.shape[0] == total_trim_len:
+                    print("For Sub{} in nomov-cond does the concatenated file diverge from expected length".format(sub))
+                    print("no_mov_sba.shape[0]={}, total_trim_len={}".format(no_mov_sba.shape[0], total_trim_len))
+                else:
+                    # Create z-score
+                    z_no_mov_sba = self._z_score_hr(hr_array=no_mov_sba)
+
+                    # Save in sba_no_mov_all
+                    sba_no_mov_all[sub_idx, :] = no_mov_sba
+                    zsba_no_mov_all[sub_idx, :] = z_no_mov_sba
+
+            # Save in SBA Dictionary
+            sba["SBA"]["Mov"] = sba_mov_all
+            sba["zSBA"]["Mov"] = zsba_mov_all
+            sba["SBA"]["NoMov"] = sba_no_mov_all
+            sba["zSBA"]["NoMov"] = zsba_no_mov_all
+
+        return sba
+
+    # TODO save SBA
+    def save_sba(self):
+        sba_keys = [key for key in self.SBA.keys()]  # ['zSBA', 'SBA']
+        cond_keys = [key for key in self.SBA[sba_keys[0]].keys()]
+
+        for key in sba_keys:
+            for sub_idx, sub in enumerate(self.subjects):
+                for cond in cond_keys:
+                    # extract file to save
+                    file_to_save = self.SBA[key][cond][sub_idx, :]  # takes file per subject
+                    # Define file_name for specific folder
+                    file_name = self.wdic_SBA + cond + "/NVR_S{}_SBA_{}.txt".format(str(sub).zfill(2), cond)
+                    # Save the file
+                    with open(file_name, "w") as file:
+                        for item in file_to_save:
+                            file.write("{}\n".format(item))
 
     def plot_hr(self, save_plot=False):
         """Plot HR for each subject over all phases"""
@@ -593,6 +820,7 @@ ec = ECGplot(n_sub=45,
              dropouts=[1, 12, 32, 33, 35, 38, 41, 42, 45],
              subject_selection=[6, 11, 14, 17, 20, 27, 31, 34, 36],
              smooth_w_size=21)
+
 
 # ec.plot_hr(save_plot=False)
 # ec.plot_hr(save_plot=True)

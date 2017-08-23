@@ -17,6 +17,7 @@ import matplotlib.pyplot as plt
 # Change to folder which contains files
 wdic = "../../Data/ECG/concatenated/"
 wdic_cropTR = "../../Data/ECG/TR_cropped/"
+wdic_cropTR_trim = "../../Data/ECG/TR_cropped/trimmed/"
 
 # Set variables
 nSub = 45  # Number of Subjects
@@ -252,13 +253,12 @@ a = np.delete(a, np.where(a == 0)[0])  # cut out zero values
 plt.hist(a)
 
 
-# TODO Create trimmed data files
-
-wdic_cropTR_trim = "../../Data/ECG/TR_cropped/trimmed/"
-
+# Create trimmed data files
 trim_time = 5.
 trimmed_time_space = 153. - trim_time
+trimmed_break = 30.
 trimmed_time_ande = 97. - trim_time
+
 
 # first for Space and Ande
 for file in os.listdir(wdic_cropTR):
@@ -288,18 +288,18 @@ for file in os.listdir(wdic_cropTR):
             trimmed = to_trim[trim_start:trim_end]
             # print(file[4:7] + " v01_length/sampling freq=", len(trimmed)/s_freq)
 
-    # Save trimmed data
-    with open(wdic_cropTR_trim + file, "w") as export_file:
-        if len(trimmed) > 0:
-            for trimtem in trimmed:
-                exp_item = trimtem if "v01" not in file else int(trimtem)
-                export_file.write("{}\n".format(exp_item))
-                # export_file.write("{}\n".format(int(trimtem)))  # in case of v01
+        # Save trimmed data
+        with open(wdic_cropTR_trim + file, "w") as export_file:
+            if len(trimmed) > 0:
+                for trimtem in trimmed:
+                    exp_item = trimtem if "v01" not in file else int(trimtem)
+                    export_file.write("{}\n".format(exp_item))
+                    # export_file.write("{}\n".format(int(trimtem)))  # in case of v01
 
 # now for breaks
 for file in os.listdir(wdic_cropTR):
     if "Break" in file:
-        trimmed_time = 30.
+        trimmed_time = trimmed_break
 
         to_trim = np.genfromtxt(wdic_cropTR + file, delimiter="\n")
         if "v01" not in file:
@@ -323,13 +323,13 @@ for file in os.listdir(wdic_cropTR):
             trimmed = to_trim[trim_start:trim_end]
             # print(file[4:7] + " v01_length/sampling freq=", len(trimmed)/s_freq)
 
-    # Save trimmed data
-    with open(wdic_cropTR_trim + file, "w") as export_file:
-        if len(trimmed) > 0:
-            for trimtem in trimmed:
-                exp_item = trimtem if "v01" not in file else int(trimtem)
-                export_file.write("{}\n".format(exp_item))
-                # export_file.write("{}\n".format(int(trimtem)))  # in case of v01
+        # Save trimmed data
+        with open(wdic_cropTR_trim + file, "w") as export_file:
+            if len(trimmed) > 0:
+                for trimtem in trimmed:
+                    exp_item = trimtem if "v01" not in file else int(trimtem)
+                    export_file.write("{}\n".format(exp_item))
+                    # export_file.write("{}\n".format(int(trimtem)))  # in case of v01
 
 
 # # Calculate Marker, take mean of 2 random subjects
