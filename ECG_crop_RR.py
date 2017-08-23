@@ -252,7 +252,7 @@ a = np.delete(a, np.where(a == 0)[0])  # cut out zero values
 plt.hist(a)
 
 
-# Create trimmed data files
+# TODO Create trimmed data files
 
 wdic_cropTR_trim = "../../Data/ECG/TR_cropped/trimmed/"
 

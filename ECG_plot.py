@@ -13,6 +13,8 @@ import os.path
 import matplotlib.pyplot as plt
 import copy
 
+# TODO create and save following data: concantenated and then z-scored data of "Space", "Break" and "Ande" (SBA)
+# TODO save
 
 class ECGplot:
 
@@ -46,6 +48,7 @@ class ECGplot:
         self.phase_lengths_int = np.array([int(self.phase_lengths[i])+1 for i in range(len(self.phase_lengths))])
         # For each phase plot RR/HR trajectories per subject and mean across subjects (RR/HR) bold
 
+        # Will contain z-scored HR for each phase, i.e. z-scored within one phase.
         self.each_phases_z = {"Resting_Open": [],
                               "Resting_Close": [],
                               "Space_Mov": [],
@@ -59,9 +62,11 @@ class ECGplot:
                               "Rating_Space_NoMov": [],
                               "Rating_Ande_NoMov": []}
 
+        # Will contain each phase separately, and various concatenated versions (all-phases):
+        # 'all_phases', 'all_phases_z'*, 'all_phases_z_smooth'* || *z-scored across all concatenated phases
         self.all_phases = copy.copy(self.each_phases_z)
-        self._concat_all_phases()
-        self._create_z_scores()
+        self._concat_all_phases()  # will update self.all_phases
+        self._create_z_scores()  # will update self.all_phases
 
         self.w_size = smooth_w_size  # McCall has a window of 3 (see: SCRIPT_paperAnalyses_HR.m)
         self._create_smoothing()
@@ -70,7 +75,8 @@ class ECGplot:
         self._update_ratings_dic()
         self.roller_coaster = np.array(['Space_NoMov', 'Space_Mov', 'Ande_Mov', 'Ande_NoMov'])
 
-    def close(self, n=1):
+    @staticmethod
+    def close(n=1):
         for _ in range(n):
             plt.close()
 
@@ -108,7 +114,8 @@ class ECGplot:
 
         return smoothed_array
 
-    def subjects_request(self, subjects_array, dropouts_array, selected_array):
+    @staticmethod
+    def subjects_request(subjects_array, dropouts_array, selected_array):
         print("Do you want to include all subjects or only the subjects with complete datasets for plotting")
         print("")
         print("     1:= all Subjects")
@@ -140,7 +147,8 @@ class ECGplot:
 
         return num_sub, subjects_array
 
-    def plot_request(self):
+    @staticmethod
+    def plot_request():
         print("Do you want to plot z-scored HR per phase over all subjects?")
         print("")
         print("     11:= yes and save")
@@ -163,10 +171,10 @@ class ECGplot:
     def _update_phase_lengths(self):
         for sub in self.subjects:
             for num, phase in enumerate(self.phases):
-                TR_file_name = self.wdic_cropRR + "NVR_S{}_{}_T_R.txt".format(str(sub).zfill(2), phase)
-                if os.path.isfile(TR_file_name):
-                    TR_file = np.loadtxt(TR_file_name)
-                    self.phase_lengths[num] = TR_file[-1] if TR_file[-1] > self.phase_lengths[num] \
+                tr_file_name = self.wdic_cropRR + "NVR_S{}_{}_T_R.txt".format(str(sub).zfill(2), phase)
+                if os.path.isfile(tr_file_name):
+                    tr_file = np.loadtxt(tr_file_name)
+                    self.phase_lengths[num] = tr_file[-1] if tr_file[-1] > self.phase_lengths[num] \
                         else self.phase_lengths[num]
 
         print("Length of each phase:\n", self.phase_lengths)
@@ -192,11 +200,12 @@ class ECGplot:
         for sub_idx, sub in enumerate(self.subjects):
             for num, coaster in enumerate(r_coasters):
                 for r in runs:
-                    rating_filename = self.wdic_Rating + "/{}/{}_z/1Hz/NVR_S{}_run_{}_{}_rat_z.txt".format(coaster,
-                                                                                                           coaster,
-                                                                                                           str(sub).zfill(2),
-                                                                                                           str(r),
-                                                                                                           coaster)
+                    rating_filename = self.wdic_Rating + \
+                                      "/{}/{}_z/1Hz/NVR_S{}_run_{}_{}_rat_z.txt".format(coaster,
+                                                                                        coaster,
+                                                                                        str(sub).zfill(2),
+                                                                                        str(r),
+                                                                                        coaster)
                     if os.path.isfile(rating_filename):
                         rating_file = np.genfromtxt(rating_filename, delimiter=',')[:, 1]  # only load col with ratings
 
@@ -208,7 +217,8 @@ class ECGplot:
                         ratings_key += mov
                         # print("ratings_key:", ratings_key)
                         if self.ratings_dic[ratings_key][sub_idx, :].shape[0] != len(rating_file):
-                            raise ValueError("Rating_file: '{}' has not same length as HR_file!".format(rating_filename))
+                            raise ValueError("Rating_file: '{}' has not same length as HR_file!".format(
+                                rating_filename))
                         # print("Update Subject{}:".format(str(sub)), ratings_key)
                         self.ratings_dic[ratings_key][sub_idx, :] = copy.copy(rating_file)
 
@@ -241,36 +251,36 @@ class ECGplot:
                 # fig_phase.legend(labels=phase, handles=...)
 
             for sub_idx, sub in enumerate(self.subjects):
-                TR_file_name = self.wdic_cropRR + "NVR_S{}_{}_T_R.txt".format(str(sub).zfill(2), phase)
-                if os.path.isfile(TR_file_name):
-                    TR_file = np.loadtxt(TR_file_name)
-                    RR_file = np.array([TR_file[i]-TR_file[i-1] for i in range(1, len(TR_file))])
-                    HR_file = 60/RR_file  # HR (B/min)
+                tr_file_name = self.wdic_cropRR + "NVR_S{}_{}_T_R.txt".format(str(sub).zfill(2), phase)
+                if os.path.isfile(tr_file_name):
+                    tr_file = np.loadtxt(tr_file_name)
+                    # rr_file = np.array([tr_file[i]-tr_file[i-1] for i in range(1, len(tr_file))])
+                    # hr_file = 60/rr_file  # HR (B/min)
 
                     # downsample HR file to 1Hz
-                    HR_file_ds = np.zeros(shape=(int(TR_file[-1]) + 1,))
-                    for i in range(len(HR_file_ds)):
-                        # bender = len(HR_file_ds)/len(HR_file)
-                        if len(TR_file[TR_file < i]) > 1:
-                            RR_int_i = (TR_file[TR_file < i][-1] - TR_file[TR_file < i][-2])
-                            HR_i = 60/RR_int_i
-                            HR_file_ds[i] = HR_i
+                    hr_file_ds = np.zeros(shape=(int(tr_file[-1]) + 1,))
+                    for i in range(len(hr_file_ds)):
+                        # bender = len(hr_file_ds)/len(HR_file)
+                        if len(tr_file[tr_file < i]) > 1:
+                            rr_int_i = (tr_file[tr_file < i][-1] - tr_file[tr_file < i][-2])
+                            hr_i = 60/rr_int_i
+                            hr_file_ds[i] = hr_i
 
                     # calculate z_score
-                    HR_file_ds[np.where(HR_file_ds == 0)] = np.nan  # replace zeros with NaN
-                    z_HR_file_ds = HR_file_ds - np.nanmean(HR_file_ds)
-                    z_HR_file_ds /= np.nanstd(HR_file_ds)
+                    hr_file_ds[np.where(hr_file_ds == 0)] = np.nan  # replace zeros with NaN
+                    z_hr_file_ds = hr_file_ds - np.nanmean(hr_file_ds)
+                    z_hr_file_ds /= np.nanstd(hr_file_ds)
                     # Fill in each_phases_z:
-                    for idx, item in enumerate(z_HR_file_ds):
+                    for idx, item in enumerate(z_hr_file_ds):
                         self.each_phases_z[phase][sub_idx, idx] = item
 
-                    for idx2, item2 in enumerate(HR_file_ds):
+                    for idx2, item2 in enumerate(hr_file_ds):
                         self.all_phases[phase][sub_idx, idx2] = item2
 
                     # plot
                     if plotten:
-                        plt.plot(z_HR_file_ds)  # z_score
-                    # print("z_HR_file_ds.shape", z_HR_file_ds.shape)
+                        plt.plot(z_hr_file_ds)  # z_score
+                    # print("z_hr_file_ds.shape", z_hr_file_ds.shape)
                     # plt.plot(HR_file)
                 if plotten:
                     mean_z = np.nanmean(self.each_phases_z[phase], axis=0)  # z_score-mean
@@ -345,13 +355,12 @@ class ECGplot:
         s_mode = s_modes[0]  # can be changed
         # w_size = 3  # can be changed, w_size € [3, 5, 11, 21]
         for i in range(self.n_sub):
-            self.all_phases["all_phases_smooth"][i, :] = self.smooth(array_to_smooth=self.all_phases["all_phases"][i, :],
-                                                                   sliding_mode=s_mode)
+            self.all_phases["all_phases_smooth"][i, :] = self.smooth(
+                array_to_smooth=self.all_phases["all_phases"][i, :], sliding_mode=s_mode)
             self.all_phases["all_phases_z_smooth"][i, :] = self.smooth(
-                array_to_smooth=self.all_phases["all_phases_z"][i, :],
-                sliding_mode=s_mode)
+                array_to_smooth=self.all_phases["all_phases_z"][i, :], sliding_mode=s_mode)
 
-    def plot_HR(self, save_plot=False):
+    def plot_hr(self, save_plot=False):
         """Plot HR for each subject over all phases"""
         for sub in range(self.n_sub):
             fig_sub = plt.figure("S{} | all_phases".format(str(self.subjects[sub]).zfill(2)), figsize=(14, 8))
@@ -370,7 +379,7 @@ class ECGplot:
                 self.save_plot("S{}_HR_all_phases".format(str(self.subjects[sub]).zfill(2)))
         # close(n=n_sub)
 
-    def plot_HR_z(self, save_plot=False):
+    def plot_hr_z(self, save_plot=False):
         """Plot same as above but with z-scores of each subject (z-score across all phases)"""
         # Plot z-scored HR for each subject over all phases
         for sub in range(self.n_sub):
@@ -391,7 +400,7 @@ class ECGplot:
 
             # close(n=n_sub)
 
-    def plot_HR_z_all(self, save_plot=False):
+    def plot_hr_z_all(self, save_plot=False):
         # Plot z-scored HR for each subject over all phases (in single plot)
         fig_sub_z_single = plt.figure("all_phases_z", figsize=(14, 8))
         # fig_sub_z_single.legend(handles="upper center", labels="blabal")
@@ -415,7 +424,8 @@ class ECGplot:
         """Plot smoothed data"""
         # Plot HR for each subject over all phases
         for sub in range(self.n_sub):
-            fig_sub_smooth = plt.figure("S{} | all_phases_smoothed".format(str(self.subjects[sub]).zfill(2)), figsize=(14, 8))
+            fig_sub_smooth = plt.figure("S{} | all_phases_smoothed".format(str(self.subjects[sub]).zfill(2)),
+                                        figsize=(14, 8))
             plt.plot(self.all_phases["all_phases"][sub], alpha=0.3)  # can be taken out
             plt.plot(self.all_phases["all_phases_smooth"][sub])
             line = 0
@@ -425,18 +435,19 @@ class ECGplot:
                 plt.vlines(line, ymin=40, ymax=150, linestyles="--", alpha=0.6)
                 plt.text(x=line-lines, y=150, s=self.phases[num], size=4)
 
-            fig_sub_smooth.suptitle("smoothed({}dpts.) HR of S{} over all phases".format(self.w_size,
-                                                                                       str(self.subjects[sub]).zfill(2)))
+            fig_sub_smooth.suptitle("smoothed({}dpts.) HR of S{} "
+                                    "over all phases".format(self.w_size, str(self.subjects[sub]).zfill(2)))
 
             # Save Plot
             if save_plot:
                 self.save_plot("S{}_all_phases_smoothed".format(str(self.subjects[sub]).zfill(2)))
         # close(n=n_sub)
 
-    def plot_HR_z_smoothed(self, save_plot=False):
+    def plot_hr_z_smoothed(self, save_plot=False):
         """Plot smoothed z-scored HR for each subject over all phases"""
         for sub in range(self.n_sub):
-            fig_sub_z_smooth = plt.figure("S{} | all_phases_z".format(str(self.subjects[sub]).zfill(2)), figsize=(14, 8))
+            fig_sub_z_smooth = plt.figure("S{} | all_phases_z".format(str(self.subjects[sub]).zfill(2)),
+                                          figsize=(14, 8))
             plt.plot(self.all_phases["all_phases_z"][sub], alpha=0.3)  # can be taken out
             plt.plot(self.all_phases["all_phases_z_smooth"][sub])
             line = 0
@@ -446,14 +457,14 @@ class ECGplot:
                 plt.vlines(line, ymin=-10, ymax=10, linestyles="--", alpha=0.6)
                 plt.text(x=line-lines, y=10, s=self.phases[num], size=4)
 
-            fig_sub_z_smooth.suptitle("smoothed({}dpts.) z-scored HR of S{} over all phases".format(self.w_size,
-                                                                                                  str(self.subjects[sub]).zfill(2)))
+            fig_sub_z_smooth.suptitle("smoothed({}dpts.) z-scored HR of S{} "
+                                      "over all phases".format(self.w_size, str(self.subjects[sub]).zfill(2)))
 
             if save_plot:
                 self.save_plot("S{}_all_phases_z_smoothed".format(str(self.subjects[sub]).zfill(2)))
         # close(n=n_sub)
 
-    def plot_HR_z_smoothed_all(self, save_plot=False):
+    def plot_hr_z_smoothed_all(self, save_plot=False):
         """Plot z-scored HR for each subject over all phases (in single plot)"""
         fig_sub_z_single_smooth = plt.figure("all_phases_z_smoothed", figsize=(14, 8))
         # fig_sub_z_single.legend(handles="upper center", labels="blabal")
@@ -472,7 +483,8 @@ class ECGplot:
             line += lines
             plt.vlines(line, ymin=-10, ymax=10, linestyles="--", alpha=0.6)
             plt.text(x=line-lines, y=10, s=self.phases[num], size=4)
-        fig_sub_z_single_smooth.suptitle("smoothed({}dpts.) z-scored HR for each subject over all phases + mean".format(self.w_size))
+        fig_sub_z_single_smooth.suptitle("smoothed({}dpts.) z-scored HR for each subject over all phases + mean".format(
+            self.w_size))
 
         if save_plot:
             self.save_plot("All_S_all_phases_z_smoothed")
@@ -582,20 +594,20 @@ ec = ECGplot(n_sub=45,
              subject_selection=[6, 11, 14, 17, 20, 27, 31, 34, 36],
              smooth_w_size=21)
 
-# ec.plot_HR(save_plot=False)
-# ec.plot_HR(save_plot=True)
+# ec.plot_hr(save_plot=False)
+# ec.plot_hr(save_plot=True)
 
-# ec.plot_HR_z(save_plot=False)
-# ec.plot_HR_z(save_plot=True)
+# ec.plot_hr_z(save_plot=False)
+# ec.plot_hr_z(save_plot=True)
 
-# ec.plot_HR_z_all(save_plot=False)
-# ec.plot_HR_z_all(save_plot=True)
+# ec.plot_hr_z_all(save_plot=False)
+# ec.plot_hr_z_all(save_plot=True)
 
-# ec.plot_HR_z_smoothed(save_plot=False)
-# ec.plot_HR_z_smoothed(save_plot=True)
+# ec.plot_hr_z_smoothed(save_plot=False)
+# ec.plot_hr_z_smoothed(save_plot=True)
 
-# ec.plot_HR_z_smoothed_all(save_plot=False)
-# ec.plot_HR_z_smoothed_all(save_plot=True)
+# ec.plot_hr_z_smoothed_all(save_plot=False)
+# ec.plot_hr_z_smoothed_all(save_plot=True)
 
 # ec.cross_cor(save_plot=False)
 # ec.cross_cor(save_plot=True)
