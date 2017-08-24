@@ -83,6 +83,8 @@ class ECGplot:
         self.SBA = self._create_sba()
         self.SBA_split = self._create_sba_split()
         self._split_sba()  # Updates self.SBA_split dictionary with splitted z-scored sba data
+        self.SBA_ratings = copy.deepcopy(self.SBA)
+        self._update_sba_ratings_dic()
 
     @staticmethod
     def close(n=1):
@@ -269,6 +271,31 @@ class ECGplot:
 
                     else:
                         print(rating_filename, " does not exist")
+
+    def _update_sba_ratings_dic(self):
+        self.SBA_ratings.pop("SBA")
+        conditions = [key for key in self.SBA_ratings["zSBA"].keys()]
+        for cond in conditions:
+            for sub_idx, sub in enumerate(self.subjects):
+                cond_name = "move" if cond == "Mov" else "nomove"
+
+                try:
+                    sub_cond = self.subject_condition(subject_id=sub)  # cond of sub
+                except Exception:
+                    sub_cond = "NaN"  # in case of S12
+
+                r = 1 if (sub_cond == 12 and cond_name == "move") or (sub_cond == 21 and cond_name == "nomove") else 2
+
+                file_name = self.wdic_Rating + "alltog/{}/1Hz/NVR_S{}_run_{}_alltog_rat_z.txt".format(cond_name,
+                                                                                                      str(sub).zfill(2),
+                                                                                                      r)
+
+                if os.path.isfile(file_name):
+                    rating_file = np.genfromtxt(file_name, delimiter=',')[:, 1]  # only load col with ratings
+                else:
+                    rating_file = np.repeat(np.nan, self.SBA_ratings["zSBA"][cond].shape[1])
+
+                self.SBA_ratings["zSBA"][cond][sub_idx] = rating_file
 
     def _concat_all_phases(self):
         """Concatenate all phases per subject"""
@@ -877,8 +904,8 @@ class ECGplot:
                 plt.xcorr(var1, var2, maxlags=maxlag)
                 plt.ylim(-0.9, 0.9)
                 plt.text(x=0-maxlag/1.5, y=0.6, s="S{} in {} | cond {} | xcorr".format(str(sub).zfill(2),
-                                                                                     coaster,
-                                                                                     str(ec.subject_condition(sub))[0]))
+                                                                                       coaster,
+                                                                                       str(self.subject_condition(sub))[0]))
 
                 # plt.figure("S{} in {} | np.correlate".format(str(sub).zfill(2), coaster))
                 # plt.plot(np.correlate(var1, var2, mode=2))  # mode = "full"
@@ -892,7 +919,6 @@ class ECGplot:
         # from scipy.stats.stats import pearsonr
         # print(pearsonr(var1, var1))
 
-    # TODO plot cross_cor for sba
     def cross_cor_sba(self, save_plot=False, maxlag=20):
         """
         Plots the cross-correlations of SBA
@@ -907,7 +933,7 @@ class ECGplot:
             ylims = 0
 
             # z-scored over "space-break-ande" (SBA)
-            # Finding the max ylims
+            # Finding the max ylims # TODO potentially include max value search of ratings
             conditions = [key for key in self.SBA["zSBA"].keys()]  # ['NoMov', 'Mov']
             for cond in conditions:
                 if np.abs(int(np.nanmin(self.SBA["zSBA"][cond]) -1)) > ylims:
@@ -915,19 +941,14 @@ class ECGplot:
                 if np.int(np.nanmax(self.SBA["zSBA"][cond])) + 1 > ylims:
                     ylims = np.int(np.nanmax(self.SBA["zSBA"][cond])) + 1
 
-            for coaster in self.roller_coaster:  # ['Space_NoMov', 'Space_Mov', 'Ande_Mov', 'Ande_NoMov']
-                if not sba:
-                    if self.each_phases_z[coaster][sub_idx].shape != self.ratings_dic[coaster][sub_idx].shape:
-                        print("Data length not the same | {} | S{}.".format(coaster, str(sub).zfill(2)))
+            # Create keys for self.SBA_split["zSBA][cond][phase]
 
-                if sba:
-                    # Create keys for self.SBA_split["zSBA][cond][phase]
-                    phase, cond = coaster.split("_")  # e.g., ['Space', 'NoMov']
-                    phase = phase.lower()  # e.g., "Space" ==> "space"
+            # TODO
+            for cond in conditions:
+                # self.SBA["zSBA"][cond].shape
 
-                var1 = copy.copy(self.ratings_dic[coaster][sub_idx])
-                var2 = copy.copy(self.SBA_split["zSBA"][cond][phase][sub_idx, :]) if sba \
-                    else copy.copy(self.each_phases_z[coaster][sub_idx])
+                var1 = copy.copy(self.SBA_ratings["zSBA"][cond][sub_idx, :])
+                var2 = copy.copy(self.SBA["zSBA"][cond][sub_idx, :])
                 var1[np.isnan(var2)] = 0.  # x-corr does not work with nan, so set nan = zero
                 var2[np.isnan(var2)] = 0.
 
@@ -940,25 +961,24 @@ class ECGplot:
                 plt.ylim(-ylims, ylims)
 
                 # Include events for roller coasters:
-                if "Space" in coaster:
-                    events = np.genfromtxt(self.wdic + "space_events.csv", delimiter=",", dtype="|U18")
-                    # U18, 18 for max-length of str (n characters) of col_names
-                else:  # elif "Ande" in coaster:
-                    events = np.genfromtxt(self.wdic + "ande_events.csv", delimiter=",", dtype="|U12")
-                    # U12, 12 for max-length of str (n characters) of col_names
+                events_space = np.genfromtxt(self.wdic + "space_events.csv", delimiter=",", dtype="|U18")
+                events_ande = np.genfromtxt(self.wdic + "ande_events.csv", delimiter=",", dtype="|U12")
 
-                events = events[:, 1:]  # drop start=0
+                events_space = events_space[:, 1:]  # drop start=0
+                events_ande = events_ande[:, 1:]
 
                 subtractor = self.trim_time/2 if self.trimmed else 0  # Events need to be shifted, if trimmed
 
+                # Plot events.
                 shift_counter = 0
-                for idxe, event in enumerate(events[0, :]):
+                # First for Space
+                for idxe, event in enumerate(events_space[0, :]):
                     shift_counter += 1
                     if shift_counter > 4:  # reset
                         shift_counter = 1
                     shift = 1 if shift_counter > 2 else 0  # switch between 1 and zero
 
-                    t_event = float(events[1, idxe]) - subtractor  # timepoint of event
+                    t_event = float(events_space[1, idxe]) - subtractor  # timepoint of event
                     up_down = -1 if idxe % 2 == 0 else 1
 
                     if up_down > 0:
@@ -970,6 +990,31 @@ class ECGplot:
                                alpha=0.3)
                     plt.text(x=t_event, y=(ylims-shift)*up_down, s=event, size=6)
 
+                # Now for Ande
+                for idxe, event in enumerate(events_ande[0, :]):
+                    shift_counter += 1
+                    if shift_counter > 4:  # reset
+                        shift_counter = 1
+                    shift = 1 if shift_counter > 2 else 0  # switch between 1 and zero
+
+                    t_event = float(events_ande[1, idxe]) - subtractor+self.trimmed_time_break+self.trimmed_time_space
+                    up_down = -1 if idxe % 2 == 0 else 1
+
+                    if up_down > 0:
+                        y_max_value = np.min((var1[int(t_event)], var2[int(t_event)]))
+                    else:  # up_down < 0:
+                        y_max_value = np.max((var1[int(t_event)], var2[int(t_event)]))
+
+                    plt.vlines(x=t_event, ymin=(ylims - shift) * up_down, ymax=y_max_value, linestyles="dotted",
+                               alpha=0.3)
+                    plt.text(x=t_event, y=(ylims - shift) * up_down, s=event, size=6)
+
+                # Plot boarders between Coasters and break
+
+                plt.vlines(x=self.trimmed_time_space, ymax=ylims, ymin=-ylims, linestyles="--", alpha=0.1)
+                plt.vlines(x=self.trimmed_time_space+self.trimmed_time_break,
+                           ymax=ylims, ymin=-ylims, linestyles="--", alpha=0.1)
+
                 plt.legend()
 
                 # plt.figure("S{} in {} | HR, Rating".format(str(sub).zfill(2), coaster))
@@ -978,13 +1023,14 @@ class ECGplot:
                 # plt.ylabel("z_HR")
                 # plt.legend()
 
+                # TODO continue here
                 subplot_nr += 1
                 plt.subplot(subplot_nr)
                 plt.xcorr(var1, var2, maxlags=maxlag)
                 plt.ylim(-0.9, 0.9)
                 plt.text(x=0-maxlag/1.5, y=0.6, s="S{} in {} | cond {} | xcorr".format(str(sub).zfill(2),
-                                                                                     coaster,
-                                                                                     str(ec.subject_condition(sub))[0]))
+                                                                                       cond,
+                                                                                       str(self.subject_condition(sub))[0]))
 
                 # plt.figure("S{} in {} | np.correlate".format(str(sub).zfill(2), coaster))
                 # plt.plot(np.correlate(var1, var2, mode=2))  # mode = "full"
@@ -1021,3 +1067,6 @@ ec = ECGplot(n_sub=45,
 # ec.cross_cor(save_plot=False, sba=True, maxlag=20)
 # ec.cross_cor(save_plot=False, sba=False, maxlag=20)
 # ec.cross_cor(save_plot=True, sba=True, maxlag=20)
+
+# ec.cross_cor_sba(save_plot=False, maxlag=20)
+
