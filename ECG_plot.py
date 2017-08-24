@@ -714,98 +714,115 @@ class ECGplot:
         # plt.plot(self.all_phases["all_phases_z"][0, :])
         # plt.plot(self.all_phases["all_phases_z_smooth"][0, :])
 
-    def cross_cor(self, save_plot=False):
-        """Cross-cor z-ratings with corresponding z-HR of each phase"""
+    def cross_cor(self, save_plot=False, sba=True):
+        """
+        Cross-cor z-ratings with corresponding z-HR of each phase
+        :param save_plot: Whether to save plots
+        :param sba: if True, takes the z-scored values of SBA, otherwise z-scored for each trial
+        """
 
         for sub_idx, sub in enumerate(self.subjects):
 
             plt.figure("S{} | z-HR and z-Rating | xcorr | 1Hz".format(str(sub).zfill(2)), figsize=(8, 10))
             subplot_nr = 420
             ylims = 0
-            # Found min/max values over all roller coasters of zHR
-            for coaster in self.roller_coaster:
-                if np.abs(int(np.nanmin(self.each_phases_z[coaster])) - 1) > ylims:
-                    ylims = np.abs(int(np.nanmin(self.each_phases_z[coaster])) - 1)
-                elif np.int(np.nanmax(self.each_phases_z[coaster])) + 1 > ylims:
-                    ylims = np.int(np.nanmax(self.each_phases_z[coaster])) + 1
 
-            for coaster in self.roller_coaster:
-                if self.each_phases_z[coaster][sub_idx].shape != self.ratings_dic[coaster][sub_idx].shape:
-                    print("Data length not the same | {} | S{}.".format(coaster, str(sub).zfill(2)))
+            # TODO run cross-correlation with ratings
+            # 2.1) RE-z-score heart rate as was done for ratings (concatenate two coasters + break then z-score)
 
-                var1 = copy.copy(self.ratings_dic[coaster][sub_idx])
-                var2 = copy.copy(self.each_phases_z[coaster][sub_idx])
-                var1[np.isnan(var2)] = 0.  # x-corr does not work with nan, so set nan = zero
-                var2[np.isnan(var2)] = 0.
+            if sba:
+                conditions = [key for key in self.SBA["zSBA"].keys()]  # ['NoMov', 'Mov']
+                for cond in conditions:
+                    if np.abs(np.nanmin(int(self.SBA["zSBA"][cond])) - 1) > ylims:
+                        ylims = np.abs(np.nanmin(int(self.SBA["zSBA"][cond])) - 1)
+                        np.int(np.nanmax(self.SBA["zSBA"][cond])) + 1
+                    elif np.int(np.nanmax(self.SBA["zSBA"][cond])) + 1 > ylims:
+                        ylims = np.int(np.nanmax(self.SBA["zSBA"][cond])) + 1
 
-                # Plot
-                subplot_nr += 1
-                plt.subplot(subplot_nr)
+            else:
+                # Found min/max values over all roller coasters of zHR
+                for coaster in self.roller_coaster:
+                    if np.abs(int(np.nanmin(self.each_phases_z[coaster])) - 1) > ylims:
+                        ylims = np.abs(int(np.nanmin(self.each_phases_z[coaster])) - 1)
+                    elif np.int(np.nanmax(self.each_phases_z[coaster])) + 1 > ylims:
+                        ylims = np.int(np.nanmax(self.each_phases_z[coaster])) + 1
 
-                plt.plot(var1, label="z-Ratings")  # Ratings
-                plt.plot(var2, label="z-HR")  # HR
-                plt.ylim(-ylims, ylims)
+                for coaster in self.roller_coaster:
+                    if self.each_phases_z[coaster][sub_idx].shape != self.ratings_dic[coaster][sub_idx].shape:
+                        print("Data length not the same | {} | S{}.".format(coaster, str(sub).zfill(2)))
 
-                # Include events for roller coasters:
-                if "Space" in coaster:
-                    events = np.genfromtxt(self.wdic + "space_events.csv", delimiter=",", dtype="|U18")
-                    # U18, 18 for max-length of str (n characters) of col_names
-                else:  # elif "Ande" in coaster:
-                    events = np.genfromtxt(self.wdic + "ande_events.csv", delimiter=",", dtype="|U12")
-                    # U12, 12 for max-length of str (n characters) of col_names
+                    var1 = copy.copy(self.ratings_dic[coaster][sub_idx])
+                    var2 = copy.copy(self.each_phases_z[coaster][sub_idx])
+                    var1[np.isnan(var2)] = 0.  # x-corr does not work with nan, so set nan = zero
+                    var2[np.isnan(var2)] = 0.
 
-                events = events[:, 1:]  # drop start=0
+                    # Plot
+                    subplot_nr += 1
+                    plt.subplot(subplot_nr)
 
-                subtractor = self.trim_time/2 if self.trimmed else 0  # Events need to be shifted, if trimmed
+                    plt.plot(var1, label="z-Ratings")  # Ratings
+                    plt.plot(var2, label="z-HR")  # HR
+                    plt.ylim(-ylims, ylims)
 
-                shift_counter = 0
-                for idxe, event in enumerate(events[0, :]):
-                    shift_counter += 1
-                    if shift_counter > 4:  # reset
-                        shift_counter = 1
-                    shift = 1 if shift_counter > 2 else 0  # switch between 1 and zero
+                    # Include events for roller coasters:
+                    if "Space" in coaster:
+                        events = np.genfromtxt(self.wdic + "space_events.csv", delimiter=",", dtype="|U18")
+                        # U18, 18 for max-length of str (n characters) of col_names
+                    else:  # elif "Ande" in coaster:
+                        events = np.genfromtxt(self.wdic + "ande_events.csv", delimiter=",", dtype="|U12")
+                        # U12, 12 for max-length of str (n characters) of col_names
 
-                    t_event = float(events[1, idxe]) - subtractor  # timepoint of event
-                    up_down = -1 if idxe % 2 == 0 else 1
+                    events = events[:, 1:]  # drop start=0
 
-                    if up_down > 0:
-                        y_max_value = np.min((var1[int(t_event)], var2[int(t_event)]))
-                    else:  # up_down < 0:
-                        y_max_value = np.max((var1[int(t_event)], var2[int(t_event)]))
+                    subtractor = self.trim_time/2 if self.trimmed else 0  # Events need to be shifted, if trimmed
 
-                    plt.vlines(x=t_event, ymin=(ylims-shift)*up_down, ymax=y_max_value, linestyles="dotted",
-                               alpha=0.3)
-                    plt.text(x=t_event, y=(ylims-shift)*up_down, s=event, size=6)
+                    shift_counter = 0
+                    for idxe, event in enumerate(events[0, :]):
+                        shift_counter += 1
+                        if shift_counter > 4:  # reset
+                            shift_counter = 1
+                        shift = 1 if shift_counter > 2 else 0  # switch between 1 and zero
 
-                plt.legend()
+                        t_event = float(events[1, idxe]) - subtractor  # timepoint of event
+                        up_down = -1 if idxe % 2 == 0 else 1
 
-                # plt.figure("S{} in {} | HR, Rating".format(str(sub).zfill(2), coaster))
-                # plt.plot(var1, var2, "o")
-                # plt.xlabel("z_Ratings")
-                # plt.ylabel("z_HR")
-                # plt.legend()
+                        if up_down > 0:
+                            y_max_value = np.min((var1[int(t_event)], var2[int(t_event)]))
+                        else:  # up_down < 0:
+                            y_max_value = np.max((var1[int(t_event)], var2[int(t_event)]))
 
-                subplot_nr += 1
-                plt.subplot(subplot_nr)
-                maxlag = 20
-                plt.xcorr(var1, var2, maxlags=maxlag)
-                plt.ylim(-0.9, 0.9)
-                plt.text(x=0-maxlag/2, y=0.6, s="S{} in {} | xcorr".format(str(sub).zfill(2), coaster))
+                        plt.vlines(x=t_event, ymin=(ylims-shift)*up_down, ymax=y_max_value, linestyles="dotted",
+                                   alpha=0.3)
+                        plt.text(x=t_event, y=(ylims-shift)*up_down, s=event, size=6)
 
-                # plt.figure("S{} in {} | np.correlate".format(str(sub).zfill(2), coaster))
-                # plt.plot(np.correlate(var1, var2, mode=2))  # mode = "full"
+                    plt.legend()
 
-            plt.tight_layout()
+                    # plt.figure("S{} in {} | HR, Rating".format(str(sub).zfill(2), coaster))
+                    # plt.plot(var1, var2, "o")
+                    # plt.xlabel("z_Ratings")
+                    # plt.ylabel("z_HR")
+                    # plt.legend()
 
-            if save_plot:
-                self.save_plot("S{}_z_Ratings_HR_x_corr".format(str(sub).zfill(2)))
+                    subplot_nr += 1
+                    plt.subplot(subplot_nr)
+                    maxlag = 20
+                    plt.xcorr(var1, var2, maxlags=maxlag)
+                    plt.ylim(-0.9, 0.9)
+                    plt.text(x=0-maxlag/2, y=0.6, s="S{} in {} | xcorr".format(str(sub).zfill(2), coaster))
+
+                    # plt.figure("S{} in {} | np.correlate".format(str(sub).zfill(2), coaster))
+                    # plt.plot(np.correlate(var1, var2, mode=2))  # mode = "full"
+
+                plt.tight_layout()
+
+                if save_plot:
+                    self.save_plot("S{}_z_Ratings_HR_x_corr".format(str(sub).zfill(2)))
 
         # np.correlate(var1, var2, "full")
         # from scipy.stats.stats import pearsonr
         # print(pearsonr(var1, var1))
 
-    # TODO run cross-correlation with ratings
-    # 2.1) RE-z-score heart rate as was done for ratings (concatenate two coasters + break then z-score)
+    # TODO
     # 2.2) cross-cor rz-ratings with corresponding Re-z-HR of each phase
 
 
