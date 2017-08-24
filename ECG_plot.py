@@ -13,8 +13,6 @@ import os.path
 import matplotlib.pyplot as plt
 import copy
 
-# TODO 2.1) RE-z-score heart rate as was done for ratings (concatenate two coasters + break then z-score)
-
 
 class ECGplot:
 
@@ -50,7 +48,7 @@ class ECGplot:
         self.trimmed = trimmed
         self.trim_time = 5.
         self.trimmed_time_space = 153. - self.trim_time
-        self.trimmed_break = 30.
+        self.trimmed_time_break = 30.
         self.trimmed_time_ande = 97. - self.trim_time
         self.trimmed_resting = 300.
 
@@ -83,6 +81,8 @@ class ECGplot:
 
         # "Space", "Break" and "Ande" (SBA) concatenated. Raw and z-scored
         self.SBA = self._create_sba()
+        self.SBA_split = self._create_sba_split()
+        self._split_sba()  # Updates self.SBA_split dictionary with splitted z-scored sba data
 
     @staticmethod
     def close(n=1):
@@ -180,7 +180,7 @@ class ECGplot:
     def _update_phase_lengths(self):
 
         if self.trimmed:
-            t_vec = np.array([self.trimmed_time_space, self.trimmed_break, self.trimmed_time_ande])
+            t_vec = np.array([self.trimmed_time_space, self.trimmed_time_break, self.trimmed_time_ande])
             self.phase_lengths[:] = np.append(np.tile(self.trimmed_resting, 2), np.tile(t_vec, 4))
 
         else:
@@ -206,7 +206,7 @@ class ECGplot:
         """Load z-rating files and write them in ratings_dic"""
         if self.trimmed:
             len_space = int(self.trimmed_time_space)
-            len_break = int(self.trimmed_break)
+            len_break = int(self.trimmed_time_break)
             len_ande = int(self.trimmed_time_ande)
         else:
             len_space = self.all_phases["Space_Mov"].shape[1]  # same length for NoMov
@@ -453,7 +453,7 @@ class ECGplot:
                "zSBA": {"Mov": [], "NoMov": []}}
 
         # Check with ECG_crop_RR.py
-        all_trims = [self.trimmed_time_space, self.trimmed_break, self.trimmed_time_ande]
+        all_trims = [self.trimmed_time_space, self.trimmed_time_break, self.trimmed_time_ande]
         total_trim_len = int(sum(all_trims))
 
         # Prepare Keys
@@ -560,6 +560,52 @@ class ECGplot:
 
         return sba
 
+    def _create_sba_split(self):
+        sba_split_dic = copy.deepcopy(self.SBA)
+        sba_split_dic.pop("SBA", None)  # removes "SBA" key from dic
+        conditions = [key for key in self.SBA["zSBA"].keys()]  # ['NoMov', 'Mov']
+
+        space_df = np.reshape(np.repeat(np.nan, self.n_sub * int(self.trimmed_time_space)),
+                              newshape=(self.n_sub, int(self.trimmed_time_space)))
+
+        break_df = np.reshape(np.repeat(np.nan, self.n_sub * int(self.trimmed_time_break)),
+                              newshape=(self.n_sub, int(self.trimmed_time_break)))
+
+        ande_df = np.reshape(np.repeat(np.nan, self.n_sub * int(self.trimmed_time_ande)),
+                             newshape=(self.n_sub, int(self.trimmed_time_ande)))
+
+        for cond in conditions:
+            sba_split_dic["zSBA"][cond] = {}
+            sba_split_dic["zSBA"][cond].update({"space": copy.copy(space_df),
+                                                "break": copy.copy(break_df),
+                                                "ande": copy.copy(ande_df)})
+
+        return sba_split_dic
+
+    def _split_sba(self):
+        """
+        Separates the zSBA trials in single phases: Space, Break, Ande
+        And updates the self.SBA dictionary
+        """
+
+        conditions = [key for key in self.SBA["zSBA"].keys()]  # ['NoMov', 'Mov']
+        phases = ["space", "break", "ande"]
+
+        for cond in conditions:
+            # self.SBA["zSBA"][cond]  # shape(nSub, 270=concat_time SBA)
+            for sub_idx, sub in enumerate(self.subjects):
+                start, end = 0, int(self.trimmed_time_space)
+                space = self.SBA["zSBA"][cond][sub_idx][start: end]  # len=148
+                start, end = end,  end + int(self.trimmed_time_break)
+                breaks = self.SBA["zSBA"][cond][sub_idx][start: end]  # len=30
+                start, end = end, end + int(self.trimmed_time_ande)
+                ande = self.SBA["zSBA"][cond][sub_idx][start: end]  # len=92
+
+                phase_data = [space, breaks, ande]
+
+                for num, phase in enumerate(phases):
+                    self.SBA_split["zSBA"][cond][phase][sub_idx, :] = phase_data[num]
+
     def save_sba(self):
         sba_keys = [key for key in self.SBA.keys()]  # ['zSBA', 'SBA']
         cond_keys = [key for key in self.SBA[sba_keys[0]].keys()]  # ['NoMov', 'Mov']
@@ -575,6 +621,20 @@ class ECGplot:
                     # Save the file
                     with open(file_name, "w") as file:
                         for item in file_to_save:
+                            file.write("{}\n".format(item))
+
+    def save_sba_split(self):
+        condition = [key for key in self.SBA_split["zSBA"].keys()]  # ['NoMov', 'Mov']
+        phases = [key for key in self.SBA_split["zSBA"][condition[0]].keys()]  # ['space', 'ande', 'break']
+
+        for cond in condition:
+            for phase in phases:
+                for sub_idx, sub in enumerate(self.subjects):
+                    w_dict = self.wdic_SBA + "z_scored_alltog/{}/{}/".format(cond, phase)
+                    file_name = w_dict + "NVR_S{}_SBA_{}_{}.txt".format(str(sub).zfill(2), phase, cond)
+
+                    with open(file_name, "w") as file:
+                        for item in self.SBA_split["zSBA"][cond][phase][sub_idx, :]:
                             file.write("{}\n".format(item))
 
     def plot_hr(self, save_plot=False):
@@ -738,6 +798,8 @@ class ECGplot:
                         np.int(np.nanmax(self.SBA["zSBA"][cond])) + 1
                     elif np.int(np.nanmax(self.SBA["zSBA"][cond])) + 1 > ylims:
                         ylims = np.int(np.nanmax(self.SBA["zSBA"][cond])) + 1
+
+
 
             else:
                 # Found min/max values over all roller coasters of zHR
