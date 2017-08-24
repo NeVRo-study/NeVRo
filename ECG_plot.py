@@ -903,9 +903,11 @@ class ECGplot:
                 plt.subplot(subplot_nr)
                 plt.xcorr(var1, var2, maxlags=maxlag)
                 plt.ylim(-0.9, 0.9)
-                plt.text(x=0-maxlag/1.5, y=0.6, s="S{} in {} | cond {} | xcorr".format(str(sub).zfill(2),
-                                                                                       coaster,
-                                                                                       str(self.subject_condition(sub))[0]))
+                plt.text(x=0-maxlag/1.5,
+                         y=0.6,
+                         s="S{} in {} | cond {} | xcorr".format(str(sub).zfill(2),
+                                                                coaster,
+                                                                str(self.subject_condition(sub))[0]))
 
                 # plt.figure("S{} in {} | np.correlate".format(str(sub).zfill(2), coaster))
                 # plt.plot(np.correlate(var1, var2, mode=2))  # mode = "full"
@@ -928,12 +930,12 @@ class ECGplot:
 
         for sub_idx, sub in enumerate(self.subjects):
 
-            plt.figure("S{} | SBA | z-HR and z-Rating | xcorr | 1Hz ".format(str(sub).zfill(2)), figsize=(8, 10))
+            plt.figure("S{} | SBA | z-HR and z-Rating | xcorr | 1Hz ".format(str(sub).zfill(2)), figsize=(12, 8))
             subplot_nr = 220
             ylims = 0
 
             # z-scored over "space-break-ande" (SBA)
-            # Finding the max ylims # TODO potentially include max value search of ratings
+            # Finding the max ylims
             conditions = [key for key in self.SBA["zSBA"].keys()]  # ['NoMov', 'Mov']
             for cond in conditions:
                 if np.abs(int(np.nanmin(self.SBA["zSBA"][cond]) -1)) > ylims:
@@ -943,7 +945,6 @@ class ECGplot:
 
             # Create keys for self.SBA_split["zSBA][cond][phase]
 
-            # TODO
             for cond in conditions:
                 # self.SBA["zSBA"][cond].shape
 
@@ -1023,14 +1024,15 @@ class ECGplot:
                 # plt.ylabel("z_HR")
                 # plt.legend()
 
-                # TODO continue here
                 subplot_nr += 1
                 plt.subplot(subplot_nr)
                 plt.xcorr(var1, var2, maxlags=maxlag)
                 plt.ylim(-0.9, 0.9)
-                plt.text(x=0-maxlag/1.5, y=0.6, s="S{} in {} | cond {} | xcorr".format(str(sub).zfill(2),
-                                                                                       cond,
-                                                                                       str(self.subject_condition(sub))[0]))
+                plt.text(x=0-maxlag/1.5,
+                         y=0.6,
+                         s="S{} in {} | cond {} | xcorr".format(str(sub).zfill(2),
+                                                                cond,
+                                                                str(self.subject_condition(sub))[0]))
 
                 # plt.figure("S{} in {} | np.correlate".format(str(sub).zfill(2), coaster))
                 # plt.plot(np.correlate(var1, var2, mode=2))  # mode = "full"
