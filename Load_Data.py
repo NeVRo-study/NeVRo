@@ -1,6 +1,6 @@
 # coding=utf-8
 """
-Load Data for LSTM Model
+Load Data for LSTM Model. Only use Space-Break-Andes (SBA) Versions, which are pruned to 148, 30 & 92 sec, respectively.
     • Load Data
     • Create Batches
 
@@ -29,16 +29,19 @@ import numpy as np
 import os.path
 import copy
 # from Meta_Functions import *
-
 # import tensorflow as tf
-from tensorflow.contrib.learn.python.learn.datasets import base
+# from tensorflow.contrib.learn.python.learn.datasets import base
+# import mne
+
+#  load EEG data of from *.set (EEGlab format) with: mne.io.read_raw_eeglab() and mne.read_epochs_eeglab()
 
 # Change to Folder which contains files
 wdic = "../../Data/EEG_SSD/"
 wdic_Comp = "../../Data/EEG_SSD/Components/"
-wdic_Rating = "../../Data/Ratings/"
+wdic_Rating = "../../Data/ratings/preprocessed/z_scored_alltog/"  # SBA-pruned data (148:space, 30:break, 92:ande)
 wdic_Data = "../../Data/"
 wdic_cropECG = "../../Data/Data EEG export/NeVRo_ECG_Cropped/"
+wdic_SBA = "../../Data/EEG_SSD/SBA/"  # TODO Files need to be produced first
 
 # initialize variables
 subjects = [36]  # [36, 37]
@@ -52,22 +55,34 @@ s_freq_rating = 1.
 s_freq_eeg = 250.
 
 
-def update_coaster_lengths(empty_t_array):
+def update_coaster_lengths(empty_t_array, sba=True):
+    """
+    Creates an array of the lengths of the different phases (e.g., roller caosters)
+    :param empty_t_array: array to be filled
+    :param sba: asks whether pruned SBA-files should be used to calculate times.
+    :return: array with lengths of phases
+    """
     sfreq = 500.
+
     for sub in subjects:
         for n, coast in enumerate(roller_coasters):
-            time_ecg_fname = wdic_cropECG + "NVR_S{}_{}.txt".format(str(sub).zfill(2), coast)
+            if not sba:
+                time_ecg_fname = wdic_cropECG + "NVR_S{}_{}.txt".format(str(sub).zfill(2), coast)
+            else:
+                # TODO as soon SSD in SBA form is there...
+                time_ecg_fname = wdic_SBA + "NVR_S{}_{}.txt".format(str(sub).zfill(2), coast)
+
             if os.path.isfile(time_ecg_fname):
                 ecg_file = np.loadtxt(time_ecg_fname)
                 len_time_ecg = len(ecg_file)/sfreq
-                empty_t_array[n] = len_time_ecg if len_time_ecg > empty_t_array[n] \
-                    else empty_t_array[n]
+                empty_t_array[n] = len_time_ecg if len_time_ecg > empty_t_array[n] else empty_t_array[n]
 
     full_t_array = empty_t_array  # make-up
     print("Length of each roller coaster:\n", full_t_array)
     return full_t_array
 
-t_roller_coasters = update_coaster_lengths(empty_t_array=t_roller_coasters)
+t_roller_coasters = update_coaster_lengths(empty_t_array=t_roller_coasters, sba=False)
+# t_roller_coasters = np.array([148, 30, 92])   # SBA
 
 
 # Load file
@@ -192,7 +207,7 @@ SSD_Comp_dic = load_ssd_component(samp_freq=s_freq_eeg)
 # @function_timed  # after executing following function this returns runtime
 def load_rating_files(samp_freq=s_freq_rating):
     """
-    Loads (z-scored) Ratings files of each subject in subjects (ignore other files, since fluctuating samp.freq.).
+    Loads (z-scored) Ratings files of each subject in subjects (ignore other files, due to fluctuating samp.freq.).
     :param samp_freq: sampling frequency, either 1Hz [default], oder 50Hz
     :return:  Rating Dict
     """
@@ -219,13 +234,14 @@ def load_rating_files(samp_freq=s_freq_rating):
             # adapt file_name accordingly (run <=> condition,
             coast = "Space".lower() if "Space" in coaster else "andes"
             runs = "1" if "NoMov" in coaster and rating_dic[str(subject)]["condition"] == 2 else "2"
+            coast_folder = "nomove" if "NoMov" in coaster else "move"
 
-            rating_filename = wdic_Rating + "{}/{}_z/{}Hz/NVR_S{}_run_{}_{}_rat_z.txt".format(coast,
-                                                                                              coast,
-                                                                                              str(int(samp_freq)),
-                                                                                              str(subject).zfill(2),
-                                                                                              runs,
-                                                                                              coast)
+            rating_filename = wdic_Rating + "{}/{}/{}Hz/NVR_S{}_run_{}_{}_rat_z.txt".format(coast,
+                                                                                            coast_folder,
+                                                                                            str(int(samp_freq)),
+                                                                                            str(subject).zfill(2),
+                                                                                            runs,
+                                                                                            coast)
 
             if os.path.isfile(rating_filename):
                 # Load according file
@@ -392,7 +408,7 @@ def read_data_sets(subject, s_fold_idx, s_fold=10):
     Args:
         subject: Subject Nr., subject dataset for training
         s_fold_idx: index which of the folds is taken as validation set
-        s_fold: s-value of S-Fold Validation [default=5]
+        s_fold: s-value of S-Fold Validation [default=10]
     Returns:
         Train, Validation Datasets
     """
@@ -446,19 +462,20 @@ def read_data_sets(subject, s_fold_idx, s_fold=10):
     return {"train": train, "validation": validation,"test": test}, s_fold_idx
 
 
-def get_nevro_data(subject, s_fold_idx, s_fold=5):
+def get_nevro_data(subject, s_fold_idx, s_fold=10):
     """
       Prepares NeVRo dataset.
       Args:
         subject: Which subject data to train
         s_fold_idx: index which of the folds is taken as validation set
-        s_fold: s-value of S-Fold Validation [default=5]
+        s_fold: s-value of S-Fold Validation [default=10]
       Returns:
         Train, Validation Datasets (TODO: +Test?)
       """
 
     return read_data_sets(subject=subject, s_fold_idx=s_fold_idx, s_fold=s_fold)
 
+get_nevro_data(subject=36, s_fold_idx=9, s_fold=10)
 
 # TODO continue here:
 
@@ -466,3 +483,5 @@ len(SSD_Comp_dic["36"]['Space_NoMov']) / s_freq_eeg
 len(Rating_dic["36"]['Space_NoMov'])
 len(SSD_Comp_dic["36"]['Ande_NoMov']) / s_freq_eeg
 len(Rating_dic["36"]['Ande_NoMov'])
+
+

@@ -805,10 +805,10 @@ class ECGplot:
         # plt.plot(self.all_phases["all_phases_z"][0, :])
         # plt.plot(self.all_phases["all_phases_z_smooth"][0, :])
 
-    def cross_cor(self, save_plot=False, sba=True, maxlag=20):
+    def cross_cor(self, save_plot=False, sba=True, maxlag=10):
         """
         Cross-cor z-ratings with corresponding z-HR of each phase
-        :param maxlag: Max Lag of cross correlation
+        :param maxlag: Max Lag of cross correlation [default=10, see e.g., Kettunen et al., 2000; Mauss et al., 2005]
         :param save_plot: Whether to save plots
         :param sba: if True, takes the z-scored values of SBA, otherwise z-scored for each trial
         """
@@ -1066,9 +1066,11 @@ ec = ECGplot(n_sub=45,
 # ec.plot_hr_z_smoothed_all(save_plot=False)
 # ec.plot_hr_z_smoothed_all(save_plot=True)
 
-# ec.cross_cor(save_plot=False, sba=True, maxlag=20)
-# ec.cross_cor(save_plot=False, sba=False, maxlag=20)
-# ec.cross_cor(save_plot=True, sba=True, maxlag=20)
+# ec.cross_cor(save_plot=False, sba=True, maxlag=10)
+# ec.cross_cor(save_plot=False, sba=False, maxlag=10)
+# ec.cross_cor(save_plot=True, sba=True, maxlag=10)
+# ec.cross_cor(save_plot=True, sba=False, maxlag=10)
 
-# ec.cross_cor_sba(save_plot=False, maxlag=20)
+# ec.cross_cor_sba(save_plot=False, maxlag=10)
+# ec.cross_cor_sba(save_plot=True, maxlag=10)
 
