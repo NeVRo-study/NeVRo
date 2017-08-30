@@ -357,6 +357,9 @@ class DataSet(object):
     Utility class (http://wiki.c2.com/?UtilityClasses) to handle dataset structure
     """
 
+    # s_fold_idx_list = []  # this needs to be changed across DataSet-instances
+    # s_fold_idx = []  # this needs to be changed across DataSet-instances
+
     def __init__(self, eeg, ratings, subject, condition, eeg_samp_freq=250., rating_samp_freq=1.):
         """
         Builds dataset with EEG data and Ratings
@@ -379,6 +382,11 @@ class DataSet(object):
         self._index_in_epoch = 0
         self.subject = subject
         self.condition = condition
+
+    # @classmethod
+    # def update_s_fold_idx(cls):
+        """This updates the class variable s_fold_idx_list and s_fold_idx"""
+        pass
 
     @property
     def eeg(self):
@@ -523,7 +531,7 @@ def read_data_sets(subject, s_fold_idx, s_fold=10, cond="NoMov", sba=sba_setting
     test = None
 
     # return base.Datasets(train=train, validation=validation, test=test), s_fold_idx
-    return {"train": train, "validation": validation, "test": test}, s_fold_idx
+    return {"train": train, "validation": validation, "test": test}
 
 
 def get_nevro_data(subject, s_fold_idx=None, s_fold=10, cond="NoMov", sba=sba_setting):

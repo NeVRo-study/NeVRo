@@ -34,7 +34,7 @@ FEAT_EPOCH_DEFAULT = CHECKPOINT_FREQ_DEFAULT-1
 SUBJECT_DEFAULT = 36
 S_FOLD_DEFAULT = 10
 
-# TODO
+# TODO Dirs
 DATA_DIR_DEFAULT = './LSTM/LSTM-batches-py'
 LOG_DIR_DEFAULT = './logs/LSTM'
 CHECKPOINT_DIR_DEFAULT = './checkpoints'
@@ -46,6 +46,23 @@ WEIGHT_REGULARIZER_DICT = {'none': lambda x: None,  # No regularization
                            'l2': tf.contrib.layers.l2_regularizer}
 
 
+def create_s_fold_idx(s_folds, list_prev_indices=[]):
+
+    if not list_prev_indices:  # list_prev_indices == []
+        s_fold_idx = np.random.randint(0, s_folds)
+    else:
+        choose_from = list(set(range(s_folds)) - set(list_prev_indices))
+        s_fold_idx = np.random.choice(choose_from, 1)[0]
+
+    list_prev_indices.append(s_fold_idx)
+
+    return s_fold_idx, list_prev_indices
+
+
+# s_idx, list_indices = create_s_fold_idx(s_folds=10)
+# for _ in range(9):
+#     s_idx, list_indices = create_s_fold_idx(s_folds=10, list_prev_indices=list_indices)
+# len(list_indices)
 
 def train_lstm():
     """
@@ -68,9 +85,9 @@ def train_lstm():
     - on test set every eval_freq iterations
 
     ------------------------
-    Additional requirements:
+    Additional:
     ------------------------
-    Also take snapshots of the model state (i.e. graph, weights and etc.)
+    Also takes snapshots of the model state (i.e. graph, weights and etc.)
     every checkpoint_freq iterations. For this, use tf.train.Saver class.
     checkout:
     [https://www.tensorflow.org/versions/r0.11/how_tos/variables/index.html]
@@ -83,11 +100,20 @@ def train_lstm():
     # Start TensorFlow Session
     sess = tf.InteractiveSession()
 
-    # TODO Load Data:
-    # TODO s_fold_idx depending on s_solf and previous index
-    s_fold_idx = None
-    nevro_data = Load_Data.get_nevro_data(FLAGS.subject, s_fold_idx, FLAGS.s_fold=5)
-    pass
+    # s_fold_idx depending on s_fold and previous index
+    s_fold_idx_list = np.arange(0, FLAGS.s_fold)
+    np.random.shuffle(s_fold_idx_list)
+
+    # Run through S-Fold-Cross-Validation (take the mean-performance across all validation sets)
+    for rnd, s_fold_idx in enumerate(s_fold_idx_list):
+        # Load Data:
+        nevro_data = Load_Data.get_nevro_data(subject=FLAGS.subject,
+                                              s_fold_idx=s_fold_idx_list[rnd],
+                                              s_fold=FLAGS.s_fold,
+                                              cond="NoMov",
+                                              sba=True)
+        #TODO continue here...
+        ddims = list(nevro_data.train.images.shape[1:])  # [32,32,3]
 
 
 if __name__ == '__main__':
