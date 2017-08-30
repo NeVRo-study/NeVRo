@@ -38,3 +38,22 @@ def function_timed(funct):
 #     print("Any Function")
 #
 # foo()
+
+
+def create_s_fold_idx(s_folds, list_prev_indices=[]):
+
+    if not list_prev_indices:  # list_prev_indices == []
+        s_fold_idx = np.random.randint(0, s_folds)
+    else:
+        choose_from = list(set(range(s_folds)) - set(list_prev_indices))
+        s_fold_idx = np.random.choice(choose_from, 1)[0]
+
+    list_prev_indices.append(s_fold_idx)
+
+    return s_fold_idx, list_prev_indices
+
+
+# s_idx, list_indices = create_s_fold_idx(s_folds=10)
+# for _ in range(9):
+#     s_idx, list_indices = create_s_fold_idx(s_folds=10, list_prev_indices=list_indices)
+# len(list_indices)
