@@ -374,8 +374,6 @@ class DataSet(object):
         self._ratings = ratings  # target
         self._epochs_completed = 0
         self._index_in_epoch = 0
-        self._index_in_eeg_epoch = 0  # for alternative _next_batch() method
-        self._index_in_rating_epoch = 0  # for alternative _next_batch() method
         self.subject = subject
         self.condition = condition
 
@@ -398,8 +396,7 @@ class DataSet(object):
     def next_batch(self, batch_size=1):
         """
         Return the next 'batch_size' examples from this data set
-        For MODEL 1: the batch size = Sampl.Freq.(EEG)=250, i.e. input 250 datapoints, gives 1 output (rating),
-        aka. many-to-one
+        For MODEL 1: the batch size = 1, i.e. input 1sec=250 data points, gives 1 output (rating), aka. many-to-one
         :param batch_size: Batch size
         :return: Next batch
         """
@@ -429,46 +426,7 @@ class DataSet(object):
         if batch_size == 1:
             return self._eeg[start:end][0], self._ratings[start:end]
         else:  # batch_size > 1
-            return self._eeg[start:end][0:batch_size], self._ratings[start:end]
-
-    def _next_batch(self, batch_size=None):
-        """
-        _THIS IS A BACKUP:
-        Potential solution for different preparation of data
-
-        Return the next 'batch_size' examples from this data set
-        For MODEL 1: the batch size = Sampl.Freq.(EEG)=250, i.e. input 250 datapoints, gives 1 output (rating),
-        aka. many-to-one
-        :param batch_size: Batch size
-        :return: Next batch
-        """
-
-        if batch_size is None:
-            batch_size = self.eeg_samp_freq
-
-        start_eeg = self._index_in_eeg_epoch
-        start_rating = self._index_in_rating_epoch
-
-        self._index_in_eeg_epoch += batch_size
-        # if self._index_in_eeg_epoch/self.eeg_samp_freq > self._num_time_slices:
-        if self._index_in_rating_epoch > self._num_time_slices:
-            self._epochs_completed += 1
-
-            # # Shuffling only makes sense if we consider batches as independent, what we don't for later models
-            # perm = np.arrange(self._num_time_slices)
-            # np.random.shuffle(perm)
-            # self._eeg = self._eeg[perm]
-            # self._ratings = self._ratings[perm]
-
-            start_eeg = 0
-            start_rating = 0
-            self._index_in_eeg_epoch = batch_size
-            self._index_in_rating_epoch = 1
-
-        end_eeg = self._index_in_eeg_epoch
-        end_rating = self._index_in_rating_epoch
-
-        return self._eeg[start_eeg:end_eeg], self._ratings[start_rating:end_rating]
+            return self._eeg[start:end], self._ratings[start:end]
 
 
 def concatenate(array1, array2):
@@ -486,7 +444,8 @@ def splitter(array_to_split, n_splits):
             n_prune += 1
 
         else:
-            print("Input array was pruned by", n_prune)
+            if n_prune > 0:
+                print("Input array was pruned by", n_prune)
             break
 
     return array_to_split
@@ -505,9 +464,6 @@ def read_data_sets(subject, s_fold_idx, s_fold=10, cond="NoMov"):
         Train, Validation Datasets
     """
 
-    # TODO Extract NeVRo EEG data, split it two sets
-    # TODO S-FOLD (for tuning hyper-parameter): train-test-set split
-
     assert s_fold_idx < s_fold, "s_fold_idx (={}) must be in the range of the number of folds (={})".format(s_fold_idx,
                                                                                                             s_fold)
 
@@ -525,7 +481,8 @@ def read_data_sets(subject, s_fold_idx, s_fold=10, cond="NoMov"):
     # rating_concat = concatenate(array1=rating_data[str(subject)]["Space_NoMov"],
     #                             array2=rating_data[str(subject)]["Ande_NoMov"])
 
-    eeg_sba = eeg_data[str(subject)]["SBA"][cond][:, 0:2]  # TODO <=> now: first 2 components
+    # TODO <=> now: first 2 components, later best refined selection (best xcorr, worse xcorr with rating <->Alberto)
+    eeg_sba = eeg_data[str(subject)]["SBA"][cond][:, 0:2]  # = first 2 components
     rating_sba = rating_data[str(subject)]["SBA"][cond]
 
     # 1) Split data in S(=s_fold) sets
@@ -546,23 +503,25 @@ def read_data_sets(subject, s_fold_idx, s_fold=10, cond="NoMov"):
     # Assign variables accordingly:
     validation_eeg = eeg_split[s_fold_idx]
     validation_ratings = rating_split[s_fold_idx]
-    train_eeg = np.delete(arr=eeg_split, obj=s_fold_idx, axis=0)
+    train_eeg = np.delete(arr=eeg_split, obj=s_fold_idx, axis=0)  # removes the val-set from the data set (np.delete)
     train_ratings = np.delete(arr=rating_split, obj=s_fold_idx, axis=0)
     # Merge the training sets again (concatenate for 2D & vstack for >=3D)
+    # Cautious: Assumption that performance is partly independent of correct order (also done already with SBA)
     train_eeg = np.vstack(train_eeg)  # == np.concatenate(train_eeg, axis=0)
     train_ratings = np.concatenate(train_ratings, axis=0)
 
     # Create datasets
     train = DataSet(eeg=train_eeg, ratings=train_ratings, subject=subject, condition=condition)
     validation = DataSet(eeg=validation_eeg, ratings=validation_ratings, subject=subject, condition=condition)
-    # test = DataSet(eeg=test_eeg, ratings=test_ratings, subject=subject, condition=condition)  # TODO
+    # TODO Test set
+    # test = DataSet(eeg=test_eeg, ratings=test_ratings, subject=subject, condition=condition)
     test = None
 
-    # return base.Datasets(train=train, validation=validation, test=test), s_fold_idx  #TODO
-    return {"train": train, "validation": validation,"test": test}, s_fold_idx
+    # return base.Datasets(train=train, validation=validation, test=test), s_fold_idx
+    return {"train": train, "validation": validation, "test": test}, s_fold_idx
 
 
-def get_nevro_data(subject, s_fold_idx, s_fold=10, cond="NoMov"):
+def get_nevro_data(subject, s_fold_idx=None, s_fold=10, cond="NoMov"):
     """
       Prepares NeVRo dataset.
       Args:
@@ -573,16 +532,11 @@ def get_nevro_data(subject, s_fold_idx, s_fold=10, cond="NoMov"):
       Returns:
         Train, Validation Datasets (TODO: +Test?)
       """
+    if s_fold_idx is None:
+        s_fold_idx = np.random.randint(low=0, high=s_fold)
+        print("s_fold_idx randomly chosen:", s_fold_idx)
 
-    return read_data_sets(subject=subject, s_fold_idx=s_fold_idx, s_fold=s_fold)
+    return read_data_sets(subject=subject, s_fold_idx=s_fold_idx, s_fold=s_fold, cond=cond)
 
-get_nevro_data(subject=36, s_fold_idx=9, s_fold=10)
-
-# TODO continue here:
-
-len(SSD_Comp_dic["36"]['Space_NoMov']) / s_freq_eeg
-len(Rating_dic["36"]['Space_NoMov'])
-len(SSD_Comp_dic["36"]['Ande_NoMov']) / s_freq_eeg
-len(Rating_dic["36"]['Ande_NoMov'])
-
+# nevro_data, s_fold_idx = get_nevro_data(subject=36, s_fold=10)
 
