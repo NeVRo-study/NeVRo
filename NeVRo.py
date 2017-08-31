@@ -120,7 +120,7 @@ def train_lstm():
         # print("ddims", ddims)
 
         with tf.name_scope("input"):
-
+            # shape = [None] + ddims includes num_steps = 250
             x = tf.placeholder(dtype=tf.float32, shape=[None] + ddims, name="x-input")  # None for Batch-Size
             # x = tf.placeholder(dtype=tf.float32, shape=[None, 250, 2], name="x-input")
             y = tf.placeholder(dtype=tf.float32, shape=[None, 1], name="y-input")
