@@ -121,6 +121,8 @@ def train_lstm():
 
         with tf.name_scope("input"):
             # shape = [None] + ddims includes num_steps = 250
+            #  Tensorflow requires input as a tensor (a Tensorflow variable) of the dimensions
+            # [batch_size, sequence_length, input_dimension] (a 3d variable).
             x = tf.placeholder(dtype=tf.float32, shape=[None] + ddims, name="x-input")  # None for Batch-Size
             # x = tf.placeholder(dtype=tf.float32, shape=[None, 250, 2], name="x-input")
             y = tf.placeholder(dtype=tf.float32, shape=[None, 1], name="y-input")
