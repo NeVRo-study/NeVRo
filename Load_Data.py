@@ -25,9 +25,9 @@ Channel30: [x30_0, ..., x30_250], [x30_251, ..., x30_500], ... ]  ==> LSTM /
 Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017
 """
 
-import numpy as np
 import os.path
 import copy
+from Meta_Functions import *
 
 # from Meta_Functions import *
 # import tensorflow as tf
@@ -40,7 +40,9 @@ import copy
 wdic = "../../Data/EEG_SSD/"
 wdic_Comp = "../../Data/EEG_SSD/Components/"
 wdic_SBA_Comp = "../../Data/EEG_SSD/SBA/Components/"
-wdic_Rating = "../../Data/ratings/preprocessed/z_scored_alltog/"  # SBA-pruned data (148:space, 30:break, 92:ande)
+# wdic_Rating = "../../Data/ratings/preprocessed/z_scored_alltog/"  # SBA-pruned data (148:space, 30:break, 92:ande)
+wdic_Rating = "../../Data/ratings/preprocessed/not_z_scored/"  # transform later to [-1, +1]
+
 wdic_Data = "../../Data/"
 wdic_cropECG = "../../Data/Data EEG export/NeVRo_ECG_Cropped/"
 
@@ -80,7 +82,6 @@ def update_coaster_lengths(empty_t_array, sba=sba_setting):
     full_t_array = empty_t_array  # make-up
     # print("Length of each roller coaster:\n", full_t_array)
     return full_t_array
-
 
 # t_roller_coasters = np.zeros((len(roller_coasters)))  # init
 # t_roller_coasters = update_coaster_lengths(empty_t_array=t_roller_coasters, sba=sba_setting)
@@ -140,7 +141,6 @@ def load_ssd_files(samp_freq=s_freq_eeg, sba=sba_setting):
                                                                     len(time_steps) / samp_freq))
 
     return ssd_dic
-
 
 # SSD_dic = load_ssd_files(samp_freq=s_freq_eeg)
 # print(SSD_dic[str(subjects[0])][roller_coasters[0]]["df"].shape)  # roller_coasters[0] == 'Space_NoMov'
@@ -249,7 +249,6 @@ def load_ssd_component(samp_freq=s_freq_eeg, sba=sba_setting):
 
     return ssd_comp_dic
 
-
 # SSD_Comp_dic = load_ssd_component(samp_freq=s_freq_eeg, sba=sba_setting)
 # for num, coaster in enumerate(roller_coasters):
 #     print(SSD_Comp_dic[str(subjects[0])][roller_coasters[num]].shape,
@@ -259,6 +258,7 @@ def load_ssd_component(samp_freq=s_freq_eeg, sba=sba_setting):
 #           SSD_Comp_dic[str(subjects[0])][roller_coasters[num]].shape[1],
 #           "components\t|",
 #           roller_coasters[num])
+
 
 # @function_timed  # after executing following function this returns runtime
 def load_rating_files(samp_freq=s_freq_rating, sba=sba_setting):
@@ -498,6 +498,10 @@ def read_data_sets(subject, s_fold_idx, s_fold=10, cond="NoMov", sba=sba_setting
     eeg_sba = eeg_data[str(subject)]["SBA"][cond][:, 0:2]  # = first 2 components
     rating_sba = rating_data[str(subject)]["SBA"][cond]
 
+    # Normalize rating_sba to [-1;1] due to tanh-output of LSTMnet
+    rating_sba = normalization(array=rating_sba, lower_bound=-1, upper_bound=1)
+
+    # Check whether EEG data too long
     if sba:
         len_test = eeg_sba.shape[0]/s_freq_eeg - rating_sba.shape[0]
         if len_test > 0.0:

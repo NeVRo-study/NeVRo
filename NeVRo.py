@@ -145,9 +145,10 @@ def train_lstm():
         accuracy = lstm_model.accuracy(infer=infer, ratings=y)
 
         # Writer
-        merged = tf.merge_all_summaries()
-        train_writer = tf.train.SummaryWriter(logdir=FLAGS.log_dir + "/train", graph=sess.graph)
-        test_writer = tf.train.SummaryWriter(logdir=FLAGS.log_dir + "/val")
+        merged = tf.summary.merge_all()
+
+        train_writer = tf.summary.FileWriter(logdir=FLAGS.log_dir + "/train", graph=sess.graph)
+        test_writer = tf.summary.FileWriter(logdir=FLAGS.log_dir + "/val")
         # test_writer = tf.train.SummaryWriter(logdir=FLAGS.log_dir + "/test")
 
         # Saver

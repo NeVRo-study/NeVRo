@@ -18,8 +18,8 @@ class LSTMnet:
     It incorporates a certain graph model to be trained and to be used
     in inference.
 
-    # Potentially for layer visualization check out Beholder PlugIn
-    # https://www.youtube.com/watch?feature=youtu.be&v=06HjEr0OX5k&app=desktop
+    Potentially for layer visualization check out Beholder PlugIn
+    https://www.youtube.com/watch?feature=youtu.be&v=06HjEr0OX5k&app=desktop
     """
 
     def __init__(self, n_classes, weight_regularizer=tf.contrib.layers.l2_regularizer(scale=0.18)):
