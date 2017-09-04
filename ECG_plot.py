@@ -14,10 +14,19 @@ import matplotlib.pyplot as plt
 import copy
 
 
+
 class ECGplot:
 
-    def __init__(self, n_sub=45, dropouts=[1, 12, 32, 33, 35, 38, 41, 42, 45], subject_selection=[], smooth_w_size=3,
+    def __init__(self, n_sub=45, dropouts=[1, 12, 32, 35, 40, 42, 45], subject_selection=[], smooth_w_size=3,
                  trimmed=True):
+        """
+        :param n_sub: number of all subjects
+        :param dropouts: dropouts=[1, 12, 32, 33, 35, 38, 40, 41, 42, 43, 45]  # conservative
+        33, 38, 41 are ok if only for NoMov; 40 also, if correct markers
+        :param subject_selection: hand-selected subset of subjects
+        :param smooth_w_size: window-size for smoothing
+        :param trimmed: SBA-trimmed times
+        """
 
         # Change to folder which contains files
         self.wdic = "../../Data/"

@@ -250,7 +250,7 @@ def load_ssd_component(samp_freq=s_freq_eeg, sba=sba_setting):
     return ssd_comp_dic
 
 
-# SSD_Comp_dic = load_ssd_component(samp_freq=s_freq_eeg)
+# SSD_Comp_dic = load_ssd_component(samp_freq=s_freq_eeg, sba=sba_setting)
 # for num, coaster in enumerate(roller_coasters):
 #     print(SSD_Comp_dic[str(subjects[0])][roller_coasters[num]].shape,
 #           "=",
@@ -498,6 +498,18 @@ def read_data_sets(subject, s_fold_idx, s_fold=10, cond="NoMov", sba=sba_setting
     eeg_sba = eeg_data[str(subject)]["SBA"][cond][:, 0:2]  # = first 2 components
     rating_sba = rating_data[str(subject)]["SBA"][cond]
 
+    if sba:
+        len_test = eeg_sba.shape[0]/s_freq_eeg - rating_sba.shape[0]
+        if len_test > 0.0:
+            to_cut = int(len_test*s_freq_eeg)
+            print("EEG data of S{} trimmed by {} data points".format(str(subject).zfill(2), to_cut))
+            to_cut /= 3  # 3 phases of SBA
+            to_delete = np.cumsum(t_roller_coasters)  # [ 148.,  178.,  270.]
+            to_delete *= s_freq_eeg
+            assert to_cut == 1, "Code needs to be adapted for other diverging lengths of eeg_sba"
+            # np.delete(arr=eeg_sba, obj=to_delete, axis=0).shape
+            eeg_sba = np.delete(arr=eeg_sba, obj=to_delete, axis=0)
+
     # 1) Split data in S(=s_fold) sets
     # np.split(np.array([1,2,3,4,5,6]), 3) >> [array([1, 2]), array([3, 4]), array([5, 6])]
 
@@ -552,4 +564,4 @@ def get_nevro_data(subject, s_fold_idx=None, s_fold=10, cond="NoMov", sba=sba_se
 
     return read_data_sets(subject=subject, s_fold_idx=s_fold_idx, s_fold=s_fold, cond=cond, sba=sba)
 
-# nevro_data, s_fold_idx = get_nevro_data(subject=36, s_fold=10)
+# nevro_data = get_nevro_data(subject=36, s_fold=10, cond="NoMov", sba=sba_setting)
