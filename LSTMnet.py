@@ -71,6 +71,9 @@ class LSTMnet:
             self.lstm_post_activation = post_lstm
 
             # Fully Connected Layer 1
+            # post_lstm = tf.Print(input_=post_lstm, data=[post_lstm.get_shape()], message="post_lstm")
+
+            # TODO shape here
             pre_activation = self._create_fc_layer(x=post_lstm, layer_name="fc1", shape=[post_lstm.get_shape()[1],
                                                                                          None])
             # For the featuer_extractor:
@@ -110,7 +113,14 @@ class LSTMnet:
         :return: Layer Output
         """
         with tf.variable_scope(layer_name):
-            num_steps = x.shape[0]  # = samp.freq. = 250
+            x = tf.Print(input_=x, data=[x], message="This is x")
+            # num_steps = x.shape[0]  # = samp.freq. = 250
+            # num_steps = x.get_shape()[0]
+            # num_steps = tf.Print(input_=x.get_shape()[0], data=[x.get_shape()[0]], message="This is a x.get_shape()[0]")
+            # TODO find a way to get this from input
+            num_steps = 250
+
+            # num_steps = 250
             batch_size = 1
             # lstm_size = n_hidden
 
@@ -129,7 +139,7 @@ class LSTMnet:
 
             # Run LSTM cell
             outputs, state = tf.contrib.rnn.static_rnn(cell=lstm_cell, inputs=x,  # initial_state=state, init (optional)
-                                                       dtype=tf.float32, sequence_length=num_steps, scope=None)
+                                                       dtype=tf.float32, scope=None)  # , sequence_length=num_steps
             #  rnn.static_rnn calculates basically this:
             # outputs = []
             # for input_ in x:
@@ -151,11 +161,11 @@ class LSTMnet:
             lstm_output = outputs[-1]  # = output
 
             # Push through activation function
-            with tf.name_scope(layer_name + "_(r)elu"):  # or relu
+            with tf.name_scope(layer_name + "_elu"):  # or relu
                 # post_activation = tf.nn.relu(lstm_output, name="post_activation")
                 post_activation = self.activation_function(features=lstm_output, name="post_activation")
 
-                tf.summary.histogram(layer_name + "_(r)elu" + "/post_activation", post_activation)
+                tf.summary.histogram(layer_name + "_elu" + "/post_activation", post_activation)
 
         return post_activation, final_state
 
@@ -167,18 +177,18 @@ class LSTMnet:
         :return: Layer activation
         """
         with tf.variable_scope(layer_name):
-            weights = tf.get_variable(name=layer_name + "/weights",
+            weights = tf.get_variable(name="weights",
                                       shape=shape,
                                       initializer=tf.contrib.layers.xavier_initializer(),
                                       regularizer=self.weight_regularizer)
 
-            self._var_summaries(weights, layer_name + "/weights")
+            self._var_summaries(name="weights", var=weights)
 
-            biases = tf.get_variable(name=layer_name + "/biases",
+            biases = tf.get_variable(name="/biases",
                                      shape=[shape[1]],
                                      initializer=tf.constant_initializer(0.0))
 
-            self._var_summaries(biases, layer_name + "/biases")
+            self._var_summaries(name="biases", var=biases)
 
             # activation:
             with tf.name_scope(layer_name + "/XW_Bias"):
@@ -286,7 +296,8 @@ class LSTMnet:
 # test_var = tf.constant([1., 2., 3.])
 # test_var.eval()
 # # Add print operation
-# test_var = tf.Print(input_=test_var, data=[test_var], message="This is a tf. test variable")
+# test_var = tf.Print(input_=test_var, data=[test_var, " with shape:", test_var.get_shape()],
+#                     message="This is a tf. test variable: ")
 # test_var.eval()
 # # Add more stuff
 # test_var2 = tf.add(x=test_var, y=test_var).eval()

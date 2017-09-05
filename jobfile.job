@@ -1,0 +1,22 @@
+#!/bin/bash
+#SBATCH -n 1          # request 1 processes (each runs on 1 core), mostly to run MPI programs on
+#SBATCH -t 02:20:30   # 2 hours plus 20 minutes plus 30 seconds
+#SBATCH -p gpu
+#SBATCH -o train_%A.output
+#SBATCH -e train_%A.error
+
+
+module load python/2.7.11
+module load cuda/7.5.18
+module load cudnn/7.5-v5
+
+export CUDA_HOME=/hpc/sw/cuda/7.5.18
+export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$CUDA_HOME/lib64:$CUDA_HOME/extras/CUPTI/lib64:"
+
+# Task: LSTM-Network
+# python2 NeVRo.py --learning_rate 1e-4 --log_dir ./logs/lstm/server
+# srun -u python NeVRo.py --print_freq 5 --weight_reg none --log_dir ./logs/lstm/server/none --checkpoint_dir ./checkpoints/lstm/none
+# srun -u python NeVRo.py --print_freq 5 --weight_reg l1 --weight_reg_strength 0.18 --log_dir ./logs/lstm/server/l1_reg --checkpoint_dir ./checkpoints/lstm/l1
+# srun -u python NeVRo.py --print_freq 5 --weight_reg l2 --weight_reg_strength 0.18 --log_dir ./logs/lstm/server/l2_reg --checkpoint_dir ./checkpoints/lstm/l2
+
+

@@ -52,7 +52,7 @@ def normalization(array, lower_bound, upper_bound):
 
     assert lower_bound < upper_bound, "lower_bound must be < upper_bound"
 
-    a,b = lower_bound, upper_bound
+    a, b = lower_bound, upper_bound
 
     normed_array = (b-a) * ((array - np.nanmin(array)) / (np.nanmax(array) - np.nanmin(array))) + a
 

@@ -46,8 +46,10 @@ The idea behind cross validation is that each iteration is like training the alg
 # https://stackoverflow.com/questions/41216976/how-is-cross-validation-implemented
 
 DATA_DIR_DEFAULT = '../../Data/'
-LOG_DIR_DEFAULT = '../../Data/LSTM/logs/'
-CHECKPOINT_DIR_DEFAULT = '../../Data/LSTM/checkpoints'
+LOG_DIR_DEFAULT = './LSTM/logs/'
+CHECKPOINT_DIR_DEFAULT = './LSTM/checkpoints'
+# LOG_DIR_DEFAULT = '../../Data/LSTM/logs/'
+# CHECKPOINT_DIR_DEFAULT = '../../Data/LSTM/checkpoints'
 
 WEIGHT_REGULARIZER_DICT = {'none': lambda x: None,  # No regularization
                            # L1 regularization
@@ -244,6 +246,7 @@ def train_lstm():
 
     print("Average accuracy across all {} validation set: {}".format(FLAGS.s_fold,
                                                                      tf.reduce_mean(input_tensor=all_acc_val)))
+
 
 def initialize_folders():
     """
