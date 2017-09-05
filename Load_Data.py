@@ -385,8 +385,8 @@ class DataSet(object):
 
     # @classmethod
     # def update_s_fold_idx(cls):
-        """This updates the class variable s_fold_idx_list and s_fold_idx"""
-        pass
+    #     """This updates the class variable s_fold_idx_list and s_fold_idx"""
+    #     pass
 
     @property
     def eeg(self):
@@ -419,7 +419,7 @@ class DataSet(object):
 
         self._index_in_epoch += batch_size
         # if self._index_in_eeg_epoch/self.eeg_samp_freq > self._num_time_slices:
-        if self._index_in_rating_epoch > self._num_time_slices:
+        if self._index_in_epoch > self._num_time_slices:
             self._epochs_completed += 1
 
             # # Shuffling only makes sense if we consider batches as independent, what we don't for later models

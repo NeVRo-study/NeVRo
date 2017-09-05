@@ -20,12 +20,12 @@ from LSTMnet import LSTMnet
 
 
 # TODO Define Default Values
-LEARNING_RATE_DEFAULT = 1e-4
+LEARNING_RATE_DEFAULT = 1e-2  # 1e-4
 BATCH_SIZE_DEFAULT = 1  # or bigger
-MAX_STEPS_DEFAULT = 15000
-EVAL_FREQ_DEFAULT = 1000
-CHECKPOINT_FREQ_DEFAULT = 5000
-PRINT_FREQ_DEFAULT = 10
+MAX_STEPS_DEFAULT = 150
+EVAL_FREQ_DEFAULT = MAX_STEPS_DEFAULT/15
+CHECKPOINT_FREQ_DEFAULT = MAX_STEPS_DEFAULT/3
+PRINT_FREQ_DEFAULT = 5
 OPTIMIZER_DEFAULT = 'ADAM'
 WEIGHT_REGULARIZER_DEFAULT = 'l2'
 ACTIVATION_FCT_DEFAULT = 'elu'
@@ -37,6 +37,13 @@ LSTM_SIZE_DEFAULT = 128
 
 SUBJECT_DEFAULT = 36
 S_FOLD_DEFAULT = 10
+"""Lastly, all the weights are re-initialized (using the same random number generator used to initialize them 
+    originally) or reset in some fashion to undo the learning that was done before moving on to the next set of 
+    validation, training, and testing sets.
+The idea behind cross validation is that each iteration is like training the algorithm from scratch. 
+    This is desirable since by averaging your validation score, you get a more robust value. 
+    It protects against the possibility of a biased validation set."""
+# https://stackoverflow.com/questions/41216976/how-is-cross-validation-implemented
 
 DATA_DIR_DEFAULT = '../../Data/'
 LOG_DIR_DEFAULT = '../../Data/LSTM/logs/'
@@ -48,8 +55,7 @@ WEIGHT_REGULARIZER_DICT = {'none': lambda x: None,  # No regularization
                            # L2 regularization
                            'l2': tf.contrib.layers.l2_regularizer}
 
-ACTIVATION_FCT_DICT = {'elu': tf.nn.elu,  # elu
-                       # relu
+ACTIVATION_FCT_DICT = {'elu': tf.nn.elu,
                        'relu': tf.nn.relu}
 
 
@@ -65,6 +71,7 @@ def train_step(loss):
         train_op: Ops for optimization.
     """
 
+    train_op = None
     # TODO: Learning rate scheduler
     if OPTIMIZER_DEFAULT == 'ADAM':
         train_op = tf.train.AdamOptimizer(learning_rate=FLAGS.learning_rate).minimize(loss)
@@ -111,119 +118,132 @@ def train_lstm():
     # s_fold_idx depending on s_fold and previous index
     s_fold_idx_list = np.arange(FLAGS.s_fold)
     np.random.shuffle(s_fold_idx_list)
+    # rnd = 0
+
+    # Create to save the performance for each validation set
+    all_acc_val = tf.zeros(shape=(FLAGS.s_fold, 1), dtype=tf.float32, name="all_valid_accuracies")
 
     # Run through S-Fold-Cross-Validation (take the mean-performance across all validation sets)
     for rnd, s_fold_idx in enumerate(s_fold_idx_list):
-        # Load Data:
-        nevro_data = Load_Data.get_nevro_data(subject=FLAGS.subject,
-                                              s_fold_idx=s_fold_idx_list[rnd],
-                                              s_fold=FLAGS.s_fold,
-                                              cond="NoMov",
-                                              sba=True)
+        # This is a way to re-initialise the model completely
+        # Alternative just reset the weights after one round (maybe with tf.reset_default_graph())
+        with tf.variable_scope(name_or_scope="Round{}".format(str(rnd).zfill(len(str(FLAGS.s_fold))))):
 
-        # Define graph using class LSTMnet and its methods:
-        ddims = list(nevro_data["train"].eeg.shape[1:])  # [250, 2]
-        # print("ddims", ddims)
+            # Load Data:
+            nevro_data = Load_Data.get_nevro_data(subject=FLAGS.subject,
+                                                  s_fold_idx=s_fold_idx_list[rnd],
+                                                  s_fold=FLAGS.s_fold,
+                                                  cond="NoMov",
+                                                  sba=True)
 
-        with tf.name_scope("input"):
-            # shape = [None] + ddims includes num_steps = 250
-            #  Tensorflow requires input as a tensor (a Tensorflow variable) of the dimensions
-            # [batch_size, sequence_length, input_dimension] (a 3d variable).
-            x = tf.placeholder(dtype=tf.float32, shape=[None] + ddims, name="x-input")  # None for Batch-Size
-            # x = tf.placeholder(dtype=tf.float32, shape=[None, 250, 2], name="x-input")
-            y = tf.placeholder(dtype=tf.float32, shape=[None, 1], name="y-input")
+            # Define graph using class LSTMnet and its methods:
+            ddims = list(nevro_data["train"].eeg.shape[1:])  # [250, 2]
+            # print("ddims", ddims)
 
-        # Model
-        lstm_model = LSTMnet(lstm_size=FLAGS.lstm_size,
-                             activation_function=ACTIVATION_FCT_DICT.get(FLAGS.activation_fct),
-                             weight_regularizer=WEIGHT_REGULARIZER_DICT.get(FLAGS.weight_reg)(
-                                 scale=FLAGS.weight_reg_strength))
+            with tf.name_scope("input"):
+                # shape = [None] + ddims includes num_steps = 250
+                #  Tensorflow requires input as a tensor (a Tensorflow variable) of the dimensions
+                # [batch_size, sequence_length, input_dimension] (a 3d variable).
+                x = tf.placeholder(dtype=tf.float32, shape=[None] + ddims, name="x-input")  # None for Batch-Size
+                # x = tf.placeholder(dtype=tf.float32, shape=[None, 250, 2], name="x-input")
+                y = tf.placeholder(dtype=tf.float32, shape=[None, 1], name="y-input")
 
-        # Prediction
-        with tf.variable_scope(name_or_scope="Inference") as scope:
-            infer = lstm_model.inference(x=x)
-        # Loss
-        loss = lstm_model.loss(infer=infer, ratings=y)
+            # Model
+            lstm_model = LSTMnet(lstm_size=FLAGS.lstm_size,
+                                 activation_function=ACTIVATION_FCT_DICT.get(FLAGS.activation_fct),
+                                 weight_regularizer=WEIGHT_REGULARIZER_DICT.get(FLAGS.weight_reg)(
+                                     scale=FLAGS.weight_reg_strength))
 
-        # Define train_step, savers, summarizers
-        # Optimization
-        optimization = train_step(loss=loss)
+            # Prediction
+            with tf.variable_scope(name_or_scope="Inference"):
+                infer = lstm_model.inference(x=x)
+            # Loss
+            loss = lstm_model.loss(infer=infer, ratings=y)
 
-        # Performance
-        accuracy = lstm_model.accuracy(infer=infer, ratings=y)
+            # Define train_step, savers, summarizers
+            # Optimization
+            optimization = train_step(loss=loss)
 
-        # Writer
-        merged = tf.summary.merge_all()
+            # Performance
+            accuracy = lstm_model.accuracy(infer=infer, ratings=y)
 
-        train_writer = tf.summary.FileWriter(logdir=FLAGS.log_dir + "/train", graph=sess.graph)
-        test_writer = tf.summary.FileWriter(logdir=FLAGS.log_dir + "/val")
-        # test_writer = tf.train.SummaryWriter(logdir=FLAGS.log_dir + "/test")
+            # Writer
+            merged = tf.summary.merge_all()
 
-        # Saver
-        # https://www.tensorflow.org/versions/r0.11/api_docs/python/state_ops.html#Saver
-        saver = tf.train.Saver()  # might be under tf.initialize_all_variables().run()
+            train_writer = tf.summary.FileWriter(logdir=FLAGS.log_dir + "/train", graph=sess.graph)
+            test_writer = tf.summary.FileWriter(logdir=FLAGS.log_dir + "/val")
+            # test_writer = tf.train.SummaryWriter(logdir=FLAGS.log_dir + "/test")
 
-        # Initialize your model within a tf.Session
-        tf.initialize_all_variables().run()  # or without .run()
+            # Saver
+            # https://www.tensorflow.org/versions/r0.11/api_docs/python/state_ops.html#Saver
+            saver = tf.train.Saver()  # might be under tf.initialize_all_variables().run()
 
-        def _feed_dict(training):
-            """creates feed_dicts depending on training or no training"""
-            # Train
-            if training:
-                xs, ys = nevro_data["train"].next_batch(FLAGS.batch_size)  # BATCH_SIZE_DEFAULT
-                # print("that is the x-shape:", xs.shape)
-                # keep_prob = 1.0-FLAGS.dropout_rate
-                # print("I am in _feed_dict(Trainining True)")
+            # Initialize your model within a tf.Session
+            tf.initialize_all_variables().run()  # or without .run()
 
-            else:
-                # Validation:
-                xs, ys = nevro_data["validation"].eeg, nevro_data["validation"].ratings
+            def _feed_dict(training):
+                """creates feed_dicts depending on training or no training"""
+                # Train
+                if training:
+                    xs, ys = nevro_data["train"].next_batch(FLAGS.batch_size)  # BATCH_SIZE_DEFAULT
+                    # print("that is the x-shape:", xs.shape)
+                    # keep_prob = 1.0-FLAGS.dropout_rate
+                    # print("I am in _feed_dict(Trainining True)")
 
-            return {x: xs, y: ys}
+                else:
+                    # Validation:
+                    xs, ys = nevro_data["validation"].next_batch(FLAGS.batch_size)
 
-        # Run
-        for epoch in range(FLAGS.max_steps):
-            # Evaluate on training set every print_freq (=10) iterations
-            if (epoch + 1) % FLAGS.print_freq == 0:
-                run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
-                run_metadata = tf.RunMetadata()
+                return {x: xs, y: ys}
 
-                summary, _, train_loss, train_acc = sess.run([merged, optimization, loss, accuracy],
-                                                             feed_dict=_feed_dict(training=True),
-                                                             options=run_options,
-                                                             run_metadata=run_metadata)
+            # Run
+            for epoch in range(FLAGS.max_steps):
+                # Evaluate on training set every print_freq (=10) iterations
+                if (epoch + 1) % FLAGS.print_freq == 0:
+                    run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+                    run_metadata = tf.RunMetadata()
 
-                train_writer.add_run_metadata(run_metadata, "step{}".format(str(epoch).zfill(4)))
-                train_writer.add_summary(summary=summary, global_step=epoch)
+                    summary, _, train_loss, train_acc = sess.run([merged, optimization, loss, accuracy],
+                                                                 feed_dict=_feed_dict(training=True),
+                                                                 options=run_options,
+                                                                 run_metadata=run_metadata)
 
-                print("Train-Loss: {} at epoch:{}".format(np.round(train_loss, 3), epoch + 1))
-                print("Train-Accuracy: {} at epoch:{}".format(np.round(train_acc, 3), epoch + 1))
+                    train_writer.add_run_metadata(run_metadata, "step{}".format(str(epoch).zfill(4)))
+                    train_writer.add_summary(summary=summary, global_step=epoch)
 
-            else:
-                # summary, _, train_loss, train_acc = sess.run([merged, optimization, loss, accuracy],
-                #                                              feed_dict=_feed_dict(training=True))
-                # train_writer.add_summary(summary=summary, global_step=epoch)
+                    print("Train-Loss: {} at epoch:{}".format(np.round(train_loss, 3), epoch + 1))
+                    print("Train-Accuracy: {} at epoch:{}".format(np.round(train_acc, 3), epoch + 1))
 
-                _, train_loss, train_acc = sess.run([optimization, loss, accuracy], feed_dict=_feed_dict(training=True))
+                else:
+                    # summary, _, train_loss, train_acc = sess.run([merged, optimization, loss, accuracy],
+                    #                                              feed_dict=_feed_dict(training=True))
+                    # train_writer.add_summary(summary=summary, global_step=epoch)
 
-            # Evaluate on validation set every eval_freq (=1000) iterations
-            if (epoch + 1) % FLAGS.eval_freq == 0:
-                summary, val_loss, val_acc = sess.run([merged, loss, accuracy], feed_dict=_feed_dict(training=False))
-                # test_loss, test_acc = sess.run([loss, accuracy], feed_dict=_feed_dict(training=False))
-                # print("now do: test_writer.add_summary(summary=summary, global_step=epoch)")
-                test_writer.add_summary(summary=summary, global_step=epoch)
-                print("Validation-Loss: {} at epoch:{}".format(np.round(val_loss, 3), epoch + 1))
-                print("Validation-Accuracy: {} at epoch:{}".format(np.round(val_acc, 3), epoch + 1))
+                    _, train_loss, train_acc = sess.run([optimization, loss, accuracy], feed_dict=_feed_dict(training=True))
 
-            # Save the variables to disk every checkpoint_freq (=5000) iterations
-            if (epoch + 1) % FLAGS.checkpoint_freq == 0:
-                save_path = saver.save(sess=sess, save_path=FLAGS.checkpoint_dir + "/lstmnet.ckpt", global_step=epoch)
-                print("Model saved in file: %s" % save_path)
+                # Evaluate on validation set every eval_freq (=1000) iterations
+                if (epoch + 1) % FLAGS.eval_freq == 0:
+                    summary, val_loss, val_acc = sess.run([merged, loss, accuracy], feed_dict=_feed_dict(training=False))
+                    # test_loss, test_acc = sess.run([loss, accuracy], feed_dict=_feed_dict(training=False))
+                    # print("now do: test_writer.add_summary(summary=summary, global_step=epoch)")
+                    test_writer.add_summary(summary=summary, global_step=epoch)
+                    print("Validation-Loss: {} at epoch:{}".format(np.round(val_loss, 3), epoch + 1))
+                    print("Validation-Accuracy: {} at epoch:{}".format(np.round(val_acc, 3), epoch + 1))
 
-        # Close Writers:
-        train_writer.close()
-        test_writer.close()
+                # Save the variables to disk every checkpoint_freq (=5000) iterations
+                if (epoch + 1) % FLAGS.checkpoint_freq == 0:
+                    save_path = saver.save(sess=sess, save_path=FLAGS.checkpoint_dir + "/lstmnet.ckpt", global_step=epoch)
+                    print("Model saved in file: %s" % save_path)
 
+            # Close Writers:
+            train_writer.close()
+            test_writer.close()
+
+            # Save last val_acc in all_acc_val-vector
+            all_acc_val[rnd] = val_acc
+
+    print("Average accuracy across all {} validation set: {}".format(FLAGS.s_fold,
+                                                                     tf.reduce_mean(input_tensor=all_acc_val)))
 
 def initialize_folders():
     """

@@ -124,11 +124,11 @@ class LSTMnet:
             # lstm_cell.state_size
 
             # Initial state of the LSTM memory
-            state = tf.zeros([batch_size, lstm_cell.state_size])  # initial_state
+            # state = tf.zeros([batch_size, lstm_cell.state_size])  # initial_state
             # state = lstm.zero_state(batch_size=batch_size, dtype=tf.float32)  # initial_state
 
             # Run LSTM cell
-            outputs, state = tf.contrib.rnn.static_rnn(cell=lstm_cell, inputs=x, initial_state=state,  # init (optional)
+            outputs, state = tf.contrib.rnn.static_rnn(cell=lstm_cell, inputs=x,  # initial_state=state, init (optional)
                                                        dtype=tf.float32, sequence_length=num_steps, scope=None)
             #  rnn.static_rnn calculates basically this:
             # outputs = []
