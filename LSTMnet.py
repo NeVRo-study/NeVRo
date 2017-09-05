@@ -22,20 +22,25 @@ class LSTMnet:
     https://www.youtube.com/watch?feature=youtu.be&v=06HjEr0OX5k&app=desktop
     """
 
-    def __init__(self, n_classes, weight_regularizer=tf.contrib.layers.l2_regularizer(scale=0.18)):
+    def __init__(self, activation_function=tf.nn.elu,
+                 weight_regularizer=tf.contrib.layers.l2_regularizer(scale=0.18),
+                 lstm_size=128):  # n_classes
         """
         Constructor for an LSTMnet object.
         Args:
-            n_classes: int, number of classes of the classification problem. This number is required in order to specify
+            # n_classes: int, number of classes of the classification problem. This number is required in order to
+            # specify
             the output dimensions of the LSTMnet.
             weight_regularizer: to be applied weight regularization
         """
 
-        self.n_classes = n_classes
-        self.fc2_post_activation = None
+        self.lstm_post_activation = None
         self.fc1_post_activation = None
-        self.post_flatten = None
         self.weight_regularizer = weight_regularizer
+        self.activation_function = activation_function  # TODO HyperParameter, to be tuned
+        self.lstm_size = lstm_size  # TODO HyperParameter, to be tuned
+        # self.n_classes = n_classes
+        # self.post_flatten = None
 
     def inference(self, x):
         """
@@ -58,20 +63,30 @@ class LSTMnet:
         """
 
         with tf.variable_scope('LSTMnet'):
-            # TODO Build Model here
-            # TODO lstm_size
-            post_lstm, final_state = self._create_lstm_layer(x=x, layer_name="lstm1", lstm_size=None)
-            infer = None
 
-            tf.nn.tanh(x=infer, name="tanh_inference")
-            pass
-        # ,,,
-        probabilities = []
+            # LSTM Layer 1
+            post_lstm, final_state = self._create_lstm_layer(x=x, layer_name="lstm1", lstm_size=self.lstm_size)
 
-        # infer = tf.matmul(output, softmax_w) + softmax_b
+            # For the featuer_extractor:
+            self.lstm_post_activation = post_lstm
+
+            # Fully Connected Layer 1
+            pre_activation = self._create_fc_layer(x=post_lstm, layer_name="fc1", shape=[post_lstm.get_shape()[1],
+                                                                                         None])
+            # For the featuer_extractor:
+            self.fc1_post_activation = pre_activation
+
+            # Use tanh ([-1, 1]) for final prediction
+            infer = tf.nn.tanh(x=pre_activation, name="tanh_inference")
+            # Write summary
+            with tf.name_scope("inference"):
+                tf.summary.histogram("inference", infer)  # logits
+
+        # probabilities = []
+
         return infer
 
-    def _create_lstm_layer(self, x, layer_name, lstm_size=128):
+    def _create_lstm_layer(self, x, layer_name, lstm_size):
         """
         Creates a LSTM Layer.
         https://www.tensorflow.org/tutorials/recurrent#lstm
@@ -97,7 +112,7 @@ class LSTMnet:
         with tf.variable_scope(layer_name):
             num_steps = x.shape[0]  # = samp.freq. = 250
             batch_size = 1
-            # lstm_size = n_hidden  # TODO HyperParameter, to be tuned
+            # lstm_size = n_hidden
 
             # Unstack to get a list of 'n_steps' tensors of shape (batch_size, n_input)
             # if x hase shape [batch_size(1), samples-per-second(250), components(2))
@@ -112,6 +127,7 @@ class LSTMnet:
             state = tf.zeros([batch_size, lstm_cell.state_size])  # initial_state
             # state = lstm.zero_state(batch_size=batch_size, dtype=tf.float32)  # initial_state
 
+            # Run LSTM cell
             outputs, state = tf.contrib.rnn.static_rnn(cell=lstm_cell, inputs=x, initial_state=state,  # init (optional)
                                                        dtype=tf.float32, sequence_length=num_steps, scope=None)
             #  rnn.static_rnn calculates basically this:
@@ -123,13 +139,25 @@ class LSTMnet:
 
             final_state = state
 
+            # Write summaries
+            self._var_summaries(name=layer_name + "/lstm_outputs", var=outputs)
+            tf.summary.histogram(layer_name + "/lstm_outputs_hist", outputs)
+            self._var_summaries(name=layer_name + "/final_state", var=final_state)
+
             # TODO how to define output:
             # Different options: 1) last lstm output 2) average over all outputs
             # or 3) right-weighted average (last values have stronger impact)
             # here option 1)
             lstm_output = outputs[-1]  # = output
 
-        return lstm_output, final_state
+            # Push through activation function
+            with tf.name_scope(layer_name + "_(r)elu"):  # or relu
+                # post_activation = tf.nn.relu(lstm_output, name="post_activation")
+                post_activation = self.activation_function(features=lstm_output, name="post_activation")
+
+                tf.summary.histogram(layer_name + "_(r)elu" + "/post_activation", post_activation)
+
+        return post_activation, final_state
 
     def _create_fc_layer(self, x, layer_name, shape):
         """
@@ -142,7 +170,6 @@ class LSTMnet:
             weights = tf.get_variable(name=layer_name + "/weights",
                                       shape=shape,
                                       initializer=tf.contrib.layers.xavier_initializer(),
-                                      # Reg-scale based on practical2 experiment
                                       regularizer=self.weight_regularizer)
 
             self._var_summaries(weights, layer_name + "/weights")
@@ -162,7 +189,7 @@ class LSTMnet:
         return pre_activation
 
     @staticmethod
-    def _var_summaries(var, name):
+    def _var_summaries(name, var):
 
         with tf.name_scope("summaries"):
             mean = tf.reduce_mean(var)
@@ -229,20 +256,26 @@ class LSTMnet:
         """
         reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
 
-        with tf.name_scope("cross_entropy"):
+        # with tf.name_scope("cross_entropy"):
+        with tf.name_scope("mean_squared_error"):
             # sparse_softmax_cross_entropy_with_logits(), could also be, since we have an exclusive classification
             # diff = tf.nn.sparse_softmax_cross_entropy_with_logits(logits, labels, name='cross_entropy_diff')
-            diff = tf.nn.softmax_cross_entropy_with_logits(logits=infer, labels=ratings, name="cross_entropy_diff")
-
+            # diff = tf.nn.softmax_cross_entropy_with_logits(logits=infer, labels=ratings, name="cross_entropy_diff")
+            # diff = tf.losses.mean_squared_error(labels=ratings, predictions=infer, scope="mean_squared_error",
+            #                                     loss_collection=reg_losses)
+            diff = tf.losses.mean_squared_error(labels=ratings, predictions=infer, scope="mean_squared_error")
             # print("Just produced the diff in the loss function")
 
             with tf.name_scope("total"):
-                cross_entropy = tf.reduce_mean(diff, name='cross_entropy_mean')
-                loss = tf.add(cross_entropy, tf.add_n(reg_losses), name="Full_Loss")  # add_n==tf.reduce_sum(reg_losses)
+                # cross_entropy = tf.reduce_mean(diff, name='cross_entropy_mean')
+                mean_squared_error = tf.reduce_mean(diff, name='mean_squared_error_mean')
+                loss = tf.add(mean_squared_error, tf.add_n(reg_losses), name="Full_Loss")
+                # add_n==tf.reduce_sum(reg_losses)
 
             with tf.name_scope("summaries"):
                 tf.summary.scalar("Full_loss", loss)
-                tf.summary.scalar("Cross_Entropy_Loss", cross_entropy)
+                # tf.summary.scalar("Cross_Entropy_Loss", cross_entropy)
+                tf.summary.scalar("Mean_Squared_Error_Loss", mean_squared_error)
                 tf.summary.scalar("Reg_Losses", tf.reduce_sum(reg_losses))
 
         return loss

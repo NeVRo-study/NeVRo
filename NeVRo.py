@@ -28,10 +28,12 @@ CHECKPOINT_FREQ_DEFAULT = 5000
 PRINT_FREQ_DEFAULT = 10
 OPTIMIZER_DEFAULT = 'ADAM'
 WEIGHT_REGULARIZER_DEFAULT = 'l2'
+ACTIVATION_FCT_DEFAULT = 'elu'
 WEIGHT_REGULARIZER_STRENGTH_DEFAULT = 0.0
 MARGIN_DEFAULT = 0.2
 LOSS_DEFAULT = "normal"
 FEAT_EPOCH_DEFAULT = CHECKPOINT_FREQ_DEFAULT-1
+LSTM_SIZE_DEFAULT = 128
 
 SUBJECT_DEFAULT = 36
 S_FOLD_DEFAULT = 10
@@ -45,6 +47,10 @@ WEIGHT_REGULARIZER_DICT = {'none': lambda x: None,  # No regularization
                            'l1': tf.contrib.layers.l1_regularizer,
                            # L2 regularization
                            'l2': tf.contrib.layers.l2_regularizer}
+
+ACTIVATION_FCT_DICT = {'elu': tf.nn.elu,  # elu
+                       # relu
+                       'relu': tf.nn.relu}
 
 
 def train_step(loss):
@@ -128,8 +134,10 @@ def train_lstm():
             y = tf.placeholder(dtype=tf.float32, shape=[None, 1], name="y-input")
 
         # Model
-        lstm_model = LSTMnet(weight_regularizer=WEIGHT_REGULARIZER_DICT.get(
-            FLAGS.weight_reg)(scale=FLAGS.weight_reg_strength))
+        lstm_model = LSTMnet(lstm_size=FLAGS.lstm_size,
+                             activation_function=ACTIVATION_FCT_DICT.get(FLAGS.activation_fct),
+                             weight_regularizer=WEIGHT_REGULARIZER_DICT.get(FLAGS.weight_reg)(
+                                 scale=FLAGS.weight_reg_strength))
 
         # Prediction
         with tf.variable_scope(name_or_scope="Inference") as scope:
@@ -288,6 +296,8 @@ if __name__ == '__main__':
                         help='Regularizer type for weights of fully-connected layers [none, l1, l2].')
     parser.add_argument('--weight_reg_strength', type=float, default=WEIGHT_REGULARIZER_STRENGTH_DEFAULT,
                         help='Regularizer strength for weights of fully-connected layers.')
+    parser.add_argument('--activation_fct', type=str, default=ACTIVATION_FCT_DEFAULT,
+                        help='Type of activation function from lstm to fully-connected layers [elu, relu].')
     parser.add_argument('--margin', type=float, default=MARGIN_DEFAULT,
                         help='Regularizer strength for weights of fully-connected layers.')
     parser.add_argument('--loss', type=str, default=LOSS_DEFAULT,
@@ -296,6 +306,8 @@ if __name__ == '__main__':
                         help='feature_extraction will be applied on specific epoch of checkpoint data')
     parser.add_argument('--subject', type=int, default=SUBJECT_DEFAULT,
                         help='Which subject data to process')
+    parser.add_argument('--lstm_size', type=int, default=LSTM_SIZE_DEFAULT,
+                        help='size of hidden state in LSTM layer')
     parser.add_argument('--s_fold', type=int, default=S_FOLD_DEFAULT,
                         help='Number of folds in S-Fold-Cross Validation')
     # parser.add_argument('--layer_feat_extr', type=str, default="fc2",
