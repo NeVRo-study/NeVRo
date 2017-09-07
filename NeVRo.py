@@ -28,12 +28,12 @@ CHECKPOINT_FREQ_DEFAULT = MAX_STEPS_DEFAULT/3
 PRINT_FREQ_DEFAULT = 5
 OPTIMIZER_DEFAULT = 'ADAM'
 WEIGHT_REGULARIZER_DEFAULT = 'l2'
-ACTIVATION_FCT_DEFAULT = 'elu'
+ACTIVATION_FCT_DEFAULT = 'elu'  # TODO HyperParameter, to be tuned
 WEIGHT_REGULARIZER_STRENGTH_DEFAULT = 0.0
 MARGIN_DEFAULT = 0.2
 LOSS_DEFAULT = "normal"
 FEAT_EPOCH_DEFAULT = CHECKPOINT_FREQ_DEFAULT-1
-LSTM_SIZE_DEFAULT = 128
+LSTM_SIZE_DEFAULT = 10  # TODO HyperParameter, to be tuned
 
 SUBJECT_DEFAULT = 36
 S_FOLD_DEFAULT = 10
@@ -114,7 +114,7 @@ def train_lstm():
     tf.set_random_seed(42)
     np.random.seed(42)
 
-    # Start TensorFlow Session
+    # Start TensorFlow Interactive Session
     sess = tf.InteractiveSession()
 
     # s_fold_idx depending on s_fold and previous index
@@ -154,7 +154,8 @@ def train_lstm():
             lstm_model = LSTMnet(lstm_size=FLAGS.lstm_size,
                                  activation_function=ACTIVATION_FCT_DICT.get(FLAGS.activation_fct),
                                  weight_regularizer=WEIGHT_REGULARIZER_DICT.get(FLAGS.weight_reg)(
-                                     scale=FLAGS.weight_reg_strength))
+                                     scale=FLAGS.weight_reg_strength),
+                                 n_steps=ddims[0], batch_size=FLAGS.batch_size)  # n_step = 250
 
             # Prediction
             with tf.variable_scope(name_or_scope="Inference"):
@@ -181,20 +182,22 @@ def train_lstm():
             saver = tf.train.Saver()  # might be under tf.initialize_all_variables().run()
 
             # Initialize your model within a tf.Session
-            tf.initialize_all_variables().run()  # or without .run()
+            tf.global_variables_initializer().run()  # or without .run()
 
             def _feed_dict(training):
                 """creates feed_dicts depending on training or no training"""
                 # Train
                 if training:
-                    xs, ys = nevro_data["train"].next_batch(FLAGS.batch_size)  # BATCH_SIZE_DEFAULT
+                    xs, ys = nevro_data["train"].next_batch(FLAGS.batch_size)
                     # print("that is the x-shape:", xs.shape)
-                    # keep_prob = 1.0-FLAGS.dropout_rate
                     # print("I am in _feed_dict(Trainining True)")
+                    # keep_prob = 1.0-FLAGS.dropout_rate
+                    ys = np.reshape(ys, newshape=([FLAGS.batch_size] + list(ys.shape)))
 
                 else:
                     # Validation:
                     xs, ys = nevro_data["validation"].next_batch(FLAGS.batch_size)
+                    ys = np.reshape(ys, newshape=([FLAGS.batch_size] + list(ys.shape)))
 
                 return {x: xs, y: ys}
 

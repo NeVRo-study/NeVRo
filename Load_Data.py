@@ -412,8 +412,8 @@ class DataSet(object):
         :return: Next batch
         """
 
-        if batch_size > 1:
-            raise ValueError("A batch_size of > 1 is not recommanded at this point")
+        # if batch_size > 1:
+        #     raise ValueError("A batch_size of > 1 is not recommanded at this point")
 
         start = self._index_in_epoch
 
@@ -434,10 +434,7 @@ class DataSet(object):
 
         end = self._index_in_epoch
 
-        if batch_size == 1:
-            return self._eeg[start:end][0], self._ratings[start:end]
-        else:  # batch_size > 1
-            return self._eeg[start:end], self._ratings[start:end]
+        return self._eeg[start:end], self._ratings[start:end]  # shape (batch_size, num_steps, components/dimensions)
 
 
 def concatenate(array1, array2):

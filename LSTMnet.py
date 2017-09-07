@@ -7,9 +7,7 @@ import tensorflow as tf
 # import numpy as np
 
 # TODO Hilbert Transform to power-spectrum of SSD/Spoc components
-# with Hilbert you can keep sampl.freq
-# needs filtered data (alpha, 8Hz-12Hz)
-# Check whether SSD is filtered
+# with Hilbert (needs filtered data (alpha, 8Hz-12Hz) keep sampl.freq
 
 
 class LSTMnet:
@@ -24,7 +22,7 @@ class LSTMnet:
 
     def __init__(self, activation_function=tf.nn.elu,
                  weight_regularizer=tf.contrib.layers.l2_regularizer(scale=0.18),
-                 lstm_size=128):  # n_classes
+                 lstm_size=128, n_steps=250, batch_size=1):  # n_classes (include for, e.g., binary cases)
         """
         Constructor for an LSTMnet object.
         Args:
@@ -37,10 +35,11 @@ class LSTMnet:
         self.lstm_post_activation = None
         self.fc1_post_activation = None
         self.weight_regularizer = weight_regularizer
-        self.activation_function = activation_function  # TODO HyperParameter, to be tuned
-        self.lstm_size = lstm_size  # TODO HyperParameter, to be tuned
+        self.activation_function = activation_function
+        self.lstm_size = lstm_size  # = n_hidden
+        self.n_steps = n_steps  # samp.freq. = 250
+        self.batch_size = batch_size
         # self.n_classes = n_classes
-        # self.post_flatten = None
 
     def inference(self, x):
         """
@@ -73,9 +72,11 @@ class LSTMnet:
             # Fully Connected Layer 1
             # post_lstm = tf.Print(input_=post_lstm, data=[post_lstm.get_shape()], message="post_lstm")
 
-            # TODO shape here
-            pre_activation = self._create_fc_layer(x=post_lstm, layer_name="fc1", shape=[post_lstm.get_shape()[1],
-                                                                                         None])
+            pre_activation = self._create_fc_layer(x=post_lstm,
+                                                   layer_name="fc1",
+                                                   shape=[self.lstm_size, 1])  # 1 for 1 Rating
+            # shape = [post_lstm.get_shape()[1], post_lstm.get_shape()[0]]
+
             # For the featuer_extractor:
             self.fc1_post_activation = pre_activation
 
@@ -99,7 +100,7 @@ class LSTMnet:
         The number of units (num_units) is a parameter in the LSTM, referring to the dimensionality of the hidden
         state and dimensionality of the output state (they must be equal)
         (see: https://www.quora.com/What-is-the-meaning-of-“The-number-of-units-in-the-LSTM-cell)
-        => num_units = n_hidden = e.g., 128 << hidden layer num of features
+        => num_units = n_hidden = e.g., 128 << hidden layer num of features, equals also to the number of outputs
         (see: https://github.com/aymericdamien/TensorFlow-Examples/blob/master/examples/
         3_NeuralNetworks/recurrent_network.py)
 
@@ -113,20 +114,10 @@ class LSTMnet:
         :return: Layer Output
         """
         with tf.variable_scope(layer_name):
-            x = tf.Print(input_=x, data=[x], message="This is x")
-            # num_steps = x.shape[0]  # = samp.freq. = 250
-            # num_steps = x.get_shape()[0]
-            # num_steps = tf.Print(input_=x.get_shape()[0], data=[x.get_shape()[0]], message="This is a x.get_shape()[0]")
-            # TODO find a way to get this from input
-            num_steps = 250
-
-            # num_steps = 250
-            batch_size = 1
-            # lstm_size = n_hidden
 
             # Unstack to get a list of 'n_steps' tensors of shape (batch_size, n_input)
             # if x hase shape [batch_size(1), samples-per-second(250), components(2))
-            x = tf.unstack(value=x, num=num_steps, axis=1, name="unstack")  # does not work like that
+            x = tf.unstack(value=x, num=self.n_steps, axis=1, name="unstack")  # does not work like that
             # Now: x is list of [250 x (1, 2)]
 
             # Define LSTM cell
@@ -138,8 +129,10 @@ class LSTMnet:
             # state = lstm.zero_state(batch_size=batch_size, dtype=tf.float32)  # initial_state
 
             # Run LSTM cell
-            outputs, state = tf.contrib.rnn.static_rnn(cell=lstm_cell, inputs=x,  # initial_state=state, init (optional)
-                                                       dtype=tf.float32, scope=None)  # , sequence_length=num_steps
+            lstm_output, state = tf.contrib.rnn.static_rnn(cell=lstm_cell,
+                                                           inputs=x,  # initial_state=state, init (optional)
+                                                           dtype=tf.float32,
+                                                           scope=None)  # , sequence_length=num_steps
             #  rnn.static_rnn calculates basically this:
             # outputs = []
             # for input_ in x:
@@ -147,18 +140,10 @@ class LSTMnet:
             #     outputs.append(output)
             # Check: https://www.tensorflow.org/versions/r1.1/api_docs/python/tf/contrib/rnn/static_rnn
 
-            final_state = state
-
             # Write summaries
-            self._var_summaries(name=layer_name + "/lstm_outputs", var=outputs)
-            tf.summary.histogram(layer_name + "/lstm_outputs_hist", outputs)
-            self._var_summaries(name=layer_name + "/final_state", var=final_state)
-
-            # TODO how to define output:
-            # Different options: 1) last lstm output 2) average over all outputs
-            # or 3) right-weighted average (last values have stronger impact)
-            # here option 1)
-            lstm_output = outputs[-1]  # = output
+            self._var_summaries(name=layer_name + "/lstm_outputs", var=lstm_output)
+            tf.summary.histogram(layer_name + "/lstm_outputs_hist", lstm_output)
+            self._var_summaries(name=layer_name + "/state", var=state)
 
             # Push through activation function
             with tf.name_scope(layer_name + "_elu"):  # or relu
@@ -166,6 +151,18 @@ class LSTMnet:
                 post_activation = self.activation_function(features=lstm_output, name="post_activation")
 
                 tf.summary.histogram(layer_name + "_elu" + "/post_activation", post_activation)
+
+            # TODO how to define output:
+            # Different options: 1) last lstm output 2) average over all outputs
+            # or 3) right-weighted average (last values have stronger impact)
+            # here option 1)
+            post_activation = post_activation[-1]
+            final_state = state[-1]
+
+            # Write summaries
+            self._var_summaries(name=layer_name + "/post_activation", var=post_activation)
+            tf.summary.histogram(layer_name + "/post_activation_hist", post_activation)
+            self._var_summaries(name=layer_name + "/final_state", var=final_state)
 
         return post_activation, final_state
 
@@ -184,13 +181,13 @@ class LSTMnet:
 
             self._var_summaries(name="weights", var=weights)
 
-            biases = tf.get_variable(name="/biases",
+            biases = tf.get_variable(name="biases",
                                      shape=[shape[1]],
                                      initializer=tf.constant_initializer(0.0))
 
             self._var_summaries(name="biases", var=biases)
 
-            # activation:
+            # activation y=XW+b:
             with tf.name_scope(layer_name + "/XW_Bias"):
                 # Linear activation, using rnn inner loop last output
                 pre_activation = tf.matmul(x, weights) + biases
@@ -234,7 +231,7 @@ class LSTMnet:
         with tf.name_scope("accuracy"):
             with tf.name_scope("correct_prediction"):
                 # correct = tf.nn.in_top_k(predictions=logits, targetss=labels, k=1)  # should be: [1,0,0,1,0...]
-                correct = tf.equal(tf.argmax(input=infer, dimension=1), tf.argmax(input=ratings, dimension=1))
+                correct = tf.equal(tf.argmax(input=infer, axis=1), tf.argmax(input=ratings, axis=1))
 
             with tf.name_scope("accuracy"):
                 # Return the number of true entries.
