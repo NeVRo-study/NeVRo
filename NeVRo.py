@@ -29,7 +29,7 @@ PRINT_FREQ_DEFAULT = 5
 OPTIMIZER_DEFAULT = 'ADAM'
 WEIGHT_REGULARIZER_DEFAULT = 'l2'
 ACTIVATION_FCT_DEFAULT = 'elu'  # TODO HyperParameter, to be tuned
-WEIGHT_REGULARIZER_STRENGTH_DEFAULT = 0.0
+WEIGHT_REGULARIZER_STRENGTH_DEFAULT = 0.18
 MARGIN_DEFAULT = 0.2
 LOSS_DEFAULT = "normal"
 FEAT_EPOCH_DEFAULT = CHECKPOINT_FREQ_DEFAULT-1
@@ -125,7 +125,7 @@ def train_lstm():
     # Create to save the performance for each validation set
     all_acc_val = tf.zeros(shape=(FLAGS.s_fold, 1), dtype=tf.float32, name="all_valid_accuracies")
 
-    # Run through S-Fold-Cross-Validation (take the mean-performance across all validation sets)
+    # TODO Run through S-Fold-Cross-Validation (take the mean-performance across all validation sets)
     for rnd, s_fold_idx in enumerate(s_fold_idx_list):
         # This is a way to re-initialise the model completely
         # Alternative just reset the weights after one round (maybe with tf.reset_default_graph())

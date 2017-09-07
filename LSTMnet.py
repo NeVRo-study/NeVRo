@@ -82,7 +82,7 @@ class LSTMnet:
 
             # Use tanh ([-1, 1]) for final prediction
             infer = tf.nn.tanh(x=pre_activation, name="tanh_inference")
-            # Write summary
+            # Write summary # TODO adapt!!!! (important) absolute values over time!!
             with tf.name_scope("inference"):
                 tf.summary.histogram("inference", infer)  # logits
 
