@@ -22,7 +22,7 @@ class LSTMnet:
 
     def __init__(self, activation_function=tf.nn.elu,
                  weight_regularizer=tf.contrib.layers.l2_regularizer(scale=0.18),
-                 lstm_size=128, n_steps=250, batch_size=1):  # n_classes (include for, e.g., binary cases)
+                 lstm_size=10, n_steps=250, batch_size=1):  # n_classes (include for, e.g., binary cases)
         """
         Constructor for an LSTMnet object.
         Args:
@@ -231,7 +231,10 @@ class LSTMnet:
         with tf.name_scope("accuracy"):
             with tf.name_scope("correct_prediction"):
                 # correct = tf.nn.in_top_k(predictions=logits, targetss=labels, k=1)  # should be: [1,0,0,1,0...]
-                correct = tf.equal(tf.argmax(input=infer, axis=1), tf.argmax(input=ratings, axis=1))
+                # correct = tf.equal(tf.argmax(input=infer, axis=1), tf.argmax(input=ratings, axis=1))
+
+                # 1 - abs(infer-rating)/max_diff, max_diff=2 (since ratings in [-1, 1]
+                correct = tf.subtract(1.0, tf.abs(tf.divide(tf.subtract(infer, ratings), 2)), name="correct")
 
             with tf.name_scope("accuracy"):
                 # Return the number of true entries.
