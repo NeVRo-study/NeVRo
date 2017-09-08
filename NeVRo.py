@@ -15,11 +15,12 @@ import Load_Data
 import numpy as np
 import tensorflow as tf
 import argparse
+import time
 
 from LSTMnet import LSTMnet
 
 
-# TODO Define Default Values
+# TODO Adapt MAX_STEPS_DEFAULT
 LEARNING_RATE_DEFAULT = 1e-2  # 1e-4
 BATCH_SIZE_DEFAULT = 1  # or bigger
 S_FOLD_DEFAULT = 10
@@ -30,11 +31,11 @@ PRINT_FREQ_DEFAULT = 5
 OPTIMIZER_DEFAULT = 'ADAM'
 WEIGHT_REGULARIZER_DEFAULT = 'l2'
 WEIGHT_REGULARIZER_STRENGTH_DEFAULT = 0.18
-ACTIVATION_FCT_DEFAULT = 'elu'  # TODO HyperParameter, to be tuned
+ACTIVATION_FCT_DEFAULT = 'elu'
 MARGIN_DEFAULT = 0.2
 LOSS_DEFAULT = "normal"
 FEAT_EPOCH_DEFAULT = CHECKPOINT_FREQ_DEFAULT-1
-LSTM_SIZE_DEFAULT = 10  # TODO HyperParameter, to be tuned
+LSTM_SIZE_DEFAULT = 10
 
 SUBJECT_DEFAULT = 36
 
@@ -128,7 +129,7 @@ def train_lstm():
 
     # Create to save the performance for each validation set
     # all_acc_val = tf.Variable(tf.zeros(shape=S_FOLD_DEFAULT, dtype=tf.float32, name="all_valid_accuracies"))
-    all_acc_val = np.zeros(S_FOLD_DEFAULT)  # case of non-tensor list
+    all_acc_val = np.zeros(FLAGS.s_fold)  # case of non-tensor list
 
     # Run through S-Fold-Cross-Validation (take the mean-performance across all validation sets)
     for rnd, s_fold_idx in enumerate(s_fold_idx_list):
@@ -138,7 +139,8 @@ def train_lstm():
         # For each fold we need to define new graph to compare the validation accuracies of each fold in the end
         with tf.Session(graph=graph_dict[s_fold_idx]) as sess:  # This is a way to re-initialise the model completely
 
-            with tf.variable_scope(name_or_scope="Round{}".format(str(rnd).zfill(len(str(FLAGS.s_fold))))):
+            with tf.variable_scope(name_or_scope="Fold_Nr{}/{}".format(str(rnd).zfill(len(str(FLAGS.s_fold))),
+                                                                       len(s_fold_idx_list))):
 
                 # Load Data:
                 nevro_data = Load_Data.get_nevro_data(subject=FLAGS.subject,
@@ -182,8 +184,9 @@ def train_lstm():
                 # Writer
                 merged = tf.summary.merge_all()
 
-                train_writer = tf.summary.FileWriter(logdir=FLAGS.log_dir + "/train", graph=sess.graph)
-                test_writer = tf.summary.FileWriter(logdir=FLAGS.log_dir + "/val")
+                train_writer = tf.summary.FileWriter(logdir=FLAGS.log_dir + str(s_fold_idx) + "/train",
+                                                     graph=sess.graph)
+                test_writer = tf.summary.FileWriter(logdir=FLAGS.log_dir + str(s_fold_idx) + "/val")
                 # test_writer = tf.train.SummaryWriter(logdir=FLAGS.log_dir + "/test")
 
                 # Saver
@@ -263,7 +266,9 @@ def train_lstm():
     print("Average accuracy across all {} validation set: {}".format(FLAGS.s_fold, np.mean(all_acc_val)))
 
     # Save information in Textfile
-    with open("./LSTM/S{}_accuracy_across_{}_folds.txt".format(FLAGS.subject, FLAGS.s_fold), "w") as file:
+    with open("./LSTM/{}S{}_accuracy_across_{}_folds.txt".format(time.strftime('%y_%m_%d_'),
+                                                                 FLAGS.subject,
+                                                                 FLAGS.s_fold), "w") as file:
         file.write("Subject {}\ns-Fold: {}\nmax_step: {}\nlearning_rate: {}\nweight_reg: {}({})\nact_fct: {}"
                    "\nlstm_h_size: {}\n".format(FLAGS.subject, FLAGS.s_fold, FLAGS.max_steps, FLAGS.learning_rate,
                                                 FLAGS.weight_reg, FLAGS.weight_reg_strength, FLAGS.activation_fct,

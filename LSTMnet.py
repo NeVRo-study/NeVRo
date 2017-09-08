@@ -82,10 +82,12 @@ class LSTMnet:
 
             # Use tanh ([-1, 1]) for final prediction
             infer = tf.nn.tanh(x=pre_activation, name="tanh_inference")
+
             # Write summary #
             with tf.name_scope("inference"):
                 tf.summary.histogram("hist", infer)  # logits
-                tf.summary.scalar(name="scalar", tensor=infer)
+                tf.summary.scalar(name="scalar", tensor=infer[0][0])
+
 
         # probabilities = []
 
