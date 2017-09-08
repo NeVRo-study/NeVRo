@@ -19,7 +19,7 @@ class LSTMnet:
     Potentially for layer visualization check out Beholder PlugIn
     https://www.youtube.com/watch?feature=youtu.be&v=06HjEr0OX5k&app=desktop
     """
-
+    # TODO adapt such that it works with batch_size>1
     def __init__(self, activation_function=tf.nn.elu,
                  weight_regularizer=tf.contrib.layers.l2_regularizer(scale=0.18),
                  lstm_size=10, n_steps=250, batch_size=1):  # n_classes (include for, e.g., binary cases)
@@ -82,9 +82,10 @@ class LSTMnet:
 
             # Use tanh ([-1, 1]) for final prediction
             infer = tf.nn.tanh(x=pre_activation, name="tanh_inference")
-            # Write summary # TODO adapt!!!! (important) absolute values over time!!
+            # Write summary #
             with tf.name_scope("inference"):
-                tf.summary.histogram("inference", infer)  # logits
+                tf.summary.histogram("hist", infer)  # logits
+                tf.summary.scalar(name="scalar", tensor=infer)
 
         # probabilities = []
 

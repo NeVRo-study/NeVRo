@@ -22,7 +22,8 @@ from LSTMnet import LSTMnet
 # TODO Define Default Values
 LEARNING_RATE_DEFAULT = 1e-2  # 1e-4
 BATCH_SIZE_DEFAULT = 1  # or bigger
-MAX_STEPS_DEFAULT = 150
+S_FOLD_DEFAULT = 10
+MAX_STEPS_DEFAULT = 15  # or: scalar * (270/S_FOLD_DEFAULT), since SBA is 270sec long
 EVAL_FREQ_DEFAULT = MAX_STEPS_DEFAULT/15
 CHECKPOINT_FREQ_DEFAULT = MAX_STEPS_DEFAULT/3
 PRINT_FREQ_DEFAULT = 5
@@ -36,7 +37,7 @@ FEAT_EPOCH_DEFAULT = CHECKPOINT_FREQ_DEFAULT-1
 LSTM_SIZE_DEFAULT = 10  # TODO HyperParameter, to be tuned
 
 SUBJECT_DEFAULT = 36
-S_FOLD_DEFAULT = 10
+
 """Lastly, all the weights are re-initialized (using the same random number generator used to initialize them 
     originally) or reset in some fashion to undo the learning that was done before moving on to the next set of 
     validation, training, and testing sets.
@@ -134,9 +135,9 @@ def train_lstm():
 
         print("Train now on Fold-Nr.{}/{}".format(rnd+1, len(s_fold_idx_list)))
 
-        with tf.Session(graph=graph_dict[s_fold_idx]) as sess:
-            # This is a way to re-initialise the model completely
-            # Alternative just reset the weights after one round (maybe with tf.reset_default_graph())
+        # For each fold we need to define new graph to compare the validation accuracies of each fold in the end
+        with tf.Session(graph=graph_dict[s_fold_idx]) as sess:  # This is a way to re-initialise the model completely
+
             with tf.variable_scope(name_or_scope="Round{}".format(str(rnd).zfill(len(str(FLAGS.s_fold))))):
 
                 # Load Data:
