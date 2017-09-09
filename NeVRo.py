@@ -16,17 +16,18 @@ import numpy as np
 import tensorflow as tf
 import argparse
 import time
+import copy
 
 from LSTMnet import LSTMnet
 
 
-# TODO Adapt MAX_STEPS_DEFAULT
+# TODO Adapt MAX_STEPS_DEFAULT (mit FLAGS.x?)
 LEARNING_RATE_DEFAULT = 1e-2  # 1e-4
 BATCH_SIZE_DEFAULT = 1  # or bigger
 S_FOLD_DEFAULT = 10
-MAX_STEPS_DEFAULT = 15  # or: scalar * (270/S_FOLD_DEFAULT), since SBA is 270sec long
-EVAL_FREQ_DEFAULT = MAX_STEPS_DEFAULT/15
-CHECKPOINT_FREQ_DEFAULT = MAX_STEPS_DEFAULT/3
+MAX_STEPS_DEFAULT = 270 - 270/S_FOLD_DEFAULT  # or: scalar * (270/S_FOLD_DEFAULT), since SBA is 270sec long
+EVAL_FREQ_DEFAULT = MAX_STEPS_DEFAULT/S_FOLD_DEFAULT
+CHECKPOINT_FREQ_DEFAULT = MAX_STEPS_DEFAULT
 PRINT_FREQ_DEFAULT = 5
 OPTIMIZER_DEFAULT = 'ADAM'
 WEIGHT_REGULARIZER_DEFAULT = 'l2'
@@ -48,8 +49,9 @@ The idea behind cross validation is that each iteration is like training the alg
 # https://stackoverflow.com/questions/41216976/how-is-cross-validation-implemented
 
 DATA_DIR_DEFAULT = '../../Data/'
-LOG_DIR_DEFAULT = './LSTM/logs/'
-CHECKPOINT_DIR_DEFAULT = './LSTM/checkpoints/'
+SUB_DIR_DEFAULT = "./LSTM/" + "S{}/".format(str(SUBJECT_DEFAULT).zfill(2))
+LOG_DIR_DEFAULT = './LSTM/logs/' + "S{}/".format(str(SUBJECT_DEFAULT).zfill(2))
+CHECKPOINT_DIR_DEFAULT = './LSTM/checkpoints/' + "S{}/".format(str(SUBJECT_DEFAULT).zfill(2))
 
 WEIGHT_REGULARIZER_DICT = {'none': lambda x: None,  # No regularization
                            # L1 regularization
@@ -116,7 +118,6 @@ def train_lstm():
 
     # Start TensorFlow Interactive Session
     # sess = tf.InteractiveSession()
-
     # s_fold_idx depending on s_fold and previous index
     s_fold_idx_list = np.arange(FLAGS.s_fold)
     np.random.shuffle(s_fold_idx_list)
@@ -131,6 +132,29 @@ def train_lstm():
     # all_acc_val = tf.Variable(tf.zeros(shape=S_FOLD_DEFAULT, dtype=tf.float32, name="all_valid_accuracies"))
     all_acc_val = np.zeros(FLAGS.s_fold)  # case of non-tensor list
 
+    # Load first data-set
+    nevro_data = Load_Data.get_nevro_data(subject=FLAGS.subject,
+                                          s_fold_idx=s_fold_idx_list[0],
+                                          s_fold=FLAGS.s_fold,
+                                          cond="NoMov",
+                                          sba=True)
+
+    # Define graph using class LSTMnet and its methods:
+    ddims = list(nevro_data["train"].eeg.shape[1:])  # [250, 2]
+    full_length = len(nevro_data["validation"].ratings) * FLAGS.s_fold
+
+    # Prediction Matrix for each fold
+    # 1 Fold predic [0.156, ..., 0.491]
+    # 1 Fold rating [0.161, ..., 0.423]
+    # ...   ...   ...   ...   ...   ...
+    # S Fold predic [0.397, ..., -0.134]
+    # S Fold rating [0.412, ..., -0.983]
+
+    pred_matrix = np.zeros(shape=(FLAGS.s_fold*2, full_length), dtype=np.float32)
+    pred_matrix[np.where(pred_matrix == 0)] = np.nan  # set to NaN values
+    # We create a separate matrix for the validation (which can be merged with the first pred_matrix later)
+    val_pred_matrix = copy.copy(pred_matrix)
+
     # Run through S-Fold-Cross-Validation (take the mean-performance across all validation sets)
     for rnd, s_fold_idx in enumerate(s_fold_idx_list):
 
@@ -143,15 +167,12 @@ def train_lstm():
                                                                        len(s_fold_idx_list))):
 
                 # Load Data:
-                nevro_data = Load_Data.get_nevro_data(subject=FLAGS.subject,
-                                                      s_fold_idx=s_fold_idx_list[rnd],
-                                                      s_fold=FLAGS.s_fold,
-                                                      cond="NoMov",
-                                                      sba=True)
-
-                # Define graph using class LSTMnet and its methods:
-                ddims = list(nevro_data["train"].eeg.shape[1:])  # [250, 2]
-                # print("ddims", ddims)
+                if rnd > 0:
+                    nevro_data = Load_Data.get_nevro_data(subject=FLAGS.subject,
+                                                          s_fold_idx=s_fold_idx,
+                                                          s_fold=FLAGS.s_fold,
+                                                          cond="NoMov",
+                                                          sba=True)
 
                 with tf.name_scope("input"):
                     # shape = [None] + ddims includes num_steps = 250
@@ -220,10 +241,12 @@ def train_lstm():
                         run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
                         run_metadata = tf.RunMetadata()
 
-                        summary, _, train_loss, train_acc = sess.run([merged, optimization, loss, accuracy],
-                                                                     feed_dict=_feed_dict(training=True),
-                                                                     options=run_options,
-                                                                     run_metadata=run_metadata)
+                        summary, _, train_loss, train_acc, tain_infer, train_y = sess.run([merged, optimization, loss,
+                                                                                           accuracy, infer, y],
+                                                                                          feed_dict=_feed_dict(
+                                                                                              training=True),
+                                                                                          options=run_options,
+                                                                                          run_metadata=run_metadata)
 
                         train_writer.add_run_metadata(run_metadata, "step{}".format(str(epoch).zfill(4)))
                         train_writer.add_summary(summary=summary, global_step=epoch)
@@ -236,18 +259,28 @@ def train_lstm():
                         #                                              feed_dict=_feed_dict(training=True))
                         # train_writer.add_summary(summary=summary, global_step=epoch)
 
-                        _, train_loss, train_acc = sess.run([optimization, loss, accuracy],
-                                                            feed_dict=_feed_dict(training=True))
+                        _, train_loss, train_acc, tain_infer, train_y = sess.run([optimization, loss, accuracy,
+                                                                                  infer, y],
+                                                                                 feed_dict=_feed_dict(training=True))
 
-                    # Evaluate on validation set every eval_freq (=1000) iterations
+                    # Write train_infer & train_y in prediction matrix
+                    pred_matrix = fill_pred_matrix(pred=tain_infer, y=train_y, current_mat=pred_matrix,
+                                                   sfold=FLAGS.s_fold, s_idx=s_fold_idx, step=epoch, train=True)
+
+                    # Evaluate on validation set every eval_freq iterations
                     if (epoch + 1) % FLAGS.eval_freq == 0:
-                        summary, val_loss, val_acc = sess.run([merged, loss, accuracy],
-                                                              feed_dict=_feed_dict(training=False))
+                        summary, val_loss, val_acc, val_infer, val_y = sess.run([merged, loss, accuracy, infer, y],
+                                                                                feed_dict=_feed_dict(training=False))
                         # test_loss, test_acc = sess.run([loss, accuracy], feed_dict=_feed_dict(training=False))
                         # print("now do: test_writer.add_summary(summary=summary, global_step=epoch)")
                         test_writer.add_summary(summary=summary, global_step=epoch)
                         print("Validation-Loss: {} at epoch:{}".format(np.round(val_loss, 3), epoch + 1))
                         print("Validation-Accuracy: {} at epoch:{}".format(np.round(val_acc, 3), epoch + 1))
+
+                        # Write val_infer & val_y in val_pred_matrix
+                        val_pred_matrix = fill_pred_matrix(pred=val_infer, y=val_y, current_mat=val_pred_matrix,
+                                                           sfold=FLAGS.s_fold, s_idx=s_fold_idx, step=epoch,
+                                                           train=False)
 
                     # Save the variables to disk every checkpoint_freq (=5000) iterations
                     if (epoch + 1) % FLAGS.checkpoint_freq == 0:
@@ -265,10 +298,10 @@ def train_lstm():
 
     print("Average accuracy across all {} validation set: {}".format(FLAGS.s_fold, np.mean(all_acc_val)))
 
-    # Save information in Textfile
-    with open("./LSTM/{}S{}_accuracy_across_{}_folds.txt".format(time.strftime('%y_%m_%d_'),
-                                                                 FLAGS.subject,
-                                                                 FLAGS.s_fold), "w") as file:
+    # Save training information in Textfile
+    with open(FLAGS.sub_dir + "{}S{}_accuracy_across_{}_folds.txt".format(time.strftime('%y_%m_%d_'),
+                                                                          FLAGS.subject,
+                                                                          FLAGS.s_fold), "w") as file:
         file.write("Subject {}\ns-Fold: {}\nmax_step: {}\nlearning_rate: {}\nweight_reg: {}({})\nact_fct: {}"
                    "\nlstm_h_size: {}\n".format(FLAGS.subject, FLAGS.s_fold, FLAGS.max_steps, FLAGS.learning_rate,
                                                 FLAGS.weight_reg, FLAGS.weight_reg_strength, FLAGS.activation_fct,
@@ -276,11 +309,62 @@ def train_lstm():
         for i, item in enumerate([s_fold_idx_list, all_acc_val, np.mean(all_acc_val)]):
             file.write(["S-Fold(Round): ", "Validation-Acc: ", "mean(Accuracy): "][i] + str(item)+"\n")
 
+    # Save Prediction Matrices in File
+    np.savetxt(FLAGS.sub_dir + "{}S{}_pred_matrix_{}_folds.csv".format(time.strftime('%y_%m_%d_'), FLAGS.subject,
+                                                                       FLAGS.s_fold), pred_matrix, delimiter=",")
+
+    np.savetxt(FLAGS.sub_dir + "{}S{}_val_pred_matrix_{}_folds.csv".format(time.strftime('%y_%m_%d_'), FLAGS.subject,
+                                                                           FLAGS.s_fold),
+               val_pred_matrix, delimiter=",")
+
+
+def fill_pred_matrix(pred, y, current_mat, s_idx, step, sfold, train=True):
+    """
+    Updates prediction matrix with current prediction and ground truth (rating)
+    :param pred: prediction
+    :param y: rating
+    :param current_mat: prediction matrix (S-Folds x 270)
+    :param s_idx: indicates which fold is validation set
+    :param step: or epoch in the training set
+    :param sfold: Number of folds
+    :param train: whether training set or validation set
+    :return: updated prediction matrix
+    """
+
+    assert FLAGS.batch_size == 1, "Filling pred_matrix only works for batch_size=1 (currently)"
+
+    pred_idx = int(s_idx * 2)
+    rat_idx = int(pred_idx + 1)
+
+    full_length = len(current_mat[0, :])  # 270
+    # S-Fold, for S=10:
+    #    FOLD 0          FOLD 1          FOLD 2                FOLD 9
+    # [0, ..., 26] | [27, ..., 53] | [54, ..., 80] | ... | [235, ..., 269]
+    fold_length = full_length/sfold  # len([0, ..., 26]) = 27
+    # S-Fold-Index, e.g. s_idx=1. That is, FOLD 1 is validation set
+    verge = s_idx * fold_length  # verge = 27
+
+    if train:
+        fill_pos = step if step < verge else step + fold_length  # if step=27 => fill_pos=54 (in FOLD 2)
+    else:  # case of validation
+        fill_pos = verge
+        # Check whether position is already filled, otherwise go one further
+        while not np.isnan(current_mat[pred_idx, fill_pos]):
+            fill_pos += 1
+
+    current_mat[pred_idx, fill_pos] = pred  # inference/prediction
+    current_mat[rat_idx, fill_pos] = y      # ratings
+    updated_mat = current_mat
+
+    return updated_mat
+
 
 def initialize_folders():
     """
     Initializes all folders in FLAGS variable.
     """
+    if not tf.gfile.Exists(FLAGS.sub_dir):
+        tf.gfile.MakeDirs(FLAGS.sub_dir)
 
     if not tf.gfile.Exists(FLAGS.log_dir):
         tf.gfile.MakeDirs(FLAGS.log_dir)
@@ -339,6 +423,8 @@ if __name__ == '__main__':
                         help='Directory for storing input data')
     parser.add_argument('--log_dir', type=str, default=LOG_DIR_DEFAULT,
                         help='Summaries log directory')
+    parser.add_argument('--sub_dir', type=str, default=SUB_DIR_DEFAULT,
+                        help='Summaries per Subject')
     parser.add_argument('--checkpoint_dir', type=str, default=CHECKPOINT_DIR_DEFAULT,
                         help='Checkpoint directory')
     parser.add_argument('--is_train', type=str, default=True,

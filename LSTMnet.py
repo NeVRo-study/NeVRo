@@ -1,5 +1,6 @@
 """
 Build LSTM architecture
+
 Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017
 """
 

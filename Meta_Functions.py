@@ -1,5 +1,7 @@
 """
 Some meta functions
+
+Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017
 """
 
 import datetime
