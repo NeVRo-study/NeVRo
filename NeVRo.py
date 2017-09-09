@@ -235,7 +235,7 @@ def train_lstm():
                     return {x: xs, y: ys}
 
                 # Run
-                for epoch in range(FLAGS.max_steps):
+                for epoch in range(int(FLAGS.max_steps)):
                     # Evaluate on training set every print_freq (=10) iterations
                     if (epoch + 1) % FLAGS.print_freq == 0:
                         run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
