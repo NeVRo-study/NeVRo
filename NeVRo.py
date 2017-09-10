@@ -21,12 +21,12 @@ import copy
 from LSTMnet import LSTMnet
 
 
-# TODO Adapt MAX_STEPS_DEFAULT (mit FLAGS.x?)
+# Define Default Values for FLAGS.xx
 LEARNING_RATE_DEFAULT = 1e-2  # 1e-4
 BATCH_SIZE_DEFAULT = 1  # or bigger
 S_FOLD_DEFAULT = 10
-MAX_STEPS_DEFAULT = 270 - 270/S_FOLD_DEFAULT  # or: scalar * (270/S_FOLD_DEFAULT), since SBA is 270sec long
-EVAL_FREQ_DEFAULT = MAX_STEPS_DEFAULT/S_FOLD_DEFAULT
+MAX_STEPS_DEFAULT = 270 - 270/S_FOLD_DEFAULT  # now it runs once through whole set, or do scalar of this
+EVAL_FREQ_DEFAULT = S_FOLD_DEFAULT - 1  # == MAX_STEPS_DEFAULT / (270/S_FOLD_DEFAULT)
 CHECKPOINT_FREQ_DEFAULT = MAX_STEPS_DEFAULT
 PRINT_FREQ_DEFAULT = 5
 OPTIMIZER_DEFAULT = 'ADAM'
@@ -158,7 +158,7 @@ def train_lstm():
     # Run through S-Fold-Cross-Validation (take the mean-performance across all validation sets)
     for rnd, s_fold_idx in enumerate(s_fold_idx_list):
 
-        print("Train now on Fold-Nr.{}/{}".format(rnd+1, len(s_fold_idx_list)))
+        print("Train now on Fold-Nr.{}, that is, step {}/{}".format(s_fold_idx, rnd+1, len(s_fold_idx_list)))
 
         # For each fold we need to define new graph to compare the validation accuracies of each fold in the end
         with tf.Session(graph=graph_dict[s_fold_idx]) as sess:  # This is a way to re-initialise the model completely

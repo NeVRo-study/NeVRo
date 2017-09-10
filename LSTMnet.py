@@ -40,6 +40,7 @@ class LSTMnet:
         self.lstm_size = lstm_size  # = n_hidden
         self.n_steps = n_steps  # samp.freq. = 250
         self.batch_size = batch_size
+        # self.last_lstm_state = None # TODO remember last state
         # self.n_classes = n_classes
 
     def inference(self, x):
@@ -88,7 +89,6 @@ class LSTMnet:
             with tf.name_scope("inference"):
                 tf.summary.histogram("hist", infer)  # logits
                 tf.summary.scalar(name="scalar", tensor=infer[0][0])
-
 
         # probabilities = []
 

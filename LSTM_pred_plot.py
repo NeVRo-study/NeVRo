@@ -23,15 +23,51 @@ for subject in subjects:
             else:
                 file_name = file
 
+        elif ".txt" in file:
+            acc_filename = file
+
     # Load data
     pred_matrix = np.loadtxt(wdic_sub + file_name, delimiter=",")
-    val_pred_matrix  = np.loadtxt(wdic_sub + val_filename, delimiter=",")
+    val_pred_matrix = np.loadtxt(wdic_sub + val_filename, delimiter=",")
 
+    # Import accuracies
+    acc_date = np.loadtxt(wdic_sub + acc_filename, dtype=str, delimiter=",")
+    for info in acc_date:
+
+        if "S-Fold(Round):" in info:
+            s_rounds = np.array(list(map(int, info.split(": [")[1][0:-1].split(" "))))
+
+        elif "Validation-Acc:" in info:
+            val_acc = info.split(": ")[1].split("  ")
+            v = []
+            for i, item in enumerate(val_acc):
+                if i == 0:  # first
+                    v.append(float(item[1:]))
+                elif i == (len(val_acc)-1):  # last one
+                    v.append(float(item[0:-1]))
+                else:
+                    v.append(float(item))
+            val_acc = v
+            del v
+
+        elif "mean(Accuracy):" in info:
+            mean_acc = np.round(a=float(info.split(": ")[1]), decimals=3)
+
+    # Number of Folds
     s_fold = int(len(pred_matrix[:, 0])/2)
 
-    # Plot
-    fig = plt.figure("{}-Folds | S{} | 1Hz".format(s_fold, str(subject).zfill(2)), figsize=(12, s_fold*3))
-    subplot_nr = int(str(s_fold) + "10")
+    # # Plot
+    # open frame
+    figsize = (12, s_fold * (3 if s_fold<4 else 1))
+    fig = plt.figure("{}-Folds | S{} | mean(val_acc)={} | 1Hz".format(s_fold, str(subject).zfill(2), mean_acc),
+                     figsize=figsize)
+
+
+
+    if s_fold < 10:
+        sub_rows, sub_col, sub_n = s_fold, 1, 0
+    else:
+        sub_rows, sub_col, sub_n = int(s_fold/2), 2, 0
 
     for fold in range(s_fold):
 
@@ -41,15 +77,22 @@ for subject in subjects:
         val_pred = val_pred_matrix[fold*2, :]
         val_rating = val_pred_matrix[fold*2 + 1, :]
 
-        # open frame
-        subplot_nr += 1
-        plt.subplot(subplot_nr)
+        # add subplot
+        sub_n += 1
+        fig.add_subplot(sub_rows, sub_col, sub_n)
+
+        # plot
         plt.plot(pred, label="prediction")
-        plt.plot(rating, label="rating")
+        plt.plot(rating, ls="dotted", label="rating")
         plt.plot(val_pred, label="val_prediction")
-        plt.plot(val_rating, label="val_rating")
+        plt.plot(val_rating, ls="dotted", label="val_rating")
+        plt.title(s="{}-Fold | val_acc={}".format(fold+1,
+                                                  np.round(val_acc[int(np.where(np.array(s_rounds) == fold)[0])], 3)))
+
         plt.xlim(0, len(pred))
-        plt.ylim(-1, 1)
-        plt.legend()
+        plt.ylim(-1.2, 2)
+        plt.legend(bbox_to_anchor=(0., 0.92, 1., .102), loc=1, ncol=4, mode="expand", borderaxespad=0.)
+        plt.tight_layout(pad=2)
+
 
 
