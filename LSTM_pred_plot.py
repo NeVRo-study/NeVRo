@@ -62,13 +62,13 @@ for subject in subjects:
     fig = plt.figure("{}-Folds | S{} | mean(val_acc)={} | 1Hz".format(s_fold, str(subject).zfill(2), mean_acc),
                      figsize=figsize)
 
-
-
+    # Prepare subplot division
     if s_fold < 10:
         sub_rows, sub_col, sub_n = s_fold, 1, 0
     else:
         sub_rows, sub_col, sub_n = int(s_fold/2), 2, 0
 
+    # For each fold create plot
     for fold in range(s_fold):
 
         # Vars to plot
@@ -89,6 +89,7 @@ for subject in subjects:
         plt.title(s="{}-Fold | val_acc={}".format(fold+1,
                                                   np.round(val_acc[int(np.where(np.array(s_rounds) == fold)[0])], 3)))
 
+        # adjust size, add legend
         plt.xlim(0, len(pred))
         plt.ylim(-1.2, 2)
         plt.legend(bbox_to_anchor=(0., 0.92, 1., .102), loc=1, ncol=4, mode="expand", borderaxespad=0.)
