@@ -1083,3 +1083,8 @@ ec = ECGplot(n_sub=45,
 # ec.cross_cor_sba(save_plot=False, maxlag=10)
 # ec.cross_cor_sba(save_plot=True, maxlag=10)
 
+
+# # Save SBA Data
+# ec.save_sba()
+# ec.save_sba_split()
+

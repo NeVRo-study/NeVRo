@@ -172,14 +172,18 @@ class LSTMnet:
 
     def _create_fc_layer(self, x, layer_name, shape):
         """
+        Create fully connected layer
         :param x: Input to layer
         :param layer_name: Name of Layer
         :param shape: Shape from input to output
         :return: Layer activation
         """
+
+        # TODO check out tf.layers.dense()
         with tf.variable_scope(layer_name):
             weights = tf.get_variable(name="weights",
                                       shape=shape,
+                                      # recommend (e.g., see: cs231n_2017_lecture8.pdf)
                                       initializer=tf.contrib.layers.xavier_initializer(),
                                       regularizer=self.weight_regularizer)
 

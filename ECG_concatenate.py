@@ -23,7 +23,7 @@ def to_float(array):
     return array_floats
 
 # Change to Folder which contains files
-wdic = "../../Data/ECG/"
+wdic = "../../Data/ECG/raw_cropped/"
 
 # Set variables
 nSub = 45  # Number of Subjects
