@@ -376,10 +376,12 @@ class DataSet(object):
         self.eeg_samp_freq = eeg_samp_freq
         self.rating_samp_freq = rating_samp_freq
         self._num_time_slices = eeg.shape[0]
+        self._still_available_slices = np.arange(self._num_time_slices)  # for randomized drawing of new_batch
         self._eeg = eeg  # input
         self._ratings = ratings  # target
         self._epochs_completed = 0
         self._index_in_epoch = 0
+        self.current_batch = []
         self.subject = subject
         self.condition = condition
 
@@ -404,37 +406,98 @@ class DataSet(object):
     def epochs_completed(self):
         return self._epochs_completed
 
-    def next_batch(self, batch_size=1):
+    def next_batch(self, batch_size=1, randomize=False):
         """
         Return the next 'batch_size' examples from this data set
         For MODEL 1: the batch size = 1, i.e. input 1sec=250 data points, gives 1 output (rating), aka. many-to-one
         :param batch_size: Batch size
+        :param randomize: Whether to randomize the order in data
         :return: Next batch
         """
 
         # if batch_size > 1:
         #     raise ValueError("A batch_size of > 1 is not recommanded at this point")
 
-        start = self._index_in_epoch
+        if not randomize:
+            start = self._index_in_epoch
 
-        self._index_in_epoch += batch_size
-        # if self._index_in_eeg_epoch/self.eeg_samp_freq > self._num_time_slices:
-        if self._index_in_epoch > self._num_time_slices:
-            self._epochs_completed += 1
+            self._index_in_epoch += batch_size
+            # if self._index_in_eeg_epoch/self.eeg_samp_freq > self._num_time_slices:
+            if self._index_in_epoch > self._num_time_slices:
+                self._epochs_completed += 1
 
-            # # Shuffling only makes sense if we consider batches as independent, what we don't for later models
-            # perm = np.arrange(self._num_time_slices)
-            # np.random.shuffle(perm)
-            # self._eeg = self._eeg[perm]
-            # self._ratings = self._ratings[perm]
+                # # Shuffling only makes sense if we consider batches as independent, what we don't for later models
+                # perm = np.arrange(self._num_time_slices)
+                # np.random.shuffle(perm)
+                # self._eeg = self._eeg[perm]
+                # self._ratings = self._ratings[perm]
 
-            start = 0
+                start = 0
 
-            self._index_in_epoch = batch_size
+                self._index_in_epoch = batch_size
 
-        end = self._index_in_epoch
+                self._still_available_slices = np.arange(self._num_time_slices)
 
-        return self._eeg[start:end], self._ratings[start:end]  # shape (batch_size, num_steps, components/dimensions)
+            end = self._index_in_epoch
+
+            # Update current_batch
+            self.current_batch = np.arange(start, end)
+
+            # Remove drawn batch from _still_available_slices:
+            self._still_available_slices = np.delete(arr=self._still_available_slices, obj=self.current_batch)
+
+            return self._eeg[start:end], self._ratings[start:end]  # shape (batch_size, num_steps, components/dims)
+
+        else:  # if randomized batch selection
+
+            if len(self._still_available_slices) >= batch_size:
+
+                # Select slize according to number of batches
+                selection_array_idx = np.random.randint(low=0, high=len(self._still_available_slices), size=batch_size)
+                selection_array = self._still_available_slices[selection_array_idx]
+
+                # Remove drawn batch from _still_available_slices:
+                self._still_available_slices = np.delete(arr=self._still_available_slices, obj=selection_array_idx)
+
+                # Update index
+                self._index_in_epoch += batch_size
+
+                # Check whether slices left for next batch
+                if len(self._still_available_slices) == 0:
+                    # if no slice left, start new epoch
+                    self._epochs_completed += 1
+                    self._index_in_epoch = 0
+                    self._still_available_slices = np.arange(self._num_time_slices)
+
+            else:  # there are still slices left but not for the whole batch
+
+                # First copy remaining slices to selection_array
+                selection_array = self._still_available_slices
+
+                # Now reset, i.e. new epoch
+                self._epochs_completed += 1  # new epoch
+                remaining_slices_to_draw = batch_size - len(self._still_available_slices)
+                self._index_in_epoch = remaining_slices_to_draw  # index in new epoch
+                self._still_available_slices = np.arange(self._num_time_slices)  # reset
+
+                # Draw remaining slices from new epoch
+
+                additional_array_idx = np.random.randint(low=0,
+                                                         high=len(self._still_available_slices),
+                                                         size=remaining_slices_to_draw)
+
+                additional_array = self._still_available_slices[additional_array_idx]
+
+                # Remove from _still_available_slices:
+                self._still_available_slices = np.delete(arr=self._still_available_slices, obj=additional_array_idx)
+
+                # Append to selection_array
+                selection_array = np.append(arr=selection_array, values=additional_array)
+
+            # Update current_batch
+            self.current_batch = selection_array
+
+            return self._eeg[selection_array, :, :], self._ratings[selection_array]
 
 
 def concatenate(array1, array2):

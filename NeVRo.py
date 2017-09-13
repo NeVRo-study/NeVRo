@@ -24,11 +24,12 @@ from LSTMnet import LSTMnet
 # Define Default Values for FLAGS.xx
 LEARNING_RATE_DEFAULT = 1e-2  # 1e-4
 BATCH_SIZE_DEFAULT = 1  # or bigger
+RANDOM_BATCH_DEFAULT = True
 S_FOLD_DEFAULT = 10
 MAX_STEPS_DEFAULT = 270 - 270/S_FOLD_DEFAULT  # now it runs once through whole set, or do scalar of this
 EVAL_FREQ_DEFAULT = S_FOLD_DEFAULT - 1  # == MAX_STEPS_DEFAULT / (270/S_FOLD_DEFAULT)
 CHECKPOINT_FREQ_DEFAULT = MAX_STEPS_DEFAULT
-PRINT_FREQ_DEFAULT = 5
+PRINT_FREQ_DEFAULT = int(MAX_STEPS_DEFAULT/10)  # if too low, uses much memory
 OPTIMIZER_DEFAULT = 'ADAM'
 WEIGHT_REGULARIZER_DEFAULT = 'l2'
 WEIGHT_REGULARIZER_STRENGTH_DEFAULT = 0.18
@@ -37,6 +38,7 @@ MARGIN_DEFAULT = 0.2
 LOSS_DEFAULT = "normal"
 FEAT_EPOCH_DEFAULT = CHECKPOINT_FREQ_DEFAULT-1
 LSTM_SIZE_DEFAULT = 10
+
 
 SUBJECT_DEFAULT = 36
 
@@ -221,7 +223,7 @@ def train_lstm():
                     """creates feed_dicts depending on training or no training"""
                     # Train
                     if training:
-                        xs, ys = nevro_data["train"].next_batch(FLAGS.batch_size)
+                        xs, ys = nevro_data["train"].next_batch(batch_size=FLAGS.batch_size, randomize=False)
                         # print("that is the x-shape:", xs.shape)
                         # print("I am in _feed_dict(Trainining True)")
                         # keep_prob = 1.0-FLAGS.dropout_rate
@@ -229,7 +231,7 @@ def train_lstm():
 
                     else:
                         # Validation:
-                        xs, ys = nevro_data["validation"].next_batch(FLAGS.batch_size)
+                        xs, ys = nevro_data["validation"].next_batch(batch_size=FLAGS.batch_size, randomize=False)
                         ys = np.reshape(ys, newshape=([FLAGS.batch_size] + list(ys.shape)))
 
                     return {x: xs, y: ys}
@@ -265,7 +267,8 @@ def train_lstm():
 
                     # Write train_infer & train_y in prediction matrix
                     pred_matrix = fill_pred_matrix(pred=tain_infer, y=train_y, current_mat=pred_matrix,
-                                                   sfold=FLAGS.s_fold, s_idx=s_fold_idx, step=epoch, train=True)
+                                                   sfold=FLAGS.s_fold, s_idx=s_fold_idx,
+                                                   current_batch=nevro_data["train"].current_batch, train=True)
 
                     # Evaluate on validation set every eval_freq iterations
                     if (epoch + 1) % FLAGS.eval_freq == 0:
@@ -279,7 +282,8 @@ def train_lstm():
 
                         # Write val_infer & val_y in val_pred_matrix
                         val_pred_matrix = fill_pred_matrix(pred=val_infer, y=val_y, current_mat=val_pred_matrix,
-                                                           sfold=FLAGS.s_fold, s_idx=s_fold_idx, step=epoch,
+                                                           sfold=FLAGS.s_fold, s_idx=s_fold_idx,
+                                                           current_batch=nevro_data["validation"].current_batch,
                                                            train=False)
 
                     # Save the variables to disk every checkpoint_freq (=5000) iterations
@@ -302,10 +306,13 @@ def train_lstm():
     with open(FLAGS.sub_dir + "{}S{}_accuracy_across_{}_folds.txt".format(time.strftime('%y_%m_%d_'),
                                                                           FLAGS.subject,
                                                                           FLAGS.s_fold), "w") as file:
-        file.write("Subject {}\ns-Fold: {}\nmax_step: {}\nlearning_rate: {}\nweight_reg: {}({})\nact_fct: {}"
-                   "\nlstm_h_size: {}\n".format(FLAGS.subject, FLAGS.s_fold, FLAGS.max_steps, FLAGS.learning_rate,
-                                                FLAGS.weight_reg, FLAGS.weight_reg_strength, FLAGS.activation_fct,
-                                                FLAGS.lstm_size))
+        file.write("Subject {}\ns-Fold: {}\nmax_step: {}\nlearning_rate: {}\nbatch_size: {}\n batch_random: {}\n"
+                   "weight_reg: {}({})\nact_fct: {}\nlstm_h_size: {}\n".format(FLAGS.subject, FLAGS.s_fold,
+                                                                               FLAGS.max_steps, FLAGS.learning_rate,
+                                                                               FLAGS.batch_size, FLAGS.rand_batch,
+                                                                               FLAGS.weight_reg,
+                                                                               FLAGS.weight_reg_strength,
+                                                                               FLAGS.activation_fct, FLAGS.lstm_size))
         for i, item in enumerate([s_fold_idx_list, all_acc_val, np.mean(all_acc_val)]):
             file.write(["S-Fold(Round): ", "Validation-Acc: ", "mean(Accuracy): "][i] + str(item)+"\n")
 
@@ -318,20 +325,22 @@ def train_lstm():
                val_pred_matrix, delimiter=",")
 
 
-def fill_pred_matrix(pred, y, current_mat, s_idx, step, sfold, train=True):
+def fill_pred_matrix(pred, y, current_mat, s_idx, current_batch, sfold, train=True):
     """
     Updates prediction matrix with current prediction and ground truth (rating)
     :param pred: prediction
     :param y: rating
     :param current_mat: prediction matrix (S-Folds x 270)
     :param s_idx: indicates which fold is validation set
-    :param step: or epoch in the training set
+    :param current_batch: current_batch in the training or val set
     :param sfold: Number of folds
     :param train: whether training set or validation set
     :return: updated prediction matrix
     """
 
     assert FLAGS.batch_size == 1, "Filling pred_matrix only works for batch_size=1 (currently)"
+
+    step = int(current_batch)
 
     pred_idx = int(s_idx * 2)
     rat_idx = int(pred_idx + 1)
@@ -340,17 +349,18 @@ def fill_pred_matrix(pred, y, current_mat, s_idx, step, sfold, train=True):
     # S-Fold, for S=10:
     #    FOLD 0          FOLD 1          FOLD 2                FOLD 9
     # [0, ..., 26] | [27, ..., 53] | [54, ..., 80] | ... | [235, ..., 269]
-    fold_length = full_length/sfold  # len([0, ..., 26]) = 27
+    fold_length = int(full_length/sfold)  # len([0, ..., 26]) = 27
     # S-Fold-Index, e.g. s_idx=1. That is, FOLD 1 is validation set
     verge = s_idx * fold_length  # verge = 27
 
     if train:
         fill_pos = step if step < verge else step + fold_length  # if step=27 => fill_pos=54 (in FOLD 2)
+        assert np.isnan(current_mat[pred_idx, fill_pos]), "Position in pred_matrix already filled"
+
     else:  # case of validation
-        fill_pos = verge
+        fill_pos = int(verge) + step
         # Check whether position is already filled, otherwise go one further
-        while not np.isnan(current_mat[pred_idx, fill_pos]):
-            fill_pos += 1
+        assert np.isnan(current_mat[pred_idx, fill_pos]), "Position in val_pred_matrix already filled"
 
     current_mat[pred_idx, fill_pos] = pred  # inference/prediction
     current_mat[rat_idx, fill_pos] = y      # ratings
@@ -414,7 +424,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default=BATCH_SIZE_DEFAULT,
                         help='Batch size to run trainer.')
     parser.add_argument('--print_freq', type=int, default=PRINT_FREQ_DEFAULT,
-                        help='Frequency of evaluation on the train set')
+                        help='Frequency of printing and saving in log on the train set')
     parser.add_argument('--eval_freq', type=int, default=EVAL_FREQ_DEFAULT,
                         help='Frequency of evaluation on the test set')
     parser.add_argument('--checkpoint_freq', type=int, default=CHECKPOINT_FREQ_DEFAULT,
@@ -449,6 +459,9 @@ if __name__ == '__main__':
                         help='size of hidden state in LSTM layer')
     parser.add_argument('--s_fold', type=int, default=S_FOLD_DEFAULT,
                         help='Number of folds in S-Fold-Cross Validation')
+    parser.add_argument('--rand_batch', type=str, default=RANDOM_BATCH_DEFAULT,
+                        help='Whether random batch (True), or cronologically drawn batches (False)')
+
     # parser.add_argument('--layer_feat_extr', type=str, default="fc2",
     #                     help='Choose layer for feature extraction')
 

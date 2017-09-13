@@ -22,6 +22,7 @@ def to_float(array):
         array_floats.append(float_array)
     return array_floats
 
+
 # Change to Folder which contains files
 wdic = "../../Data/ECG/raw_cropped/"
 
