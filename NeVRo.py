@@ -306,7 +306,7 @@ def train_lstm():
     with open(FLAGS.sub_dir + "{}S{}_accuracy_across_{}_folds.txt".format(time.strftime('%y_%m_%d_'),
                                                                           FLAGS.subject,
                                                                           FLAGS.s_fold), "w") as file:
-        file.write("Subject {}\ns-Fold: {}\nmax_step: {}\nlearning_rate: {}\nbatch_size: {}\n batch_random: {}\n"
+        file.write("Subject {}\ns-Fold: {}\nmax_step: {}\nlearning_rate: {}\nbatch_size: {}\nbatch_random: {}\n"
                    "weight_reg: {}({})\nact_fct: {}\nlstm_h_size: {}\n".format(FLAGS.subject, FLAGS.s_fold,
                                                                                FLAGS.max_steps, FLAGS.learning_rate,
                                                                                FLAGS.batch_size, FLAGS.rand_batch,

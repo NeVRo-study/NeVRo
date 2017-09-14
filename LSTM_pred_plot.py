@@ -82,10 +82,14 @@ for subject in subjects:
         fig.add_subplot(sub_rows, sub_col, sub_n)
 
         # plot
-        plt.plot(pred, label="prediction", marker='o', markersize=3)  # , style='r-'
-        plt.plot(rating, ls="dotted", label="rating", marker='o', mfc='none', markersize=3)
-        plt.plot(val_pred, label="val_prediction", marker='o', markersize=3)
-        plt.plot(val_rating, ls="dotted", label="val_rating", marker='o', mfc='none', markersize=3)
+        # plt.plot(pred, label="prediction", marker='o', markersize=3)  # , style='r-'
+        # plt.plot(rating, ls="dotted", label="rating", marker='o', mfc='none', markersize=3)
+        # plt.plot(val_pred, label="val_prediction", marker='o', markersize=3)
+        # plt.plot(val_rating, ls="dotted", label="val_rating", marker='o', mfc='none', markersize=3)
+        plt.plot(pred, label="prediction")  # , style='r-'
+        plt.plot(rating, ls="dotted", label="rating")
+        plt.plot(val_pred, label="val_prediction")
+        plt.plot(val_rating, ls="dotted", label="val_rating")
         plt.title(s="{}-Fold | val_acc={}".format(fold+1,
                                                   np.round(val_acc[int(np.where(np.array(s_rounds) == fold)[0])], 3)))
 
