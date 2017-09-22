@@ -40,7 +40,8 @@ class LSTMnet:
         self.lstm_size = lstm_size  # = n_hidden
         self.n_steps = n_steps  # samp.freq. = 250
         self.batch_size = batch_size
-        # self.last_lstm_state = None # TODO remember last state
+        self.final_state = None
+        self.lstm_output = None
         # self.n_classes = n_classes
 
     def inference(self, x):
@@ -66,7 +67,7 @@ class LSTMnet:
         with tf.variable_scope('LSTMnet'):
 
             # LSTM Layer 1
-            post_lstm, final_state = self._create_lstm_layer(x=x, layer_name="lstm1", lstm_size=self.lstm_size)
+            post_lstm = self._create_lstm_layer(x=x, layer_name="lstm1", lstm_size=self.lstm_size)
 
             # For the featuer_extractor:
             self.lstm_post_activation = post_lstm
@@ -133,10 +134,18 @@ class LSTMnet:
             # state = lstm.zero_state(batch_size=batch_size, dtype=tf.float32)  # initial_state
 
             # Run LSTM cell
-            lstm_output, state = tf.contrib.rnn.static_rnn(cell=lstm_cell,
-                                                           inputs=x,  # initial_state=state, init (optional)
-                                                           dtype=tf.float32,
-                                                           scope=None)  # , sequence_length=num_steps
+            self.lstm_output, self.final_state = tf.contrib.rnn.static_rnn(cell=lstm_cell,
+                                                                           inputs=x,
+                                                                           # initial_state=state, init (optional)
+                                                                           # , sequence_length=num_steps
+                                                                           dtype=tf.float32,
+                                                                           scope=None)
+            # lstm_output: len(lstm_output) == len(x) == 250
+            # state (final_state):
+            # LSTMStateTuple(c=array([[ ...]], dtype=float32),  # C-State
+            #                h=array([[ ...]], dtype=float32))  # H-State
+            # state shape: [2, 1, lstm_size]
+
             #  rnn.static_rnn calculates basically this:
             # outputs = []
             # for input_ in x:
@@ -144,31 +153,26 @@ class LSTMnet:
             #     outputs.append(output)
             # Check: https://www.tensorflow.org/versions/r1.1/api_docs/python/tf/contrib/rnn/static_rnn
 
-            # Write summaries
-            self._var_summaries(name=layer_name + "/lstm_outputs", var=lstm_output)
-            tf.summary.histogram(layer_name + "/lstm_outputs_hist", lstm_output)
-            self._var_summaries(name=layer_name + "/state", var=state)
-
-            # Push through activation function
-            with tf.name_scope(layer_name + "_elu"):  # or relu
-                # post_activation = tf.nn.relu(lstm_output, name="post_activation")
-                post_activation = self.activation_function(features=lstm_output, name="post_activation")
-
-                tf.summary.histogram(layer_name + "_elu" + "/post_activation", post_activation)
-
             # TODO how to define output:
             # Different options: 1) last lstm output 2) average over all outputs
             # or 3) right-weighted average (last values have stronger impact)
             # here option 1)
-            post_activation = post_activation[-1]
-            final_state = state[-1]
 
             # Write summaries
-            self._var_summaries(name=layer_name + "/post_activation", var=post_activation)
-            tf.summary.histogram(layer_name + "/post_activation_hist", post_activation)
-            self._var_summaries(name=layer_name + "/final_state", var=final_state)
+            self._var_summaries(name=layer_name + "/lstm_outputs", var=self.lstm_output[-1])
+            tf.summary.histogram(name=layer_name + "/lstm_outputs", values=self.lstm_output[-1])
+            self._var_summaries(name=layer_name + "/final_state", var=self.final_state)
 
-        return post_activation, final_state
+            # Push through activation function
+            with tf.name_scope(layer_name + "_elu"):  # or relu
+                # post_activation = tf.nn.relu(lstm_output, name="post_activation")
+                post_activation = self.activation_function(features=self.lstm_output[-1], name="post_activation")
+
+                # Write Summaries
+                self._var_summaries(name=layer_name + "_elu" + "/post_activation", var=post_activation)
+                tf.summary.histogram(layer_name + "/post_activation_hist", post_activation)
+
+        return post_activation
 
     def _create_fc_layer(self, x, layer_name, shape):
         """
