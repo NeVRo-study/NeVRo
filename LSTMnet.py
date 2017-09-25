@@ -130,13 +130,14 @@ class LSTMnet:
             # lstm_cell.state_size
 
             # Initial state of the LSTM memory
-            # state = tf.zeros([batch_size, lstm_cell.state_size])  # initial_state
-            # state = lstm.zero_state(batch_size=batch_size, dtype=tf.float32)  # initial_state
+            # init_state = tf.zeros([batch_size, lstm_cell.state_size])  # initial_state
+            init_state = lstm_cell.zero_state(batch_size=self.batch_size, dtype=tf.float32)  # initial_state
 
             # Run LSTM cell
             self.lstm_output, self.final_state = tf.contrib.rnn.static_rnn(cell=lstm_cell,
                                                                            inputs=x,
-                                                                           # initial_state=state, init (optional)
+                                                                           # TODO test initial_state
+                                                                           initial_state=init_state,  # init (optional)
                                                                            # , sequence_length=num_steps
                                                                            dtype=tf.float32,
                                                                            scope=None)
@@ -166,6 +167,7 @@ class LSTMnet:
             # Push through activation function
             with tf.name_scope(layer_name + "_elu"):  # or relu
                 # post_activation = tf.nn.relu(lstm_output, name="post_activation")
+                # lstm_output.shape = (250, 1, lstm_size) | lstm_output[-1].shape = (1, lstm_size)
                 post_activation = self.activation_function(features=self.lstm_output[-1], name="post_activation")
 
                 # Write Summaries
