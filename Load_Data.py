@@ -425,6 +425,7 @@ class DataSet(object):
             # if self._index_in_eeg_epoch/self.eeg_samp_freq > self._num_time_slices:
             if self._index_in_epoch > self._num_time_slices:
                 self._epochs_completed += 1
+                print("\nStarting new epoch (nr.{}) in dateset\n".format(self._epochs_completed))
 
                 # # Shuffling only makes sense if we consider batches as independent, what we don't for later models
                 # perm = np.arrange(self._num_time_slices)

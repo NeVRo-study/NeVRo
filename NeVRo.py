@@ -237,8 +237,15 @@ def train_lstm():
 
                     return {x: xs, y: ys}
 
-                # Run
+                # RUN
                 val_counter = 0  # Needed when validation should only be run in the end of training
+
+                # Init Lists of Accuracy and Loss
+                train_loss_list = []
+                train_acc_list = []
+                val_acc_list = []
+                val_loss_list = []
+
                 for epoch in range(int(FLAGS.max_steps)):
                     # Evaluate on training set every print_freq (=10) iterations
                     if (epoch + 1) % FLAGS.print_freq == 0:
@@ -257,6 +264,9 @@ def train_lstm():
 
                         print("Train-Loss: {} at epoch:{}".format(np.round(train_loss, 3), epoch + 1))
                         print("Train-Accuracy: {} at epoch:{}".format(np.round(train_acc, 3), epoch + 1))
+                        # Update Lists
+                        train_acc_list.append(train_acc)
+                        train_loss_list.append(train_loss)
 
                     else:
                         # summary, _, train_loss, train_acc = sess.run([merged, optimization, loss, accuracy],
@@ -266,6 +276,10 @@ def train_lstm():
                         _, train_loss, train_acc, tain_infer, train_y = sess.run([optimization, loss, accuracy,
                                                                                   infer, y],
                                                                                  feed_dict=_feed_dict(training=True))
+
+                        # Update Lists
+                        train_acc_list.append(train_acc)
+                        train_loss_list.append(train_loss)
 
                     # Write train_infer & train_y in prediction matrix
                     pred_matrix = fill_pred_matrix(pred=tain_infer, y=train_y, current_mat=pred_matrix,
@@ -284,6 +298,9 @@ def train_lstm():
                             test_writer.add_summary(summary=summary, global_step=epoch)
                             print("Validation-Loss: {} at epoch:{}".format(np.round(val_loss, 3), epoch + 1))
                             print("Validation-Accuracy: {} at epoch:{}".format(np.round(val_acc, 3), epoch + 1))
+                            # Update Lists
+                            val_acc_list.append(val_acc)
+                            val_loss_list.append(val_loss)
 
                             # Write val_infer & val_y in val_pred_matrix
                             val_pred_matrix = fill_pred_matrix(pred=val_infer, y=val_y, current_mat=val_pred_matrix,
@@ -302,8 +319,18 @@ def train_lstm():
                 test_writer.close()
 
                 # Save last val_acc in all_acc_val-vector
-                all_acc_val[rnd] = val_acc
+                all_acc_val[rnd] = np.nanmean(val_acc_list)  # since we validate in the end of train average across all
+                # all_acc_val[rnd] = val_acc  # Save last val_acc in all_acc_val-vector
                 # all_acc_val = all_acc_val[rnd].assign(val_acc)  # if all_acc_val is Tensor variable
+
+                # Save loss_ & acc_lists externally per S-Fold
+                loss_acc_lists = [train_loss_list, train_acc_list, val_acc_list, val_loss_list]
+                loss_acc_lists_names = ["train_loss_list", "train_acc_list", "val_acc_list", "val_loss_list"]
+                for list_idx, liste in enumerate(loss_acc_lists):
+                    with open(FLAGS.log_dir + str(s_fold_idx) + "/{}.txt".format(loss_acc_lists_names[list_idx]), "w") \
+                            as list_file:
+                        for value in liste:
+                            list_file.write(str(value) + "\n")
 
     print("Average accuracy across all {} validation set: {}".format(FLAGS.s_fold, np.mean(all_acc_val)))
 
@@ -360,12 +387,14 @@ def fill_pred_matrix(pred, y, current_mat, s_idx, current_batch, sfold, train=Tr
 
     if train:
         fill_pos = step if step < verge else step + fold_length  # if step=27 => fill_pos=54 (in FOLD 2)
-        assert np.isnan(current_mat[pred_idx, fill_pos]), "Position in pred_matrix already filled"
+        if not np.isnan(current_mat[pred_idx, fill_pos]):
+            print("Overwrites position in pred_matrix")
 
     else:  # case of validation
         fill_pos = int(verge) + step
-        # Check whether position is already filled, otherwise go one further
-        assert np.isnan(current_mat[pred_idx, fill_pos]), "Position in val_pred_matrix already filled"
+        # Check whether position is already filled
+        if not np.isnan(current_mat[pred_idx, fill_pos]):
+            print("Overwrites position in val_pred_matrix")
 
     current_mat[pred_idx, fill_pos] = pred  # inference/prediction
     current_mat[rat_idx, fill_pos] = y      # ratings

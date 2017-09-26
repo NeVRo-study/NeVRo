@@ -11,9 +11,11 @@ import matplotlib.pyplot as plt
 
 subjects = [36]
 wdic = "./LSTM/"
+wdic_lists = wdic + "logs/debug/"
 
 for subject in subjects:
     wdic_sub = wdic + "S{}/".format(str(subject).zfill(2))
+    wdic_lists_sub = wdic_lists + "S{}/".format(str(subject).zfill(2))
 
     # Find correct files (csv-tables)
     for file in os.listdir(wdic_sub):
@@ -56,17 +58,22 @@ for subject in subjects:
     # Number of Folds
     s_fold = int(len(pred_matrix[:, 0])/2)
 
-    # # Plot
+    # # Plot predictions
     # open frame
     figsize = (12, s_fold * (3 if s_fold < 4 else 1))
     fig = plt.figure("{}-Folds | S{} | mean(val_acc)={} | 1Hz".format(s_fold, str(subject).zfill(2), mean_acc),
                      figsize=figsize)
 
     # Prepare subplot division
-    if s_fold < 10:
-        sub_rows, sub_col, sub_n = s_fold, 1, 0
-    else:
-        sub_rows, sub_col, sub_n = int(s_fold/2), 2, 0
+    def subplot_div(n_s_fold):
+        if n_s_fold < 10:
+            sub_rows_f, sub_col_f, sub_n_f = n_s_fold, 1, 0
+        else:
+            sub_rows_f, sub_col_f, sub_n_f = int(n_s_fold/2), 2, 0
+
+        return sub_rows_f, sub_col_f, sub_n_f
+
+    sub_rows, sub_col, sub_n = subplot_div(n_s_fold=s_fold)
 
     # For each fold create plot
     for fold in range(s_fold):
@@ -96,6 +103,37 @@ for subject in subjects:
         # adjust size, add legend
         plt.xlim(0, len(pred))
         plt.ylim(-1.2, 2)
+        plt.legend(bbox_to_anchor=(0., 0.92, 1., .102), loc=1, ncol=4, mode="expand", borderaxespad=0.)
+        plt.tight_layout(pad=2)
+
+    # # Plot accuracy-trajectories
+    fig2 = plt.figure("{}-Folds Accuracies | S{} | mean(val_acc)={} | 1Hz ".format(s_fold,
+                                                                                   str(subject).zfill(2),
+                                                                                   mean_acc), figsize=figsize)
+
+    # Prepare subplot division
+    sub_rows, sub_col, sub_n = subplot_div(n_s_fold=s_fold)
+
+    for fold in range(s_fold):
+
+        # Load Data
+        val_acc_fold = np.loadtxt(wdic_lists_sub + "{}/val_acc_list.txt".format(fold), delimiter=",")
+        train_acc_fold = np.loadtxt(wdic_lists_sub + "{}/train_acc_list.txt".format(fold), delimiter=",")
+
+        # add subplot
+        sub_n += 1
+        fig2.add_subplot(sub_rows, sub_col, sub_n)
+
+        # plot
+        plt.plot(train_acc_fold, label="train_acc")
+        plt.plot(val_acc_fold, label="val_acc")
+
+        plt.title(s="{}-Fold | val_acc={}".format(fold + 1,
+                                                  np.round(val_acc[int(np.where(np.array(s_rounds) == fold)[0])], 3)))
+
+        # adjust size, add legend
+        plt.xlim(0, len(train_acc_fold))
+        plt.ylim(0.0, 1.5)
         plt.legend(bbox_to_anchor=(0., 0.92, 1., .102), loc=1, ncol=4, mode="expand", borderaxespad=0.)
         plt.tight_layout(pad=2)
 
