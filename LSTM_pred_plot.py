@@ -107,6 +107,7 @@ for subject in subjects:
         plt.tight_layout(pad=2)
 
     # # Plot accuracy-trajectories
+
     fig2 = plt.figure("{}-Folds Accuracies | S{} | mean(val_acc)={} | 1Hz ".format(s_fold,
                                                                                    str(subject).zfill(2),
                                                                                    mean_acc), figsize=figsize)
@@ -137,5 +138,34 @@ for subject in subjects:
         plt.legend(bbox_to_anchor=(0., 0.92, 1., .102), loc=1, ncol=4, mode="expand", borderaxespad=0.)
         plt.tight_layout(pad=2)
 
+    # # Plot loss-trajectories
+
+    fig3 = plt.figure("{}-Folds Loss | S{} | mean(val_acc)={} | 1Hz ".format(s_fold, str(subject).zfill(2), mean_acc),
+                      figsize=figsize)
+
+    # Prepare subplot division
+    sub_rows, sub_col, sub_n = subplot_div(n_s_fold=s_fold)
+
+    for fold in range(s_fold):
+        # Load Data
+        val_loss_fold = np.loadtxt(wdic_lists_sub + "{}/val_loss_list.txt".format(fold), delimiter=",")
+        train_loss_fold = np.loadtxt(wdic_lists_sub + "{}/train_loss_list.txt".format(fold), delimiter=",")
+
+        # add subplot
+        sub_n += 1
+        fig3.add_subplot(sub_rows, sub_col, sub_n)
+
+        # plot
+        plt.plot(train_loss_fold, label="train_loss")
+        plt.plot(val_loss_fold, label="val_loss")
+
+        plt.title(s="{}-Fold | val_loss={}".format(fold + 1,
+                                                   np.round(val_acc[int(np.where(np.array(s_rounds) == fold)[0])], 3)))
+
+        # adjust size, add legend
+        plt.xlim(0, len(train_loss_fold))
+        plt.ylim(-0.1, 2.5)
+        plt.legend(bbox_to_anchor=(0., 0.92, 1., .102), loc=1, ncol=4, mode="expand", borderaxespad=0.)
+        plt.tight_layout(pad=2)
 
 

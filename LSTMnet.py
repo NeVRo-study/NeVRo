@@ -7,9 +7,6 @@ Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017
 import tensorflow as tf
 # import numpy as np
 
-# TODO Hilbert Transform to power-spectrum of SSD/Spoc components
-# with Hilbert (needs filtered data (alpha, 8Hz-12Hz) keep sampl.freq
-
 
 class LSTMnet:
     """
