@@ -7,7 +7,7 @@ Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017
 import tensorflow as tf
 # import numpy as np
 
-# TODO Hilbert Transform to power-spectrum of SSD/Spoc components
+# Hilbert Transform to power-spectrum of SSD/Spoc components
 # with Hilbert (needs filtered data (alpha, 8Hz-12Hz) keep sampl.freq
 
 
@@ -130,14 +130,14 @@ class LSTMnet:
             # lstm_cell.state_size
 
             # Initial state of the LSTM memory
+            # (previous state is not taken over in next batch, regardless of zero-state implementation)
+            # init_state = lstm_cell.zero_state(batch_size=self.batch_size, dtype=tf.float32)  # initial_state
             # init_state = tf.zeros([batch_size, lstm_cell.state_size])  # initial_state
-            init_state = lstm_cell.zero_state(batch_size=self.batch_size, dtype=tf.float32)  # initial_state
 
             # Run LSTM cell
             self.lstm_output, self.final_state = tf.contrib.rnn.static_rnn(cell=lstm_cell,
                                                                            inputs=x,
-                                                                           # TODO test initial_state
-                                                                           initial_state=init_state,  # init (optional)
+                                                                           # initial_state=init_state,  # (optional)
                                                                            # , sequence_length=num_steps
                                                                            dtype=tf.float32,
                                                                            scope=None)

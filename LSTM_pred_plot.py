@@ -58,7 +58,7 @@ for subject in subjects:
 
     # # Plot
     # open frame
-    figsize = (12, s_fold * (3 if s_fold<4 else 1))
+    figsize = (12, s_fold * (3 if s_fold < 4 else 1))
     fig = plt.figure("{}-Folds | S{} | mean(val_acc)={} | 1Hz".format(s_fold, str(subject).zfill(2), mean_acc),
                      figsize=figsize)
 

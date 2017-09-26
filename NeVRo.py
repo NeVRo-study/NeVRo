@@ -20,6 +20,7 @@ import copy
 
 from LSTMnet import LSTMnet
 
+# TODO (time-)length per sample is hyperparameter: try also lengths >1sec(=250datapoins)
 
 # Define Default Values for FLAGS.xx
 LEARNING_RATE_DEFAULT = 1e-2  # 1e-4
@@ -237,6 +238,7 @@ def train_lstm():
                     return {x: xs, y: ys}
 
                 # Run
+                val_counter = 0  # Needed when validation should only be run in the end of training
                 for epoch in range(int(FLAGS.max_steps)):
                     # Evaluate on training set every print_freq (=10) iterations
                     if (epoch + 1) % FLAGS.print_freq == 0:
@@ -272,19 +274,22 @@ def train_lstm():
 
                     # Evaluate on validation set every eval_freq iterations
                     if (epoch + 1) % FLAGS.eval_freq == 0:
-                        summary, val_loss, val_acc, val_infer, val_y = sess.run([merged, loss, accuracy, infer, y],
-                                                                                feed_dict=_feed_dict(training=False))
-                        # test_loss, test_acc = sess.run([loss, accuracy], feed_dict=_feed_dict(training=False))
-                        # print("now do: test_writer.add_summary(summary=summary, global_step=epoch)")
-                        test_writer.add_summary(summary=summary, global_step=epoch)
-                        print("Validation-Loss: {} at epoch:{}".format(np.round(val_loss, 3), epoch + 1))
-                        print("Validation-Accuracy: {} at epoch:{}".format(np.round(val_acc, 3), epoch + 1))
+                        val_counter += 1  # count the number of validation steps (implementation could improved)
+                        if epoch == FLAGS.max_steps - 1:  # Validation in last round
+                            summary, val_loss, val_acc, val_infer, val_y = sess.run([merged, loss, accuracy, infer, y],
+                                                                                    feed_dict=_feed_dict(
+                                                                                        training=False))
+                            # test_loss, test_acc = sess.run([loss, accuracy], feed_dict=_feed_dict(training=False))
+                            # print("now do: test_writer.add_summary(summary=summary, global_step=epoch)")
+                            test_writer.add_summary(summary=summary, global_step=epoch)
+                            print("Validation-Loss: {} at epoch:{}".format(np.round(val_loss, 3), epoch + 1))
+                            print("Validation-Accuracy: {} at epoch:{}".format(np.round(val_acc, 3), epoch + 1))
 
-                        # Write val_infer & val_y in val_pred_matrix
-                        val_pred_matrix = fill_pred_matrix(pred=val_infer, y=val_y, current_mat=val_pred_matrix,
-                                                           sfold=FLAGS.s_fold, s_idx=s_fold_idx,
-                                                           current_batch=nevro_data["validation"].current_batch,
-                                                           train=False)
+                            # Write val_infer & val_y in val_pred_matrix
+                            val_pred_matrix = fill_pred_matrix(pred=val_infer, y=val_y, current_mat=val_pred_matrix,
+                                                               sfold=FLAGS.s_fold, s_idx=s_fold_idx,
+                                                               current_batch=nevro_data["validation"].current_batch,
+                                                               train=False)
 
                     # Save the variables to disk every checkpoint_freq (=5000) iterations
                     if (epoch + 1) % FLAGS.checkpoint_freq == 0:

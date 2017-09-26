@@ -14,7 +14,6 @@ import matplotlib.pyplot as plt
 import copy
 
 
-
 class ECGplot:
 
     def __init__(self, n_sub=45, dropouts=[1, 12, 32, 35, 40, 42, 45], subject_selection=[], smooth_w_size=3,
@@ -33,7 +32,9 @@ class ECGplot:
         self.wdic_plots = "../../Data/Plots/"
         self.wdic_cropRR = "../../Data/ECG/TR_cropped/"
         self.wdic_SBA = "../../Data/ECG/SBA/"
+        self.wdic_SA = "../../Data/ECG/SA/"
         self.wdic_Rating = "../../Data/ratings/preprocessed/z_scored_alltog/"
+        self.wdic_Rating_not_z = "../../Data/ratings/preprocessed/not_z_scored/"
         self.wdic_cropTR_trim = "../../Data/ECG/TR_cropped/trimmed/"
 
         # Set variables
@@ -94,6 +95,11 @@ class ECGplot:
         self._split_sba()  # Updates self.SBA_split dictionary with splitted z-scored sba data
         self.SBA_ratings = copy.deepcopy(self.SBA)
         self._update_sba_ratings_dic()
+
+        # "Space" and "Ande" (SA) concatenated. Raw and z-scored
+        self.SA = copy.deepcopy(self.SBA)
+        self.SA_ratings = copy.deepcopy(self.SBA_ratings)
+        self._update_sa_dics()
 
     @staticmethod
     def close(n=1):
@@ -305,6 +311,94 @@ class ECGplot:
                     rating_file = np.repeat(np.nan, self.SBA_ratings["zSBA"][cond].shape[1])
 
                 self.SBA_ratings["zSBA"][cond][sub_idx] = rating_file
+
+    def _update_sa_ratings_dic(self):
+        """
+        This is just an intermediate step before pruning the loaded data to the SA-format in self._update_sa_dics()
+        """
+
+        for key in self.SA_ratings.keys():
+            for cond in self.SA_ratings[key].keys():
+                for sub_idx, sub in enumerate(self.subjects):
+                    cond_name = "move" if cond == "Mov" else "nomove"
+
+                    try:
+                        sub_cond = self.subject_condition(subject_id=sub)  # cond of sub
+                    except ValueError:  # or NameError
+                        sub_cond = "NaN"  # in case of S12
+
+                    r = 1 if (sub_cond == 12 and cond_name == "move") or \
+                             (sub_cond == 21 and cond_name == "nomove") else 2
+
+                    file_name = self.wdic_Rating_not_z + "alltog/{}/1Hz/NVR_S{}_run_{}_alltog_rat_z.txt".format(
+                        cond_name, str(sub). zfill(2), r)
+
+                    if os.path.isfile(file_name):
+                        rating_file = np.genfromtxt(file_name, delimiter=',')[:, 1]  # only load col with ratings
+                    else:
+                        rating_file = np.repeat(np.nan, self.SA_ratings["zSBA"][cond].shape[1])
+
+                    self.SA_ratings["zSBA"][cond][sub_idx, :] = rating_file
+
+    def _update_sa_dics(self):
+        """
+        Update SA dic and SA_ratings. That is, deleting the break from the copied SBA dics
+        """
+
+        # Delete-Index
+        del_start = int(self.trimmed_time_space)  # beginning of break after 148sec
+        del_end = int(self.trimmed_time_space + self.trimmed_time_break)  # end of break 148+30sec
+
+        # Hear-Rate
+        for key in self.SA.keys():
+            for cond_key in self.SA[key].keys():
+                # self.SA[key][cond_key].shape  # = (Nsub, 270)
+
+                # Update SA
+                self.SA[key][cond_key] = np.delete(arr=self.SA[key][cond_key], obj=range(del_start, del_end), axis=1)
+
+                assert self.SA[key][cond_key].shape[1] == self.trimmed_time_space + self.trimmed_time_ande, \
+                    "SA has wrong length={}".format(self.SA[key][cond_key].shape[1])
+
+        for key in self.SA.keys():
+            # Update Key Name from SBA => SA
+            newkey = "zSA" if "z" in key else "SA"
+            self.SA[newkey] = self.SA.pop(key)
+
+        # Ratings
+        self._update_sa_ratings_dic()  # loads non-zscored files in "zSA"
+
+        for key in self.SA_ratings.keys():
+            for cond_key in self.SA_ratings[key].keys():
+
+                # Update SA_ratings
+                self.SA_ratings[key][cond_key] = np.delete(arr=self.SA_ratings[key][cond_key],
+                                                           obj=range(del_start, del_end), axis=1)
+
+                assert self.SA_ratings[key][cond_key].shape[1] == self.trimmed_time_space + self.trimmed_time_ande, \
+                    "SA_ratings has wrong length={}".format(self.SA_ratings[key][cond_key].shape[1])
+
+        # Update Key Name from SBA => SA
+        for key in self.SA_ratings.keys():
+            newkey = "zSA" if "z" in key else "SA"
+            self.SA_ratings[newkey] = self.SA_ratings.pop(key)
+
+        # Now take z-scores in self.SA_ratings["zSA"]
+        for cond_key in self.SA_ratings["zSA"].keys():
+            for sub_idx in range(len(self.subjects)):
+                sub_mean = np.nanmean(self.SA_ratings["zSA"][cond_key][sub_idx, :])
+                sub_std = np.nanstd(self.SA_ratings["zSA"][cond_key][sub_idx, :])
+                # z-scored
+                self.SA_ratings["zSA"][cond_key][sub_idx, :] = \
+                    copy.copy((self.SA_ratings["zSA"][cond_key][sub_idx, :])-sub_mean)/sub_std
+
+        # Update the z-scores in self.SA["zSA"]
+        for cond_key in self.SA["SA"].keys():
+            for sub_idx, subject in enumerate(self.subjects):
+                sub_mean = np.nanmean(self.SA["SA"][cond_key][sub_idx, :])
+                sub_std = np.nanstd(self.SA["SA"][cond_key][sub_idx, :])
+                # z-scored
+                self.SA["zSA"][cond_key][sub_idx, :] = copy.copy((self.SA["SA"][cond_key][sub_idx, :])-sub_mean)/sub_std
 
     def _concat_all_phases(self):
         """Concatenate all phases per subject"""
@@ -654,6 +748,21 @@ class ECGplot:
                     # Define file_name for specific folder
                     subfolder = "z_scored_alltog/" if "z" in key else "not_z_scored/"
                     file_name = self.wdic_SBA + subfolder + cond + "/NVR_S{}_SBA_{}.txt".format(str(sub).zfill(2), cond)
+                    # Save the file
+                    with open(file_name, "w") as file:
+                        for item in file_to_save:
+                            file.write("{}\n".format(item))
+
+    def save_sa(self):
+
+        for key in self.SA.keys():  # ['zSA', 'SA']
+            for sub_idx, sub in enumerate(self.subjects):
+                for cond in self.SA[key].keys():  # ['NoMov', 'Mov']
+                    # extract file to save
+                    file_to_save = self.SA[key][cond][sub_idx, :]  # takes file per subject
+                    # Define file_name for specific folder
+                    subfolder = "z_scored_alltog/" if "z" in key else "not_z_scored/"
+                    file_name = self.wdic_SA + subfolder + cond + "/NVR_S{}_SA_{}.txt".format(str(sub).zfill(2), cond)
                     # Save the file
                     with open(file_name, "w") as file:
                         for item in file_to_save:
@@ -1051,8 +1160,6 @@ class ECGplot:
             if save_plot:
                 self.save_plot("S{}_z_Ratings_HR_x_corr".format(str(sub).zfill(2)))
 
-        pass
-
 
 ec = ECGplot(n_sub=45,
              dropouts=[1, 12, 32, 35, 40, 42, 45],
@@ -1086,5 +1193,6 @@ ec = ECGplot(n_sub=45,
 
 # # Save SBA Data
 # ec.save_sba()
+# ec.save_sa()
 # ec.save_sba_split()
 
