@@ -93,7 +93,6 @@ def train_lstm():
     First define graph using class LSTM and its methods. Then define
     necessary operations such as trainer (train_step in this case), savers
     and summarizers. Finally, initialize model within a tf.Session and do the training.
-
     ---------------------------
     How to evaluate the model:
     ---------------------------
