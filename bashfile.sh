@@ -18,7 +18,7 @@
 ## Training
 # python3 NeVRo.py --max_steps 15 --log_dir ./LSTM/logs/const_var --checkpoint_dir ./LSTM/checkpoints/lstm/const_var --weight_reg l2 --weight_reg_strength 0.18 --
 # python3 NeVRo.py --max_steps 15
-python NeVRo.py --max_steps 15
+python NeVRo.py --repet_scalar 1000
 
 # python2 NeVRo.py --learning_rate 1e-4 --checkpoint_dir ./checkpoints/lstm/l1 --weight_reg l1 --weight_reg_strength 0.18
 # python2 NeVRo.py --learning_rate 1e-4 --checkpoint_dir ./checkpoints/lstm/l2 --weight_reg l2 --weight_reg_strength 0.18

@@ -27,10 +27,11 @@ LEARNING_RATE_DEFAULT = 1e-2  # 1e-4
 BATCH_SIZE_DEFAULT = 1  # or bigger
 RANDOM_BATCH_DEFAULT = True
 S_FOLD_DEFAULT = 10
-MAX_STEPS_DEFAULT = 270 - 270/S_FOLD_DEFAULT  # now it runs once through whole set, or do scalar of this
+REPETITION_SCALAR_DEFAULT = 1  # scaler for how many times it should run through set (can be also fraction)
+MAX_STEPS_DEFAULT = REPETITION_SCALAR_DEFAULT*(270 - 270/S_FOLD_DEFAULT)  # now it runs scalar-times throug whole set
 EVAL_FREQ_DEFAULT = S_FOLD_DEFAULT - 1  # == MAX_STEPS_DEFAULT / (270/S_FOLD_DEFAULT)
 CHECKPOINT_FREQ_DEFAULT = MAX_STEPS_DEFAULT
-PRINT_FREQ_DEFAULT = int(MAX_STEPS_DEFAULT/10)  # if too low, uses much memory
+PRINT_FREQ_DEFAULT = int(MAX_STEPS_DEFAULT/8)  # if too low, uses much memory
 OPTIMIZER_DEFAULT = 'ADAM'
 WEIGHT_REGULARIZER_DEFAULT = 'l2'
 WEIGHT_REGULARIZER_STRENGTH_DEFAULT = 0.18
@@ -452,6 +453,8 @@ if __name__ == '__main__':
                         help='Learning rate')
     parser.add_argument('--max_steps', type=int, default=MAX_STEPS_DEFAULT,
                         help='Number of steps to run trainer.')
+    parser.add_argument('--repet_scalar', type=int, default=REPETITION_SCALAR_DEFAULT,
+                        help='Number of times it should run through set.')
     parser.add_argument('--batch_size', type=int, default=BATCH_SIZE_DEFAULT,
                         help='Batch size to run trainer.')
     parser.add_argument('--print_freq', type=int, default=PRINT_FREQ_DEFAULT,
