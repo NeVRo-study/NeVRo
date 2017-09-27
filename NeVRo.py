@@ -99,7 +99,6 @@ def train_lstm():
     ---------------------------
     Evaluation on test set should be conducted over full batch, i.e. 10k images,
     while it is alright to do it over mini-batch for train set.
-
     ---------------------------------
     How often to evaluate the model:
     ---------------------------------
