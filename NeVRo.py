@@ -28,17 +28,17 @@ BATCH_SIZE_DEFAULT = 1  # or bigger
 RANDOM_BATCH_DEFAULT = True
 S_FOLD_DEFAULT = 10
 REPETITION_SCALAR_DEFAULT = 1  # scaler for how many times it should run through set (can be also fraction)
-MAX_STEPS_DEFAULT = REPETITION_SCALAR_DEFAULT*(270 - 270/S_FOLD_DEFAULT)  # now it runs scalar-times throug whole set
-EVAL_FREQ_DEFAULT = S_FOLD_DEFAULT - 1  # == MAX_STEPS_DEFAULT / (270/S_FOLD_DEFAULT)
-CHECKPOINT_FREQ_DEFAULT = MAX_STEPS_DEFAULT
-PRINT_FREQ_DEFAULT = int(MAX_STEPS_DEFAULT/8)  # if too low, uses much memory
+MAX_STEPS_DEFAULT = FLAGS.repet_scalar*(270 - 270/FLAGS.s_fold)  # now it runs scalar-times throug whole set
+EVAL_FREQ_DEFAULT = FLAGS.s_fold - 1  # == MAX_STEPS_DEFAULT / (270/S_FOLD_DEFAULT)
+CHECKPOINT_FREQ_DEFAULT = FLAGS.max_steps
+PRINT_FREQ_DEFAULT = int(FLAGS.max_steps/8)  # if too low, uses much memory
 OPTIMIZER_DEFAULT = 'ADAM'
 WEIGHT_REGULARIZER_DEFAULT = 'l2'
 WEIGHT_REGULARIZER_STRENGTH_DEFAULT = 0.18
 ACTIVATION_FCT_DEFAULT = 'elu'
 MARGIN_DEFAULT = 0.2
 LOSS_DEFAULT = "normal"
-FEAT_EPOCH_DEFAULT = CHECKPOINT_FREQ_DEFAULT-1
+FEAT_EPOCH_DEFAULT = FLAGS.checkpoint_freq-1
 LSTM_SIZE_DEFAULT = 10
 
 
@@ -53,9 +53,9 @@ The idea behind cross validation is that each iteration is like training the alg
 # https://stackoverflow.com/questions/41216976/how-is-cross-validation-implemented
 
 DATA_DIR_DEFAULT = '../../Data/'
-SUB_DIR_DEFAULT = "./LSTM/" + "S{}/".format(str(SUBJECT_DEFAULT).zfill(2))
-LOG_DIR_DEFAULT = './LSTM/logs/' + "S{}/".format(str(SUBJECT_DEFAULT).zfill(2))
-CHECKPOINT_DIR_DEFAULT = './LSTM/checkpoints/' + "S{}/".format(str(SUBJECT_DEFAULT).zfill(2))
+SUB_DIR_DEFAULT = "./LSTM/" + "S{}/".format(str(FLAGS.subject).zfill(2))
+LOG_DIR_DEFAULT = './LSTM/logs/' + "S{}/".format(str(FLAGS.subject).zfill(2))
+CHECKPOINT_DIR_DEFAULT = './LSTM/checkpoints/' + "S{}/".format(str(FLAGS.subject).zfill(2))
 
 WEIGHT_REGULARIZER_DICT = {'none': lambda x: None,  # No regularization
                            # L1 regularization
@@ -454,7 +454,7 @@ if __name__ == '__main__':
     parser.add_argument('--max_steps', type=int, default=MAX_STEPS_DEFAULT,
                         help='Number of steps to run trainer.')
     parser.add_argument('--repet_scalar', type=int, default=REPETITION_SCALAR_DEFAULT,
-                        help='Number of times it should run through set.')
+                        help='Number of times it should run through set. repet_scalar*(270 - 270/s_fold)')
     parser.add_argument('--batch_size', type=int, default=BATCH_SIZE_DEFAULT,
                         help='Batch size to run trainer.')
     parser.add_argument('--print_freq', type=int, default=PRINT_FREQ_DEFAULT,
