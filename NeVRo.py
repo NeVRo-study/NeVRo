@@ -54,9 +54,9 @@ The idea behind cross validation is that each iteration is like training the alg
 # https://stackoverflow.com/questions/41216976/how-is-cross-validation-implemented
 
 DATA_DIR_DEFAULT = '../../Data/'
-SUB_DIR_DEFAULT = "./LSTM/" + "S{}/".format(str(FLAGS.subject).zfill(2))
-LOG_DIR_DEFAULT = './LSTM/logs/' + "S{}/".format(str(FLAGS.subject).zfill(2))
-CHECKPOINT_DIR_DEFAULT = './LSTM/checkpoints/' + "S{}/".format(str(FLAGS.subject).zfill(2))
+SUB_DIR_DEFAULT = "./LSTM/" + "S{}/".format(str(SUBJECT_DEFAULT).zfill(2))
+LOG_DIR_DEFAULT = './LSTM/logs/' + "S{}/".format(str(SUBJECT_DEFAULT).zfill(2))
+CHECKPOINT_DIR_DEFAULT = './LSTM/checkpoints/' + "S{}/".format(str(SUBJECT_DEFAULT).zfill(2))
 
 WEIGHT_REGULARIZER_DICT = {'none': lambda x: None,  # No regularization
                            # L1 regularization
