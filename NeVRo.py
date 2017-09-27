@@ -22,23 +22,24 @@ from LSTMnet import LSTMnet
 
 # TODO (time-)length per sample is hyperparameter: try also lengths >1sec(=250datapoins)
 
-# Define Default Values for FLAGS.xx
+
+# TODO Define Default Values dependencies
 LEARNING_RATE_DEFAULT = 1e-2  # 1e-4
 BATCH_SIZE_DEFAULT = 1  # or bigger
 RANDOM_BATCH_DEFAULT = True
 S_FOLD_DEFAULT = 10
-REPETITION_SCALAR_DEFAULT = 1  # scaler for how many times it should run through set (can be also fraction)
-MAX_STEPS_DEFAULT = FLAGS.repet_scalar*(270 - 270/FLAGS.s_fold)  # now it runs scalar-times throug whole set
-EVAL_FREQ_DEFAULT = FLAGS.s_fold - 1  # == MAX_STEPS_DEFAULT / (270/S_FOLD_DEFAULT)
-CHECKPOINT_FREQ_DEFAULT = FLAGS.max_steps
-PRINT_FREQ_DEFAULT = int(FLAGS.max_steps/8)  # if too low, uses much memory
+REPETITION_SCALAR_DEFAULT = 1000  # scaler for how many times it should run through set (can be also fraction)
+MAX_STEPS_DEFAULT = REPETITION_SCALAR_DEFAULT*(270 - 270/S_FOLD_DEFAULT)  # now it runs scalar-times throug whole set
+EVAL_FREQ_DEFAULT = S_FOLD_DEFAULT - 1  # == MAX_STEPS_DEFAULT / (270/S_FOLD_DEFAULT)
+CHECKPOINT_FREQ_DEFAULT = MAX_STEPS_DEFAULT
+PRINT_FREQ_DEFAULT = int(MAX_STEPS_DEFAULT/8)  # if too low, uses much memory
 OPTIMIZER_DEFAULT = 'ADAM'
 WEIGHT_REGULARIZER_DEFAULT = 'l2'
 WEIGHT_REGULARIZER_STRENGTH_DEFAULT = 0.18
 ACTIVATION_FCT_DEFAULT = 'elu'
 MARGIN_DEFAULT = 0.2
 LOSS_DEFAULT = "normal"
-FEAT_EPOCH_DEFAULT = FLAGS.checkpoint_freq-1
+FEAT_EPOCH_DEFAULT = CHECKPOINT_FREQ_DEFAULT-1
 LSTM_SIZE_DEFAULT = 10
 
 
