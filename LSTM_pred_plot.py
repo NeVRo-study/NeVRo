@@ -1,3 +1,4 @@
+# coding=utf-8
 """
 Plot predictions made by the LSTM model
 

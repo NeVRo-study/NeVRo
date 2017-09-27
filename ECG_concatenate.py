@@ -1,3 +1,4 @@
+# coding=utf-8
 """
 Takes the single cropped ECG (mV) files of a participant and concatenates them in one single vector.
     • read/load

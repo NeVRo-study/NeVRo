@@ -1,3 +1,4 @@
+# coding=utf-8
 """
 Arousing Events in Roller Coaster
 Used beforehand Video "NVR_S06_run_1.mp4" for detection of such events.

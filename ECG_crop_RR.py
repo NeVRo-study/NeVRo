@@ -1,3 +1,4 @@
+# coding=utf-8
 """
 Takes the concatenated ECG (TR) Kubios file of a participant and (re-)crops them in single phases.
     • read/load

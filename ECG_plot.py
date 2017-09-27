@@ -1,3 +1,4 @@
+# coding=utf-8
 """
 Plot ECG (RR and HR) Trajectories
     • indicate different phases
