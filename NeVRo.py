@@ -104,7 +104,6 @@ def train_lstm():
     ---------------------------------
     - on training set every print_freq iterations
     - on test set every eval_freq iterations
-
     ------------------------
     Additional:
     ------------------------
