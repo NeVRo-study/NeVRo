@@ -74,6 +74,36 @@ def z_score(array):
     return z_array
 
 
+def smooth(array_to_smooth, w_size, sliding_mode="ontop"):
+    len_array = len(array_to_smooth)
+    smoothed_array = np.zeros((len_array,))  # init. output array
+
+    if sliding_mode == "hanging":  # causes shift of peaks, but more realistic
+        # attach NaN in the beginning for correct sliding window calculions
+        edge_nan = np.repeat(np.nan, w_size - 1)
+        array_to_smooth = np.concatenate((edge_nan, array_to_smooth), axis=0)
+
+        for i in range(len_array):
+            smoothed_array[i] = np.nanmean(array_to_smooth[i: i + w_size])
+
+    if sliding_mode == "ontop":
+        # self.w_size  need to be odd number 1, 3, 5, ...
+        if w_size % 2 == 0:
+            w_size -= 1
+            print("Smoothing window size need to be odd, adjusted(i.e.: -1) to:", w_size)
+
+        # attach NaN in the beginning and end for correct sliding window calculions
+        edge_nan_start = np.repeat(np.nan, int(w_size / 2))
+        edge_nan_end = edge_nan_start
+        array_to_smooth = np.concatenate((edge_nan_start, array_to_smooth), axis=0)
+        array_to_smooth = np.concatenate((array_to_smooth, edge_nan_end), axis=0)
+
+        for i in range(len_array):
+            smoothed_array[i] = np.nanmean(array_to_smooth[i: i + w_size])
+
+    return smoothed_array
+
+
 def create_s_fold_idx(s_folds, list_prev_indices=[]):
 
     if not list_prev_indices:  # list_prev_indices == []

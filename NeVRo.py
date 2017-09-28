@@ -22,7 +22,6 @@ from LSTMnet import LSTMnet
 
 # TODO (time-)length per sample is hyperparameter: try also lengths >1sec(=250datapoins)
 
-
 # TODO Define Default Values dependencies
 LEARNING_RATE_DEFAULT = 1e-2  # 1e-4
 BATCH_SIZE_DEFAULT = 1  # or bigger
@@ -41,6 +40,7 @@ MARGIN_DEFAULT = 0.2
 LOSS_DEFAULT = "normal"
 FEAT_EPOCH_DEFAULT = CHECKPOINT_FREQ_DEFAULT-1
 LSTM_SIZE_DEFAULT = 10
+HILBERT_POWER_INPUT_DEFAULT = True
 
 
 SUBJECT_DEFAULT = 36
@@ -139,7 +139,8 @@ def train_lstm():
                                           s_fold_idx=s_fold_idx_list[0],
                                           s_fold=FLAGS.s_fold,
                                           cond="NoMov",
-                                          sba=True)
+                                          sba=True,
+                                          hilbert_power=FLAGS.hilbert_power)
 
     # Define graph using class LSTMnet and its methods:
     ddims = list(nevro_data["train"].eeg.shape[1:])  # [250, 2]
@@ -174,7 +175,8 @@ def train_lstm():
                                                           s_fold_idx=s_fold_idx,
                                                           s_fold=FLAGS.s_fold,
                                                           cond="NoMov",
-                                                          sba=True)
+                                                          sba=True,
+                                                          hilbert_power=FLAGS.hilbert_power)
 
                 with tf.name_scope("input"):
                     # shape = [None] + ddims includes num_steps = 250
@@ -246,6 +248,10 @@ def train_lstm():
                 val_loss_list = []
 
                 for epoch in range(int(FLAGS.max_steps)):
+                    if epoch % 25 == 0:
+                        print("Epoch {}/{} in Fold Nr.{} ({}/{})".format(epoch, FLAGS.max_steps, s_fold_idx,
+                                                                         rnd+1, len(s_fold_idx_list)))
+
                     # Evaluate on training set every print_freq (=10) iterations
                     if (epoch + 1) % FLAGS.print_freq == 0:
                         run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
@@ -386,14 +392,14 @@ def fill_pred_matrix(pred, y, current_mat, s_idx, current_batch, sfold, train=Tr
 
     if train:
         fill_pos = step if step < verge else step + fold_length  # if step=27 => fill_pos=54 (in FOLD 2)
-        if not np.isnan(current_mat[pred_idx, fill_pos]):
-            print("Overwrites position in pred_matrix")
+        # if not np.isnan(current_mat[pred_idx, fill_pos]):
+        #     print("Overwrites position in pred_matrix")
 
     else:  # case of validation
         fill_pos = int(verge) + step
         # Check whether position is already filled
-        if not np.isnan(current_mat[pred_idx, fill_pos]):
-            print("Overwrites position in val_pred_matrix")
+        # if not np.isnan(current_mat[pred_idx, fill_pos]):
+        #     print("Overwrites position in val_pred_matrix")
 
     current_mat[pred_idx, fill_pos] = pred  # inference/prediction
     current_mat[rat_idx, fill_pos] = y      # ratings
@@ -496,7 +502,8 @@ if __name__ == '__main__':
                         help='Number of folds in S-Fold-Cross Validation')
     parser.add_argument('--rand_batch', type=str, default=RANDOM_BATCH_DEFAULT,
                         help='Whether random batch (True), or cronologically drawn batches (False)')
-
+    parser.add_argument('--hilbert_power', type=str, default=HILBERT_POWER_INPUT_DEFAULT,
+                        help='Whether input is z-scored power extraction of SSD components (via Hilbert transform)')
     # parser.add_argument('--layer_feat_extr', type=str, default="fc2",
     #                     help='Choose layer for feature extraction')
 

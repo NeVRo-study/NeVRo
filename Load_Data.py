@@ -27,6 +27,7 @@ Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017
 
 import os.path
 import copy
+from scipy.signal import hilbert
 from Meta_Functions import *
 
 # from Meta_Functions import *
@@ -523,7 +524,7 @@ def splitter(array_to_split, n_splits):
     return array_to_split
 
 
-def read_data_sets(subject, s_fold_idx, s_fold=10, cond="NoMov", sba=sba_setting):
+def read_data_sets(subject, s_fold_idx, s_fold=10, cond="NoMov", sba=sba_setting, hilbert_power=False):
     """
     Returns the s-fold-prepared dataset.
     S-Fold Validation, S=5: [ |-Train-|-Train-|-Train-|-Valid-|-Train-|] Dataset
@@ -533,6 +534,7 @@ def read_data_sets(subject, s_fold_idx, s_fold=10, cond="NoMov", sba=sba_setting
         s_fold: s-value of S-Fold Validation [default=10]
         cond: Either "NoMov"(=default) or "Mov"
         sba: Whether to use SBA-data
+        hilbert_power: hilbert-transform SSD-components, then extract z-scored power
     Returns:
         Train, Validation Datasets
     """
@@ -555,12 +557,26 @@ def read_data_sets(subject, s_fold_idx, s_fold=10, cond="NoMov", sba=sba_setting
     # rating_concat = concatenate(array1=rating_data[str(subject)]["Space_NoMov"],
     #                             array2=rating_data[str(subject)]["Ande_NoMov"])
 
-    # TODO <=> now: first 2 components, later best refined selection (best xcorr, worse xcorr with rating <->Alberto)
+    # TODO <=> now: first 2 components, later best refined selection (best xcorr, worse xcorr with rating <-> Alberto)
     eeg_sba = eeg_data[str(subject)]["SBA"][cond][:, 0:2]  # = first 2 components
     rating_sba = rating_data[str(subject)]["SBA"][cond]
 
     # Normalize rating_sba to [-1;1] due to tanh-output of LSTMnet
     rating_sba = normalization(array=rating_sba, lower_bound=-1, upper_bound=1)
+
+    if hilbert_power:
+        def calc_hilbert_z_power(array):
+            """square(abs(complex number)) = power = squarred length of complex number, see: Cohen (2014, p.160-2)"""
+            analytical_signal = hilbert(array)
+            amplitude_envelope = np.abs(analytical_signal)
+            power = np.square(amplitude_envelope)
+            # z-score of power contains power information and its variance, while centred around zero
+            hilbert_z_power = z_score(array=power)  # z-score
+            # could be smoothed to small degree, e.g., smooth(hilbert_z_power, 10)...
+            return hilbert_z_power
+
+        for comp in range(eeg_sba.shape[1]):
+            eeg_sba[:, comp] = calc_hilbert_z_power(array=eeg_sba[:, comp])
 
     # Check whether EEG data too long
     if sba:
@@ -611,7 +627,7 @@ def read_data_sets(subject, s_fold_idx, s_fold=10, cond="NoMov", sba=sba_setting
     return {"train": train, "validation": validation, "test": test}
 
 
-def get_nevro_data(subject, s_fold_idx=None, s_fold=10, cond="NoMov", sba=sba_setting):
+def get_nevro_data(subject, s_fold_idx=None, s_fold=10, cond="NoMov", sba=sba_setting, hilbert_power=False):
     """
       Prepares NeVRo dataset.
       Args:
@@ -620,13 +636,15 @@ def get_nevro_data(subject, s_fold_idx=None, s_fold=10, cond="NoMov", sba=sba_se
         s_fold: s-value of S-Fold Validation [default=10]
         cond: Either "NoMov"(=default) or "Mov"
         sba: Whether to use SBA-data
+        hilbert_power: hilbert-transform SSD-components, then extract z-scored power
       Returns:
-        Train, Validation Datasets (TODO: +Test?)
+        Train, Validation Datasets (+Test set)
       """
     if s_fold_idx is None:
         s_fold_idx = np.random.randint(low=0, high=s_fold)
         print("s_fold_idx randomly chosen:", s_fold_idx)
 
-    return read_data_sets(subject=subject, s_fold_idx=s_fold_idx, s_fold=s_fold, cond=cond, sba=sba)
+    return read_data_sets(subject=subject, s_fold_idx=s_fold_idx, s_fold=s_fold,
+                          cond=cond, sba=sba, hilbert_power=hilbert_power)
 
 # nevro_data = get_nevro_data(subject=36, s_fold=10, cond="NoMov", sba=sba_setting)
