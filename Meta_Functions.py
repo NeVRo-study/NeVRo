@@ -44,6 +44,10 @@ def function_timed(funct):
 # foo()
 
 
+def chop_microseconds(delta):
+    return delta - datetime.timedelta(microseconds=delta.microseconds)
+
+
 def normalization(array, lower_bound, upper_bound):
     """
     Normalizes Input Array
