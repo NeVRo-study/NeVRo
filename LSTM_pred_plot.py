@@ -9,13 +9,14 @@ import numpy as np
 import os.path
 import matplotlib.pyplot as plt
 
+debug = "/debug/" if True else "/"
 
 subjects = [36]
-wdic = "./LSTM/"
-wdic_lists = wdic + "logs/debug/"
+wdic = "./LSTM"
+wdic_lists = wdic + "/logs" + debug
 
 for subject in subjects:
-    wdic_sub = wdic + "S{}/".format(str(subject).zfill(2))
+    wdic_sub = wdic + debug + "S{}/".format(str(subject).zfill(2))
     wdic_lists_sub = wdic_lists + "S{}/".format(str(subject).zfill(2))
 
     # Find correct files (csv-tables)

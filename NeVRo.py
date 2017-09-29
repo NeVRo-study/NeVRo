@@ -27,7 +27,7 @@ LEARNING_RATE_DEFAULT = 1e-2  # 1e-4
 BATCH_SIZE_DEFAULT = 1  # or bigger
 RANDOM_BATCH_DEFAULT = True
 S_FOLD_DEFAULT = 10
-REPETITION_SCALAR_DEFAULT = 1000  # scaler for how many times it should run through set (can be also fraction)
+REPETITION_SCALAR_DEFAULT = 2  # scaler for how many times it should run through set (can be also fraction)
 MAX_STEPS_DEFAULT = REPETITION_SCALAR_DEFAULT*(270 - 270/S_FOLD_DEFAULT)  # now it runs scalar-times throug whole set
 EVAL_FREQ_DEFAULT = S_FOLD_DEFAULT - 1  # == MAX_STEPS_DEFAULT / (270/S_FOLD_DEFAULT)
 CHECKPOINT_FREQ_DEFAULT = MAX_STEPS_DEFAULT
@@ -38,7 +38,7 @@ WEIGHT_REGULARIZER_STRENGTH_DEFAULT = 0.18
 ACTIVATION_FCT_DEFAULT = 'elu'
 MARGIN_DEFAULT = 0.2
 LOSS_DEFAULT = "normal"
-FEAT_EPOCH_DEFAULT = CHECKPOINT_FREQ_DEFAULT-1
+FEAT_STEP_DEFAULT = CHECKPOINT_FREQ_DEFAULT-1
 LSTM_SIZE_DEFAULT = 10
 HILBERT_POWER_INPUT_DEFAULT = True
 
@@ -56,7 +56,7 @@ The idea behind cross validation is that each iteration is like training the alg
 DATA_DIR_DEFAULT = '../../Data/'
 SUB_DIR_DEFAULT = "./LSTM/" + "S{}/".format(str(SUBJECT_DEFAULT).zfill(2))
 LOG_DIR_DEFAULT = './LSTM/logs/' + "S{}/".format(str(SUBJECT_DEFAULT).zfill(2))
-CHECKPOINT_DIR_DEFAULT = './LSTM/checkpoints/' + "S{}/".format(str(SUBJECT_DEFAULT).zfill(2))
+CHECKPOINT_DIR_DEFAULT = './LSTM/checkpoints/' + "S{}".format(str(SUBJECT_DEFAULT).zfill(2))
 
 WEIGHT_REGULARIZER_DICT = {'none': lambda x: None,  # No regularization
                            # L1 regularization
@@ -238,7 +238,8 @@ def train_lstm():
                     """creates feed_dicts depending on training or no training"""
                     # Train
                     if training:
-                        xs, ys = nevro_data["train"].next_batch(batch_size=FLAGS.batch_size, randomize=False)
+                        xs, ys = nevro_data["train"].next_batch(batch_size=FLAGS.batch_size,
+                                                                randomize=FLAGS.rand_batch)
                         # print("that is the x-shape:", xs.shape)
                         # print("I am in _feed_dict(Trainining True)")
                         # keep_prob = 1.0-FLAGS.dropout_rate
@@ -246,7 +247,8 @@ def train_lstm():
 
                     else:
                         # Validation:
-                        xs, ys = nevro_data["validation"].next_batch(batch_size=FLAGS.batch_size, randomize=False)
+                        xs, ys = nevro_data["validation"].next_batch(batch_size=FLAGS.batch_size,
+                                                                     randomize=FLAGS.rand_batch)
                         ys = np.reshape(ys, newshape=([FLAGS.batch_size] + list(ys.shape)))
 
                     return {x: xs, y: ys}
@@ -261,25 +263,25 @@ def train_lstm():
                 val_loss_list = []
 
                 # Set Variables for timer
-                timer_list = []  # # list of duration(time) of 100 epochs
+                timer_list = []  # # list of duration(time) of 100 steps
                 duration = []  # durations of 100 iterations
                 start_timer = 0
                 end_timer = 0
                 timer_freq = 100
 
-                for epoch in range(int(FLAGS.max_steps)):
+                for step in range(int(FLAGS.max_steps)):
 
-                    # Timer for every timer_freq=100 epochs/steps
-                    if epoch == 0:
+                    # Timer for every timer_freq=100 steps
+                    if step == 0:
                         # Set Start Timer
                         start_timer = datetime.datetime.now().replace(microsecond=0)
 
-                    if epoch % 25 == 0:
-                        print("Epoch {}/{} in Fold Nr.{} ({}/{})".format(epoch, FLAGS.max_steps, s_fold_idx,
+                    if step % (timer_freq/2) == 0.:
+                        print("Step {}/{} in Fold Nr.{} ({}/{})".format(step, FLAGS.max_steps, s_fold_idx,
                                                                          rnd+1, len(s_fold_idx_list)))
 
                     # Evaluate on training set every print_freq (=10) iterations
-                    if (epoch + 1) % FLAGS.print_freq == 0:
+                    if (step + 1) % FLAGS.print_freq == 0:
                         run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
                         run_metadata = tf.RunMetadata()
 
@@ -290,11 +292,11 @@ def train_lstm():
                                                                                           options=run_options,
                                                                                           run_metadata=run_metadata)
 
-                        train_writer.add_run_metadata(run_metadata, "step{}".format(str(epoch).zfill(4)))
-                        train_writer.add_summary(summary=summary, global_step=epoch)
+                        train_writer.add_run_metadata(run_metadata, "step{}".format(str(step).zfill(4)))
+                        train_writer.add_summary(summary=summary, global_step=step)
 
-                        print("Train-Loss: {} at epoch:{}".format(np.round(train_loss, 3), epoch + 1))
-                        print("Train-Accuracy: {} at epoch:{}".format(np.round(train_acc, 3), epoch + 1))
+                        print("\nTrain-Loss: {:.3f} at step:{}".format(np.round(train_loss, 3), step + 1))
+                        print("Train-Accuracy: {:.3f} at step:{}\n".format(np.round(train_acc, 3), step + 1))
                         # Update Lists
                         train_acc_list.append(train_acc)
                         train_loss_list.append(train_loss)
@@ -302,7 +304,7 @@ def train_lstm():
                     else:
                         # summary, _, train_loss, train_acc = sess.run([merged, optimization, loss, accuracy],
                         #                                              feed_dict=_feed_dict(training=True))
-                        # train_writer.add_summary(summary=summary, global_step=epoch)
+                        # train_writer.add_summary(summary=summary, global_step=step)
 
                         _, train_loss, train_acc, tain_infer, train_y = sess.run([optimization, loss, accuracy,
                                                                                   infer, y],
@@ -318,54 +320,60 @@ def train_lstm():
                                                    current_batch=nevro_data["train"].current_batch, train=True)
 
                     # Evaluate on validation set every eval_freq iterations
-                    if (epoch + 1) % FLAGS.eval_freq == 0:
+                    if (step + 1) % FLAGS.eval_freq == 0:
                         val_counter += 1  # count the number of validation steps (implementation could improved)
-                        if epoch == FLAGS.max_steps - 1:  # Validation in last round
-                            summary, val_loss, val_acc, val_infer, val_y = sess.run([merged, loss, accuracy, infer, y],
-                                                                                    feed_dict=_feed_dict(
-                                                                                        training=False))
-                            # test_loss, test_acc = sess.run([loss, accuracy], feed_dict=_feed_dict(training=False))
-                            # print("now do: test_writer.add_summary(summary=summary, global_step=epoch)")
-                            test_writer.add_summary(summary=summary, global_step=epoch)
-                            # print("Validation-Loss: {} at epoch:{}".format(np.round(val_loss, 3), epoch + 1))
-                            print("Validation-Loss: {} of Fold Nr.{} ({}/{})".format(np.round(val_loss, 3), s_fold_idx,
-                                                                                     rnd + 1, len(s_fold_idx_list)))
-                            # print("Validation-Accuracy: {} at epoch:{}".format(np.round(val_acc, 3), epoch + 1))
-                            print("Validation-Accuracy: {} of Fold Nr.{} ({}/{})".format(np.round(val_acc, 3),
-                                                                                         s_fold_idx, rnd + 1,
-                                                                                         len(s_fold_idx_list)))
-                            # Update Lists
-                            val_acc_list.append(val_acc)
-                            val_loss_list.append(val_loss)
+                        if step == FLAGS.max_steps - 1:  # Validation in last round
+                            val_counter /= FLAGS.repet_scalar
+                            assert float(val_counter).is_integer(), "val_counter devided by repetition is not integer"
+                            for val_step in range(int(val_counter)):
+                                summary, val_loss, val_acc, val_infer, val_y = sess.run([merged, loss, accuracy, infer,
+                                                                                         y],
+                                                                                        feed_dict=_feed_dict(
+                                                                                            training=False))
+                                # test_loss, test_acc = sess.run([loss, accuracy], feed_dict=_feed_dict(training=False))
+                                # print("now do: test_writer.add_summary(summary=summary, global_step=step)")
+                                test_writer.add_summary(summary=summary, global_step=step)
+                                # print("Validation-Loss: {} at step:{}".format(np.round(val_loss, 3), step + 1))
+                                if val_step % 5 == 0:
+                                    print("Validation-Loss: {:.3f} of Fold Nr.{} ({}/{})".format(np.round(val_loss, 3),
+                                                                                                 s_fold_idx, rnd + 1,
+                                                                                                 len(s_fold_idx_list)))
+                                    # print("Validation-Accuracy: {} at step:{}".format(np.round(val_acc, 3), step + 1))
+                                    print("Validation-Accuracy: {:.3f} of Fold Nr.{} ({}/{})".format(np.round(val_acc, 3),
+                                                                                                     s_fold_idx, rnd + 1,
+                                                                                                     len(s_fold_idx_list)))
+                                # Update Lists
+                                val_acc_list.append(val_acc)
+                                val_loss_list.append(val_loss)
 
-                            # Write val_infer & val_y in val_pred_matrix
-                            val_pred_matrix = fill_pred_matrix(pred=val_infer, y=val_y, current_mat=val_pred_matrix,
-                                                               sfold=FLAGS.s_fold, s_idx=s_fold_idx,
-                                                               current_batch=nevro_data["validation"].current_batch,
-                                                               train=False)
+                                # Write val_infer & val_y in val_pred_matrix
+                                val_pred_matrix = fill_pred_matrix(pred=val_infer, y=val_y, current_mat=val_pred_matrix,
+                                                                   sfold=FLAGS.s_fold, s_idx=s_fold_idx,
+                                                                   current_batch=nevro_data["validation"].current_batch,
+                                                                   train=False)
 
                     # Save the variables to disk every checkpoint_freq (=5000) iterations
-                    if (epoch + 1) % FLAGS.checkpoint_freq == 0:
+                    if (step + 1) % FLAGS.checkpoint_freq == 0:
                         save_path = saver.save(sess=sess, save_path=FLAGS.checkpoint_dir + "/lstmnet_rnd{}.ckpt".format(
-                                                   str(rnd).zfill(2)), global_step=epoch)
+                                                   str(rnd).zfill(2)), global_step=step)
                         print("Model saved in file: %s" % save_path)
 
                     # End Timer
-                    if epoch % timer_freq == 0 and epoch > 0:
+                    if step % timer_freq == 0 and step > 0:
                         end_timer = datetime.datetime.now().replace(microsecond=0)
 
                         # Calculate Duration and Estimations
                         duration = end_timer - start_timer
                         timer_list.append(duration)  # mean(timer_list) = average time per 100steps
                         # For this fold
-                        estim_t_per_epoch = np.mean(timer_list) / timer_freq
-                        remaining_epochs_in_fold = (FLAGS.max_steps - (epoch + 2))
-                        rest_duration = remaining_epochs_in_fold * estim_t_per_epoch
+                        estim_t_per_step = np.mean(timer_list) / timer_freq
+                        remaining_steps_in_fold = (FLAGS.max_steps - (step + 2))
+                        rest_duration = remaining_steps_in_fold * estim_t_per_step
                         # For whole training
                         remaining_folds = len(s_fold_idx_list) - (rnd + 1)
                         if rnd == 0:
-                            remaining_epochs = FLAGS.max_steps * remaining_folds
-                            rest_duration_all_folds = rest_duration + remaining_epochs * estim_t_per_epoch
+                            remaining_steps = FLAGS.max_steps * remaining_folds
+                            rest_duration_all_folds = rest_duration + remaining_steps * estim_t_per_step
                         else:  # this is more accurate, but only possible after first round(rnd)/fold
                             rest_duration_all_folds = rest_duration + np.mean(timer_fold_list) * remaining_folds
 
@@ -374,9 +382,9 @@ def train_lstm():
                         rest_duration_all_folds = chop_microseconds(delta=rest_duration_all_folds)
 
                         print("Time passed to train {} steps: {} [h:m:s]".format(timer_freq, duration))
-                        print("Estimated time to train the rest {} epochs in current Fold-Nr.{}: {} [h:m:s]".format(
-                            FLAGS.max_steps - (epoch + 1), s_fold_idx, rest_duration))
-                        print("Estimated time to train the rest epochs and {} {}: {} [h:m:s]".format(
+                        print("Estimated time to train the rest {} steps in current Fold-Nr.{}: {} [h:m:s]".format(
+                            FLAGS.max_steps - (step + 1), s_fold_idx, rest_duration))
+                        print("Estimated time to train the rest steps and {} {}: {} [h:m:s]".format(
                             remaining_folds, "folds" if remaining_folds > 1 else "fold", rest_duration_all_folds))
 
                         # Set Start Timer
@@ -406,7 +414,7 @@ def train_lstm():
 
     # Final Accuracy & Time
     timer_fold_list.append(duration_fold)
-    print("Time to train all folds: {} [h:m:s]".format(np.sum(timer_fold_list)))
+    print("Time to train all folds (each {} steps): {} [h:m:s]".format(FLAGS.max_steps, np.sum(timer_fold_list)))
     print("Average accuracy across all {} validation set: {}".format(FLAGS.s_fold, np.mean(all_acc_val)))
 
     # Save training information in Textfile
@@ -561,8 +569,8 @@ if __name__ == '__main__':
                         help='Regularizer strength for weights of fully-connected layers.')
     parser.add_argument('--loss', type=str, default=LOSS_DEFAULT,
                         help='Type of loss. Either "normal" or "Hadsell".')
-    parser.add_argument('--feat_ext_epoch', type=str, default=FEAT_EPOCH_DEFAULT,
-                        help='feature_extraction will be applied on specific epoch of checkpoint data')
+    parser.add_argument('--feat_ext_step', type=str, default=FEAT_STEP_DEFAULT,
+                        help='feature_extraction will be applied on specific step of checkpoint data')
     parser.add_argument('--subject', type=int, default=SUBJECT_DEFAULT,
                         help='Which subject data to process')
     parser.add_argument('--lstm_size', type=int, default=LSTM_SIZE_DEFAULT,

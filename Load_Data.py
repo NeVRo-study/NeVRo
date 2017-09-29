@@ -361,7 +361,7 @@ class DataSet(object):
     # s_fold_idx_list = []  # this needs to be changed across DataSet-instances
     # s_fold_idx = []  # this needs to be changed across DataSet-instances
 
-    def __init__(self, eeg, ratings, subject, condition, eeg_samp_freq=250., rating_samp_freq=1.):
+    def __init__(self, name, eeg, ratings, subject, condition, eeg_samp_freq=250., rating_samp_freq=1.):
         """
         Builds dataset with EEG data and Ratings
         :param eeg: eeg data, SBA format (space-break-ande) (so far only NoMov)
@@ -374,6 +374,7 @@ class DataSet(object):
 
         assert eeg.shape[0] == ratings.shape[0], "eeg.shape: {}, ratings.shape: {}".format(eeg.shape, ratings.shape)
 
+        self.name = name
         self.eeg_samp_freq = eeg_samp_freq
         self.rating_samp_freq = rating_samp_freq
         self._num_time_slices = eeg.shape[0]
@@ -407,6 +408,10 @@ class DataSet(object):
     def epochs_completed(self):
         return self._epochs_completed
 
+    def new_epoch(self):
+        self._epochs_completed += 1
+        print("\nStarting new epoch ({} completed) in {} dateset\n".format(self.epochs_completed, self.name))
+
     def next_batch(self, batch_size=1, randomize=False):
         """
         Return the next 'batch_size' examples from this data set
@@ -425,8 +430,7 @@ class DataSet(object):
             self._index_in_epoch += batch_size
             # if self._index_in_eeg_epoch/self.eeg_samp_freq > self._num_time_slices:
             if self._index_in_epoch > self._num_time_slices:
-                self._epochs_completed += 1
-                print("\nStarting new epoch (nr.{}) in dateset\n".format(self._epochs_completed))
+                self.new_epoch()
 
                 # # Shuffling only makes sense if we consider batches as independent, what we don't for later models
                 # perm = np.arrange(self._num_time_slices)
@@ -467,7 +471,7 @@ class DataSet(object):
                 # Check whether slices left for next batch
                 if len(self._still_available_slices) == 0:
                     # if no slice left, start new epoch
-                    self._epochs_completed += 1
+                    self.new_epoch()  # self._epochs_completed += 1
                     self._index_in_epoch = 0
                     self._still_available_slices = np.arange(self._num_time_slices)
 
@@ -477,7 +481,7 @@ class DataSet(object):
                 selection_array = self._still_available_slices
 
                 # Now reset, i.e. new epoch
-                self._epochs_completed += 1  # new epoch
+                self.new_epoch()  # self._epochs_completed += 1
                 remaining_slices_to_draw = batch_size - len(self._still_available_slices)
                 self._index_in_epoch = remaining_slices_to_draw  # index in new epoch
                 self._still_available_slices = np.arange(self._num_time_slices)  # reset
@@ -619,8 +623,9 @@ def read_data_sets(subject, s_fold_idx, s_fold=10, cond="NoMov", sba=sba_setting
     train_ratings = np.concatenate(train_ratings, axis=0)
 
     # Create datasets
-    train = DataSet(eeg=train_eeg, ratings=train_ratings, subject=subject, condition=condition)
-    validation = DataSet(eeg=validation_eeg, ratings=validation_ratings, subject=subject, condition=condition)
+    train = DataSet(name="Training", eeg=train_eeg, ratings=train_ratings, subject=subject, condition=condition)
+    validation = DataSet(name="Validation", eeg=validation_eeg, ratings=validation_ratings, subject=subject,
+                         condition=condition)
     # Test set
     # test = DataSet(eeg=test_eeg, ratings=test_ratings, subject=subject, condition=condition)
     test = None

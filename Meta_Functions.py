@@ -31,6 +31,8 @@ def function_timed(funct):
 
         duration = datetime.datetime.now() - start_timer
 
+        # duration = chop_microseconds(delta=duration)  # do not show microseconds(ms)
+
         print("Processing time of {}: {} [h:m:s:ms]".format(funct.__name__, duration))
 
         return output
