@@ -565,6 +565,8 @@ def read_data_sets(subject, s_fold_idx, s_fold=10, cond="NoMov", sba=sba_setting
     rating_sba = normalization(array=rating_sba, lower_bound=-1, upper_bound=1)
 
     if hilbert_power:
+        # print("I load Hilbert transformed data (z-power)")
+
         def calc_hilbert_z_power(array):
             """square(abs(complex number)) = power = squarred length of complex number, see: Cohen (2014, p.160-2)"""
             analytical_signal = hilbert(array)
@@ -619,7 +621,7 @@ def read_data_sets(subject, s_fold_idx, s_fold=10, cond="NoMov", sba=sba_setting
     # Create datasets
     train = DataSet(eeg=train_eeg, ratings=train_ratings, subject=subject, condition=condition)
     validation = DataSet(eeg=validation_eeg, ratings=validation_ratings, subject=subject, condition=condition)
-    # TODO Test set
+    # Test set
     # test = DataSet(eeg=test_eeg, ratings=test_ratings, subject=subject, condition=condition)
     test = None
 

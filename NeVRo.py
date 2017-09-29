@@ -135,12 +135,12 @@ def train_lstm():
     all_acc_val = np.zeros(FLAGS.s_fold)  # case of non-tensor list
 
     # Load first data-set
-    nevro_data = Load_Data.get_nevro_data(subject=FLAGS.subject,
-                                          s_fold_idx=s_fold_idx_list[0],
-                                          s_fold=FLAGS.s_fold,
-                                          cond="NoMov",
-                                          sba=True,
-                                          hilbert_power=FLAGS.hilbert_power)
+    nevro_data = get_nevro_data(subject=FLAGS.subject,
+                                s_fold_idx=s_fold_idx_list[0],
+                                s_fold=FLAGS.s_fold,
+                                cond="NoMov",
+                                sba=True,
+                                hilbert_power=FLAGS.hilbert_power)
 
     # Define graph using class LSTMnet and its methods:
     ddims = list(nevro_data["train"].eeg.shape[1:])  # [250, 2]
@@ -158,10 +158,15 @@ def train_lstm():
     # We create a separate matrix for the validation (which can be merged with the first pred_matrix later)
     val_pred_matrix = copy.copy(pred_matrix)
 
+    # Set Variables for timer
+    timer_fold_list = []  # list of duration(time) of each fold
+    duration_fold = []  # duration of 1 fold
+    rest_duration = 0
+
     # Run through S-Fold-Cross-Validation (take the mean-performance across all validation sets)
     for rnd, s_fold_idx in enumerate(s_fold_idx_list):
-
-        print("Train now on Fold-Nr.{}, that is, step {}/{}".format(s_fold_idx, rnd+1, len(s_fold_idx_list)))
+        print("Train now on Fold-Nr.{}, that is, fold {}/{}".format(s_fold_idx, rnd+1, len(s_fold_idx_list)))
+        start_timer_fold = datetime.datetime.now().replace(microsecond=0)
 
         # For each fold we need to define new graph to compare the validation accuracies of each fold in the end
         with tf.Session(graph=graph_dict[s_fold_idx]) as sess:  # This is a way to re-initialise the model completely
@@ -171,12 +176,20 @@ def train_lstm():
 
                 # Load Data:
                 if rnd > 0:
-                    nevro_data = Load_Data.get_nevro_data(subject=FLAGS.subject,
-                                                          s_fold_idx=s_fold_idx,
-                                                          s_fold=FLAGS.s_fold,
-                                                          cond="NoMov",
-                                                          sba=True,
-                                                          hilbert_power=FLAGS.hilbert_power)
+                    # Show time passed per fold and estimation of rest time
+                    print("Duration of previous fold {} [h:m:s]".format(duration_fold))
+                    timer_fold_list.append(duration_fold)
+                    rest_duration_fold = np.mean(timer_fold_list) * (FLAGS.s_fold - rnd)  # average over previous folds
+                    rest_duration_fold = chop_microseconds(delta=rest_duration_fold)
+                    print("Estimated time to train the rest {} fold(s): {} [h:m:s]".format(FLAGS.s_fold - rnd,
+                                                                                           rest_duration_fold))
+
+                    nevro_data = get_nevro_data(subject=FLAGS.subject,
+                                                s_fold_idx=s_fold_idx,
+                                                s_fold=FLAGS.s_fold,
+                                                cond="NoMov",
+                                                sba=True,
+                                                hilbert_power=FLAGS.hilbert_power)
 
                 with tf.name_scope("input"):
                     # shape = [None] + ddims includes num_steps = 250
@@ -247,7 +260,20 @@ def train_lstm():
                 val_acc_list = []
                 val_loss_list = []
 
+                # Set Variables for timer
+                timer_list = []  # # list of duration(time) of 100 epochs
+                duration = []  # durations of 100 iterations
+                start_timer = 0
+                end_timer = 0
+                timer_freq = 100
+
                 for epoch in range(int(FLAGS.max_steps)):
+
+                    # Timer for every timer_freq=100 epochs/steps
+                    if epoch == 0:
+                        # Set Start Timer
+                        start_timer = datetime.datetime.now().replace(microsecond=0)
+
                     if epoch % 25 == 0:
                         print("Epoch {}/{} in Fold Nr.{} ({}/{})".format(epoch, FLAGS.max_steps, s_fold_idx,
                                                                          rnd+1, len(s_fold_idx_list)))
@@ -301,8 +327,13 @@ def train_lstm():
                             # test_loss, test_acc = sess.run([loss, accuracy], feed_dict=_feed_dict(training=False))
                             # print("now do: test_writer.add_summary(summary=summary, global_step=epoch)")
                             test_writer.add_summary(summary=summary, global_step=epoch)
-                            print("Validation-Loss: {} at epoch:{}".format(np.round(val_loss, 3), epoch + 1))
-                            print("Validation-Accuracy: {} at epoch:{}".format(np.round(val_acc, 3), epoch + 1))
+                            # print("Validation-Loss: {} at epoch:{}".format(np.round(val_loss, 3), epoch + 1))
+                            print("Validation-Loss: {} of Fold Nr.{} ({}/{})".format(np.round(val_loss, 3), s_fold_idx,
+                                                                                     rnd + 1, len(s_fold_idx_list)))
+                            # print("Validation-Accuracy: {} at epoch:{}".format(np.round(val_acc, 3), epoch + 1))
+                            print("Validation-Accuracy: {} of Fold Nr.{} ({}/{})".format(np.round(val_acc, 3),
+                                                                                         s_fold_idx, rnd + 1,
+                                                                                         len(s_fold_idx_list)))
                             # Update Lists
                             val_acc_list.append(val_acc)
                             val_loss_list.append(val_loss)
@@ -318,6 +349,38 @@ def train_lstm():
                         save_path = saver.save(sess=sess, save_path=FLAGS.checkpoint_dir + "/lstmnet_rnd{}.ckpt".format(
                                                    str(rnd).zfill(2)), global_step=epoch)
                         print("Model saved in file: %s" % save_path)
+
+                    # End Timer
+                    if epoch % timer_freq == 0 and epoch > 0:
+                        end_timer = datetime.datetime.now().replace(microsecond=0)
+
+                        # Calculate Duration and Estimations
+                        duration = end_timer - start_timer
+                        timer_list.append(duration)  # mean(timer_list) = average time per 100steps
+                        # For this fold
+                        estim_t_per_epoch = np.mean(timer_list) / timer_freq
+                        remaining_epochs_in_fold = (FLAGS.max_steps - (epoch + 2))
+                        rest_duration = remaining_epochs_in_fold * estim_t_per_epoch
+                        # For whole training
+                        remaining_folds = len(s_fold_idx_list) - (rnd + 1)
+                        if rnd == 0:
+                            remaining_epochs = FLAGS.max_steps * remaining_folds
+                            rest_duration_all_folds = rest_duration + remaining_epochs * estim_t_per_epoch
+                        else:  # this is more accurate, but only possible after first round(rnd)/fold
+                            rest_duration_all_folds = rest_duration + np.mean(timer_fold_list) * remaining_folds
+
+                        # Remove microseconds
+                        rest_duration = chop_microseconds(delta=rest_duration)
+                        rest_duration_all_folds = chop_microseconds(delta=rest_duration_all_folds)
+
+                        print("Time passed to train {} steps: {} [h:m:s]".format(timer_freq, duration))
+                        print("Estimated time to train the rest {} epochs in current Fold-Nr.{}: {} [h:m:s]".format(
+                            FLAGS.max_steps - (epoch + 1), s_fold_idx, rest_duration))
+                        print("Estimated time to train the rest epochs and {} {}: {} [h:m:s]".format(
+                            remaining_folds, "folds" if remaining_folds > 1 else "fold", rest_duration_all_folds))
+
+                        # Set Start Timer
+                        start_timer = datetime.datetime.now().replace(microsecond=0)
 
                 # Close Writers:
                 train_writer.close()
@@ -337,19 +400,25 @@ def train_lstm():
                         for value in liste:
                             list_file.write(str(value) + "\n")
 
+            # Fold End Timer
+            end_timer_fold = datetime.datetime.now().replace(microsecond=0)
+            duration_fold = end_timer_fold - start_timer_fold
+
+    # Final Accuracy & Time
+    timer_fold_list.append(duration_fold)
+    print("Time to train all folds: {} [h:m:s]".format(np.sum(timer_fold_list)))
     print("Average accuracy across all {} validation set: {}".format(FLAGS.s_fold, np.mean(all_acc_val)))
 
     # Save training information in Textfile
     with open(FLAGS.sub_dir + "{}S{}_accuracy_across_{}_folds.txt".format(time.strftime('%y_%m_%d_'),
                                                                           FLAGS.subject,
                                                                           FLAGS.s_fold), "w") as file:
-        file.write("Subject {}\ns-Fold: {}\nmax_step: {}\nlearning_rate: {}\nbatch_size: {}\nbatch_random: {}\n"
-                   "weight_reg: {}({})\nact_fct: {}\nlstm_h_size: {}\n".format(FLAGS.subject, FLAGS.s_fold,
-                                                                               FLAGS.max_steps, FLAGS.learning_rate,
-                                                                               FLAGS.batch_size, FLAGS.rand_batch,
-                                                                               FLAGS.weight_reg,
-                                                                               FLAGS.weight_reg_strength,
-                                                                               FLAGS.activation_fct, FLAGS.lstm_size))
+        file.write("Subject {}\nHilbert_z-Power: {}\ns-Fold: {}\nmax_step: {}\nlearning_rate: {}\nbatch_size: {}"
+                   "\nbatch_random: {}\nweight_reg: {}({})\nact_fct: {}"
+                   "\nlstm_h_size: {}\n".format(FLAGS.subject, FLAGS.hilbert_power, FLAGS.s_fold, int(FLAGS.max_steps),
+                                                FLAGS.learning_rate, FLAGS.batch_size, FLAGS.rand_batch,
+                                                FLAGS.weight_reg, FLAGS.weight_reg_strength, FLAGS.activation_fct,
+                                                FLAGS.lstm_size))
         for i, item in enumerate([s_fold_idx_list, all_acc_val, np.mean(all_acc_val)]):
             file.write(["S-Fold(Round): ", "Validation-Acc: ", "mean(Accuracy): "][i] + str(item)+"\n")
 
