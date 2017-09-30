@@ -24,10 +24,10 @@
 # python NeVRo.py --learning_rate 1e-4 --checkpoint_dir ./checkpoints/lstm/l1 --weight_reg l1 --weight_reg_strength 0.18
 # python NeVRo.py --learning_rate 1e-4 --checkpoint_dir ./checkpoints/lstm/l2 --weight_reg l2 --weight_reg_strength 0.18
 
-# python NeVRo.py --repet_scalar 1000
+python NeVRo.py --repet_scalar 1000
 
 # Testing
-python2 NeVRo.py
+# python2 NeVRo.py
 
 
 

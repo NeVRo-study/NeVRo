@@ -124,7 +124,7 @@ class LSTMnet:
             # Now: x is list of [250 x (1, 2)]
 
             # Define LSTM cell
-            lstm_cell = tf.contrib.rnn.BasicLSTMCell(num_units=lstm_size)
+            lstm_cell = tf.nn.rnn_cell.BasicLSTMCell(num_units=lstm_size)  # == tf.contrib.rnn.BasicLSTMCell(lstm_size)
             # lstm_cell.state_size
 
             # Initial state of the LSTM memory
