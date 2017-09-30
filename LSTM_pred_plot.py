@@ -169,5 +169,3 @@ for subject in subjects:
         plt.ylim(-0.1, 2.5)
         plt.legend(bbox_to_anchor=(0., 0.92, 1., .102), loc=1, ncol=4, mode="expand", borderaxespad=0.)
         plt.tight_layout(pad=2)
-
-
