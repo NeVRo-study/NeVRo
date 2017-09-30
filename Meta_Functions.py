@@ -50,6 +50,23 @@ def chop_microseconds(delta):
     return delta - datetime.timedelta(microseconds=delta.microseconds)
 
 
+def average_time(list_of_timestamps, in_timedelta=True):
+    """
+    Method to average time of a list of time-stamps. Necessary for Python 2.
+    In Python3 simply: np.mean([datetime.timedelta(0, 20), ... , datetime.timedelta(0, 32)])
+
+    :param list_of_timestamps: list of time-stamps
+    :param in_timedelta: whether to return in datetime.timedelta-format.
+    :return: average time
+    """
+    mean_time = sum(list_of_timestamps, datetime.timedelta()).total_seconds() / len(list_of_timestamps)
+
+    if in_timedelta:
+        mean_time = datetime.timedelta(seconds=mean_time)
+
+    return mean_time
+
+
 def normalization(array, lower_bound, upper_bound):
     """
     Normalizes Input Array

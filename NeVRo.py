@@ -27,7 +27,7 @@ LEARNING_RATE_DEFAULT = 1e-2  # 1e-4
 BATCH_SIZE_DEFAULT = 1  # or bigger
 RANDOM_BATCH_DEFAULT = True
 S_FOLD_DEFAULT = 10
-REPETITION_SCALAR_DEFAULT = 1000  # scaler for how many times it should run through set (can be also fraction)
+REPETITION_SCALAR_DEFAULT = 2  # scaler for how many times it should run through set (can be also fraction)
 MAX_STEPS_DEFAULT = REPETITION_SCALAR_DEFAULT*(270 - 270/S_FOLD_DEFAULT)  # now it runs scalar-times throug whole set
 EVAL_FREQ_DEFAULT = S_FOLD_DEFAULT - 1  # == MAX_STEPS_DEFAULT / (270/S_FOLD_DEFAULT)
 CHECKPOINT_FREQ_DEFAULT = MAX_STEPS_DEFAULT
@@ -179,7 +179,8 @@ def train_lstm():
                     # Show time passed per fold and estimation of rest time
                     print("Duration of previous fold {} [h:m:s]".format(duration_fold))
                     timer_fold_list.append(duration_fold)
-                    rest_duration_fold = np.mean(timer_fold_list) * (FLAGS.s_fold - rnd)  # average over previous folds
+                    # average over previous folds (np.mean(timer_fold_list) not possible in python2)
+                    rest_duration_fold = average_time(timer_fold_list, in_timedelta=True) * (FLAGS.s_fold - rnd)
                     rest_duration_fold = chop_microseconds(delta=rest_duration_fold)
                     print("Estimated time to train the rest {} fold(s): {} [h:m:s]".format(FLAGS.s_fold - rnd,
                                                                                            rest_duration_fold))
@@ -339,9 +340,10 @@ def train_lstm():
                                                                                                  s_fold_idx, rnd + 1,
                                                                                                  len(s_fold_idx_list)))
                                     # print("Validation-Accuracy: {} at step:{}".format(np.round(val_acc, 3), step + 1))
-                                    print("Validation-Accuracy: {:.3f} of Fold Nr.{} ({}/{})".format(np.round(val_acc, 3),
-                                                                                                     s_fold_idx, rnd + 1,
-                                                                                                     len(s_fold_idx_list)))
+                                    print("Validation-Accuracy: {:.3f} of "
+                                          "Fold Nr.{} ({}/{})".format(np.round(val_acc, 3),
+                                                                      s_fold_idx, rnd+1,
+                                                                      len(s_fold_idx_list)))
                                 # Update Lists
                                 val_acc_list.append(val_acc)
                                 val_loss_list.append(val_loss)
@@ -366,17 +368,23 @@ def train_lstm():
                         duration = end_timer - start_timer
                         timer_list.append(duration)  # mean(timer_list) = average time per 100steps
                         # For this fold
-                        estim_t_per_step = np.mean(timer_list) / timer_freq
+                        # Cannot take mean(daytime) in python2
+                        # estim_t_per_step = np.mean(timer_list) / timer_freq  # only python3
+                        mean_timer_list = average_time(list_of_timestamps=timer_list, in_timedelta=False)
+                        estim_t_per_step = mean_timer_list/timer_freq
                         remaining_steps_in_fold = (FLAGS.max_steps - (step + 2))
                         rest_duration = remaining_steps_in_fold * estim_t_per_step
                         # For whole training
                         remaining_folds = len(s_fold_idx_list) - (rnd + 1)
                         if rnd == 0:
                             remaining_steps = FLAGS.max_steps * remaining_folds
-                            rest_duration_all_folds = rest_duration + remaining_steps * estim_t_per_step
+                            rest_duration_all_folds = rest_duration + remaining_steps*estim_t_per_step
                         else:  # this is more accurate, but only possible after first round(rnd)/fold
-                            rest_duration_all_folds = rest_duration + np.mean(timer_fold_list) * remaining_folds
-
+                            rest_duration_all_folds = rest_duration + \
+                                                      average_time(timer_fold_list, in_timedelta=False)*remaining_folds
+                        # convert back to: datetime.timedelta(seconds=27)
+                        rest_duration = datetime.timedelta(seconds=rest_duration)
+                        rest_duration_all_folds = datetime.timedelta(seconds=rest_duration_all_folds)
                         # Remove microseconds
                         rest_duration = chop_microseconds(delta=rest_duration)
                         rest_duration_all_folds = chop_microseconds(delta=rest_duration_all_folds)
@@ -421,12 +429,12 @@ def train_lstm():
     with open(FLAGS.sub_dir + "{}S{}_accuracy_across_{}_folds.txt".format(time.strftime('%y_%m_%d_'),
                                                                           FLAGS.subject,
                                                                           FLAGS.s_fold), "w") as file:
-        file.write("Subject {}\nHilbert_z-Power: {}\ns-Fold: {}\nmax_step: {}\nlearning_rate: {}\nbatch_size: {}"
-                   "\nbatch_random: {}\nweight_reg: {}({})\nact_fct: {}"
+        file.write("Subject {}\nHilbert_z-Power: {}\ns-Fold: {}\nmax_step: {}\nrepetition_set: {}\nlearning_rate: {}"
+                   "\nbatch_size: {}\nbatch_random: {}\nweight_reg: {}({})\nact_fct: {}"
                    "\nlstm_h_size: {}\n".format(FLAGS.subject, FLAGS.hilbert_power, FLAGS.s_fold, int(FLAGS.max_steps),
-                                                FLAGS.learning_rate, FLAGS.batch_size, FLAGS.rand_batch,
-                                                FLAGS.weight_reg, FLAGS.weight_reg_strength, FLAGS.activation_fct,
-                                                FLAGS.lstm_size))
+                                                FLAGS.repet_scalar, FLAGS.learning_rate, FLAGS.batch_size,
+                                                FLAGS.rand_batch, FLAGS.weight_reg, FLAGS.weight_reg_strength,
+                                                FLAGS.activation_fct, FLAGS.lstm_size))
         for i, item in enumerate([s_fold_idx_list, all_acc_val, np.mean(all_acc_val)]):
             file.write(["S-Fold(Round): ", "Validation-Acc: ", "mean(Accuracy): "][i] + str(item)+"\n")
 
