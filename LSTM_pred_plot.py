@@ -9,7 +9,7 @@ import numpy as np
 import os.path
 import matplotlib.pyplot as plt
 
-debug = "/debug/" if True else "/"
+debug = "/debug/" if False else "/"
 
 subjects = [36]
 wdic = "./LSTM"

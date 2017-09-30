@@ -25,9 +25,9 @@ from LSTMnet import LSTMnet
 # TODO Define Default Values dependencies
 LEARNING_RATE_DEFAULT = 1e-2  # 1e-4
 BATCH_SIZE_DEFAULT = 1  # or bigger
-RANDOM_BATCH_DEFAULT = True
+RANDOM_BATCH_DEFAULT = False
 S_FOLD_DEFAULT = 10
-REPETITION_SCALAR_DEFAULT = 1000  # scaler for how many times it should run through set (can be also fraction)
+REPETITION_SCALAR_DEFAULT = 10  # scaler for how many times it should run through set (can be also fraction)
 MAX_STEPS_DEFAULT = REPETITION_SCALAR_DEFAULT*(270 - 270/S_FOLD_DEFAULT)  # now it runs scalar-times throug whole set
 EVAL_FREQ_DEFAULT = S_FOLD_DEFAULT - 1  # == MAX_STEPS_DEFAULT / (270/S_FOLD_DEFAULT)
 CHECKPOINT_FREQ_DEFAULT = MAX_STEPS_DEFAULT
@@ -325,7 +325,10 @@ def train_lstm():
                         val_counter += 1  # count the number of validation steps (implementation could improved)
                         if step == FLAGS.max_steps - 1:  # Validation in last round
                             val_counter /= FLAGS.repet_scalar
-                            assert float(val_counter).is_integer(), "val_counter devided by repetition is not integer"
+                            assert float(val_counter).is_integer(), \
+                                "val_counter (={}) devided by repetition (={}) is not integer".format(
+                                    val_counter, FLAGS.repet_scalar)
+
                             for val_step in range(int(val_counter)):
                                 summary, val_loss, val_acc, val_infer, val_y = sess.run([merged, loss, accuracy, infer,
                                                                                          y],
@@ -391,7 +394,7 @@ def train_lstm():
 
                         print("Time passed to train {} steps: {} [h:m:s]".format(timer_freq, duration))
                         print("Estimated time to train the rest {} steps in current Fold-Nr.{}: {} [h:m:s]".format(
-                            FLAGS.max_steps - (step + 1), s_fold_idx, rest_duration))
+                            int(FLAGS.max_steps - (step + 1)), s_fold_idx, rest_duration))
                         print("Estimated time to train the rest steps and {} {}: {} [h:m:s]".format(
                             remaining_folds, "folds" if remaining_folds > 1 else "fold", rest_duration_all_folds))
 
@@ -595,4 +598,3 @@ if __name__ == '__main__':
     FLAGS, unparsed = parser.parse_known_args()
 
     tf.app.run()
-
