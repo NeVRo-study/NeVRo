@@ -275,11 +275,12 @@ def best_component(subject, best=True):
     #                              delimiter=",", skip_header=1, dtype=float)
 
     if best:
-        x_corr_table = pd.read_csv(wdic_x_corr + "CC_AllSubj_Alpha_Ratings_smooth.csv")  # load data
-        x_corr_table = x_corr_table.drop(x_corr_table.columns[1:4], axis=1)  # drop non-used columns
-        x_corr_table.columns = ["subjects", "comp"]  # renamce columns
-
-        component = x_corr_table.loc[x_corr_table["subjects"] == "S{}".format(str(subject).zfill(2))]["comp"].values[0]
+        # Load Table
+        x_corr_table = pd.read_csv(wdic_x_corr + "CC_AllSubj_Alpha_Ratings_smooth.csv", index_col=0)  # first col is idx
+        # drop non-used columns
+        x_corr_table = x_corr_table.drop(x_corr_table.columns[0:3], axis=1)
+        # x_corr_table.columns = ["components"]  # renamce columns
+        component = x_corr_table.loc["S{}".format(str(subject).zfill(2))].values[0]
 
     return component
 
