@@ -29,6 +29,7 @@ import os.path
 import copy
 from scipy.signal import hilbert
 from Meta_Functions import *
+import pandas as pd
 
 # from Meta_Functions import *
 # import tensorflow as tf
@@ -46,6 +47,7 @@ wdic_Rating = "../../Data/ratings/preprocessed/not_z_scored/"  # transform later
 
 wdic_Data = "../../Data/"
 wdic_cropECG = "../../Data/Data EEG export/NeVRo_ECG_Cropped/"
+wdic_x_corr = "../../Results/x_corr/"
 
 # initialize variables
 subjects = [36]  # [36, 37]
@@ -259,6 +261,27 @@ def load_ssd_component(samp_freq=s_freq_eeg, sba=sba_setting):
 #           SSD_Comp_dic[str(subjects[0])][roller_coasters[num]].shape[1],
 #           "components\t|",
 #           roller_coasters[num])
+
+
+def best_component(subject, best=True):
+    """
+    Choose the best SSD-alpha-component, w.r.t. x-corr with ratings, from list for given subject.
+    :param subject: subject number
+    :param best: if false, take the worst
+    :return: best component number
+    """
+    # TODO best==False
+    # x_corr_table = np.genfromtxt(wdic_x_corr + "CC_AllSubj_Alpha_Ratings_smooth.csv",
+    #                              delimiter=",", skip_header=1, dtype=float)
+
+    if best:
+        x_corr_table = pd.read_csv(wdic_x_corr + "CC_AllSubj_Alpha_Ratings_smooth.csv")  # load data
+        x_corr_table = x_corr_table.drop(x_corr_table.columns[1:4], axis=1)  # drop non-used columns
+        x_corr_table.columns = ["subjects", "comp"]  # renamce columns
+
+        component = x_corr_table.loc[x_corr_table["subjects"] == "S{}".format(str(subject).zfill(2))]["comp"].values[0]
+
+    return component
 
 
 # @function_timed  # after executing following function this returns runtime
@@ -528,12 +551,13 @@ def splitter(array_to_split, n_splits):
     return array_to_split
 
 
-def read_data_sets(subject, s_fold_idx, s_fold=10, cond="NoMov", sba=sba_setting, hilbert_power=False):
+def read_data_sets(subject, component, s_fold_idx, s_fold=10, cond="NoMov", sba=sba_setting, hilbert_power=True):
     """
     Returns the s-fold-prepared dataset.
     S-Fold Validation, S=5: [ |-Train-|-Train-|-Train-|-Valid-|-Train-|] Dataset
     Args:
         subject: Subject Nr., subject dataset for training
+        component: which component to feed
         s_fold_idx: index which of the folds is taken as validation set
         s_fold: s-value of S-Fold Validation [default=10]
         cond: Either "NoMov"(=default) or "Mov"
@@ -545,8 +569,10 @@ def read_data_sets(subject, s_fold_idx, s_fold=10, cond="NoMov", sba=sba_setting
 
     assert s_fold_idx < s_fold, "s_fold_idx (={}) must be in the range of the number of folds (={})".format(s_fold_idx,
                                                                                                             s_fold)
-
     assert cond in ["NoMov", "Mov"], "cond must be either 'NoMov' or 'Mov'"
+
+    if not type(component) is list:
+        assert component in range(5+1), "Component must be in range [1,2,3,4,5]"
 
     eeg_data = load_ssd_component()
     rating_data = load_rating_files()
@@ -561,9 +587,28 @@ def read_data_sets(subject, s_fold_idx, s_fold=10, cond="NoMov", sba=sba_setting
     # rating_concat = concatenate(array1=rating_data[str(subject)]["Space_NoMov"],
     #                             array2=rating_data[str(subject)]["Ande_NoMov"])
 
-    # TODO <=> now: first 2 components, later best refined selection (best xcorr, worse xcorr with rating <-> Alberto)
-    eeg_sba = eeg_data[str(subject)]["SBA"][cond][:, 0:2]  # = first 2 components
+    # Best component selected based on highest xcorr with ratings
+    # Comparison with worst xcorr
+    # eeg_sba = eeg_data[str(subject)]["SBA"][cond][:, 0:2]  # = first 2 components
+    if not type(component) is list:
+        eeg_sba = eeg_data[str(subject)]["SBA"][cond][:, component-1]  # does not work with list
+    else:
+        eeg_sba = eeg_data[str(subject)]["SBA"][cond][:, [comp-1 for comp in component]]
+
     rating_sba = rating_data[str(subject)]["SBA"][cond]
+
+    # Check whether EEG data too long
+    if sba:
+        len_test = eeg_sba.shape[0] / s_freq_eeg - rating_sba.shape[0]
+        if len_test > 0.0:
+            to_cut = int(len_test * s_freq_eeg)
+            print("EEG data of S{} trimmed by {} data points".format(str(subject).zfill(2), to_cut))
+            to_cut /= 3  # 3 phases of SBA
+            to_delete = np.cumsum(t_roller_coasters)  # [ 148.,  178.,  270.]
+            to_delete *= s_freq_eeg
+            assert to_cut == 1, "Code needs to be adapted for other diverging lengths of eeg_sba"
+            # np.delete(arr=eeg_sba, obj=to_delete, axis=0).shape
+            eeg_sba = np.delete(arr=eeg_sba, obj=to_delete, axis=0)
 
     # Normalize rating_sba to [-1;1] due to tanh-output of LSTMnet
     rating_sba = normalization(array=rating_sba, lower_bound=-1, upper_bound=1)
@@ -581,21 +626,11 @@ def read_data_sets(subject, s_fold_idx, s_fold=10, cond="NoMov", sba=sba_setting
             # could be smoothed to small degree, e.g., smooth(hilbert_z_power, 10)...
             return hilbert_z_power
 
-        for comp in range(eeg_sba.shape[1]):
-            eeg_sba[:, comp] = calc_hilbert_z_power(array=eeg_sba[:, comp])
-
-    # Check whether EEG data too long
-    if sba:
-        len_test = eeg_sba.shape[0]/s_freq_eeg - rating_sba.shape[0]
-        if len_test > 0.0:
-            to_cut = int(len_test*s_freq_eeg)
-            print("EEG data of S{} trimmed by {} data points".format(str(subject).zfill(2), to_cut))
-            to_cut /= 3  # 3 phases of SBA
-            to_delete = np.cumsum(t_roller_coasters)  # [ 148.,  178.,  270.]
-            to_delete *= s_freq_eeg
-            assert to_cut == 1, "Code needs to be adapted for other diverging lengths of eeg_sba"
-            # np.delete(arr=eeg_sba, obj=to_delete, axis=0).shape
-            eeg_sba = np.delete(arr=eeg_sba, obj=to_delete, axis=0)
+        if type(component) is list:
+            for comp in range(eeg_sba.shape[1]):
+                eeg_sba[:, comp] = calc_hilbert_z_power(array=eeg_sba[:, comp])
+        else:
+            eeg_sba = calc_hilbert_z_power(array=eeg_sba)
 
     # 1) Split data in S(=s_fold) sets
     # np.split(np.array([1,2,3,4,5,6]), 3) >> [array([1, 2]), array([3, 4]), array([5, 6])]
@@ -634,11 +669,12 @@ def read_data_sets(subject, s_fold_idx, s_fold=10, cond="NoMov", sba=sba_setting
     return {"train": train, "validation": validation, "test": test}
 
 
-def get_nevro_data(subject, s_fold_idx=None, s_fold=10, cond="NoMov", sba=sba_setting, hilbert_power=False):
+def get_nevro_data(subject, component, s_fold_idx=None, s_fold=10, cond="NoMov", sba=sba_setting, hilbert_power=True):
     """
       Prepares NeVRo dataset.
       Args:
         subject: Which subject data to train
+        component: Which component to feed
         s_fold_idx: index which of the folds is taken as validation set
         s_fold: s-value of S-Fold Validation [default=10]
         cond: Either "NoMov"(=default) or "Mov"
@@ -651,7 +687,8 @@ def get_nevro_data(subject, s_fold_idx=None, s_fold=10, cond="NoMov", sba=sba_se
         s_fold_idx = np.random.randint(low=0, high=s_fold)
         print("s_fold_idx randomly chosen:", s_fold_idx)
 
-    return read_data_sets(subject=subject, s_fold_idx=s_fold_idx, s_fold=s_fold,
+    return read_data_sets(subject=subject, component=component, s_fold_idx=s_fold_idx, s_fold=s_fold,
                           cond=cond, sba=sba, hilbert_power=hilbert_power)
 
 # nevro_data = get_nevro_data(subject=36, s_fold=10, cond="NoMov", sba=sba_setting)
+

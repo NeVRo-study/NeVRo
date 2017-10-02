@@ -134,8 +134,12 @@ def train_lstm():
     # all_acc_val = tf.Variable(tf.zeros(shape=S_FOLD_DEFAULT, dtype=tf.float32, name="all_valid_accuracies"))
     all_acc_val = np.zeros(FLAGS.s_fold)  # case of non-tensor list
 
+    # Find best component
+    best_comp = best_component(subject=FLAGS.subject)
+
     # Load first data-set
     nevro_data = get_nevro_data(subject=FLAGS.subject,
+                                component=best_comp,
                                 s_fold_idx=s_fold_idx_list[0],
                                 s_fold=FLAGS.s_fold,
                                 cond="NoMov",
@@ -186,6 +190,7 @@ def train_lstm():
                                                                                            rest_duration_fold))
 
                     nevro_data = get_nevro_data(subject=FLAGS.subject,
+                                                component=best_comp,
                                                 s_fold_idx=s_fold_idx,
                                                 s_fold=FLAGS.s_fold,
                                                 cond="NoMov",
