@@ -27,7 +27,7 @@ LEARNING_RATE_DEFAULT = 1e-2  # 1e-4
 BATCH_SIZE_DEFAULT = 1  # or bigger
 RANDOM_BATCH_DEFAULT = False
 S_FOLD_DEFAULT = 10
-REPETITION_SCALAR_DEFAULT = 10  # scaler for how many times it should run through set (can be also fraction)
+REPETITION_SCALAR_DEFAULT = 100  # scaler for how many times it should run through set (can be also fraction)
 MAX_STEPS_DEFAULT = REPETITION_SCALAR_DEFAULT*(270 - 270/S_FOLD_DEFAULT)  # now it runs scalar-times throug whole set
 EVAL_FREQ_DEFAULT = S_FOLD_DEFAULT - 1  # == MAX_STEPS_DEFAULT / (270/S_FOLD_DEFAULT)
 CHECKPOINT_FREQ_DEFAULT = MAX_STEPS_DEFAULT
@@ -41,7 +41,7 @@ LOSS_DEFAULT = "normal"
 FEAT_STEP_DEFAULT = CHECKPOINT_FREQ_DEFAULT-1
 LSTM_SIZE_DEFAULT = 10
 HILBERT_POWER_INPUT_DEFAULT = True
-
+SUMMARIES_DEFAULT = True
 
 SUBJECT_DEFAULT = 36
 
@@ -205,7 +205,8 @@ def train_lstm():
                                      activation_function=ACTIVATION_FCT_DICT.get(FLAGS.activation_fct),
                                      weight_regularizer=WEIGHT_REGULARIZER_DICT.get(FLAGS.weight_reg)(
                                          scale=FLAGS.weight_reg_strength),
-                                     n_steps=ddims[0], batch_size=FLAGS.batch_size)  # n_step = 250
+                                     n_steps=ddims[0], batch_size=FLAGS.batch_size,
+                                     summaries=FLAGS.summaries)  # n_step = 250
 
                 # Prediction
                 with tf.variable_scope(name_or_scope="Inference"):
@@ -592,6 +593,9 @@ if __name__ == '__main__':
                         help='Whether random batch (True), or cronologically drawn batches (False)')
     parser.add_argument('--hilbert_power', type=str, default=HILBERT_POWER_INPUT_DEFAULT,
                         help='Whether input is z-scored power extraction of SSD components (via Hilbert transform)')
+    parser.add_argument('--summaries', type=str, default=SUMMARIES_DEFAULT,
+                        help='Whether to write summaries of tf variables')
+
     # parser.add_argument('--layer_feat_extr', type=str, default="fc2",
     #                     help='Choose layer for feature extraction')
 

@@ -21,7 +21,7 @@ class LSTMnet:
     # TODO adapt such that it works with batch_size>1
     def __init__(self, activation_function=tf.nn.elu,
                  weight_regularizer=tf.contrib.layers.l2_regularizer(scale=0.18),
-                 lstm_size=10, n_steps=250, batch_size=1):  # n_classes (include for, e.g., binary cases)
+                 lstm_size=10, n_steps=250, batch_size=1, summaries=True):  # n_class (include for, e.g., binary cases)
         """
         Constructor for an LSTMnet object.
         Args:
@@ -40,6 +40,7 @@ class LSTMnet:
         self.batch_size = batch_size
         self.final_state = None
         self.lstm_output = None
+        self.summaries = summaries  # so far just for weights and biases of FC
         # self.n_classes = n_classes
 
     def inference(self, x):
@@ -84,7 +85,7 @@ class LSTMnet:
             # Use tanh ([-1, 1]) for final prediction
             infer = tf.nn.tanh(x=pre_activation, name="tanh_inference")
 
-            # Write summary #
+            # Write summary
             with tf.name_scope("inference"):
                 tf.summary.histogram("hist", infer)  # logits
                 tf.summary.scalar(name="scalar", tensor=infer[0][0])
@@ -159,7 +160,6 @@ class LSTMnet:
 
             # Write summaries
             self._var_summaries(name=layer_name + "/lstm_outputs", var=self.lstm_output[-1])
-            tf.summary.histogram(name=layer_name + "/lstm_outputs", values=self.lstm_output[-1])
             self._var_summaries(name=layer_name + "/final_state", var=self.final_state)
 
             # Push through activation function
@@ -190,14 +190,15 @@ class LSTMnet:
                                       # recommend (e.g., see: cs231n_2017_lecture8.pdf)
                                       initializer=tf.contrib.layers.xavier_initializer(),
                                       regularizer=self.weight_regularizer)
-
-            self._var_summaries(name="weights", var=weights)
+            if self.summaries:
+                self._var_summaries(name="weights", var=weights)
 
             biases = tf.get_variable(name="biases",
                                      shape=[shape[1]],
                                      initializer=tf.constant_initializer(0.0))
 
-            self._var_summaries(name="biases", var=biases)
+            if self.summaries:
+                self._var_summaries(name="biases", var=biases)
 
             # activation y=XW+b:
             with tf.name_scope(layer_name + "/XW_Bias"):
