@@ -127,6 +127,26 @@ def smooth(array_to_smooth, w_size, sliding_mode="ontop"):
     return smoothed_array
 
 
+def downsampling(array_to_ds, target_hertz=1, given_hertz=250):
+    ds_ratio = given_hertz/target_hertz
+    assert float(ds_ratio).is_integer(), "Ratio between given frequency and target frequency must be an integer."
+
+    output_shape = None
+    if float(len(array_to_ds)/ds_ratio).is_integer():
+        output_shape = int(len(array_to_ds) / ds_ratio)
+    else:
+        ValueError("Input-array must be pruned. Cannot be split in equally sized pieces.")
+
+    output_array = np.zeros(shape=output_shape)
+
+    idx = int(ds_ratio)
+    for i in range(output_shape):
+        output_array[i] = np.nanmean(array_to_ds[idx-int(ds_ratio):idx])
+        idx += int(ds_ratio)
+
+    return output_array
+
+
 def create_s_fold_idx(s_folds, list_prev_indices=[]):
 
     if not list_prev_indices:  # list_prev_indices == []
