@@ -27,7 +27,7 @@ LEARNING_RATE_DEFAULT = 1e-4  # 1e-2
 BATCH_SIZE_DEFAULT = 1  # or bigger
 RANDOM_BATCH_DEFAULT = True
 S_FOLD_DEFAULT = 10
-REPETITION_SCALAR_DEFAULT = 2  # scaler for how many times it should run through set (can be also fraction)
+REPETITION_SCALAR_DEFAULT = 1000  # scaler for how many times it should run through set (can be also fraction)
 MAX_STEPS_DEFAULT = REPETITION_SCALAR_DEFAULT*(270 - 270/S_FOLD_DEFAULT)  # now it runs scalar-times throug whole set
 EVAL_FREQ_DEFAULT = S_FOLD_DEFAULT - 1  # == MAX_STEPS_DEFAULT / (270/S_FOLD_DEFAULT)
 CHECKPOINT_FREQ_DEFAULT = MAX_STEPS_DEFAULT
