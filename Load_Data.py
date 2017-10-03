@@ -270,17 +270,27 @@ def best_component(subject, best=True):
     :param best: if false, take the worst
     :return: best component number
     """
-    # TODO best==False
+
     # x_corr_table = np.genfromtxt(wdic_x_corr + "CC_AllSubj_Alpha_Ratings_smooth.csv",
     #                              delimiter=",", skip_header=1, dtype=float)
 
+    # Load Table
+    x_corr_table = pd.read_csv(wdic_x_corr + "CC_AllSubj_Alpha_Ratings_smooth.csv", index_col=0)  # first col is idx
+    # drop non-used columns
+    x_corr_table = x_corr_table.drop(x_corr_table.columns[0:3], axis=1)
+
     if best:
-        # Load Table
-        x_corr_table = pd.read_csv(wdic_x_corr + "CC_AllSubj_Alpha_Ratings_smooth.csv", index_col=0)  # first col is idx
-        # drop non-used columns
-        x_corr_table = x_corr_table.drop(x_corr_table.columns[0:3], axis=1)
         # x_corr_table.columns = ["components"]  # renamce columns
         component = x_corr_table.loc["S{}".format(str(subject).zfill(2))].values[0]
+
+    else:
+        component = best_comp = x_corr_table.loc["S{}".format(str(subject).zfill(2))].values[0]
+
+        # choose another component that the best
+        while component == best_comp:
+            component = np.random.randint(low=1, high=5+1)
+
+    # TODO choose the worst
 
     return component
 
@@ -539,7 +549,7 @@ def splitter(array_to_split, n_splits):
     while True:
         try:
             array_to_split = np.array(np.split(array_to_split, n_splits, axis=0))
-        except ValueError as err:
+        except ValueError:
             # print(err)
             array_to_split = array_to_split[0:-1]  # prune until split is possible
             n_prune += 1
@@ -593,6 +603,7 @@ def read_data_sets(subject, component, s_fold_idx, s_fold=10, cond="NoMov", sba=
     # eeg_sba = eeg_data[str(subject)]["SBA"][cond][:, 0:2]  # = first 2 components
     if not type(component) is list:
         eeg_sba = eeg_data[str(subject)]["SBA"][cond][:, component-1]  # does not work with list
+        eeg_sba = np.reshape(eeg_sba, newshape=(eeg_sba.shape[0], 1))
     else:
         eeg_sba = eeg_data[str(subject)]["SBA"][cond][:, [comp-1 for comp in component]]
 
@@ -692,4 +703,3 @@ def get_nevro_data(subject, component, s_fold_idx=None, s_fold=10, cond="NoMov",
                           cond=cond, sba=sba, hilbert_power=hilbert_power)
 
 # nevro_data = get_nevro_data(subject=36, s_fold=10, cond="NoMov", sba=sba_setting)
-

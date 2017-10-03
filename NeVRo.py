@@ -135,6 +135,7 @@ def train_lstm():
     all_acc_val = np.zeros(FLAGS.s_fold)  # case of non-tensor list
 
     # Find best component
+    # TODO adapt model
     best_comp = best_component(subject=FLAGS.subject)
 
     # Load first data-set
@@ -165,7 +166,7 @@ def train_lstm():
     # Set Variables for timer
     timer_fold_list = []  # list of duration(time) of each fold
     duration_fold = []  # duration of 1 fold
-    rest_duration = 0
+    # rest_duration = 0
 
     # Run through S-Fold-Cross-Validation (take the mean-performance across all validation sets)
     for rnd, s_fold_idx in enumerate(s_fold_idx_list):
@@ -271,9 +272,9 @@ def train_lstm():
 
                 # Set Variables for timer
                 timer_list = []  # # list of duration(time) of 100 steps
-                duration = []  # durations of 100 iterations
+                # duration = []  # durations of 100 iterations
                 start_timer = 0
-                end_timer = 0
+                # end_timer = 0
                 timer_freq = 100
 
                 for step in range(int(FLAGS.max_steps)):
@@ -285,7 +286,7 @@ def train_lstm():
 
                     if step % (timer_freq/2) == 0.:
                         print("Step {}/{} in Fold Nr.{} ({}/{})".format(step, FLAGS.max_steps, s_fold_idx,
-                                                                         rnd+1, len(s_fold_idx_list)))
+                                                                        rnd+1, len(s_fold_idx_list)))
 
                     # Evaluate on training set every print_freq (=10) iterations
                     if (step + 1) % FLAGS.print_freq == 0:
