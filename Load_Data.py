@@ -178,9 +178,9 @@ def load_ssd_component(samp_freq=s_freq_eeg, sba=sba_setting):
         for num, coaster in enumerate(roller_coasters):
             folder = coaster.split("_")[1]  # either "Mov" or "NoMov" (only needed for sba case)
             if sba:
-                file_name = wdic_SBA_Comp + folder + "/NVR_S{}_SBA_{}_SSD_Components.txt".format(str(subject).zfill(2),
-                                                                                                 folder)
-                # "NVR_S36_SBA_NoMov_SSD_Components"
+                file_name = wdic_SBA_Comp + folder + "/NVR_S{}_SBA_{}_SSD_Components_SBA_CNT.txt".format(
+                    str(subject).zfill(2), folder)
+                # "NVR_S36_SBA_NoMov_SSD_Components_SBA_CNT.txt"
             else:
                 file_name = wdic_Comp + "S{}_{}_Components.txt".format(str(subject).zfill(2), coaster)
 
