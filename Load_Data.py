@@ -242,13 +242,12 @@ def load_ssd_component(samp_freq=s_freq_eeg, sba=sba_setting):
                                                                             t_roller_coasters[num],
                                                                             int(samp_freq),
                                                                             sub_df.shape[0] / samp_freq))
-
-            if sba:
-                if not (np.round(sum(t_roller_coasters), 1) == np.round(sub_df.shape[0] / samp_freq, 1)):
-                    print("Should be all approx. the same:\nTime of SBA: {}"
-                          "\nLength of sub_df/samp_freq({}): {}".format(sum(t_roller_coasters),
-                                                                        int(samp_freq),
-                                                                        sub_df.shape[0] / samp_freq))
+                else:  # if sba:
+                    if not (np.round(sum(t_roller_coasters), 1) == np.round(sub_df.shape[0] / samp_freq, 1)):
+                        print("Should be all approx. the same:\nTime of SBA: {}"
+                              "\nLength of sub_df/samp_freq({}): {}".format(sum(t_roller_coasters),
+                                                                            int(samp_freq),
+                                                                            sub_df.shape[0] / samp_freq))
 
     return ssd_comp_dic
 
