@@ -602,9 +602,6 @@ def read_data_sets(subject, component, s_fold_idx, s_fold=10, cond="NoMov", sba=
     # Comparison with worst xcorr
     # eeg_sba = eeg_data[str(subject)]["SBA"][cond][:, 0:2]  # = first 2 components
     if not type(component) is list:
-        print("Type component:", type(component))
-        print("Component:", component)
-        print("Type eeg_data[str(subject)]['SBA'][cond]", eeg_data[str(subject)]["SBA"][cond])
         eeg_sba = eeg_data[str(subject)]["SBA"][cond][:, component-1]  # does not work with list
         eeg_sba = np.reshape(eeg_sba, newshape=(eeg_sba.shape[0], 1))
     else:
