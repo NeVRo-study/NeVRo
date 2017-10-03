@@ -290,6 +290,7 @@ def best_component(subject, best=True):
             component = np.random.randint(low=1, high=5+1)
 
     # TODO choose the worst
+    print("The best correlating SSD component of Subject {} is Component Number {}".format(subject, component))
 
     return component
 
