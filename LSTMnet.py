@@ -120,9 +120,9 @@ class LSTMnet:
         with tf.variable_scope(layer_name):
 
             # Unstack to get a list of 'n_steps' tensors of shape (batch_size, n_input)
-            # if x hase shape [batch_size(1), samples-per-second(250), components(2))
+            # if x hase shape [batch_size(1), samples-per-second(250), components(1))
             x = tf.unstack(value=x, num=self.n_steps, axis=1, name="unstack")  # does not work like that
-            # Now: x is list of [250 x (1, 2)]
+            # Now: x is list of [250 x (batch_size, 1)]
 
             # Define LSTM cell
             lstm_cell = tf.nn.rnn_cell.BasicLSTMCell(num_units=lstm_size)  # == tf.contrib.rnn.BasicLSTMCell(lstm_size)

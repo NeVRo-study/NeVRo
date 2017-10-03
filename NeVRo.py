@@ -135,7 +135,6 @@ def train_lstm():
     all_acc_val = np.zeros(FLAGS.s_fold)  # case of non-tensor list
 
     # Find best component
-    # TODO adapt model
     best_comp = best_component(subject=FLAGS.subject)
 
     # Load first data-set
@@ -251,13 +250,15 @@ def train_lstm():
                         # print("that is the x-shape:", xs.shape)
                         # print("I am in _feed_dict(Trainining True)")
                         # keep_prob = 1.0-FLAGS.dropout_rate
-                        ys = np.reshape(ys, newshape=([FLAGS.batch_size] + list(ys.shape)))
+                        # ys = np.reshape(ys, newshape=([FLAGS.batch_size] + list(ys.shape)))
+                        ys = np.reshape(ys, newshape=([FLAGS.batch_size, 1]))
 
                     else:
                         # Validation:
                         xs, ys = nevro_data["validation"].next_batch(batch_size=FLAGS.batch_size,
                                                                      randomize=FLAGS.rand_batch)
-                        ys = np.reshape(ys, newshape=([FLAGS.batch_size] + list(ys.shape)))
+                        # ys = np.reshape(ys, newshape=([FLAGS.batch_size] + list(ys.shape)))
+                        ys = np.reshape(ys, newshape=([FLAGS.batch_size, 1]))
 
                     return {x: xs, y: ys}
 
