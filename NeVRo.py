@@ -24,7 +24,7 @@ from LSTMnet import LSTMnet
 
 # TODO Define Default Values dependencies
 LEARNING_RATE_DEFAULT = 1e-4  # 1e-2
-BATCH_SIZE_DEFAULT = 1  # or bigger
+BATCH_SIZE_DEFAULT = 10  # or bigger
 RANDOM_BATCH_DEFAULT = True
 S_FOLD_DEFAULT = 10
 REPETITION_SCALAR_DEFAULT = 1000  # scaler for how many times it should run through set (can be also fraction)
@@ -169,7 +169,7 @@ def train_lstm():
 
     # Run through S-Fold-Cross-Validation (take the mean-performance across all validation sets)
     for rnd, s_fold_idx in enumerate(s_fold_idx_list):
-        print("Train now on Fold-Nr.{}, that is, fold {}/{}".format(s_fold_idx, rnd+1, len(s_fold_idx_list)))
+        print("Train now on Fold-Nr.{} (fold {}/{})".format(s_fold_idx, rnd+1, len(s_fold_idx_list)))
         start_timer_fold = datetime.datetime.now().replace(microsecond=0)
 
         # For each fold we need to define new graph to compare the validation accuracies of each fold in the end
@@ -471,32 +471,42 @@ def fill_pred_matrix(pred, y, current_mat, s_idx, current_batch, sfold, train=Tr
     :return: updated prediction matrix
     """
 
-    assert FLAGS.batch_size == 1, "Filling pred_matrix only works for batch_size=1 (currently)"
+    # Need to be integer
+    current_batch = [int(step) for step in current_batch]
 
-    step = int(current_batch)
+    # Reshape prediction and target
+    pred = pred.reshape(pred.shape[0])
+    y = y.reshape(y.shape[0])
 
+    # Set Index
     pred_idx = int(s_idx * 2)
     rat_idx = int(pred_idx + 1)
 
     full_length = len(current_mat[0, :])  # 270
+
     # S-Fold, for S=10:
     #    FOLD 0          FOLD 1          FOLD 2                FOLD 9
     # [0, ..., 26] | [27, ..., 53] | [54, ..., 80] | ... | [235, ..., 269]
     fold_length = int(full_length/sfold)  # len([0, ..., 26]) = 27
+
     # S-Fold-Index, e.g. s_idx=1. That is, FOLD 1 is validation set
     verge = s_idx * fold_length  # verge = 27
 
     if train:
-        fill_pos = step if step < verge else step + fold_length  # if step=27 => fill_pos=54 (in FOLD 2)
+        # if step=27 => fill_pos=54 (in FOLD 2)
+        fill_pos = [step if step < verge else step + fold_length for step in current_batch]
+
+        # fill_pos = step if step < verge else step + fold_length
         # if not np.isnan(current_mat[pred_idx, fill_pos]):
         #     print("Overwrites position in pred_matrix")
 
-    else:  # case of validation
-        fill_pos = int(verge) + step
+    else:  # case of validation (use: batch_size=1, but works also with >1)
+        fill_pos = [step + int(verge) for step in current_batch]
         # Check whether position is already filled
-        # if not np.isnan(current_mat[pred_idx, fill_pos]):
-        #     print("Overwrites position in val_pred_matrix")
+        if not np.isnan(current_mat[pred_idx, fill_pos]):
+            print("Overwrites position in val_pred_matrix")
 
+    # Update Matrix
     current_mat[pred_idx, fill_pos] = pred  # inference/prediction
     current_mat[rat_idx, fill_pos] = y      # ratings
     updated_mat = current_mat
