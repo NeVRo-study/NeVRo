@@ -412,7 +412,7 @@ class DataSet(object):
         self.eeg_samp_freq = eeg_samp_freq
         self.rating_samp_freq = rating_samp_freq
         self._num_time_slices = eeg.shape[0]
-        self._still_available_slices = np.arange(self.num_time_slices)  # for randomized drawing of new_batch
+        self.remaining_slices = np.arange(self.num_time_slices)  # for randomized drawing of new_batch
         self._eeg = eeg  # input
         self._ratings = ratings  # target
         self._epochs_completed = 0
@@ -449,7 +449,7 @@ class DataSet(object):
         self._epochs_completed += 1
         print("\nStarting new epoch ({} completed) in {} dateset\n".format(self.epochs_completed, self.name))
         print("Index in previous epoch:", self._index_in_epoch)
-        print("Still available slices in epoch: {}/{}\n".format(len(self._still_available_slices),
+        print("Still available slices in epoch: {}/{}\n".format(len(self.remaining_slices),
                                                                 self._num_time_slices))
 
     def next_batch(self, batch_size=1, randomize=False):
@@ -464,88 +464,68 @@ class DataSet(object):
         # if batch_size > 1:
         #     raise ValueError("A batch_size of > 1 is not recommanded at this point")
 
-        if not randomize:
-            start = self._index_in_epoch
+        if len(self.remaining_slices) >= batch_size:
 
-            self._index_in_epoch += batch_size
+            # Select slize according to number of batches
+            if randomize:
 
-            # if self._index_in_eeg_epoch/self.eeg_samp_freq > self._num_time_slices:
-            if self._index_in_epoch > self._num_time_slices:
-                self.new_epoch()
+                selection_array_idx = np.random.choice(a=range(len(self.remaining_slices)),
+                                                       size=batch_size,
+                                                       replace=False)
+                # = np.random.randint(low=0, high=len(self.remaining_slices), size=batch_size)  # with replacement
 
-                # # Shuffling only makes sense if we consider batches as independent, what we don't for later models
-                # perm = np.arrange(self._num_time_slices)
-                # np.random.shuffle(perm)
-                # self._eeg = self._eeg[perm]
-                # self._ratings = self._ratings[perm]
+            else:  # if not random
+                selection_array_idx = range(batch_size)
 
-                start = 0
-
-                self._index_in_epoch = batch_size
-
-                self._still_available_slices = self.reset_remaining_slices()
-
-            end = self._index_in_epoch
-
-            # Update current_batch
-            self.current_batch = np.arange(start, end)
+            selection_array = self.remaining_slices[selection_array_idx]
 
             # Remove drawn batch from _still_available_slices:
-            self._still_available_slices = np.delete(arr=self._still_available_slices, obj=0)
+            self.remaining_slices = np.delete(arr=self.remaining_slices, obj=selection_array_idx)
 
-            return self._eeg[start:end], self._ratings[start:end]  # shape (batch_size, num_steps, components/dims)
+            # Update index
+            self._index_in_epoch += batch_size
 
-        else:  # if randomized batch selection
-
-            if len(self._still_available_slices) >= batch_size:
-
-                # Select slize according to number of batches
-                selection_array_idx = np.random.randint(low=0, high=len(self._still_available_slices), size=batch_size)
-                selection_array = self._still_available_slices[selection_array_idx]
-
-                # Remove drawn batch from _still_available_slices:
-                self._still_available_slices = np.delete(arr=self._still_available_slices, obj=selection_array_idx)
-
-                # Update index
-                self._index_in_epoch += batch_size
-
-                # Check whether slices left for next batch
-                if len(self._still_available_slices) == 0:
-                    # if no slice left, start new epoch
-                    print("\nNo slices left take new slices")  # test
-                    self.new_epoch()  # self._epochs_completed += 1
-                    self._index_in_epoch = 0
-                    self._still_available_slices = self.re_set_remaining_slices()
-
-            else:  # there are still slices left but not for the whole batch
-                print("\nTake the rest slices and fill with new slices")  # test
-                # First copy remaining slices to selection_array
-                selection_array = self._still_available_slices
-
-                # Now reset, i.e. new epoch
+            # Check whether slices left for next batch
+            if len(self.remaining_slices) == 0:
+                # if no slice left, start new epoch
+                print("\nNo slices left take new slices")  # test
                 self.new_epoch()  # self._epochs_completed += 1
-                remaining_slices_to_draw = batch_size - len(self._still_available_slices)
-                self._index_in_epoch = remaining_slices_to_draw  # index in new epoch
-                self._still_available_slices = np.arange(self._num_time_slices)  # reset
+                self._index_in_epoch = 0
+                self.remaining_slices = self.reset_remaining_slices()
 
-                # Draw remaining slices from new epoch
+        else:  # there are still slices left but not for the whole batch
+            print("\nTake the rest slices and fill with new slices")  # test
+            # First copy remaining slices to selection_array
+            selection_array = self.remaining_slices
 
-                additional_array_idx = np.random.randint(low=0,
-                                                         high=len(self._still_available_slices),
-                                                         size=remaining_slices_to_draw)
+            # Now reset, i.e. new epoch
+            self.new_epoch()  # self._epochs_completed += 1
+            remaining_slices_to_draw = batch_size - len(self.remaining_slices)
+            self._index_in_epoch = remaining_slices_to_draw  # index in new epoch
+            self.remaining_slices = np.arange(self._num_time_slices)  # reset
 
-                additional_array = self._still_available_slices[additional_array_idx]
+            # Draw remaining slices from new epoch
+            if randomize:
+                additional_array_idx = np.random.choice(a=range(len(self.remaining_slices)),
+                                                        size=remaining_slices_to_draw,
+                                                        replace=False)
+                # np.random.randint(low=0, high=len(self.remaining_slices), size=remaining_slices_to_draw)
 
-                # Remove from _still_available_slices:
-                self._still_available_slices = np.delete(arr=self._still_available_slices, obj=additional_array_idx)
+            else:  # if not random
+                additional_array_idx = range(remaining_slices_to_draw)
 
-                # Append to selection_array
-                selection_array = np.append(arr=selection_array, values=additional_array)
+            additional_array = self.remaining_slices[additional_array_idx]
 
-            # Update current_batch
-            self.current_batch = selection_array
+            # Remove from _still_available_slices:
+            self.remaining_slices = np.delete(arr=self.remaining_slices, obj=additional_array_idx)
 
-            return self._eeg[selection_array, :, :], self._ratings[selection_array]
+            # Append to selection_array
+            selection_array = np.append(arr=selection_array, values=additional_array)
+
+        # Update current_batch
+        self.current_batch = selection_array
+
+        return self._eeg[selection_array, :, :], self._ratings[selection_array]
 
 
 def concatenate(array1, array2):
@@ -711,14 +691,14 @@ def get_nevro_data(subject, component, s_fold_idx=None, s_fold=10, cond="NoMov",
                           cond=cond, sba=sba, hilbert_power=hilbert_power)
 
 
-nevro_data = get_nevro_data(subject=36, component=5, s_fold_idx=9, s_fold=10, cond="NoMov", sba=True)  # testing
+# Testing
+# nevro_data = get_nevro_data(subject=36, component=5, s_fold_idx=9, s_fold=10, cond="NoMov", sba=True)
 
-
-for _ in range(27):
-    x = nevro_data["validation"].next_batch(batch_size=1, randomize=False)
-    print("Current Batch:", nevro_data["validation"].current_batch)
-    print("n_remaining slices: {}/{}".format(len(nevro_data["validation"]._still_available_slices),
-                                             nevro_data["validation"]._num_time_slices))
-    print("index in current epoch:", nevro_data["validation"]._index_in_epoch)
-    print("epochs copmleted:", nevro_data["validation"]._epochs_completed)
-    print("")
+# for _ in range(27):
+#     x = nevro_data["validation"].next_batch(batch_size=4, randomize=True)
+#     print("Current Batch:", nevro_data["validation"].current_batch)
+#     print("n_remaining slices: {}/{}".format(len(nevro_data["validation"].remaining_slices),
+#                                              nevro_data["validation"]._num_time_slices))
+#     print("index in current epoch:", nevro_data["validation"]._index_in_epoch)
+#     print("epochs copmleted:", nevro_data["validation"]._epochs_completed)
+#     print("")
