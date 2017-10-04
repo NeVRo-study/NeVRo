@@ -27,7 +27,7 @@
 # python NeVRo.py --repet_scalar 1000
 
 # Testing
-python NeVRo.py --summaries False
+python3 NeVRo.py --summaries False
 
 
 
