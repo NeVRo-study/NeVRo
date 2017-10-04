@@ -412,7 +412,7 @@ class DataSet(object):
         self.eeg_samp_freq = eeg_samp_freq
         self.rating_samp_freq = rating_samp_freq
         self._num_time_slices = eeg.shape[0]
-        self._still_available_slices = np.arange(self._num_time_slices)  # for randomized drawing of new_batch
+        self._still_available_slices = np.arange(self.num_time_slices)  # for randomized drawing of new_batch
         self._eeg = eeg  # input
         self._ratings = ratings  # target
         self._epochs_completed = 0
@@ -442,6 +442,9 @@ class DataSet(object):
     def epochs_completed(self):
         return self._epochs_completed
 
+    def reset_remaining_slices(self):
+        return np.arange(self.num_time_slices)
+
     def new_epoch(self):
         self._epochs_completed += 1
         print("\nStarting new epoch ({} completed) in {} dateset\n".format(self.epochs_completed, self.name))
@@ -465,6 +468,7 @@ class DataSet(object):
             start = self._index_in_epoch
 
             self._index_in_epoch += batch_size
+
             # if self._index_in_eeg_epoch/self.eeg_samp_freq > self._num_time_slices:
             if self._index_in_epoch > self._num_time_slices:
                 self.new_epoch()
@@ -479,7 +483,7 @@ class DataSet(object):
 
                 self._index_in_epoch = batch_size
 
-                self._still_available_slices = np.arange(self._num_time_slices)
+                self._still_available_slices = self.reset_remaining_slices()
 
             end = self._index_in_epoch
 
@@ -487,7 +491,7 @@ class DataSet(object):
             self.current_batch = np.arange(start, end)
 
             # Remove drawn batch from _still_available_slices:
-            self._still_available_slices = np.delete(arr=self._still_available_slices, obj=self.current_batch)
+            self._still_available_slices = np.delete(arr=self._still_available_slices, obj=0)
 
             return self._eeg[start:end], self._ratings[start:end]  # shape (batch_size, num_steps, components/dims)
 
@@ -511,7 +515,7 @@ class DataSet(object):
                     print("\nNo slices left take new slices")  # test
                     self.new_epoch()  # self._epochs_completed += 1
                     self._index_in_epoch = 0
-                    self._still_available_slices = np.arange(self._num_time_slices)
+                    self._still_available_slices = self.re_set_remaining_slices()
 
             else:  # there are still slices left but not for the whole batch
                 print("\nTake the rest slices and fill with new slices")  # test
@@ -706,4 +710,15 @@ def get_nevro_data(subject, component, s_fold_idx=None, s_fold=10, cond="NoMov",
     return read_data_sets(subject=subject, component=component, s_fold_idx=s_fold_idx, s_fold=s_fold,
                           cond=cond, sba=sba, hilbert_power=hilbert_power)
 
-# nevro_data = get_nevro_data(subject=36, s_fold=10, cond="NoMov", sba=sba_setting)
+
+nevro_data = get_nevro_data(subject=36, component=5, s_fold_idx=9, s_fold=10, cond="NoMov", sba=True)  # testing
+
+
+for _ in range(27):
+    x = nevro_data["validation"].next_batch(batch_size=1, randomize=False)
+    print("Current Batch:", nevro_data["validation"].current_batch)
+    print("n_remaining slices: {}/{}".format(len(nevro_data["validation"]._still_available_slices),
+                                             nevro_data["validation"]._num_time_slices))
+    print("index in current epoch:", nevro_data["validation"]._index_in_epoch)
+    print("epochs copmleted:", nevro_data["validation"]._epochs_completed)
+    print("")
