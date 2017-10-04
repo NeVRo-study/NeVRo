@@ -448,9 +448,11 @@ class DataSet(object):
     def new_epoch(self):
         self._epochs_completed += 1
         print("\nStarting new epoch ({} completed) in {} dateset\n".format(self.epochs_completed, self.name))
-        print("Index in previous epoch:", self._index_in_epoch)
-        print("Still available slices in epoch: {}/{}\n".format(len(self.remaining_slices),
-                                                                self._num_time_slices))
+
+        # Testing
+        # print("Index in previous epoch:", self._index_in_epoch)
+        # print("Still available slices in epoch: {}/{}\n".format(len(self.remaining_slices),
+        #                                                         self._num_time_slices))
 
     def next_batch(self, batch_size=1, randomize=False):
         """
@@ -488,13 +490,13 @@ class DataSet(object):
             # Check whether slices left for next batch
             if len(self.remaining_slices) == 0:
                 # if no slice left, start new epoch
-                print("\nNo slices left take new slices")  # test
                 self.new_epoch()  # self._epochs_completed += 1
                 self._index_in_epoch = 0
                 self.remaining_slices = self.reset_remaining_slices()
 
+                # print("\nNo slices left take new slices")  # test
+
         else:  # there are still slices left but not for the whole batch
-            print("\nTake the rest slices and fill with new slices")  # test
             # First copy remaining slices to selection_array
             selection_array = self.remaining_slices
 
@@ -521,6 +523,8 @@ class DataSet(object):
 
             # Append to selection_array
             selection_array = np.append(arr=selection_array, values=additional_array)
+
+            # print("\nTake the rest slices and fill with new slices")  # test
 
         # Update current_batch
         self.current_batch = selection_array
