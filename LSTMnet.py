@@ -118,6 +118,7 @@ class LSTMnet:
         :return: Layer Output
         """
         with tf.variable_scope(layer_name):
+            # TODO adapt for batch_size > 1, in particular: lstm_output[-1]
 
             # Unstack to get a list of 'n_steps' tensors of shape (batch_size, n_input)
             # if x hase shape [batch_size(1), samples-per-second(250), components(1))
