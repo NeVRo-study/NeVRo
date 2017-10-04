@@ -255,10 +255,10 @@ def train_lstm():
 
                     else:
                         # Validation:
-                        xs, ys = nevro_data["validation"].next_batch(batch_size=FLAGS.batch_size,
+                        xs, ys = nevro_data["validation"].next_batch(batch_size=1,
                                                                      randomize=FLAGS.rand_batch)
                         # ys = np.reshape(ys, newshape=([FLAGS.batch_size] + list(ys.shape)))
-                        ys = np.reshape(ys, newshape=([FLAGS.batch_size, 1]))
+                        ys = np.reshape(ys, newshape=([1, 1]))
 
                     return {x: xs, y: ys}
 
@@ -286,7 +286,7 @@ def train_lstm():
                         start_timer = datetime.datetime.now().replace(microsecond=0)
 
                     if step % (timer_freq/2) == 0.:
-                        print("Step {}/{} in Fold Nr.{} ({}/{})".format(step, FLAGS.max_steps, s_fold_idx,
+                        print("Step {}/{} in Fold Nr.{} ({}/{})".format(step, int(FLAGS.max_steps), s_fold_idx,
                                                                         rnd+1, len(s_fold_idx_list)))
 
                     # Evaluate on training set every print_freq (=10) iterations
@@ -433,7 +433,7 @@ def train_lstm():
 
     # Final Accuracy & Time
     timer_fold_list.append(duration_fold)
-    print("Time to train all folds (each {} steps): {} [h:m:s]".format(FLAGS.max_steps, np.sum(timer_fold_list)))
+    print("Time to train all folds (each {} steps): {} [h:m:s]".format(int(FLAGS.max_steps), np.sum(timer_fold_list)))
     print("Average accuracy across all {} validation set: {}".format(FLAGS.s_fold, np.mean(all_acc_val)))
 
     # Save training information in Textfile
@@ -503,8 +503,9 @@ def fill_pred_matrix(pred, y, current_mat, s_idx, current_batch, sfold, train=Tr
     else:  # case of validation (use: batch_size=1, but works also with >1)
         fill_pos = [step + int(verge) for step in current_batch]
         # Check whether position is already filled
-        if not np.isnan(current_mat[pred_idx, fill_pos]):
-            print("Overwrites position in val_pred_matrix")
+        for pos in fill_pos:
+            if not np.isnan(current_mat[pred_idx, pos]):
+                print("Overwrites position ({},{}) in val_pred_matrix".format(pred_idx, pos))
 
     # Update Matrix
     current_mat[pred_idx, fill_pos] = pred  # inference/prediction
