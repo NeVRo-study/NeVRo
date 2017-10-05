@@ -434,7 +434,7 @@ def train_lstm():
     # Final Accuracy & Time
     timer_fold_list.append(duration_fold)
     print("Time to train all folds (each {} steps): {} [h:m:s]".format(int(FLAGS.max_steps), np.sum(timer_fold_list)))
-    print("Average accuracy across all {} validation set: {}".format(FLAGS.s_fold, np.mean(all_acc_val)))
+    print("Average accuracy across all {} validation set: {:.3f}".format(FLAGS.s_fold, np.mean(all_acc_val)))
 
     # Save training information in Textfile
     with open(FLAGS.sub_dir + "{}S{}_accuracy_across_{}_folds.txt".format(time.strftime('%y_%m_%d_'),
@@ -446,7 +446,8 @@ def train_lstm():
                                                 FLAGS.repet_scalar, FLAGS.learning_rate, FLAGS.batch_size,
                                                 FLAGS.rand_batch, FLAGS.weight_reg, FLAGS.weight_reg_strength,
                                                 FLAGS.activation_fct, FLAGS.lstm_size))
-        for i, item in enumerate([s_fold_idx_list, all_acc_val, np.mean(all_acc_val)]):
+        rnd_all_acc_val = [np.round(acc, 3) for acc in all_acc_val]  # rounding for the export
+        for i, item in enumerate([s_fold_idx_list, rnd_all_acc_val, np.mean(all_acc_val)]):
             file.write(["S-Fold(Round): ", "Validation-Acc: ", "mean(Accuracy): "][i] + str(item)+"\n")
 
     # Save Prediction Matrices in File

@@ -52,18 +52,13 @@ wdic_x_corr = "../../Results/x_corr/"
 # initialize variables
 subjects = [36]  # [36, 37]
 # subjects = range(1, 45+1)
-sba_setting = True  # whether to take SBA-processed data
 
 # roller_coasters = np.array(['Space_NoMov', 'Space_Mov', 'Ande_Mov', 'Ande_NoMov'])
-roller_coasters = np.array(['Space_NoMov', "Break_NoMov", 'Ande_NoMov']) if sba_setting \
+roller_coasters = np.array(['Space_NoMov', "Break_NoMov", 'Ande_NoMov']) if True \
     else np.array(['Space_NoMov', 'Ande_NoMov'])
 
-# Sampling Frequencies
-s_freq_rating = 1.
-s_freq_eeg = 250.
 
-
-def update_coaster_lengths(empty_t_array, sba=sba_setting):
+def update_coaster_lengths(empty_t_array, sba=True):
     """
     Creates an array of the lengths of the different phases (e.g., roller caosters)
     :param empty_t_array: array to be filled
@@ -87,12 +82,12 @@ def update_coaster_lengths(empty_t_array, sba=sba_setting):
     return full_t_array
 
 # t_roller_coasters = np.zeros((len(roller_coasters)))  # init
-# t_roller_coasters = update_coaster_lengths(empty_t_array=t_roller_coasters, sba=sba_setting)
+# t_roller_coasters = update_coaster_lengths(empty_t_array=t_roller_coasters, sba=True)
 # t_roller_coasters = np.array([148, 30, 92])   # SBA
 
 
 # Load file
-def load_ssd_files(samp_freq=s_freq_eeg, sba=sba_setting):
+def load_ssd_files(samp_freq=250., sba=True):
     """
     Loads all channel SSD files of each subject in subjects
     :return: SSD files [channels, time_steps, sub_df] in form of dictionary
@@ -145,14 +140,14 @@ def load_ssd_files(samp_freq=s_freq_eeg, sba=sba_setting):
 
     return ssd_dic
 
-# SSD_dic = load_ssd_files(samp_freq=s_freq_eeg)
+# SSD_dic = load_ssd_files(samp_freq=250.)
 # print(SSD_dic[str(subjects[0])][roller_coasters[0]]["df"].shape)  # roller_coasters[0] == 'Space_NoMov'
 # print(SSD_dic[str(subjects[0])][roller_coasters[0]]["df"].shape)  # str(subjects[0]) == '36'
 # print(SSD_dic[str(subjects[0])][roller_coasters[0]]["t_steps"].shape)
 # print(SSD_dic["channels"].shape)
 
 
-def load_ssd_component(samp_freq=s_freq_eeg, sba=sba_setting):
+def load_ssd_component(samp_freq=250., sba=True):
     """
     :param samp_freq: sampling frequency of SSD-components
     :param sba: if True (=Default), take SBA-z-scored components
@@ -251,11 +246,11 @@ def load_ssd_component(samp_freq=s_freq_eeg, sba=sba_setting):
 
     return ssd_comp_dic
 
-# SSD_Comp_dic = load_ssd_component(samp_freq=s_freq_eeg, sba=sba_setting)
+# SSD_Comp_dic = load_ssd_component(samp_freq=250., sba=True)
 # for num, coaster in enumerate(roller_coasters):
 #     print(SSD_Comp_dic[str(subjects[0])][roller_coasters[num]].shape,
 #           "=",
-#           SSD_Comp_dic[str(subjects[0])][roller_coasters[num]].shape[0]/s_freq_eeg,
+#           SSD_Comp_dic[str(subjects[0])][roller_coasters[num]].shape[0]/250.,
 #           "sec\t|",
 #           SSD_Comp_dic[str(subjects[0])][roller_coasters[num]].shape[1],
 #           "components\t|",
@@ -296,7 +291,7 @@ def best_component(subject, best=True):
 
 
 # @function_timed  # after executing following function this returns runtime
-def load_rating_files(samp_freq=s_freq_rating, sba=sba_setting):
+def load_rating_files(samp_freq=1., sba=True):
     """
     Loads (z-scored) Ratings files of each subject in subjects (ignore other files, due to fluctuating samp.freq.).
     :param sba: if TRUE (default), process SBA files
@@ -554,7 +549,8 @@ def splitter(array_to_split, n_splits):
     return array_to_split
 
 
-def read_data_sets(subject, component, s_fold_idx, s_fold=10, cond="NoMov", sba=sba_setting, hilbert_power=True):
+def read_data_sets(subject, component, s_fold_idx, s_fold=10, cond="NoMov", sba=True, hilbert_power=True,
+                   s_freq_eeg=250.):
     """
     Returns the s-fold-prepared dataset.
     S-Fold Validation, S=5: [ |-Train-|-Train-|-Train-|-Valid-|-Train-|] Dataset
@@ -566,6 +562,7 @@ def read_data_sets(subject, component, s_fold_idx, s_fold=10, cond="NoMov", sba=
         cond: Either "NoMov"(=default) or "Mov"
         sba: Whether to use SBA-data
         hilbert_power: hilbert-transform SSD-components, then extract z-scored power
+        s_freq_eeg: Sampling Frequency of EEG
     Returns:
         Train, Validation Datasets
     """
@@ -673,7 +670,8 @@ def read_data_sets(subject, component, s_fold_idx, s_fold=10, cond="NoMov", sba=
     return {"train": train, "validation": validation, "test": test}
 
 
-def get_nevro_data(subject, component, s_fold_idx=None, s_fold=10, cond="NoMov", sba=sba_setting, hilbert_power=True):
+def get_nevro_data(subject, component, s_fold_idx=None, s_fold=10, cond="NoMov", sba=True, hilbert_power=True,
+                   s_freq_eeg=250.):
     """
       Prepares NeVRo dataset.
       Args:
@@ -684,6 +682,7 @@ def get_nevro_data(subject, component, s_fold_idx=None, s_fold=10, cond="NoMov",
         cond: Either "NoMov"(=default) or "Mov"
         sba: Whether to use SBA-data
         hilbert_power: hilbert-transform SSD-components, then extract z-scored power
+        s_freq_eeg: Sampling Frequency of EEG
       Returns:
         Train, Validation Datasets (+Test set)
       """
@@ -692,7 +691,7 @@ def get_nevro_data(subject, component, s_fold_idx=None, s_fold=10, cond="NoMov",
         print("s_fold_idx randomly chosen:", s_fold_idx)
 
     return read_data_sets(subject=subject, component=component, s_fold_idx=s_fold_idx, s_fold=s_fold,
-                          cond=cond, sba=sba, hilbert_power=hilbert_power)
+                          cond=cond, sba=sba, hilbert_power=hilbert_power, s_freq_eeg=s_freq_eeg)
 
 
 # Testing

@@ -21,7 +21,7 @@ class LSTMnet:
     # TODO adapt such that it works with batch_size>1
     def __init__(self, activation_function=tf.nn.elu,
                  weight_regularizer=tf.contrib.layers.l2_regularizer(scale=0.18),
-                 lstm_size=10, n_steps=250, batch_size=1, summaries=True):  # n_class (include for, e.g., binary cases)
+                 lstm_size=10, n_steps=250, batch_size=1, summaries=True):
         """
         Constructor for an LSTMnet object.
         Args:
@@ -41,7 +41,7 @@ class LSTMnet:
         self.final_state = None
         self.lstm_output = None
         self.summaries = summaries  # so far just for weights and biases of FC
-        # self.n_classes = n_classes
+        # self.n_classes = n_classes  # n_classes (include for, e.g., binary cases)
 
     def inference(self, x):
         """
@@ -131,14 +131,14 @@ class LSTMnet:
 
             # Initial state of the LSTM memory
             # (previous state is not taken over in next batch, regardless of zero-state implementation)
-            # init_state = lstm_cell.zero_state(batch_size=self.batch_size, dtype=tf.float32)  # initial_state
-            # init_state = tf.zeros([batch_size, lstm_cell.state_size])  # initial_state
+            # init_state = lstm_cell.zero_state(batch_size=self.batch_size, dtype=tf.float32)
+            # init_state = tf.zeros([batch_size, lstm_cell.state_size])
 
             # Run LSTM cell
             self.lstm_output, self.final_state = tf.contrib.rnn.static_rnn(cell=lstm_cell,
                                                                            inputs=x,
                                                                            # initial_state=init_state,  # (optional)
-                                                                           # , sequence_length=num_steps
+                                                                           # sequence_length=num_steps,
                                                                            dtype=tf.float32,
                                                                            scope=None)
             # lstm_output: len(lstm_output) == len(x) == 250
@@ -247,7 +247,7 @@ class LSTMnet:
                 # correct = tf.nn.in_top_k(predictions=logits, targetss=labels, k=1)  # should be: [1,0,0,1,0...]
                 # correct = tf.equal(tf.argmax(input=infer, axis=1), tf.argmax(input=ratings, axis=1))
 
-                # 1 - abs(infer-rating)/max_diff, max_diff=2 (since ratings in [-1, 1]
+                # 1 - abs(infer-rating)/max_diff, max_diff=2 (since ratings in [-1, 1])
                 correct = tf.subtract(1.0, tf.abs(tf.divide(tf.subtract(infer, ratings), 2)), name="correct")
 
             with tf.name_scope("accuracy"):
