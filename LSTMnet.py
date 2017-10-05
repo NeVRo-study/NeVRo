@@ -76,7 +76,7 @@ class LSTMnet:
 
             pre_activation = self._create_fc_layer(x=post_lstm,
                                                    layer_name="fc1",
-                                                   shape=[self.lstm_size, 1])  # 1 for 1 Rating
+                                                   shape=[self.lstm_size, 1])  # shape=(lstm_size, 1-rating)
             # shape = [post_lstm.get_shape()[1], post_lstm.get_shape()[0]]
 
             # For the featuer_extractor:
@@ -118,10 +118,8 @@ class LSTMnet:
         :return: Layer Output
         """
         with tf.variable_scope(layer_name):
-            # TODO adapt for batch_size > 1, in particular: lstm_output[-1]
-
             # Unstack to get a list of 'n_steps' tensors of shape (batch_size, n_input)
-            # if x hase shape [batch_size(1), samples-per-second(250), components(1))
+            # if x hase shape [batch_size, samples-per-second(250), components(1))
             x = tf.unstack(value=x, num=self.n_steps, axis=1, name="unstack")  # does not work like that
             # Now: x is list of [250 x (batch_size, 1)]
 
@@ -132,7 +130,6 @@ class LSTMnet:
             # Initial state of the LSTM memory
             # (previous state is not taken over in next batch, regardless of zero-state implementation)
             # init_state = lstm_cell.zero_state(batch_size=self.batch_size, dtype=tf.float32)
-            # init_state = tf.zeros([batch_size, lstm_cell.state_size])
 
             # Run LSTM cell
             self.lstm_output, self.final_state = tf.contrib.rnn.static_rnn(cell=lstm_cell,
