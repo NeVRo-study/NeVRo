@@ -21,21 +21,22 @@ class LSTMnet:
     # TODO adapt such that it works with batch_size>1
     def __init__(self, activation_function=tf.nn.elu,
                  weight_regularizer=tf.contrib.layers.l2_regularizer(scale=0.18),
-                 lstm_size=10, n_steps=250, batch_size=1, summaries=True):
+                 lstm_size=None, fc_hidden_unites=None, n_steps=250, batch_size=1, summaries=True):
         """
         Constructor for an LSTMnet object.
         Args:
-            # n_classes: int, number of classes of the classification problem. This number is required in order to
+            # n_classes: in t, number of classes of the classification problem. This number is required in order to
             # specify
             the output dimensions of the LSTMnet.
             weight_regularizer: to be applied weight regularization
         """
 
-        self.lstm_post_activation = None
+        self.lstm_post_activation = []
         self.fc1_post_activation = None
         self.weight_regularizer = weight_regularizer
         self.activation_function = activation_function
-        self.lstm_size = lstm_size  # = n_hidden
+        self.lstm_size = lstm_size  # = [n_hidden], list
+        self.fc_hidden_units = fc_hidden_unites  # number of hidden units in fc layers (if n-layers > 1), list
         self.n_steps = n_steps  # samp.freq. = 250
         self.batch_size = batch_size
         self.final_state = None
@@ -65,18 +66,51 @@ class LSTMnet:
 
         with tf.variable_scope('LSTMnet'):
 
-            # LSTM Layer 1
-            post_lstm = self._create_lstm_layer(x=x, layer_name="lstm1", lstm_size=self.lstm_size)
+            lstm_input = x
 
-            # For the featuer_extractor:
-            self.lstm_post_activation = post_lstm
+            for layer in range(len(self.lstm_size)):
+                # LSTM Layer
+                post_lstm = self._create_lstm_layer(x=lstm_input, layer_name="lstm{}".format(layer+1),
+                                                    lstm_size=self.lstm_size[layer])
+
+                # For the featuer_extractor:
+                self.lstm_post_activation.append(post_lstm)
+
+                # In case there are more LSTM layer
+                if len(self.lstm_size) > 1:
+                    lstm_input = post_lstm
 
             # Fully Connected Layer 1
             # post_lstm = tf.Print(input_=post_lstm, data=[post_lstm.get_shape()], message="post_lstm")
 
-            pre_activation = self._create_fc_layer(x=post_lstm,
-                                                   layer_name="fc1",
-                                                   shape=[self.lstm_size, 1])  # shape=(lstm_size, 1-rating)
+            # TODO below FC
+            fc_shape = [self.lstm_size[-1], 1]
+
+            if not self.fc_hidden_units:
+
+                pre_activation = self._create_fc_layer(x=post_lstm,
+                                                       layer_name="fc1",
+                                                       shape=fc_shape)  # shape=(lstm_size, 1-rating)
+            else:
+                assert isinstance(self.fc_hidden_units, list), "fc_hidden_units must be a list"
+
+                fc_layer_input = post_lstm
+
+                for fc_layer in range(len(self.fc_hidden_units)):
+
+                    old_shape = fc_shape
+
+                    if fc_layer == 0:
+                        fc_shape[1] = self.fc_hidden_units[fc_layer]
+                    else:
+                        fc_shape = []
+
+                    pre_activation = self._create_fc_layer(x=fc_layer_input,
+                                                           layer_name="fc{}".format(fc_layer+1),
+                                                           shape=fc_shape)
+
+
+
             # shape = [post_lstm.get_shape()[1], post_lstm.get_shape()[0]]
 
             # For the featuer_extractor:

@@ -39,7 +39,8 @@ ACTIVATION_FCT_DEFAULT = 'elu'
 MARGIN_DEFAULT = 0.2
 LOSS_DEFAULT = "normal"
 FEAT_STEP_DEFAULT = CHECKPOINT_FREQ_DEFAULT-1
-LSTM_SIZE_DEFAULT = 10
+LSTM_SIZE_DEFAULT = '10'  # number of hidden units per LSTM layer, e.g., '10, 5' would create second lstm_layer
+FC_NUM_HIDDEN_UNITS = None  # if len(n_hidden_units)>0, create len(n_hidden_units) layers
 HILBERT_POWER_INPUT_DEFAULT = True
 SUMMARIES_DEFAULT = True
 
@@ -117,6 +118,19 @@ def train_lstm():
     # Set the random seeds for reproducibility. DO NOT CHANGE.
     tf.set_random_seed(42)
     np.random.seed(42)
+
+    # Get number of units in each hidden layer specified in the string such as 100,100
+    if FLAGS.lstm_size:
+        lstm_hidden_states = FLAGS.lstm_size.split(",")
+        lstm_hidden_states = [int(hidden_states_) for hidden_states_ in lstm_hidden_states]
+    else:
+        lstm_hidden_states = []
+
+    if FLAGS.fc_n_hidden and len(FLAGS.fc_n_hidden) > 0:
+            n_hidden_units = FLAGS.fc_n_hidden.split(",")
+            n_hidden_units = [int(hidden_unites_) for hidden_unites_ in n_hidden_units]
+    else:
+        n_hidden_units = None
 
     # Start TensorFlow Interactive Session
     # sess = tf.InteractiveSession()
@@ -206,7 +220,8 @@ def train_lstm():
                     y = tf.placeholder(dtype=tf.float32, shape=[None, 1], name="y-input")
 
                 # Model
-                lstm_model = LSTMnet(lstm_size=FLAGS.lstm_size,
+                lstm_model = LSTMnet(lstm_size=lstm_hidden_states,
+                                     fc_hidden_unites=n_hidden_units,
                                      activation_function=ACTIVATION_FCT_DICT.get(FLAGS.activation_fct),
                                      weight_regularizer=WEIGHT_REGULARIZER_DICT.get(FLAGS.weight_reg)(
                                          scale=FLAGS.weight_reg_strength),
@@ -604,8 +619,8 @@ if __name__ == '__main__':
                         help='feature_extraction will be applied on specific step of checkpoint data')
     parser.add_argument('--subject', type=int, default=SUBJECT_DEFAULT,
                         help='Which subject data to process')
-    parser.add_argument('--lstm_size', type=int, default=LSTM_SIZE_DEFAULT,
-                        help='size of hidden state in LSTM layer')
+    parser.add_argument('--lstm_size', type=str, default=LSTM_SIZE_DEFAULT,
+                        help='Comma separated list of size of hidden states in each LSTM layer')
     parser.add_argument('--s_fold', type=int, default=S_FOLD_DEFAULT,
                         help='Number of folds in S-Fold-Cross Validation')
     parser.add_argument('--rand_batch', type=str, default=RANDOM_BATCH_DEFAULT,
@@ -614,7 +629,8 @@ if __name__ == '__main__':
                         help='Whether input is z-scored power extraction of SSD components (via Hilbert transform)')
     parser.add_argument('--summaries', type=str, default=SUMMARIES_DEFAULT,
                         help='Whether to write summaries of tf variables')
-
+    parser.add_argument('--fc_n_hidden', type=str, default=FC_NUM_HIDDEN_UNITS,
+                        help="Comma separated list of number of hidden units in each fully connected (fc) layer")
     # parser.add_argument('--layer_feat_extr', type=str, default="fc2",
     #                     help='Choose layer for feature extraction')
 

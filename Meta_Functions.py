@@ -163,3 +163,6 @@ def create_s_fold_idx(s_folds, list_prev_indices=[]):
 # for _ in range(9):
 #     s_idx, list_indices = create_s_fold_idx(s_folds=10, list_prev_indices=list_indices)
 # len(list_indices)
+
+def clear():
+    print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
