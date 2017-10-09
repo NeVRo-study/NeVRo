@@ -81,7 +81,7 @@ class LSTMnet:
                 self.lstm_post_activation.append(post_lstm)
 
                 # In case there are more LSTM layer
-                if len(self.lstm_size) > 1:
+                if len(self.lstm_size) > 1 and not last_layer:
                     lstm_input = tf.stack(post_lstm)
                     lstm_input = tf.transpose(lstm_input, [1, 0, 2])  # [batch_size, 250, 1]
 
