@@ -14,6 +14,7 @@ debug = "/debug/" if False else "/"
 subjects = [36]
 wdic = "./LSTM"
 wdic_lists = wdic + "/logs" + debug
+lw = 0.5  # linewidth
 
 for subject in subjects:
     wdic_sub = wdic + debug + "S{}/".format(str(subject).zfill(2))
@@ -95,9 +96,9 @@ for subject in subjects:
         # plt.plot(rating, ls="dotted", label="rating", marker='o', mfc='none', markersize=3)
         # plt.plot(val_pred, label="val_prediction", marker='o', markersize=3)
         # plt.plot(val_rating, ls="dotted", label="val_rating", marker='o', mfc='none', markersize=3)
-        plt.plot(pred, label="prediction")  # , style='r-'
+        plt.plot(pred, label="prediction", linewidth=lw)  # , style='r-'
         plt.plot(rating, ls="dotted", label="rating")
-        plt.plot(val_pred, label="val_prediction")
+        plt.plot(val_pred, label="val_prediction", linewidth=lw)
         plt.plot(val_rating, ls="dotted", label="val_rating")
         plt.title(s="{}-Fold | val_acc={}".format(fold+1,
                                                   np.round(val_acc[int(np.where(np.array(s_rounds) == fold)[0])], 3)))
@@ -105,7 +106,7 @@ for subject in subjects:
         # adjust size, add legend
         plt.xlim(0, len(pred))
         plt.ylim(-1.2, 2)
-        plt.legend(bbox_to_anchor=(0., 0.92, 1., .102), loc=1, ncol=4, mode="expand", borderaxespad=0.)
+        plt.legend(bbox_to_anchor=(0., 0.90, 1., .102), loc=1, ncol=4, mode="expand", borderaxespad=0.)
         plt.tight_layout(pad=2)
 
     # # Plot accuracy-trajectories
@@ -128,8 +129,8 @@ for subject in subjects:
         fig2.add_subplot(sub_rows, sub_col, sub_n)
 
         # plot
-        plt.plot(train_acc_fold, label="train_acc")
-        plt.plot(val_acc_fold, label="val_acc")
+        plt.plot(train_acc_fold, label="train_acc", linewidth=lw/2)
+        plt.plot(val_acc_fold, label="val_acc", linewidth=lw)
 
         plt.title(s="{}-Fold | val_acc={}".format(fold + 1,
                                                   np.round(val_acc[int(np.where(np.array(s_rounds) == fold)[0])], 3)))
@@ -137,7 +138,7 @@ for subject in subjects:
         # adjust size, add legend
         plt.xlim(0, len(train_acc_fold))
         plt.ylim(0.0, 1.5)
-        plt.legend(bbox_to_anchor=(0., 0.92, 1., .102), loc=1, ncol=4, mode="expand", borderaxespad=0.)
+        plt.legend(bbox_to_anchor=(0., 0.90, 1., .102), loc=1, ncol=4, mode="expand", borderaxespad=0.)
         plt.tight_layout(pad=2)
 
     # # Plot loss-trajectories
@@ -158,14 +159,14 @@ for subject in subjects:
         fig3.add_subplot(sub_rows, sub_col, sub_n)
 
         # plot
-        plt.plot(train_loss_fold, label="train_loss")
-        plt.plot(val_loss_fold, label="val_loss")
+        plt.plot(train_loss_fold, label="train_loss", linewidth=lw/2)
+        plt.plot(val_loss_fold, label="val_loss", linewidth=lw)
 
         plt.title(s="{}-Fold | val_loss={}".format(fold + 1,
                                                    np.round(val_acc[int(np.where(np.array(s_rounds) == fold)[0])], 3)))
 
         # adjust size, add legend
         plt.xlim(0, len(train_loss_fold))
-        plt.ylim(-0.1, 2.5)
-        plt.legend(bbox_to_anchor=(0., 0.92, 1., .102), loc=1, ncol=4, mode="expand", borderaxespad=0.)
+        plt.ylim(-0.05, 1.8)
+        plt.legend(bbox_to_anchor=(0., 0.90, 1., .102), loc=1, ncol=4, mode="expand", borderaxespad=0.)
         plt.tight_layout(pad=2)

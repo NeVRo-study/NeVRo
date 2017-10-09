@@ -129,8 +129,9 @@ def train_lstm():
     if FLAGS.fc_n_hidden and len(FLAGS.fc_n_hidden) > 0:
             n_hidden_units = FLAGS.fc_n_hidden.split(",")
             n_hidden_units = [int(hidden_unites_) for hidden_unites_ in n_hidden_units]
+            n_hidden_units.append(1)  # output layer == 1 rating-prediction
     else:
-        n_hidden_units = None
+        n_hidden_units = [1]
 
     # Start TensorFlow Interactive Session
     # sess = tf.InteractiveSession()

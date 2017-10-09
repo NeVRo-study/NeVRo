@@ -18,7 +18,7 @@ class LSTMnet:
     Potentially for layer visualization check out Beholder PlugIn
     https://www.youtube.com/watch?feature=youtu.be&v=06HjEr0OX5k&app=desktop
     """
-    # TODO adapt such that it works with batch_size>1
+
     def __init__(self, activation_function=tf.nn.elu,
                  weight_regularizer=tf.contrib.layers.l2_regularizer(scale=0.18),
                  lstm_size=None, fc_hidden_unites=None, n_steps=250, batch_size=1, summaries=True):
@@ -32,7 +32,7 @@ class LSTMnet:
         """
 
         self.lstm_post_activation = []
-        self.fc1_post_activation = None
+        self.fc_post_activation = []
         self.weight_regularizer = weight_regularizer
         self.activation_function = activation_function
         self.lstm_size = lstm_size  # = [n_hidden], list
@@ -69,55 +69,57 @@ class LSTMnet:
             lstm_input = x
 
             for layer in range(len(self.lstm_size)):
+
                 # LSTM Layer
+                last_layer = False if (layer + 1) < len(self.lstm_size) else True
+
                 post_lstm = self._create_lstm_layer(x=lstm_input, layer_name="lstm{}".format(layer+1),
-                                                    lstm_size=self.lstm_size[layer])
+                                                    lstm_size=self.lstm_size[layer],
+                                                    last_layer=last_layer)
 
                 # For the featuer_extractor:
                 self.lstm_post_activation.append(post_lstm)
 
                 # In case there are more LSTM layer
                 if len(self.lstm_size) > 1:
-                    lstm_input = post_lstm
+                    lstm_input = tf.stack(post_lstm)
+                    lstm_input = tf.transpose(lstm_input, [1, 0, 2])  # [batch_size, 250, 1]
 
-            # Fully Connected Layer 1
+            # Fully Connected Layer(s)
             # post_lstm = tf.Print(input_=post_lstm, data=[post_lstm.get_shape()], message="post_lstm")
 
-            # TODO below FC
-            fc_shape = [self.lstm_size[-1], 1]
+            fc_layer_input = self.lstm_post_activation[-1]  # [batch_size, lstm_size[-1]]
+            # This works due to lstm_output[-1], which takes only the last and ignores the last 249 outputs of lstm
 
-            if not self.fc_hidden_units:
+            # Define first fc-layer shape
+            assert isinstance(self.fc_hidden_units, list), "fc_hidden_units must be a list"
 
-                pre_activation = self._create_fc_layer(x=post_lstm,
-                                                       layer_name="fc1",
-                                                       shape=fc_shape)  # shape=(lstm_size, 1-rating)
-            else:
-                assert isinstance(self.fc_hidden_units, list), "fc_hidden_units must be a list"
+            fc_shape = [self.lstm_size[-1], self.fc_hidden_units[0]]
 
-                fc_layer_input = post_lstm
+            # Build up layers
+            for fc_layer in range(len(self.fc_hidden_units)):
 
-                for fc_layer in range(len(self.fc_hidden_units)):
+                last_layer = False if fc_layer+1 < len(self.fc_hidden_units) else True
 
+                if fc_layer > 0:
                     old_shape = fc_shape
+                    # Update shape
+                    fc_shape[0] = old_shape[1]
+                    fc_shape[1] = self.fc_hidden_units[fc_layer]
+                    fc_layer_input = self.fc_post_activation[-1]  # Feed last output in new fc-layer
 
-                    if fc_layer == 0:
-                        fc_shape[1] = self.fc_hidden_units[fc_layer]
-                    else:
-                        fc_shape = []
+                fc_activation = self._create_fc_layer(x=fc_layer_input,
+                                                      layer_name="fc{}".format(fc_layer+1),
+                                                      shape=fc_shape,  # shape=(lstm_size, 1-rating)
+                                                      last_layer=last_layer)
 
-                    pre_activation = self._create_fc_layer(x=fc_layer_input,
-                                                           layer_name="fc{}".format(fc_layer+1),
-                                                           shape=fc_shape)
+                # shape = [post_lstm.get_shape()[1], post_lstm.get_shape()[0]]
 
-
-
-            # shape = [post_lstm.get_shape()[1], post_lstm.get_shape()[0]]
-
-            # For the featuer_extractor:
-            self.fc1_post_activation = pre_activation
+                # For the featuer_extractor:
+                self.fc_post_activation.append(fc_activation)
 
             # Use tanh ([-1, 1]) for final prediction
-            infer = tf.nn.tanh(x=pre_activation, name="tanh_inference")
+            infer = tf.nn.tanh(x=self.fc_post_activation[-1], name="tanh_inference")
 
             # Write summary
             with tf.name_scope("inference"):
@@ -128,7 +130,7 @@ class LSTMnet:
 
         return infer
 
-    def _create_lstm_layer(self, x, layer_name, lstm_size):
+    def _create_lstm_layer(self, x, layer_name, lstm_size, last_layer):
         """
         Creates a LSTM Layer.
         https://www.tensorflow.org/tutorials/recurrent#lstm
@@ -153,7 +155,7 @@ class LSTMnet:
         """
         with tf.variable_scope(layer_name):
             # Unstack to get a list of 'n_steps' tensors of shape (batch_size, n_input)
-            # if x hase shape [batch_size, samples-per-second(250), components(1))
+            # x.shape [batch_size, samples-per-second(250), components(1))
             x = tf.unstack(value=x, num=self.n_steps, axis=1, name="unstack")  # does not work like that
             # Now: x is list of [250 x (batch_size, 1)]
 
@@ -197,8 +199,11 @@ class LSTMnet:
             # Push through activation function
             with tf.name_scope(layer_name + "_elu"):  # or relu
                 # post_activation = tf.nn.relu(lstm_output, name="post_activation")
-                # lstm_output.shape = (250, 1, lstm_size) | lstm_output[-1].shape = (1, lstm_size)
-                post_activation = self.activation_function(features=self.lstm_output[-1], name="post_activation")
+                # lstm_output.shape = (250, batch_size, lstm_size) | lstm_output[-1].shape = (batch_size, lstm_size)
+                # Only do '[-1]' if last lstm-layer
+                pre_activation = self.lstm_output[-1] if last_layer else self.lstm_output
+
+                post_activation = self.activation_function(features=pre_activation, name="post_activation")
 
                 # Write Summaries
                 self._var_summaries(name=layer_name + "_elu" + "/post_activation", var=post_activation)
@@ -206,7 +211,7 @@ class LSTMnet:
 
         return post_activation
 
-    def _create_fc_layer(self, x, layer_name, shape):
+    def _create_fc_layer(self, x, layer_name, shape, last_layer):
         """
         Create fully connected layer
         :param x: Input to layer
@@ -238,7 +243,15 @@ class LSTMnet:
                 pre_activation = tf.matmul(x, weights) + biases
                 tf.summary.histogram(layer_name + "/pre_activation", pre_activation)
 
-        return pre_activation
+            if not last_layer:
+                # Push through activation function, if not last layer
+                with tf.name_scope(layer_name + "_elu"):  # or relu
+                    post_activation = self.activation_function(features=pre_activation, name="post_activation")
+
+                return post_activation
+
+            else:  # in case its the last layer
+                return pre_activation
 
     @staticmethod
     def _var_summaries(name, var):
