@@ -6,17 +6,22 @@
 # RANDOM_BATCH_DEFAULT = True
 # S_FOLD_DEFAULT = 10
 # REPETITION_SCALAR_DEFAULT = 1
-# EVAL_FREQ_DEFAULT = S_FOLD_DEFAULT - 1
+# MAX_STEPS_DEFAULT = REPETITION_SCALAR_DEFAULT*(270 - 270/S_FOLD_DEFAULT)/BATCH_SIZE_DEFAULT
+# EVAL_FREQ_DEFAULT = EVAL_FREQ_DEFAULT = (S_FOLD_DEFAULT - 1)/BATCH_SIZE_DEFAULT
 # CHECKPOINT_FREQ_DEFAULT = MAX_STEPS_DEFAULT
 # PRINT_FREQ_DEFAULT = int(MAX_STEPS_DEFAULT/8)
 # OPTIMIZER_DEFAULT = 'ADAM'
 # WEIGHT_REGULARIZER_DEFAULT = 'l2'
 # WEIGHT_REGULARIZER_STRENGTH_DEFAULT = 0.18
 # ACTIVATION_FCT_DEFAULT = 'elu'
-# LSTM_SIZE_DEFAULT = 10
+# LSTM_SIZE_DEFAULT = '50, 10'
+# FC_NUM_HIDDEN_UNITS = '100'  # this are two layers n_hidden(FC1)=[lstm,100], n_hidden(FC2)=[100,1]
 # FEAT_EPOCH_DEFAULT = CHECKPOINT_FREQ_DEFAULT-1
-# LSTM_SIZE_DEFAULT = 10
+# HILBERT_POWER_INPUT_DEFAULT = True
+# SUMMARIES_DEFAULT = True
+# SUBJECT_DEFAULT = 36
 
+# Scripts will be processed successively
 ### Task: LSTM-Network
 ## Training
 # Examples
@@ -27,8 +32,13 @@
 # python3 NeVRo.py --repet_scalar 1000
 
 # Testing
-python3 NeVRo.py --summaries False
+# python3 NeVRo.py --summaries False
+# python3 LSTM_pred_plot.py Folder Save_plots
+# python3 LSTM_pred_plot.py / False
+# python3 LSTM_pred_plot.py /debug/ True
 
+python3 NeVRo.py --subject 36 --lstm_size 150 50 --summaries False --plot False --path_specificities lstm-150-50/
+python3 NeVRo.py --subject 36 --lstm_size 150 --fc_n_hidden 150 --summaries False --plot True --path_specificities lstm-150_fc-150/
 
 
 

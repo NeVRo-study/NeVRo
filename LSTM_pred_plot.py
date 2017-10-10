@@ -8,14 +8,25 @@ Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017
 import os.path
 import matplotlib.pyplot as plt
 from Meta_Functions import *
+from tensorflow import gfile
+import string
 
 
+# Debug Mode
 @true_false_request
 def debug_plot():
     print("Do you want to plot results from the debugging-mode?")
 
 
-debug = "/debug/" if debug_plot() else "/"
+try:
+    debug = sys.argv[1]
+    try:
+        int(debug)
+        debug = "/debug/" if debug_plot() else "/"
+    except ValueError:
+        pass
+except IndexError:
+    debug = "/debug/" if debug_plot() else "/"
 
 
 # Save plot
@@ -24,7 +35,15 @@ def save_request():
     print("Do you want to save the plots")
 
 
-plots = save_request()
+try:
+    plots = sys.argv[2]
+    try:
+        int(plots)
+        plots = save_request()
+    except ValueError:
+        plots = True if "True" in plots else False
+except IndexError:
+    plots = save_request()
 
 
 subjects = [36]
@@ -47,6 +66,22 @@ for subject in subjects:
 
         elif ".txt" in file:
             acc_filename = file
+
+    # Intermediate step: check whether filenames alreay exist in already_plotted_dic
+    if plots:
+        already_plotted_dic = wdic + "/S{}/already_plotted/".format(str(subject).zfill(2))
+        if not gfile.Exists(already_plotted_dic):
+            gfile.MakeDirs(already_plotted_dic)
+
+        # add subfix if filename already exists
+        abc = ''
+        abc_counter = 0
+        new_file_name = acc_filename  # could be also 'file_name' or 'val_filename'
+        while os.path.exists(already_plotted_dic + new_file_name):
+            new_file_name = new_file_name.split(abc + "_S")[0] + string.ascii_lowercase[abc_counter] \
+                            + "_S" + new_file_name.split("_S")[1]
+            abc = string.ascii_lowercase[abc_counter]
+            abc_counter += 1
 
     # Load data
     pred_matrix = np.loadtxt(wdic_sub + file_name, delimiter=",")
@@ -80,7 +115,7 @@ for subject in subjects:
             hilb = True if "True" in hilb else False
 
         elif "repetition_set:" in info:
-            reps = int(info.split(": ")[1])
+            reps = float(info.split(": ")[1])
 
         elif "batch_random:" in info:
             rnd_batch = info.split(": ")[1]
@@ -144,9 +179,10 @@ for subject in subjects:
     fig.show()
 
     if plots:
-        plot_filename = "20{}{}{}*{}({})_{}-Folds_|_S{}_|_1Hz".format(file_name[0:9], "Hilbert_" if hilb else "", reps,
-                                                                      "rnd-batch" if rnd_batch else "", batch_size,
-                                                                      s_fold, subject)
+        plot_filename = "{}{}_{}{}*{}({})_{}-Folds_|_S{}_|_1Hz.png".format(file_name[0:10], abc,
+                                                                           "Hilbert_" if hilb else "",
+                                                                           reps, "rnd-batch" if rnd_batch else "",
+                                                                           batch_size, s_fold, str(subject).zfill(2))
         fig.savefig(wdic_plot + plot_filename)
 
     # # Plot accuracy-trajectories
@@ -185,10 +221,11 @@ for subject in subjects:
 
     # Plot
     if plots:
-        plot_filename = "20{}{}{}*{}({})_{}-Folds_Accuracies_|_S{}_|_1Hz".format(file_name[0:9],
-                                                                                 "Hilbert_" if hilb else "", reps,
-                                                                                 "rnd-batch" if rnd_batch else "",
-                                                                                 batch_size, s_fold, subject)
+        plot_filename = "{}{}_{}{}*{}({})_{}-Folds_Accuracies_|_S{}_|_1Hz.png".format(file_name[0:10], abc,
+                                                                                      "Hilbert_" if hilb else "", reps,
+                                                                                      "rnd-batch" if rnd_batch
+                                                                                      else "", batch_size, s_fold,
+                                                                                      str(subject).zfill(2))
         fig2.savefig(wdic_plot + plot_filename)
 
     # # Plot loss-trajectories
@@ -225,18 +262,39 @@ for subject in subjects:
 
     # Plot
     if plots:
-        plot_filename = "20{}{}{}*{}({})_{}-Folds_Loss_|_S{}_|_1Hz".format(file_name[0:9],
-                                                                           "Hilbert_" if hilb else "", reps,
-                                                                           "rnd-batch" if rnd_batch else "", batch_size,
-                                                                           s_fold, subject)
+        plot_filename = "{}{}_{}{}*{}({})_{}-Folds_Loss_|_S{}_|_1Hz.png".format(file_name[0:10], abc,
+                                                                                "Hilbert_" if hilb else "", reps,
+                                                                                "rnd-batch" if rnd_batch else "",
+                                                                                batch_size, s_fold,
+                                                                                str(subject).zfill(2))
         fig3.savefig(wdic_plot + plot_filename)
 
 
-@true_false_request
-def close_plots():
-    print("Do you want to close plots?")
+    @true_false_request
+    def close_plots():
+        print("Do you want to close plots?")
 
 
-if close_plots():
-    for _ in range(3):
-        plt.close()
+    # Check whether script is opened from intern(python) or extern(terminal)
+    try:
+        int(sys.argv[2])
+        if close_plots():
+            for _ in range(3):
+                plt.close()
+    except ValueError:
+        pass
+
+    # When saved then move *.csv & *.txt files into folder "Already Plotted"
+    if plots:
+        for file in os.listdir(wdic_sub):
+            new_file_name = file.split("_S")[0] + abc + "_S" + file.split("_S")[1]
+
+            while True:
+                try:
+                    gfile.Rename(oldname=wdic_sub+file, newname=already_plotted_dic+new_file_name, overwrite=False)
+                    break
+                except Exception:
+                    new_file_name = new_file_name.split(abc + "_S")[0] + string.ascii_lowercase[abc_counter] \
+                                    + "_S" + new_file_name.split("_S")[1]
+                    abc = string.ascii_lowercase[abc_counter]
+                    abc_counter += 1

@@ -8,6 +8,7 @@ Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017
 import datetime
 from functools import wraps
 import numpy as np
+import sys
 
 
 # Timer

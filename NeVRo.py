@@ -17,6 +17,7 @@ import tensorflow as tf
 import argparse
 import time
 import copy
+import subprocess
 
 from LSTMnet import LSTMnet
 
@@ -27,7 +28,7 @@ LEARNING_RATE_DEFAULT = 1e-4  # 1e-2
 BATCH_SIZE_DEFAULT = 9  # or bigger
 RANDOM_BATCH_DEFAULT = True
 S_FOLD_DEFAULT = 10
-REPETITION_SCALAR_DEFAULT = 250  # scaler for how many times it should run through set (can be also fraction)
+REPETITION_SCALAR_DEFAULT = 1  # scaler for how many times it should run through set (can be also fraction)
 MAX_STEPS_DEFAULT = REPETITION_SCALAR_DEFAULT*(270 - 270/S_FOLD_DEFAULT)/BATCH_SIZE_DEFAULT  # runs x-times throug set
 assert float(MAX_STEPS_DEFAULT).is_integer(), "max steps must be integer"
 EVAL_FREQ_DEFAULT = (S_FOLD_DEFAULT - 1)/BATCH_SIZE_DEFAULT  # == MAX_STEPS_DEFAULT / (270/S_FOLD_DEFAULT)
@@ -45,6 +46,7 @@ LSTM_SIZE_DEFAULT = '50, 10'  # number of hidden units per LSTM layer, e.g., '10
 FC_NUM_HIDDEN_UNITS = None  # if len(n_hidden_units)>0, create len(n_hidden_units) layers
 HILBERT_POWER_INPUT_DEFAULT = True
 SUMMARIES_DEFAULT = True
+PLOT_DEFAULT = False
 
 SUBJECT_DEFAULT = 36
 
@@ -56,10 +58,8 @@ The idea behind cross validation is that each iteration is like training the alg
     It protects against the possibility of a biased validation set."""
 # https://stackoverflow.com/questions/41216976/how-is-cross-validation-implemented
 
-DATA_DIR_DEFAULT = '../../Data/'
-SUB_DIR_DEFAULT = "./LSTM/" + "S{}/".format(str(SUBJECT_DEFAULT).zfill(2))
-LOG_DIR_DEFAULT = './LSTM/logs/' + "S{}/".format(str(SUBJECT_DEFAULT).zfill(2))
-CHECKPOINT_DIR_DEFAULT = './LSTM/checkpoints/' + "S{}".format(str(SUBJECT_DEFAULT).zfill(2))
+
+PATH_SPECIFICITIES_DEFAULT = ""  # or fill like this: "special_folder/"
 
 WEIGHT_REGULARIZER_DICT = {'none': lambda x: None,  # No regularization
                            # L1 regularization
@@ -247,10 +247,15 @@ def train_lstm():
                 # Writer
                 merged = tf.summary.merge_all()
 
-                train_writer = tf.summary.FileWriter(logdir=FLAGS.log_dir + str(s_fold_idx) + "/train",
+                # Define logdir
+                logdir = './LSTM/logs/S{}/{}/'.format(str(FLAGS.subject).zfill(2), FLAGS.path_specificities)
+                if not tf.gfile.Exists(logdir):
+                    tf.gfile.MakeDirs(logdir)
+
+                train_writer = tf.summary.FileWriter(logdir=logdir + str(s_fold_idx) + "/train",
                                                      graph=sess.graph)
-                test_writer = tf.summary.FileWriter(logdir=FLAGS.log_dir + str(s_fold_idx) + "/val")
-                # test_writer = tf.train.SummaryWriter(logdir=FLAGS.log_dir + "/test")
+                test_writer = tf.summary.FileWriter(logdir=logdir + str(s_fold_idx) + "/val")
+                # test_writer = tf.train.SummaryWriter(logdir=logdir + "/test")
 
                 # Saver
                 # https://www.tensorflow.org/versions/r0.11/api_docs/python/state_ops.html#Saver
@@ -385,8 +390,15 @@ def train_lstm():
 
                     # Save the variables to disk every checkpoint_freq (=5000) iterations
                     if (step + 1) % FLAGS.checkpoint_freq == 0:
-                        save_path = saver.save(sess=sess, save_path=FLAGS.checkpoint_dir + "/lstmnet_rnd{}.ckpt".format(
-                                                   str(rnd).zfill(2)), global_step=step)
+
+                        # Define checkpoint_dir
+                        checkpoint_dir = './LSTM/checkpoints/S{}/{}/'.format(str(FLAGS.subject).zfill(2),
+                                                                             FLAGS.path_specificities)
+                        if not tf.gfile.Exists(checkpoint_dir):
+                            tf.gfile.MakeDirs(checkpoint_dir)
+
+                        save_path = saver.save(sess=sess, save_path=checkpoint_dir + "lstmnet_rnd{}.ckpt".format(
+                            str(rnd).zfill(2)), global_step=step)
                         print("Model saved in file: %s" % save_path)
 
                     # End Timer
@@ -440,7 +452,7 @@ def train_lstm():
                 loss_acc_lists = [train_loss_list, train_acc_list, val_acc_list, val_loss_list]
                 loss_acc_lists_names = ["train_loss_list", "train_acc_list", "val_acc_list", "val_loss_list"]
                 for list_idx, liste in enumerate(loss_acc_lists):
-                    with open(FLAGS.log_dir + str(s_fold_idx) + "/{}.txt".format(loss_acc_lists_names[list_idx]), "w") \
+                    with open(logdir + str(s_fold_idx) + "/{}.txt".format(loss_acc_lists_names[list_idx]), "w") \
                             as list_file:
                         for value in liste:
                             list_file.write(str(value) + "\n")
@@ -455,9 +467,13 @@ def train_lstm():
     print("Average accuracy across all {} validation set: {:.3f}".format(FLAGS.s_fold, np.mean(all_acc_val)))
 
     # Save training information in Textfile
-    with open(FLAGS.sub_dir + "{}S{}_accuracy_across_{}_folds.txt".format(time.strftime('%y_%m_%d_'),
-                                                                          FLAGS.subject,
-                                                                          FLAGS.s_fold), "w") as file:
+    # Define sub_dir
+    sub_dir = "./LSTM/S{}/{}/".format(str(FLAGS.subject).zfill(2), FLAGS.path_specificities)
+    if not tf.gfile.Exists(sub_dir):
+        tf.gfile.MakeDirs(sub_dir)
+
+    with open(sub_dir + "{}S{}_accuracy_across_{}_folds.txt".format(time.strftime('%Y_%m_%d_'), FLAGS.subject,
+                                                                    FLAGS.s_fold), "w") as file:
         file.write("Subject {}\nHilbert_z-Power: {}\ns-Fold: {}\nmax_step: {}\nrepetition_set: {}\nlearning_rate: {}"
                    "\nbatch_size: {}\nbatch_random: {}\nweight_reg: {}({})\nact_fct: {}"
                    "\nlstm_h_size: {}\n".format(FLAGS.subject, FLAGS.hilbert_power, FLAGS.s_fold, int(FLAGS.max_steps),
@@ -470,12 +486,11 @@ def train_lstm():
             file.write(["S-Fold(Round): ", "Validation-Acc: ", "mean(Accuracy): "][i] + str(item)+"\n")
 
     # Save Prediction Matrices in File
-    np.savetxt(FLAGS.sub_dir + "{}S{}_pred_matrix_{}_folds.csv".format(time.strftime('%y_%m_%d_'), FLAGS.subject,
-                                                                       FLAGS.s_fold), pred_matrix, delimiter=",")
+    np.savetxt(sub_dir + "{}S{}_pred_matrix_{}_folds.csv".format(time.strftime('%Y_%m_%d_'), FLAGS.subject,
+                                                                 FLAGS.s_fold), pred_matrix, delimiter=",")
 
-    np.savetxt(FLAGS.sub_dir + "{}S{}_val_pred_matrix_{}_folds.csv".format(time.strftime('%y_%m_%d_'), FLAGS.subject,
-                                                                           FLAGS.s_fold),
-               val_pred_matrix, delimiter=",")
+    np.savetxt(sub_dir + "{}S{}_val_pred_matrix_{}_folds.csv".format(time.strftime('%Y_%m_%d_'), FLAGS.subject,
+                                                                     FLAGS.s_fold), val_pred_matrix, delimiter=",")
 
 
 def fill_pred_matrix(pred, y, current_mat, s_idx, current_batch, sfold, train=True):
@@ -539,17 +554,9 @@ def initialize_folders():
     """
     Initializes all folders in FLAGS variable.
     """
-    if not tf.gfile.Exists(FLAGS.sub_dir):
-        tf.gfile.MakeDirs(FLAGS.sub_dir)
-
-    if not tf.gfile.Exists(FLAGS.log_dir):
-        tf.gfile.MakeDirs(FLAGS.log_dir)
-
-    if not tf.gfile.Exists(FLAGS.data_dir):
-        tf.gfile.MakeDirs(FLAGS.data_dir)
-
-    if not tf.gfile.Exists(FLAGS.checkpoint_dir):
-        tf.gfile.MakeDirs(FLAGS.checkpoint_dir)
+    path = ".some/random/path"
+    if not tf.gfile.Exists(path):
+        tf.gfile.MakeDirs(path)
 
 
 def print_flags():
@@ -563,9 +570,10 @@ def print_flags():
 def main(_):
     print_flags()
 
-    initialize_folders()
+    # initialize_folders()
 
     print("FLAGS.is_train is boolean:", isinstance(FLAGS.is_train, bool))
+    print("FLAGS.plot is boolean:", isinstance(FLAGS.plot, bool))
 
     # if eval(FLAGS.is_train):
     if FLAGS.is_train:
@@ -577,6 +585,9 @@ def main(_):
         pass
         # print("I run now feature_extraction()")
         # feature_extraction(layer=FLAGS.layer_feat_extr)
+
+    if FLAGS.plot:
+        subprocess.Popen(["python3", "LSTM_pred_plot.py", '/', 'True'])
 
 
 if __name__ == '__main__':
@@ -597,14 +608,8 @@ if __name__ == '__main__':
                         help='Frequency of evaluation on the test set')
     parser.add_argument('--checkpoint_freq', type=int, default=CHECKPOINT_FREQ_DEFAULT,
                         help='Frequency with which the model state is saved.')
-    parser.add_argument('--data_dir', type=str, default=DATA_DIR_DEFAULT,
-                        help='Directory for storing input data')
-    parser.add_argument('--log_dir', type=str, default=LOG_DIR_DEFAULT,
-                        help='Summaries log directory')
-    parser.add_argument('--sub_dir', type=str, default=SUB_DIR_DEFAULT,
-                        help='Summaries per Subject')
-    parser.add_argument('--checkpoint_dir', type=str, default=CHECKPOINT_DIR_DEFAULT,
-                        help='Checkpoint directory')
+    parser.add_argument('--path_specificities', type=str, default=PATH_SPECIFICITIES_DEFAULT,
+                        help='Specificities for the paths (depending on model-setups)')
     parser.add_argument('--is_train', type=str, default=True,
                         help='Training or feature extraction')
     parser.add_argument('--train_model', type=str, default='lstm',
@@ -635,6 +640,8 @@ if __name__ == '__main__':
                         help='Whether to write summaries of tf variables')
     parser.add_argument('--fc_n_hidden', type=str, default=FC_NUM_HIDDEN_UNITS,
                         help="Comma separated list of number of hidden units in each fully connected (fc) layer")
+    parser.add_argument('--plot', type=str, default=PLOT_DEFAULT,
+                        help="Whether to plot results and save them.")
     # parser.add_argument('--layer_feat_extr', type=str, default="fc2",
     #                     help='Choose layer for feature extraction')
 
