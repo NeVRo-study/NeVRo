@@ -587,7 +587,8 @@ def main(_):
         # feature_extraction(layer=FLAGS.layer_feat_extr)
 
     if FLAGS.plot:
-        subprocess.Popen(["python3", "LSTM_pred_plot.py", '/', 'True'])
+        # ["python3", "LSTM_pred_plot.py", Debug='False', Save_plots='True', Path specificities]
+        subprocess.Popen(["python3", "LSTM_pred_plot.py", 'False', 'True', FLAGS.path_specificities])
 
 
 if __name__ == '__main__':

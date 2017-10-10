@@ -33,9 +33,9 @@
 
 # Testing
 # python3 NeVRo.py --summaries False
-# python3 LSTM_pred_plot.py Folder Save_plots
-# python3 LSTM_pred_plot.py / False
-# python3 LSTM_pred_plot.py /debug/ True
+# python3 LSTM_pred_plot.py Debug Save_plots Path_Specificities(empty or 'subfolder/')
+# python3 LSTM_pred_plot.py False False
+# python3 LSTM_pred_plot.py True True lstm-150_fc-150/
 
 python3 NeVRo.py --subject 36 --lstm_size 150 50 --summaries False --plot False --path_specificities lstm-150-50/
 python3 NeVRo.py --subject 36 --lstm_size 150 --fc_n_hidden 150 --summaries False --plot True --path_specificities lstm-150_fc-150/

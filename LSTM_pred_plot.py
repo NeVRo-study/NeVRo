@@ -5,7 +5,6 @@ Plot predictions made by the LSTM model
 Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017
 """
 
-import os.path
 import matplotlib.pyplot as plt
 from Meta_Functions import *
 from tensorflow import gfile
@@ -23,10 +22,13 @@ try:
     try:
         int(debug)
         debug = "/debug/" if debug_plot() else "/"
+        script_external_exe = False
     except ValueError:
-        pass
+        debug = "/debug/" if "True" in debug else "/"
+        script_external_exe = True
 except IndexError:
     debug = "/debug/" if debug_plot() else "/"
+    script_external_exe = True
 
 
 # Save plot
@@ -46,6 +48,20 @@ except IndexError:
     plots = save_request()
 
 
+if script_external_exe:
+    try:
+        path_specificity = sys.argv[3]
+    except IndexError:
+        path_specificity = ""
+else:
+    path_specificity = input("Provide specific subfolder (if any), in form 'subfolder/': ")
+
+print("\nExternal:", script_external_exe)
+print("path_specificity:", path_specificity)
+print("\n")
+
+assert path_specificity == "" or path_specificity[-1] == "/", "path_specificity must be either empty or end with '/'"
+
 subjects = [36]
 wdic = "./LSTM"
 wdic_plot = "../../Results/Plots/LSTM/"
@@ -53,8 +69,8 @@ wdic_lists = wdic + "/logs" + debug
 lw = 0.5  # linewidth
 
 for subject in subjects:
-    wdic_sub = wdic + debug + "S{}/".format(str(subject).zfill(2))
-    wdic_lists_sub = wdic_lists + "S{}/".format(str(subject).zfill(2))
+    wdic_sub = wdic + debug + "S{}/{}".format(str(subject).zfill(2), path_specificity)
+    wdic_lists_sub = wdic_lists + "S{}/{}".format(str(subject).zfill(2), path_specificity)
 
     # Find correct files (csv-tables)
     for file in os.listdir(wdic_sub):
@@ -298,3 +314,6 @@ for subject in subjects:
                                     + "_S" + new_file_name.split("_S")[1]
                     abc = string.ascii_lowercase[abc_counter]
                     abc_counter += 1
+
+        # open folder
+        open_folder(wdic_plot)

@@ -9,6 +9,9 @@ import datetime
 from functools import wraps
 import numpy as np
 import sys
+import subprocess
+import platform
+import os
 
 
 # Timer
@@ -178,3 +181,13 @@ def true_false_request(func):
         output = True if tof.lower() in "true" else False
         return output
     return func_wrapper
+
+
+def open_folder(path):
+    """Open specific folder in Finder. Can also be a file"""
+    if platform.system() == "Windows":
+        os.startfile(path)
+    elif platform.system() == 'Darwin':  # ≈ sys.platform = 'darwin'
+        subprocess.Popen(["open", path])
+    else:
+        subprocess.Popen(["xdg-open", path])
