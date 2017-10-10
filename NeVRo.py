@@ -465,6 +465,7 @@ def train_lstm():
                                                 FLAGS.rand_batch, FLAGS.weight_reg, FLAGS.weight_reg_strength,
                                                 FLAGS.activation_fct, FLAGS.lstm_size))
         rnd_all_acc_val = ["{:.3f}".format(np.round(acc, 3)) for acc in all_acc_val]  # rounding for the export
+        rnd_all_acc_val = [float(acc) for acc in rnd_all_acc_val]  # cleaning
         for i, item in enumerate([s_fold_idx_list, rnd_all_acc_val, np.mean(all_acc_val)]):
             file.write(["S-Fold(Round): ", "Validation-Acc: ", "mean(Accuracy): "][i] + str(item)+"\n")
 

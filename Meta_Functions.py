@@ -164,5 +164,16 @@ def create_s_fold_idx(s_folds, list_prev_indices=[]):
 #     s_idx, list_indices = create_s_fold_idx(s_folds=10, list_prev_indices=list_indices)
 # len(list_indices)
 
+
 def clear():
     print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
+
+
+def true_false_request(func):
+    def func_wrapper():
+        func()
+        tof = input("(T)rue or (F)alse: ")
+        assert tof.lower() in "true" or tof.lower() in "false", "Must be 'T', 't' or 'T/true', or 'F', 'f', 'F/false'"
+        output = True if tof.lower() in "true" else False
+        return output
+    return func_wrapper
