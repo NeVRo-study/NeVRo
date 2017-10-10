@@ -27,7 +27,7 @@ LEARNING_RATE_DEFAULT = 1e-4  # 1e-2
 BATCH_SIZE_DEFAULT = 9  # or bigger
 RANDOM_BATCH_DEFAULT = True
 S_FOLD_DEFAULT = 10
-REPETITION_SCALAR_DEFAULT = 500  # scaler for how many times it should run through set (can be also fraction)
+REPETITION_SCALAR_DEFAULT = 250  # scaler for how many times it should run through set (can be also fraction)
 MAX_STEPS_DEFAULT = REPETITION_SCALAR_DEFAULT*(270 - 270/S_FOLD_DEFAULT)/BATCH_SIZE_DEFAULT  # runs x-times throug set
 assert float(MAX_STEPS_DEFAULT).is_integer(), "max steps must be integer"
 EVAL_FREQ_DEFAULT = (S_FOLD_DEFAULT - 1)/BATCH_SIZE_DEFAULT  # == MAX_STEPS_DEFAULT / (270/S_FOLD_DEFAULT)
@@ -41,7 +41,7 @@ ACTIVATION_FCT_DEFAULT = 'elu'
 MARGIN_DEFAULT = 0.2
 LOSS_DEFAULT = "normal"
 FEAT_STEP_DEFAULT = CHECKPOINT_FREQ_DEFAULT-1
-LSTM_SIZE_DEFAULT = '10, 10'  # number of hidden units per LSTM layer, e.g., '10, 5' would create second lstm_layer
+LSTM_SIZE_DEFAULT = '50, 10'  # number of hidden units per LSTM layer, e.g., '10, 5' would create second lstm_layer
 FC_NUM_HIDDEN_UNITS = None  # if len(n_hidden_units)>0, create len(n_hidden_units) layers
 HILBERT_POWER_INPUT_DEFAULT = True
 SUMMARIES_DEFAULT = True
@@ -464,7 +464,7 @@ def train_lstm():
                                                 FLAGS.repet_scalar, FLAGS.learning_rate, FLAGS.batch_size,
                                                 FLAGS.rand_batch, FLAGS.weight_reg, FLAGS.weight_reg_strength,
                                                 FLAGS.activation_fct, FLAGS.lstm_size))
-        rnd_all_acc_val = [np.round(acc, 3) for acc in all_acc_val]  # rounding for the export
+        rnd_all_acc_val = ["{:.3f}".format(np.round(acc, 3)) for acc in all_acc_val]  # rounding for the export
         for i, item in enumerate([s_fold_idx_list, rnd_all_acc_val, np.mean(all_acc_val)]):
             file.write(["S-Fold(Round): ", "Validation-Acc: ", "mean(Accuracy): "][i] + str(item)+"\n")
 

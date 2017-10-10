@@ -36,14 +36,14 @@ for subject in subjects:
     val_pred_matrix = np.loadtxt(wdic_sub + val_filename, delimiter=",")
 
     # Import accuracies
-    acc_date = np.loadtxt(wdic_sub + acc_filename, dtype=str, delimiter=",")
+    acc_date = np.loadtxt(wdic_sub + acc_filename, dtype=str, delimiter=";")  # Check (before ",")
     for info in acc_date:
 
         if "S-Fold(Round):" in info:
             s_rounds = np.array(list(map(int, info.split(": [")[1][0:-1].split(" "))))
 
         elif "Validation-Acc:" in info:
-            val_acc = info.split(": ")[1].split("  ")
+            val_acc = info.split(": ")[1].split(", ")  # Check (before "  ")
             v = []
             for i, item in enumerate(val_acc):
                 if i == 0:  # first
