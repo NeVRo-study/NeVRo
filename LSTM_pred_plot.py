@@ -4,8 +4,8 @@ Plot predictions made by the LSTM model
 
 Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017
 """
-# import matplotlib
-# matplotlib.use('Agg')
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from Meta_Functions import *
 from tensorflow import gfile
