@@ -23,8 +23,6 @@ from LSTMnet import LSTMnet
 
 # TODO (time-)length per sample is hyperparameter: try also lengths >1sec(=250datapoins)
 
-# TODO adapt *.txt for fc-size
-
 # TODO Define Default Values dependencies
 LEARNING_RATE_DEFAULT = 1e-4  # 1e-2
 BATCH_SIZE_DEFAULT = 9  # or bigger
@@ -478,10 +476,12 @@ def train_lstm():
                                                                     FLAGS.s_fold), "w") as file:
         file.write("Subject {}\nHilbert_z-Power: {}\ns-Fold: {}\nmax_step: {}\nrepetition_set: {}\nlearning_rate: {}"
                    "\nbatch_size: {}\nbatch_random: {}\nweight_reg: {}({})\nact_fct: {}"
-                   "\nlstm_h_size: {}\n".format(FLAGS.subject, FLAGS.hilbert_power, FLAGS.s_fold, int(FLAGS.max_steps),
-                                                FLAGS.repet_scalar, FLAGS.learning_rate, FLAGS.batch_size,
-                                                FLAGS.rand_batch, FLAGS.weight_reg, FLAGS.weight_reg_strength,
-                                                FLAGS.activation_fct, FLAGS.lstm_size))
+                   "\nlstm_h_size: {}\nn_hidden_units: {}\n".format(FLAGS.subject, FLAGS.hilbert_power, FLAGS.s_fold,
+                                                                    int(FLAGS.max_steps), FLAGS.repet_scalar,
+                                                                    FLAGS.learning_rate, FLAGS.batch_size,
+                                                                    FLAGS.rand_batch, FLAGS.weight_reg,
+                                                                    FLAGS.weight_reg_strength, FLAGS.activation_fct,
+                                                                    FLAGS.lstm_size, n_hidden_units))
         rnd_all_acc_val = ["{:.3f}".format(np.round(acc, 3)) for acc in all_acc_val]  # rounding for the export
         rnd_all_acc_val = [float(acc) for acc in rnd_all_acc_val]  # cleaning
         for i, item in enumerate([s_fold_idx_list, rnd_all_acc_val, np.mean(all_acc_val)]):
