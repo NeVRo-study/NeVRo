@@ -56,10 +56,6 @@ if script_external_exe:
 else:
     path_specificity = input("Provide specific subfolder (if any), in form 'subfolder/': ")
 
-print("\nExternal:", script_external_exe)
-print("path_specificity:", path_specificity)
-print("\n")
-
 assert path_specificity == "" or path_specificity[-1] == "/", "path_specificity must be either empty or end with '/'"
 
 subjects = [36]

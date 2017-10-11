@@ -23,6 +23,8 @@ from LSTMnet import LSTMnet
 
 # TODO (time-)length per sample is hyperparameter: try also lengths >1sec(=250datapoins)
 
+# TODO adapt *.txt for fc-size
+
 # TODO Define Default Values dependencies
 LEARNING_RATE_DEFAULT = 1e-4  # 1e-2
 BATCH_SIZE_DEFAULT = 9  # or bigger

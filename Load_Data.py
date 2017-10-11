@@ -618,7 +618,10 @@ def read_data_sets(subject, component, s_fold_idx, s_fold=10, cond="NoMov", sba=
         # print("I load Hilbert transformed data (z-power)")
 
         def calc_hilbert_z_power(array):
-            """square(abs(complex number)) = power = squarred length of complex number, see: Cohen (2014, p.160-2)"""
+            """
+            square(abs(complex number)) = power = squarred length of complex number, see: Cohen (2014, p.160-2)
+            Do on narrow-band data (alpha-filtered)
+            """
             analytical_signal = hilbert(array)
             amplitude_envelope = np.abs(analytical_signal)
             power = np.square(amplitude_envelope)
