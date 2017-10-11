@@ -4,11 +4,16 @@ Plot predictions made by the LSTM model
 
 Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017
 """
-
+# import matplotlib
+# matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from Meta_Functions import *
 from tensorflow import gfile
 import string
+
+# TODO include plt.ioff() or matplotlib.use('pdf') or matplotlib.use('Agg') for server
+# https://stackoverflow.com/questions/2443702/problem-running-python-matplotlib-in-background-after-ending-ssh-session
+# https://stackoverflow.com/questions/19518352/tkinter-tclerror-couldnt-connect-to-display-localhost18-0
 
 
 # Debug Mode
