@@ -28,7 +28,7 @@ LEARNING_RATE_DEFAULT = 1e-4  # 1e-2
 BATCH_SIZE_DEFAULT = 9  # or bigger
 RANDOM_BATCH_DEFAULT = True
 S_FOLD_DEFAULT = 10
-REPETITION_SCALAR_DEFAULT = 1  # scaler for how many times it should run through set (can be also fraction)
+REPETITION_SCALAR_DEFAULT = 2  # scaler for how many times it should run through set (can be also fraction)
 MAX_STEPS_DEFAULT = REPETITION_SCALAR_DEFAULT*(270 - 270/S_FOLD_DEFAULT)/BATCH_SIZE_DEFAULT  # runs x-times throug set
 assert float(MAX_STEPS_DEFAULT).is_integer(), "max steps must be integer"
 EVAL_FREQ_DEFAULT = (S_FOLD_DEFAULT - 1)/BATCH_SIZE_DEFAULT  # == MAX_STEPS_DEFAULT / (270/S_FOLD_DEFAULT)
@@ -482,7 +482,7 @@ def train_lstm():
                                                                     FLAGS.learning_rate, FLAGS.batch_size,
                                                                     FLAGS.rand_batch, FLAGS.weight_reg,
                                                                     FLAGS.weight_reg_strength, FLAGS.activation_fct,
-                                                                    FLAGS.lstm_size, n_hidden_units))
+                                                                    FLAGS.lstm_size, str(n_hidden_units)))
         rnd_all_acc_val = ["{:.3f}".format(np.round(acc, 3)) for acc in all_acc_val]  # rounding for the export
         rnd_all_acc_val = [float(acc) for acc in rnd_all_acc_val]  # cleaning
         for i, item in enumerate([s_fold_idx_list, rnd_all_acc_val, np.mean(all_acc_val)]):
