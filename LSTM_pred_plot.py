@@ -4,16 +4,18 @@ Plot predictions made by the LSTM model
 
 Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017
 """
+
 from Meta_Functions import *
+from tensorflow import gfile
+import string
 if platform.system() != 'Darwin':
     import matplotlib
     matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-from tensorflow import gfile
-import string
+    import matplotlib.pyplot as plt
+else:
+    import matplotlib.pyplot as plt
 
-# TODO matplotlib.use('Agg') for server
-# TODO change to matplotlib.use('Agg') if MPI server
+
 # TODO adapt PATH_SPECIFICITIES_DEFAULT when opened from terminal (at least MPI)
 
 
