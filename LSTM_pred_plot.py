@@ -197,10 +197,12 @@ for subject in subjects:
     fig.show()
 
     if plots:
-        plot_filename = "{}{}_{}{}*{}({})_{}-Folds_|_S{}_|_1Hz.png".format(file_name[0:10], abc,
-                                                                           "Hilbert_" if hilb else "",
-                                                                           reps, "rnd-batch" if rnd_batch else "",
-                                                                           batch_size, s_fold, str(subject).zfill(2))
+        plot_filename = "{}{}_{}{}*{}({})_{}-Folds_|_S{}_|_1Hz_|_{}.png".format(file_name[0:10], abc,
+                                                                                "Hilbert_" if hilb else "",
+                                                                                reps, "rnd-batch" if rnd_batch else "",
+                                                                                batch_size, s_fold,
+                                                                                str(subject).zfill(2),
+                                                                                path_specificity[:-1])
         fig.savefig(wdic_plot + plot_filename)
 
     # # Plot accuracy-trajectories
@@ -239,11 +241,14 @@ for subject in subjects:
 
     # Plot
     if plots:
-        plot_filename = "{}{}_{}{}*{}({})_{}-Folds_Accuracies_|_S{}_|_1Hz.png".format(file_name[0:10], abc,
-                                                                                      "Hilbert_" if hilb else "", reps,
-                                                                                      "rnd-batch" if rnd_batch
-                                                                                      else "", batch_size, s_fold,
-                                                                                      str(subject).zfill(2))
+        plot_filename = "{}{}_{}{}*{}({})_{}-Folds_Accuracies_|_S{}_|_1Hz_|_{}.png".format(file_name[0:10], abc,
+                                                                                           "Hilbert_" if hilb else "",
+                                                                                           reps,
+                                                                                           "rnd-batch" if rnd_batch else
+                                                                                           "", batch_size, s_fold,
+                                                                                           str(subject).zfill(2),
+                                                                                           path_specificity[:-1])
+
         fig2.savefig(wdic_plot + plot_filename)
 
     # # Plot loss-trajectories
@@ -280,11 +285,13 @@ for subject in subjects:
 
     # Plot
     if plots:
-        plot_filename = "{}{}_{}{}*{}({})_{}-Folds_Loss_|_S{}_|_1Hz.png".format(file_name[0:10], abc,
-                                                                                "Hilbert_" if hilb else "", reps,
-                                                                                "rnd-batch" if rnd_batch else "",
-                                                                                batch_size, s_fold,
-                                                                                str(subject).zfill(2))
+        plot_filename = "{}{}_{}{}*{}({})_{}-Folds_Loss_|_S{}_|_1Hz_|_{}.png".format(file_name[0:10], abc,
+                                                                                     "Hilbert_" if hilb else "", reps,
+                                                                                     "rnd-batch" if rnd_batch else "",
+                                                                                     batch_size, s_fold,
+                                                                                     str(subject).zfill(2),
+                                                                                     path_specificity[:-1])
+
         fig3.savefig(wdic_plot + plot_filename)
 
 

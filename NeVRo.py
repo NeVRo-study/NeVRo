@@ -24,7 +24,7 @@ from LSTMnet import LSTMnet
 # TODO (time-)length per sample is hyperparameter: try also lengths >1sec(=250datapoins)
 
 # TODO Define Default Values dependencies
-LEARNING_RATE_DEFAULT = 1e-4  # 1e-2
+LEARNING_RATE_DEFAULT = 1e-3  # 1e-
 BATCH_SIZE_DEFAULT = 9  # or bigger
 RANDOM_BATCH_DEFAULT = True
 S_FOLD_DEFAULT = 10
@@ -39,13 +39,13 @@ OPTIMIZER_DEFAULT = 'ADAM'
 WEIGHT_REGULARIZER_DEFAULT = 'l2'
 WEIGHT_REGULARIZER_STRENGTH_DEFAULT = 0.18
 ACTIVATION_FCT_DEFAULT = 'elu'
-MARGIN_DEFAULT = 0.2
-LOSS_DEFAULT = "normal"
+MARGIN_DEFAULT = 0.2  # is not used yet
+LOSS_DEFAULT = "normal"  # is not used yet
 FEAT_STEP_DEFAULT = CHECKPOINT_FREQ_DEFAULT-1
-LSTM_SIZE_DEFAULT = '50, 10'  # number of hidden units per LSTM layer, e.g., '10, 5' would create second lstm_layer
+LSTM_SIZE_DEFAULT = '100'  # number of hidden units per LSTM layer, e.g., '10, 5' would create second lstm_layer
 FC_NUM_HIDDEN_UNITS = None  # if len(n_hidden_units)>0, create len(n_hidden_units) layers
 HILBERT_POWER_INPUT_DEFAULT = True
-SUMMARIES_DEFAULT = True
+SUMMARIES_DEFAULT = False
 PLOT_DEFAULT = False
 
 SUBJECT_DEFAULT = 36
@@ -394,7 +394,7 @@ def train_lstm():
 
                         # Define checkpoint_dir
                         checkpoint_dir = './LSTM/checkpoints/S{}/{}'.format(str(FLAGS.subject).zfill(2),
-                                                                             FLAGS.path_specificities)
+                                                                            FLAGS.path_specificities)
                         if not tf.gfile.Exists(checkpoint_dir):
                             tf.gfile.MakeDirs(checkpoint_dir)
 
