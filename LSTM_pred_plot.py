@@ -4,16 +4,19 @@ Plot predictions made by the LSTM model
 
 Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017
 """
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
 from Meta_Functions import *
+# if platform.system() != 'Darwin':
+#     import matplotlib
+#     matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 from tensorflow import gfile
 import string
 
 # TODO include plt.ioff() or matplotlib.use('pdf') or matplotlib.use('Agg') for server
+# TODO change to matplotlib.use('Agg') if MPI server
 # https://stackoverflow.com/questions/2443702/problem-running-python-matplotlib-in-background-after-ending-ssh-session
 # https://stackoverflow.com/questions/19518352/tkinter-tclerror-couldnt-connect-to-display-localhost18-0
+# TODO adapt PATH_SPECIFICITIES_DEFAULT when opened from terminal (at least MPI)
 
 
 # Debug Mode
@@ -34,6 +37,11 @@ try:
 except IndexError:
     debug = "/debug/" if debug_plot() else "/"
     script_external_exe = True
+
+
+# TODO If script started from Server/Terminal (check)
+if script_external_exe:
+    plt.ioff()  # switch of interactive mode
 
 
 # Save plot

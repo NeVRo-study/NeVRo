@@ -37,9 +37,9 @@
 # python3 LSTM_pred_plot.py False False
 # python3 LSTM_pred_plot.py True True lstm-150_fc-150/
 
-# python3 NeVRo.py --subject 36 --lstm_size 150,50 --summaries False --plot True --path_specificities lstm-150-50/
-# python3 NeVRo.py --subject 36 --lstm_size 150 --fc_n_hidden 150 --summaries False --plot True --path_specificities lstm-150_fc-150/
-python3 NeVRo.py --subject 36 --lstm_size 150,100 --summaries False --plot False --path_specificities lstm-150-100/
+python3 NeVRo.py --subject 36 --lstm_size 150,50 --summaries False --plot True --path_specificities lstm-150-50/
+python3 NeVRo.py --subject 36 --lstm_size 150 --fc_n_hidden 100 --summaries False --plot True --path_specificities lstm-150_fc-100/
+# python3 NeVRo.py --subject 36 --lstm_size 150,100 --fc_n_hidden 100 --summaries True --plot True --path_specificities lstm-150-100_fc-150/
 
 
 
