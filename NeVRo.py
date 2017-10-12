@@ -248,7 +248,8 @@ def train_lstm():
                 merged = tf.summary.merge_all()
 
                 # Define logdir
-                logdir = './LSTM/logs/S{}/{}/'.format(str(FLAGS.subject).zfill(2), FLAGS.path_specificities)
+                logdir = './LSTM/logs/S{}/{}'.format(str(FLAGS.subject).zfill(2), FLAGS.path_specificities)
+
                 if not tf.gfile.Exists(logdir):
                     tf.gfile.MakeDirs(logdir)
 
@@ -392,7 +393,7 @@ def train_lstm():
                     if (step + 1) % FLAGS.checkpoint_freq == 0:
 
                         # Define checkpoint_dir
-                        checkpoint_dir = './LSTM/checkpoints/S{}/{}/'.format(str(FLAGS.subject).zfill(2),
+                        checkpoint_dir = './LSTM/checkpoints/S{}/{}'.format(str(FLAGS.subject).zfill(2),
                                                                              FLAGS.path_specificities)
                         if not tf.gfile.Exists(checkpoint_dir):
                             tf.gfile.MakeDirs(checkpoint_dir)
@@ -468,7 +469,7 @@ def train_lstm():
 
     # Save training information in Textfile
     # Define sub_dir
-    sub_dir = "./LSTM/S{}/{}/".format(str(FLAGS.subject).zfill(2), FLAGS.path_specificities)
+    sub_dir = "./LSTM/S{}/{}".format(str(FLAGS.subject).zfill(2), FLAGS.path_specificities)
     if not tf.gfile.Exists(sub_dir):
         tf.gfile.MakeDirs(sub_dir)
 
