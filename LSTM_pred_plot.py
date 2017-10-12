@@ -5,14 +5,14 @@ Plot predictions made by the LSTM model
 Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017
 """
 from Meta_Functions import *
-# if platform.system() != 'Darwin':
-#     import matplotlib
-#     matplotlib.use('Agg')
+if platform.system() != 'Darwin':
+    import matplotlib
+    matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from tensorflow import gfile
 import string
 
-# TODO include plt.ioff() or matplotlib.use('pdf') or matplotlib.use('Agg') for server
+# TODO matplotlib.use('Agg') for server
 # TODO change to matplotlib.use('Agg') if MPI server
 # TODO adapt PATH_SPECIFICITIES_DEFAULT when opened from terminal (at least MPI)
 
@@ -37,12 +37,6 @@ except IndexError:
     script_external_exe = True
 
 
-# TODO If script started from Server/Terminal (check)
-if script_external_exe:
-    plt.ioff()  # switch of interactive mode
-    print("Interactive mode on:", plt.isinteractive())
-
-
 # Save plot
 @true_false_request
 def save_request():
@@ -64,7 +58,8 @@ if script_external_exe:
     try:
         path_specificity = sys.argv[3]
     except IndexError:
-        path_specificity = ""
+        path_specificity = ""  # this way path given via terminal, e.g., python3 LSTM_pred_plot.py False False lstm-150
+
 else:
     path_specificity = input("Provide specific subfolder (if any), in form 'subfolder/': ")
 
