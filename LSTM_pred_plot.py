@@ -16,9 +16,6 @@ else:
     import matplotlib.pyplot as plt
 
 
-# TODO adapt PATH_SPECIFICITIES_DEFAULT when opened from terminal (at least MPI)
-
-
 # Debug Mode
 @true_false_request
 def debug_plot():
