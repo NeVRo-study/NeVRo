@@ -473,8 +473,10 @@ def train_lstm():
     if not tf.gfile.Exists(sub_dir):
         tf.gfile.MakeDirs(sub_dir)
 
-    with open(sub_dir + "{}S{}_accuracy_across_{}_folds.txt".format(time.strftime('%Y_%m_%d_'), FLAGS.subject,
-                                                                    FLAGS.s_fold), "w") as file:
+    with open(sub_dir + "{}S{}_accuracy_across_{}_folds_{}.txt".format(time.strftime('%Y_%m_%d_'),
+                                                                       FLAGS.subject,
+                                                                       FLAGS.s_fold,
+                                                                       FLAGS.path_specificities[:-1]), "w") as file:
         file.write("Subject {}\nHilbert_z-Power: {}\ns-Fold: {}\nmax_step: {}\nrepetition_set: {}\nlearning_rate: {}"
                    "\nbatch_size: {}\nbatch_random: {}\nweight_reg: {}({})\nact_fct: {}"
                    "\nlstm_h_size: {}\nn_hidden_units: {}\n".format(FLAGS.subject, FLAGS.hilbert_power, FLAGS.s_fold,
@@ -489,11 +491,13 @@ def train_lstm():
             file.write(["S-Fold(Round): ", "Validation-Acc: ", "mean(Accuracy): "][i] + str(item)+"\n")
 
     # Save Prediction Matrices in File
-    np.savetxt(sub_dir + "{}S{}_pred_matrix_{}_folds.csv".format(time.strftime('%Y_%m_%d_'), FLAGS.subject,
-                                                                 FLAGS.s_fold), pred_matrix, delimiter=",")
+    np.savetxt(sub_dir + "{}S{}_pred_matrix_{}_folds_{}.csv".format(time.strftime('%Y_%m_%d_'), FLAGS.subject,
+                                                                   FLAGS.s_fold, FLAGS.path_specificities[:-1]),
+               pred_matrix, delimiter=",")
 
-    np.savetxt(sub_dir + "{}S{}_val_pred_matrix_{}_folds.csv".format(time.strftime('%Y_%m_%d_'), FLAGS.subject,
-                                                                     FLAGS.s_fold), val_pred_matrix, delimiter=",")
+    np.savetxt(sub_dir + "{}S{}_val_pred_matrix_{}_folds_{}.csv".format(time.strftime('%Y_%m_%d_'), FLAGS.subject,
+                                                                       FLAGS.s_fold, FLAGS.path_specificities[:-1]),
+               val_pred_matrix, delimiter=",")
 
 
 def fill_pred_matrix(pred, y, current_mat, s_idx, current_batch, sfold, train=True):
