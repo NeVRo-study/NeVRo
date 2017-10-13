@@ -197,12 +197,11 @@ for subject in subjects:
     fig.show()
 
     if plots:
-        plot_filename = "{}{}_{}{}*{}({})_{}-Folds_|_S{}_|_1Hz_|_{}.png".format(file_name[0:10], abc,
-                                                                                "Hilbert_" if hilb else "",
-                                                                                reps, "rnd-batch" if rnd_batch else "",
-                                                                                batch_size, s_fold,
-                                                                                str(subject).zfill(2),
-                                                                                path_specificity[:-1])
+        plot_filename = "{}{}_|{}{}*{}({})_|_{}-Folds_|_S{}_|_mean(val_acc)_{:.2f}_|_{}.png".format(
+            file_name[0:10], abc, "_Hilbert_" if hilb else "_", int(reps),
+            "rnd-batch" if rnd_batch else "subsequent-batch", batch_size, s_fold, str(subject).zfill(2), mean_acc,
+            path_specificity[:-1])
+
         fig.savefig(wdic_plot + plot_filename)
 
     # # Plot accuracy-trajectories
@@ -241,13 +240,10 @@ for subject in subjects:
 
     # Plot
     if plots:
-        plot_filename = "{}{}_{}{}*{}({})_{}-Folds_Accuracies_|_S{}_|_1Hz_|_{}.png".format(file_name[0:10], abc,
-                                                                                           "Hilbert_" if hilb else "",
-                                                                                           reps,
-                                                                                           "rnd-batch" if rnd_batch else
-                                                                                           "", batch_size, s_fold,
-                                                                                           str(subject).zfill(2),
-                                                                                           path_specificity[:-1])
+        plot_filename = "{}{}_|{}{}*{}({})_|_{}-Folds_|_Accuracies_|_S{}_|_mean(val_acc)_{:.2f}_|_{}.png".format(
+            file_name[0:10], abc, "_Hilbert_" if hilb else "_", int(reps),
+            "rnd-batch" if rnd_batch else "subsequent-batch", batch_size, s_fold, str(subject).zfill(2), mean_acc,
+            path_specificity[:-1])
 
         fig2.savefig(wdic_plot + plot_filename)
 
@@ -285,12 +281,10 @@ for subject in subjects:
 
     # Plot
     if plots:
-        plot_filename = "{}{}_{}{}*{}({})_{}-Folds_Loss_|_S{}_|_1Hz_|_{}.png".format(file_name[0:10], abc,
-                                                                                     "Hilbert_" if hilb else "", reps,
-                                                                                     "rnd-batch" if rnd_batch else "",
-                                                                                     batch_size, s_fold,
-                                                                                     str(subject).zfill(2),
-                                                                                     path_specificity[:-1])
+        plot_filename = "{}{}_|{}{}*{}({})_|_{}-Folds_|_Loss_|_S{}_|_mean(val_acc)_{:.2f}_|_{}.png".format(
+            file_name[0:10], abc, "_Hilbert_" if hilb else "_", int(reps),
+            "rnd-batch" if rnd_batch else "subsequent-batch", batch_size, s_fold, str(subject).zfill(2), mean_acc,
+            path_specificity[:-1])
 
         fig3.savefig(wdic_plot + plot_filename)
 
@@ -312,17 +306,18 @@ for subject in subjects:
     # When saved then move *.csv & *.txt files into folder "Already Plotted"
     if plots:
         for file in os.listdir(wdic_sub):
-            new_file_name = file.split("_S")[0] + abc + "_S" + file.split("_S")[1]
+            if file != 'already_plotted':
+                new_file_name = file.split("_S")[0] + abc + "_S" + file.split("_S")[1]
 
-            while True:
-                try:
-                    gfile.Rename(oldname=wdic_sub+file, newname=already_plotted_dic+new_file_name, overwrite=False)
-                    break
-                except Exception:
-                    new_file_name = new_file_name.split(abc + "_S")[0] + string.ascii_lowercase[abc_counter] \
-                                    + "_S" + new_file_name.split("_S")[1]
-                    abc = string.ascii_lowercase[abc_counter]
-                    abc_counter += 1
+                while True:
+                    try:
+                        gfile.Rename(oldname=wdic_sub+file, newname=already_plotted_dic+new_file_name, overwrite=False)
+                        break
+                    except Exception:
+                        new_file_name = new_file_name.split(abc + "_S")[0] + string.ascii_lowercase[abc_counter] \
+                                        + "_S" + new_file_name.split("_S")[1]
+                        abc = string.ascii_lowercase[abc_counter]
+                        abc_counter += 1
 
         # open folder
         open_folder(wdic_plot)
