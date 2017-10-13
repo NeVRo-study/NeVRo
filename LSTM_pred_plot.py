@@ -16,26 +16,6 @@ else:
     import matplotlib.pyplot as plt
 
 
-# Debug Mode
-@true_false_request
-def debug_plot():
-    print("Do you want to plot results from the debugging-mode?")
-
-
-try:
-    debug = sys.argv[1]
-    try:
-        int(debug)
-        debug = "/debug/" if debug_plot() else "/"
-        script_external_exe = False
-    except ValueError:
-        debug = "/debug/" if "True" in debug else "/"
-        script_external_exe = True
-except IndexError:
-    debug = "/debug/" if debug_plot() else "/"
-    script_external_exe = True
-
-
 # Save plot
 @true_false_request
 def save_request():
@@ -43,22 +23,24 @@ def save_request():
 
 
 try:
-    plots = sys.argv[2]
+    plots = sys.argv[1]
     try:
         int(plots)
         plots = save_request()
+        script_external_exe = False
     except ValueError:
         plots = True if "True" in plots else False
+        script_external_exe = True
 except IndexError:
     plots = save_request()
+    script_external_exe = True
 
 
 if script_external_exe:
     try:
-        path_specificity = sys.argv[3]
+        path_specificity = sys.argv[2]
     except IndexError:
         path_specificity = ""  # this way path given via terminal, e.g., python3 LSTM_pred_plot.py False False lstm-150
-
 else:
     path_specificity = input("Provide specific subfolder (if any), in form 'subfolder/': ")
 
@@ -67,12 +49,12 @@ assert path_specificity == "" or path_specificity[-1] == "/", "path_specificity 
 subjects = [36]
 wdic = "./LSTM"
 wdic_plot = "../../Results/Plots/LSTM/"
-wdic_lists = wdic + "/logs" + debug
+wdic_lists = wdic + "/logs"
 lw = 0.5  # linewidth
 
 for subject in subjects:
-    wdic_sub = wdic + debug + "S{}/{}".format(str(subject).zfill(2), path_specificity)
-    wdic_lists_sub = wdic_lists + "S{}/{}".format(str(subject).zfill(2), path_specificity)
+    wdic_sub = wdic + "/S{}/{}".format(str(subject).zfill(2), path_specificity)
+    wdic_lists_sub = wdic_lists + "/S{}/{}".format(str(subject).zfill(2), path_specificity)
 
     # Find correct files (csv-tables)
     for file in os.listdir(wdic_sub):
