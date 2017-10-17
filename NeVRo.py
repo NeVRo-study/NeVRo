@@ -118,6 +118,7 @@ def train_lstm():
     """
 
     # Set the random seeds for reproducibility. DO NOT CHANGE.
+    # TODO switch off seed
     tf.set_random_seed(42)
     np.random.seed(42)
 
