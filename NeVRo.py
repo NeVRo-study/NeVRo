@@ -502,8 +502,11 @@ def train_lstm():
                                                                     FLAGS.lstm_size, str(n_hidden_units)))
         rnd_all_acc_val = ["{:.3f}".format(np.round(acc, 3)) for acc in all_acc_val]  # rounding for the export
         rnd_all_acc_val = [float(acc) for acc in rnd_all_acc_val]  # cleaning
-        for i, item in enumerate([s_fold_idx_list, rnd_all_acc_val, np.mean(all_acc_val)]):
-            file.write(["S-Fold(Round): ", "Validation-Acc: ", "mean(Accuracy): "][i] + str(item)+"\n")
+        for i, item in enumerate([s_fold_idx_list,
+                                  rnd_all_acc_val,
+                                  np.round(np.mean(all_acc_val), 3),
+                                  np.sum(timer_fold_list)]):
+            file.write(["S-Fold(Round): ", "Validation-Acc: ", "mean(Accuracy): ", "Train-Time: "][i] + str(item)+"\n")
 
     # Save Prediction Matrices in File
     np.savetxt(sub_dir + "{}S{}_pred_matrix_{}_folds_{}.csv".format(time.strftime('%Y_%m_%d_'), FLAGS.subject,
