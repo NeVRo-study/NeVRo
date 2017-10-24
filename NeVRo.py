@@ -23,6 +23,8 @@ from LSTMnet import LSTMnet
 
 # TODO (time-)length per sample is hyperparameter: try also lengths >1sec(=250datapoins)
 
+# TODO implenet binary case: low_arousal | (mid-arousal [ignore]) | high_arousal
+
 # TODO Define Default Values dependencies
 LEARNING_RATE_DEFAULT = 1e-3  # 1e-4
 BATCH_SIZE_DEFAULT = 9  # or bigger

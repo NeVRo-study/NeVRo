@@ -270,6 +270,50 @@ for subject in subjects:
 
         fig3.savefig(wdic_plot + plot_filename)
 
+    # # Plot i) average training prediction and ii) concatenated val prediction
+
+    fig4 = plt.figure("{}-Folds mean(train)_&_concat(val)_| S{} | mean(val_acc)={} | 1Hz ".format(
+        s_fold, str(subject).zfill(2), mean_acc),
+        figsize=(10, 6))
+
+    # delete ratings out of pred_matrix first and then average across rows
+    average_train_pred = np.nanmean(a=np.delete(arr=pred_matrix, obj=np.arange(1, 2*s_fold, 2), axis=0), axis=0)
+    concat_val_pred = np.nanmean(a=np.delete(arr=val_pred_matrix, obj=np.arange(1, 2*s_fold, 2), axis=0), axis=0)
+    whole_rating = np.nanmean(a=np.delete(arr=pred_matrix, obj=np.arange(0, 2*s_fold-1, 2), axis=0), axis=0)
+
+    # Plot average train prediction
+    fig4.add_subplot(2, 1, 1)
+    plt.plot(average_train_pred, label="mean_prediction", linewidth=lw)  # , style='r-'
+    plt.plot(whole_rating, ls="dotted", label="rating")
+    plt.title(s="Average train prediction | {}-Folds".format(s_fold))
+    # adjust size, add legend
+    plt.xlim(0, len(whole_rating))
+    plt.ylim(-1.2, 2)
+    plt.legend(bbox_to_anchor=(0., 0.90, 1., .102), loc=1, ncol=4, mode="expand", borderaxespad=0.)
+    plt.tight_layout(pad=2)
+
+    # Plot average train prediction
+    fig4.add_subplot(2, 1, 2)
+    plt.plot(concat_val_pred, label="concat_val_prediction", linewidth=lw, c="xkcd:coral")
+    plt.plot(whole_rating, ls="dotted", label="rating")
+    plt.title(s="Concatenated val_prediction | {}-Folds | mean_val_acc={}".format(s_fold, np.round(mean_acc, 3)))
+    # adjust size, add legend
+    plt.xlim(0, len(whole_rating))
+    plt.ylim(-1.2, 2)
+    plt.legend(bbox_to_anchor=(0., 0.90, 1., .102), loc=1, ncol=4, mode="expand", borderaxespad=0.)
+    plt.tight_layout(pad=2)
+
+    fig.show()
+
+    # Plot
+    if plots:
+        plot_filename = "{}{}_|{}{}*{}({})_|_{}-Folds_|_all_val_|_S{}_|_mean(val_acc)_{:.2f}_|_{}.png".format(
+            file_name[0:10], abc, "_Hilbert_" if hilb else "_", int(reps),
+            "rnd-batch" if rnd_batch else "subsequent-batch", batch_size, s_fold, str(subject).zfill(2), mean_acc,
+            path_specificity[:-1])
+
+        fig4.savefig(wdic_plot + plot_filename)
+
 
     @true_false_request
     def close_plots():
@@ -280,7 +324,7 @@ for subject in subjects:
     try:
         int(sys.argv[2])
         if close_plots():
-            for _ in range(3):
+            for _ in range(4):
                 plt.close()
     except ValueError:
         pass
