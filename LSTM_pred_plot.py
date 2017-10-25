@@ -270,7 +270,7 @@ for subject in subjects:
 
         fig3.savefig(wdic_plot + plot_filename)
 
-    # # Plot i) average training prediction and ii) concatenated val prediction
+    # # Plot i) average training prediction and ii) concatenated val_prediction
 
     fig4 = plt.figure("{}-Folds mean(train)_&_concat(val)_| S{} | mean(val_acc)={} | 1Hz ".format(
         s_fold, str(subject).zfill(2), mean_acc),
