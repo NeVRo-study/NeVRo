@@ -283,7 +283,7 @@ for subject in subjects:
 
     # Plot average train prediction
     fig4.add_subplot(2, 1, 1)
-    plt.plot(average_train_pred, label="mean_prediction", linewidth=lw)  # , style='r-'
+    plt.plot(average_train_pred, label="mean_train_prediction", linewidth=lw)  # , style='r-'
     plt.plot(whole_rating, ls="dotted", label="rating")
     plt.title(s="Average train prediction | {}-Folds".format(s_fold))
     # adjust size, add legend
