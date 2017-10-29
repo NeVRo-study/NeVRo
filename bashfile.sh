@@ -80,4 +80,4 @@
 # python3 NeVRo.py --subject 36 --lstm_size 250,50 --fc_n_hidden 200 --plot True --path_specificities lstm-250-50_fc-200/
 
 # New Accuracy 1-LSTM + 1-FC
-python3 NeVRo.py --subject 36 --lstm_size 50 --seed True --plot True --path_specificities new_acc_lstm-50/
+# python3 NeVRo.py --subject 36 --lstm_size 50 --seed True --plot True --path_specificities new_acc_lstm-50/
