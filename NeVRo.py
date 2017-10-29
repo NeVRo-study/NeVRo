@@ -643,7 +643,7 @@ if __name__ == '__main__':
                         help='Specificities for the paths (depending on model-setups)')
     parser.add_argument('--is_train', type=str, default=True,
                         help='Training or feature extraction')
-    parser.add_argument('--seed', type=str, default=False,
+    parser.add_argument('--seed', type=str, default=True,
                         help='Random seed(42) either off or on')
     parser.add_argument('--train_model', type=str, default='lstm',
                         help='Type of model. Possible option(s): lstm')
