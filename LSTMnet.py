@@ -276,11 +276,10 @@ class LSTMnet:
         scalar summaries of accuracy for later use with the TensorBoard.
 
         Args:
-          infer: 2D float Tensor of size [batch_size, self.n_classes].
-                       The predictions returned through self.inference (logits).
-          ratings: 2D int Tensor of size [batch_size, self.n_classes]
-                     with one-hot encoding. Ground truth labels for
-                     each observation in batch.
+          infer: 2D float Tensor of size [batch_size].
+                       The predictions returned through infer.
+          ratings: 2D int Tensor of size [batch_size]
+                     continious range [-1,1]
 
         Returns:
           accuracy: scalar float Tensor, the accuracy of predictions,
@@ -288,11 +287,11 @@ class LSTMnet:
         """
         with tf.name_scope("accuracy"):
             with tf.name_scope("correct_prediction"):
-                # correct = tf.nn.in_top_k(predictions=logits, targetss=labels, k=1)  # should be: [1,0,0,1,0...]
-                # correct = tf.equal(tf.argmax(input=infer, axis=1), tf.argmax(input=ratings, axis=1))
 
-                # 1 - abs(infer-rating)/max_diff, max_diff=2 (since ratings in [-1, 1])
-                correct = tf.subtract(1.0, tf.abs(tf.divide(tf.subtract(infer, ratings), 2)), name="correct")
+                # 1 - abs(infer-rating)/max_diff, max_diff
+                # max_diff = 2.0  # since ratings in [-1, 1]
+                max_diff = tf.subtract(1.0, tf.multiply(tf.abs(ratings), -1.0))  # chances depending on rating-level
+                correct = tf.subtract(1.0, tf.abs(tf.divide(tf.subtract(infer, ratings), max_diff)), name="correct")
 
             with tf.name_scope("accuracy"):
                 # Return the number of true entries.
@@ -305,33 +304,29 @@ class LSTMnet:
     @staticmethod
     def loss(infer, ratings):
         """
-        Calculates the multiclass cross-entropy loss from infer (logits) predictions and
+        Calculates the mean squared error loss (MSE) from infer/predictions and
         the ground truth labels. The function will also add the regularization
         loss from network weights to the total loss that is return.
-        Check out: tf.nn.softmax_cross_entropy_with_logits (other option is with tanh)
-        Use tf.summary.scalar to save scalar summaries of cross-entropy loss, regularization loss,
+        Use tf.summary.scalar to save scalar summaries of mean squared error loss, regularization loss,
         and full loss (both summed) for use with TensorBoard.
 
         Args:
-          infer: 2D float Tensor of size [batch_size, self.n_classes].
-                       The predictions returned through self.inference (logits)
-          ratings: 2D int Tensor of size [batch_size, self.n_classes]
-                       with one-hot encoding. Ground truth labels for each
-                       observation in batch.
+          infer: 2D float Tensor of size [batch_size].
+          ratings: 2D int Tensor of size [batch_size].
+                    Ground truth labels for each observation in batch.
 
         Returns:
-          loss: scalar float Tensor, full loss = cross_entropy + reg_loss
+          loss: scalar float Tensor, full loss = MSE + reg_loss
         """
         reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
 
         # with tf.name_scope("cross_entropy"):
         with tf.name_scope("mean_squared_error"):
-            # sparse_softmax_cross_entropy_with_logits(), could also be, since we have an exclusive classification
-            # diff = tf.nn.sparse_softmax_cross_entropy_with_logits(logits, labels, name='cross_entropy_diff')
-            # diff = tf.nn.softmax_cross_entropy_with_logits(logits=infer, labels=ratings, name="cross_entropy_diff")
+
             # diff = tf.losses.mean_squared_error(labels=ratings, predictions=infer, scope="mean_squared_error",
             #                                     loss_collection=reg_losses)
             diff = tf.losses.mean_squared_error(labels=ratings, predictions=infer, scope="mean_squared_error")
+            #                                   , loss_collection=reg_losses)
             # print("Just produced the diff in the loss function")
 
             with tf.name_scope("total"):
@@ -342,21 +337,7 @@ class LSTMnet:
 
             with tf.name_scope("summaries"):
                 tf.summary.scalar("Full_loss", loss)
-                # tf.summary.scalar("Cross_Entropy_Loss", cross_entropy)
                 tf.summary.scalar("Mean_Squared_Error_Loss", mean_squared_error)
                 tf.summary.scalar("Reg_Losses", tf.reduce_sum(reg_losses))
 
         return loss
-
-# # Display tf.variables
-# Check: https://stackoverflow.com/questions/33633370/how-to-print-the-value-of-a-tensor-object-in-tensorflow
-# sess = tf.InteractiveSession()
-# test_var = tf.constant([1., 2., 3.])
-# test_var.eval()
-# # Add print operation
-# test_var = tf.Print(input_=test_var, data=[test_var, " with shape:", test_var.get_shape()],
-#                     message="This is a tf. test variable: ")
-# test_var.eval()
-# # Add more stuff
-# test_var2 = tf.add(x=test_var, y=test_var).eval()
-# test_var2

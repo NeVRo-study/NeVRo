@@ -119,10 +119,12 @@ def train_lstm():
     [https://www.tensorflow.org/versions/r0.11/how_tos/variables/index.html]
     """
 
-    # Set the random seeds for reproducibility. DO NOT CHANGE.
-    # TODO switch off seed
-    tf.set_random_seed(42)
-    np.random.seed(42)
+    # Set the random seeds for reproducibility.
+    # Switch for seed
+    if FLAGS.seed:
+        tf.set_random_seed(42)
+        np.random.seed(42)
+        print("Seed is turned on")
 
     # Get number of units in each hidden layer specified in the string such as 100,100
     if FLAGS.lstm_size:
@@ -600,6 +602,7 @@ def main(_):
     # initialize_folders()
 
     print("FLAGS.is_train is boolean:", isinstance(FLAGS.is_train, bool))
+    print("FLAGS.seed is boolean:", isinstance(FLAGS.seed, bool))
     print("FLAGS.plot is boolean:", isinstance(FLAGS.plot, bool))
 
     # if eval(FLAGS.is_train):
@@ -640,6 +643,8 @@ if __name__ == '__main__':
                         help='Specificities for the paths (depending on model-setups)')
     parser.add_argument('--is_train', type=str, default=True,
                         help='Training or feature extraction')
+    parser.add_argument('--seed', type=str, default=False,
+                        help='Random seed(42) either off or on')
     parser.add_argument('--train_model', type=str, default='lstm',
                         help='Type of model. Possible option(s): lstm')
     parser.add_argument('--weight_reg', type=str, default=WEIGHT_REGULARIZER_DEFAULT,

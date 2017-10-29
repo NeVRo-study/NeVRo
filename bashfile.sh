@@ -57,24 +57,27 @@
 # LSTM-Size
 # 1-LSTM + 1-FC
 # python3 NeVRo.py --subject 36 --lstm_size 50 --plot True --path_specificities lstm-50/
-python3 NeVRo.py --subject 36 --lstm_size 100 --plot True --path_specificities lstm-100/
-python3 NeVRo.py --subject 36 --lstm_size 200 --plot True --path_specificities lstm-200/
-python3 NeVRo.py --subject 36 --lstm_size 250 --plot True --path_specificities lstm-250/
+# python3 NeVRo.py --subject 36 --lstm_size 100 --plot True --path_specificities lstm-100/
+# python3 NeVRo.py --subject 36 --lstm_size 200 --plot True --path_specificities lstm-200/
+# python3 NeVRo.py --subject 36 --lstm_size 250 --plot True --path_specificities lstm-250/
 
 # 2-LSTM + 1-FC
-python3 NeVRo.py --subject 36 --lstm_size 50,50 --plot True --path_specificities lstm-50-50/
-python3 NeVRo.py --subject 36 --lstm_size 100,50 --plot True --path_specificities lstm-100-50/
-python3 NeVRo.py --subject 36 --lstm_size 200,50 --plot True --path_specificities lstm-200-50/
-python3 NeVRo.py --subject 36 --lstm_size 250,50 --plot True --path_specificities lstm-250-50/
+# python3 NeVRo.py --subject 36 --lstm_size 50,50 --plot True --path_specificities lstm-50-50/
+# python3 NeVRo.py --subject 36 --lstm_size 100,50 --plot True --path_specificities lstm-100-50/
+# python3 NeVRo.py --subject 36 --lstm_size 200,50 --plot True --path_specificities lstm-200-50/
+# python3 NeVRo.py --subject 36 --lstm_size 250,50 --plot True --path_specificities lstm-250-50/
 
 # 1-LSTM + 2-FC
-python3 NeVRo.py --subject 36 --fc_n_hidden 25 --plot True --path_specificities fc-25/
-python3 NeVRo.py --subject 36 --fc_n_hidden 50 --plot True --path_specificities fc-50/
-python3 NeVRo.py --subject 36 --fc_n_hidden 100 --plot True --path_specificities fc-100/
-python3 NeVRo.py --subject 36 --fc_n_hidden 200 --plot True --path_specificities fc-200/
+# python3 NeVRo.py --subject 36 --fc_n_hidden 25 --plot True --path_specificities fc-25/
+# python3 NeVRo.py --subject 36 --fc_n_hidden 50 --plot True --path_specificities fc-50/
+# python3 NeVRo.py --subject 36 --fc_n_hidden 100 --plot True --path_specificities fc-100/
+# python3 NeVRo.py --subject 36 --fc_n_hidden 200 --plot True --path_specificities fc-200/
 
 # 2-LSTM + 2-FC
-python3 NeVRo.py --subject 36 --lstm_size 50,50 --fc_n_hidden 25 --plot True --path_specificities lstm-50-50_fc-25/
-python3 NeVRo.py --subject 36 --lstm_size 100,50 --fc_n_hidden 50 --plot True --path_specificities lstm-100-50_fc-50/
-python3 NeVRo.py --subject 36 --lstm_size 200,50 --fc_n_hidden 100 --plot True --path_specificities lstm-200-50_fc-100/
-python3 NeVRo.py --subject 36 --lstm_size 250,50 --fc_n_hidden 200 --plot True --path_specificities lstm-250-50_fc-200/
+# python3 NeVRo.py --subject 36 --lstm_size 50,50 --fc_n_hidden 25 --plot True --path_specificities lstm-50-50_fc-25/
+# python3 NeVRo.py --subject 36 --lstm_size 100,50 --fc_n_hidden 50 --plot True --path_specificities lstm-100-50_fc-50/
+# python3 NeVRo.py --subject 36 --lstm_size 200,50 --fc_n_hidden 100 --plot True --path_specificities lstm-200-50_fc-100/
+# python3 NeVRo.py --subject 36 --lstm_size 250,50 --fc_n_hidden 200 --plot True --path_specificities lstm-250-50_fc-200/
+
+# New Accuracy 1-LSTM + 1-FC
+python3 NeVRo.py --subject 36 --lstm_size 50 --seed True --plot True --path_specificities new_acc_lstm-50/
