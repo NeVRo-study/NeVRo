@@ -47,8 +47,6 @@ FEAT_STEP_DEFAULT = CHECKPOINT_FREQ_DEFAULT-1
 LSTM_SIZE_DEFAULT = '100'  # number of hidden units per LSTM layer, e.g., '10, 5' would create second lstm_layer
 FC_NUM_HIDDEN_UNITS = None  # if len(n_hidden_units)>0, create len(n_hidden_units) layers
 HILBERT_POWER_INPUT_DEFAULT = True
-SUMMARIES_DEFAULT = False
-PLOT_DEFAULT = False
 
 SUBJECT_DEFAULT = 36
 
@@ -604,6 +602,7 @@ def main(_):
     print("FLAGS.is_train is boolean:", isinstance(FLAGS.is_train, bool))
     print("FLAGS.seed is boolean:", isinstance(FLAGS.seed, bool))
     print("FLAGS.plot is boolean:", isinstance(FLAGS.plot, bool))
+    print("FLAGS.summaries is boolean:", isinstance(FLAGS.summaries, bool))
 
     # if eval(FLAGS.is_train):
     if FLAGS.is_train:
@@ -669,11 +668,11 @@ if __name__ == '__main__':
                         help='Whether random batch (True), or cronologically drawn batches (False)')
     parser.add_argument('--hilbert_power', type=str, default=HILBERT_POWER_INPUT_DEFAULT,
                         help='Whether input is z-scored power extraction of SSD components (via Hilbert transform)')
-    parser.add_argument('--summaries', type=str, default=SUMMARIES_DEFAULT,
-                        help='Whether to write summaries of tf variables')
+    parser.add_argument('--summaries', type=str, default=False,
+                        help='Whether to write verbose summaries of tf variables')
     parser.add_argument('--fc_n_hidden', type=str, default=FC_NUM_HIDDEN_UNITS,
                         help="Comma separated list of number of hidden units in each fully connected (fc) layer")
-    parser.add_argument('--plot', type=str, default=PLOT_DEFAULT,
+    parser.add_argument('--plot', type=str, default=False,
                         help="Whether to plot results and save them.")
     # parser.add_argument('--layer_feat_extr', type=str, default="fc2",
     #                     help='Choose layer for feature extraction')
