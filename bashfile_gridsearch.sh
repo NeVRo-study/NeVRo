@@ -82,7 +82,7 @@
 # New Accuracy 1-LSTM + 1-FC
 # python3 NeVRo.py --subject 36 --lstm_size 50 --seed True --plot True --path_specificities new_acc_lstm-50/
 
-# # 3-LSTM + 1-FC
-python3 NeVRo.py --subject 36 --lstm_size 100,50,25 --plot True --path_specificities lstm-100-50-25/
-python3 NeVRo.py --subject 36 --lstm_size 50,50 --plot True --path_specificities lstm-50-50/
-python3 NeVRo.py --subject 36 --lstm_size 100 --plot True --path_specificities lstm-100/
+# # Fine-Grainded Search
+python3 NeVRo.py --subject 36 --lstm_size 100,50,25 --seed True --weight_reg_strength 0.36 --plot True --path_specificities lstm-100-50-25_l2-0.36/
+python3 NeVRo.py --subject 36 --lstm_size 50,50 --seed True --weight_reg_strength 0.36 --plot True --path_specificities lstm-50-50_l2-0.36/
+# python3 NeVRo.py --subject 36 --lstm_size 100 --seed True --weight_reg_strength 0.36 --plot True --path_specificities lstm-100_l2-0.36/
