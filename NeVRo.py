@@ -33,11 +33,12 @@ LEARNING_RATE_DEFAULT = 1e-3  # 1e-4
 BATCH_SIZE_DEFAULT = 9  # or bigger
 RANDOM_BATCH_DEFAULT = True
 S_FOLD_DEFAULT = 10
-REPETITION_SCALAR_DEFAULT = 500  # scaler for how many times it should run through set (can be also fraction)
-MAX_STEPS_DEFAULT = REPETITION_SCALAR_DEFAULT*(270 - 270/S_FOLD_DEFAULT)/BATCH_SIZE_DEFAULT  # runs x-times throug set
+REPETITION_SCALAR_DEFAULT = 750  # scaler for how many times it should run through set (can be also fraction)
+MAX_STEPS_DEFAULT = REPETITION_SCALAR_DEFAULT*(270 - 270/S_FOLD_DEFAULT)/BATCH_SIZE_DEFAULT  # runs x-times through set
 assert float(MAX_STEPS_DEFAULT).is_integer(), "max steps must be integer"
-EVAL_FREQ_DEFAULT = (S_FOLD_DEFAULT - 1)/BATCH_SIZE_DEFAULT  # == MAX_STEPS_DEFAULT / (270/S_FOLD_DEFAULT)
-assert float(EVAL_FREQ_DEFAULT).is_integer(), "evaluation frequency must be integer"
+# EVAL_FREQ_DEFAULT = (S_FOLD_DEFAULT - 1)/BATCH_SIZE_DEFAULT  # == MAX_STEPS_DEFAULT / (270/S_FOLD_DEFAULT)
+# assert float(EVAL_FREQ_DEFAULT).is_integer(), "evaluation frequency must be integer"
+EVAL_FREQ_DEFAULT = 50
 CHECKPOINT_FREQ_DEFAULT = MAX_STEPS_DEFAULT
 PRINT_FREQ_DEFAULT = int(MAX_STEPS_DEFAULT/8)  # if too low, uses much memory
 OPTIMIZER_DEFAULT = 'ADAM'
@@ -86,7 +87,7 @@ def train_step(loss):
     """
 
     train_op = None
-    # TODO: Learning rate scheduler
+    # could do: Learning rate scheduler
     if OPTIMIZER_DEFAULT == 'ADAM':
         train_op = tf.train.AdamOptimizer(learning_rate=FLAGS.learning_rate).minimize(loss)
 
@@ -295,13 +296,16 @@ def train_lstm():
                     return {x: xs, y: ys}
 
                 # RUN
-                val_counter = 0  # Needed when validation should only be run in the end of training
+                # val_counter = 0  # Needed when validation should only be run in the end of training
+                val_steps = int(270 / FLAGS.s_fold)
 
                 # Init Lists of Accuracy and Loss
                 train_loss_list = []
                 train_acc_list = []
                 val_acc_list = []
                 val_loss_list = []
+                val_acc_training_list = []
+                val_loss_training_list = []
 
                 # Set Variables for timer
                 timer_list = []  # # list of duration(time) of 100 steps
@@ -367,40 +371,64 @@ def train_lstm():
 
                     # Evaluate on validation set every eval_freq iterations
                     if (step + 1) % FLAGS.eval_freq == 0:
-                        val_counter += 1  # count the number of validation steps (implementation could improved)
-                        if step == FLAGS.max_steps - 1:  # Validation in last round
-                            val_counter /= FLAGS.repet_scalar
-                            assert float(val_counter).is_integer(), \
-                                "val_counter (={}) devided by repetition (={}) is not integer".format(
-                                    val_counter, FLAGS.repet_scalar)
+                        # val_counter += 1  # count the number of validation steps (implementation could improved)
 
-                            for val_step in range(int(val_counter)):
-                                summary, val_loss, val_acc, val_infer, val_y = sess.run([merged, loss, accuracy, infer,
-                                                                                         y],
-                                                                                        feed_dict=_feed_dict(
-                                                                                            training=False))
-                                # test_loss, test_acc = sess.run([loss, accuracy], feed_dict=_feed_dict(training=False))
-                                # print("now do: test_writer.add_summary(summary=summary, global_step=step)")
-                                test_writer.add_summary(summary=summary, global_step=step)
-                                # print("Validation-Loss: {} at step:{}".format(np.round(val_loss, 3), step + 1))
-                                if val_step % 5 == 0:
-                                    print("Validation-Loss: {:.3f} of Fold Nr.{} ({}/{}) | {}".format(
-                                        np.round(val_loss, 3), s_fold_idx, rnd + 1, len(s_fold_idx_list),
-                                        FLAGS.path_specificities[:-1]))
-                                    # print("Validation-Accuracy: {} at step:{}".format(np.round(val_acc, 3), step + 1))
-                                    print("Validation-Accuracy: {:.3f} of Fold Nr.{} ({}/{}) | {}".format(
-                                        np.round(val_acc, 3), s_fold_idx, rnd+1, len(s_fold_idx_list),
-                                        FLAGS.path_specificities[:-1]))
+                        # Check (average) val_performance during training
+                        va_ls_acc = []
+                        va_ls_loss =[]
 
-                                # Update Lists
-                                val_acc_list.append(val_acc)
-                                val_loss_list.append(val_loss)
+                        for val_step in range(val_steps):
+                            val_train_loss, val_train_acc = sess.run([loss, accuracy],
+                                                                     feed_dict=_feed_dict(training=False))
 
-                                # Write val_infer & val_y in val_pred_matrix
-                                val_pred_matrix = fill_pred_matrix(pred=val_infer, y=val_y, current_mat=val_pred_matrix,
-                                                                   sfold=FLAGS.s_fold, s_idx=s_fold_idx,
-                                                                   current_batch=nevro_data["validation"].current_batch,
-                                                                   train=False)
+                            va_ls_acc.append(val_train_acc)
+                            va_ls_loss.append(val_train_loss)
+
+                        print("Val-Loss: {:.3f} at step: {} | {}".format(np.round(np.mean(va_ls_loss), 3),
+                                                                         step + 1,
+                                                                         FLAGS.path_specificities[:-1]))
+                        print("Val-Accuracy: {:.3f} at step: {} | {}".format(np.round(np.mean(va_ls_acc), 3),
+                                                                             step + 1,
+                                                                             FLAGS.path_specificities[:-1]))
+
+                        val_acc_training_list.append((np.mean(va_ls_acc), step))  # tuple of val_acc and at what step
+                        val_loss_training_list.append((np.mean(va_ls_loss), step))
+
+                    if step == FLAGS.max_steps - 1:  # Validation in last round
+                        # val_counter /= FLAGS.repet_scalar
+                        # assert float(val_counter).is_integer(), \
+                        #     "val_counter (={}) devided by repetition (={}) is not integer".format(
+                        #         val_counter, FLAGS.repet_scalar)
+                        # assert val_counter == val_steps, "Final val_counter must be 270/s_fold = val_steps"
+
+                        # for val_step in range(int(val_counter)):
+                        for val_step in range(int(val_steps)):
+                            summary, val_loss, val_acc, val_infer, val_y = sess.run([merged, loss, accuracy, infer,
+                                                                                     y],
+                                                                                    feed_dict=_feed_dict(
+                                                                                        training=False))
+                            # test_loss, test_acc = sess.run([loss, accuracy], feed_dict=_feed_dict(training=False))
+                            # print("now do: test_writer.add_summary(summary=summary, global_step=step)")
+                            test_writer.add_summary(summary=summary, global_step=step)
+                            # print("Validation-Loss: {} at step:{}".format(np.round(val_loss, 3), step + 1))
+                            if val_step % 5 == 0:
+                                print("Validation-Loss: {:.3f} of Fold Nr.{} ({}/{}) | {}".format(
+                                    np.round(val_loss, 3), s_fold_idx, rnd + 1, len(s_fold_idx_list),
+                                    FLAGS.path_specificities[:-1]))
+                                # print("Validation-Accuracy: {} at step:{}".format(np.round(val_acc, 3), step + 1))
+                                print("Validation-Accuracy: {:.3f} of Fold Nr.{} ({}/{}) | {}".format(
+                                    np.round(val_acc, 3), s_fold_idx, rnd+1, len(s_fold_idx_list),
+                                    FLAGS.path_specificities[:-1]))
+
+                            # Update Lists
+                            val_acc_list.append(val_acc)
+                            val_loss_list.append(val_loss)
+
+                            # Write val_infer & val_y in val_pred_matrix
+                            val_pred_matrix = fill_pred_matrix(pred=val_infer, y=val_y, current_mat=val_pred_matrix,
+                                                               sfold=FLAGS.s_fold, s_idx=s_fold_idx,
+                                                               current_batch=nevro_data["validation"].current_batch,
+                                                               train=False)
 
                     # Save the variables to disk every checkpoint_freq (=5000) iterations
                     if (step + 1) % FLAGS.checkpoint_freq == 0:
@@ -466,8 +494,12 @@ def train_lstm():
                 # all_acc_val = all_acc_val[rnd].assign(val_acc)  # if all_acc_val is Tensor variable
 
                 # Save loss_ & acc_lists externally per S-Fold
-                loss_acc_lists = [train_loss_list, train_acc_list, val_acc_list, val_loss_list]
-                loss_acc_lists_names = ["train_loss_list", "train_acc_list", "val_acc_list", "val_loss_list"]
+                loss_acc_lists = [train_loss_list, train_acc_list,
+                                  val_acc_list, val_loss_list,
+                                  val_acc_training_list, val_loss_training_list]
+                loss_acc_lists_names = ["train_loss_list", "train_acc_list",
+                                        "val_acc_list", "val_loss_list",
+                                        "val_acc_training_list", "val_loss_training_list"]
                 for list_idx, liste in enumerate(loss_acc_lists):
                     with open(logdir + str(s_fold_idx) + "/{}.txt".format(loss_acc_lists_names[list_idx]), "w") \
                             as list_file:
@@ -619,7 +651,7 @@ def main(_):
 
     if FLAGS.plot:
         # ["python3", "LSTM_pred_plot.py", Save_plots='True', Path specificities]
-        subprocess.Popen(["python3", "LSTM_pred_plot.py", 'True', FLAGS.path_specificities])
+        subprocess.Popen(["python3", "LSTM_pred_plot.py", 'True', str(FLAGS.subject), FLAGS.path_specificities])
 
 
 if __name__ == '__main__':
@@ -672,7 +704,7 @@ if __name__ == '__main__':
                         help='Whether to write verbose summaries of tf variables')
     parser.add_argument('--fc_n_hidden', type=str, default=FC_NUM_HIDDEN_UNITS,
                         help="Comma separated list of number of hidden units in each fully connected (fc) layer")
-    parser.add_argument('--plot', type=bool, default=False,
+    parser.add_argument('--plot', type=bool, default=True,
                         help="Whether to plot results and save them.")
     # parser.add_argument('--layer_feat_extr', type=str, default="fc2",
     #                     help='Choose layer for feature extraction')

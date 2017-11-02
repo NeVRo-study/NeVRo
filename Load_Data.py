@@ -442,7 +442,7 @@ class DataSet(object):
 
     def new_epoch(self):
         self._epochs_completed += 1
-        print("\nStarting new epoch ({} completed) in {} dateset\n".format(self.epochs_completed, self.name))
+        # print("\nStarting new epoch ({} completed) in {} dateset\n".format(self.epochs_completed, self.name))
 
         # Testing
         # print("Index in previous epoch:", self._index_in_epoch)
