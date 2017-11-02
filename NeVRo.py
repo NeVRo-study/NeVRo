@@ -26,6 +26,9 @@ from LSTMnet import LSTMnet
 # TODO implenet binary case: low_arousal | (mid-arousal [ignore]) | high_arousal
 
 # TODO Define Default Values dependencies
+
+# TODO test on valset more regularly, and see development of val_acc
+
 LEARNING_RATE_DEFAULT = 1e-3  # 1e-4
 BATCH_SIZE_DEFAULT = 9  # or bigger
 RANDOM_BATCH_DEFAULT = True
@@ -41,7 +44,6 @@ OPTIMIZER_DEFAULT = 'ADAM'
 WEIGHT_REGULARIZER_DEFAULT = 'l2'
 WEIGHT_REGULARIZER_STRENGTH_DEFAULT = 0.18
 ACTIVATION_FCT_DEFAULT = 'elu'
-MARGIN_DEFAULT = 0.2  # is not used yet
 LOSS_DEFAULT = "normal"  # is not used yet
 FEAT_STEP_DEFAULT = CHECKPOINT_FREQ_DEFAULT-1
 LSTM_SIZE_DEFAULT = '100'  # number of hidden units per LSTM layer, e.g., '10, 5' would create second lstm_layer
@@ -640,9 +642,9 @@ if __name__ == '__main__':
                         help='Frequency with which the model state is saved.')
     parser.add_argument('--path_specificities', type=str, default=PATH_SPECIFICITIES_DEFAULT,
                         help='Specificities for the paths (depending on model-setups)')
-    parser.add_argument('--is_train', type=str, default=True,
+    parser.add_argument('--is_train', type=bool, default=True,
                         help='Training or feature extraction')
-    parser.add_argument('--seed', type=str, default=False,
+    parser.add_argument('--seed', type=bool, default=False,
                         help='Random seed(42) either off or on')
     parser.add_argument('--train_model', type=str, default='lstm',
                         help='Type of model. Possible option(s): lstm')
@@ -652,8 +654,6 @@ if __name__ == '__main__':
                         help='Regularizer strength for weights of fully-connected layers.')
     parser.add_argument('--activation_fct', type=str, default=ACTIVATION_FCT_DEFAULT,
                         help='Type of activation function from lstm to fully-connected layers [elu, relu].')
-    parser.add_argument('--margin', type=float, default=MARGIN_DEFAULT,
-                        help='Regularizer strength for weights of fully-connected layers.')
     parser.add_argument('--loss', type=str, default=LOSS_DEFAULT,
                         help='Type of loss. Either "normal" or "Hadsell".')
     parser.add_argument('--feat_ext_step', type=str, default=FEAT_STEP_DEFAULT,
@@ -668,11 +668,11 @@ if __name__ == '__main__':
                         help='Whether random batch (True), or cronologically drawn batches (False)')
     parser.add_argument('--hilbert_power', type=str, default=HILBERT_POWER_INPUT_DEFAULT,
                         help='Whether input is z-scored power extraction of SSD components (via Hilbert transform)')
-    parser.add_argument('--summaries', type=str, default=False,
+    parser.add_argument('--summaries', type=bool, default=False,
                         help='Whether to write verbose summaries of tf variables')
     parser.add_argument('--fc_n_hidden', type=str, default=FC_NUM_HIDDEN_UNITS,
                         help="Comma separated list of number of hidden units in each fully connected (fc) layer")
-    parser.add_argument('--plot', type=str, default=False,
+    parser.add_argument('--plot', type=bool, default=False,
                         help="Whether to plot results and save them.")
     # parser.add_argument('--layer_feat_extr', type=str, default="fc2",
     #                     help='Choose layer for feature extraction')
