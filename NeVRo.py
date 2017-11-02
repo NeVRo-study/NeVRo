@@ -27,8 +27,6 @@ from LSTMnet import LSTMnet
 
 # TODO Define Default Values dependencies
 
-# TODO test on valset more regularly, and see development of val_acc
-
 LEARNING_RATE_DEFAULT = 1e-3  # 1e-4
 BATCH_SIZE_DEFAULT = 9  # or bigger
 RANDOM_BATCH_DEFAULT = True
