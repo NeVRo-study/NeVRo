@@ -50,7 +50,7 @@ wdic_cropECG = "../../Data/Data EEG export/NeVRo_ECG_Cropped/"
 wdic_x_corr = "../../Results/x_corr/"
 
 # initialize variables
-subjects = [36]  # [36, 37]
+# subjects = [36]  # [36, 37]
 # subjects = range(1, 45+1)
 
 # roller_coasters = np.array(['Space_NoMov', 'Space_Mov', 'Ande_Mov', 'Ande_NoMov'])
@@ -58,15 +58,20 @@ roller_coasters = np.array(['Space_NoMov', "Break_NoMov", 'Ande_NoMov']) if True
     else np.array(['Space_NoMov', 'Ande_NoMov'])
 
 
-def update_coaster_lengths(empty_t_array, sba=True):
+def update_coaster_lengths(subjects, empty_t_array, sba=True):
     """
     Creates an array of the lengths of the different phases (e.g., roller caosters)
+    :param subjects: list of subjects or single subject
     :param empty_t_array: array to be filled
     :param sba: asks whether pruned SBA-files should be used to calculate times.
     :return: array with lengths of phases
     """
     sfreq = 500.
     if not sba:
+
+        if not isinstance(subjects, list):
+            subjects = list(subjects)
+
         for sub in subjects:
             for n, coast in enumerate(roller_coasters):
                 time_ecg_fname = wdic_cropECG + "NVR_S{}_{}.txt".format(str(sub).zfill(2), coast)
@@ -82,16 +87,20 @@ def update_coaster_lengths(empty_t_array, sba=True):
     return full_t_array
 
 # t_roller_coasters = np.zeros((len(roller_coasters)))  # init
-# t_roller_coasters = update_coaster_lengths(empty_t_array=t_roller_coasters, sba=True)
+# t_roller_coasters = update_coaster_lengths(subjects=[36,44], empty_t_array=t_roller_coasters, sba=True)
 # t_roller_coasters = np.array([148, 30, 92])   # SBA
 
 
 # Load file
-def load_ssd_files(samp_freq=250., sba=True):
+def load_ssd_files(subjects, samp_freq=250., sba=True):
     """
     Loads all channel SSD files of each subject in subjects
     :return: SSD files [channels, time_steps, sub_df] in form of dictionary
     """
+
+    if not isinstance(subjects, list):
+        subjects = list(subjects)
+
     count = 0
     # Create SSD-dictionary
     # dic = {k: v for k, v in [("bla", [])]}
@@ -130,7 +139,8 @@ def load_ssd_files(samp_freq=250., sba=True):
                 # Check times:
                 # samp_freq = 250.
 
-                t_roller_coasters = update_coaster_lengths(empty_t_array=np.zeros((len(roller_coasters))), sba=sba)
+                t_roller_coasters = update_coaster_lengths(subjects=subject,
+                                                           empty_t_array=np.zeros((len(roller_coasters))), sba=sba)
                 if not (np.round(t_roller_coasters[num], 1) == np.round(time_steps[-1] / 1000., 1)
                         and np.round(time_steps[-1] / 1000., 1) == np.round(len(time_steps) / samp_freq, 1)):
                     print("Should be all approx. the same:\nt_roller_coasters[num]: {} \ntime_steps[-1]/1000: {}"
@@ -140,20 +150,24 @@ def load_ssd_files(samp_freq=250., sba=True):
 
     return ssd_dic
 
-# SSD_dic = load_ssd_files(samp_freq=250.)
+# SSD_dic = load_ssd_files(subjects=[36,44], samp_freq=250.)
 # print(SSD_dic[str(subjects[0])][roller_coasters[0]]["df"].shape)  # roller_coasters[0] == 'Space_NoMov'
 # print(SSD_dic[str(subjects[0])][roller_coasters[0]]["df"].shape)  # str(subjects[0]) == '36'
 # print(SSD_dic[str(subjects[0])][roller_coasters[0]]["t_steps"].shape)
 # print(SSD_dic["channels"].shape)
 
 
-def load_ssd_component(samp_freq=250., sba=True):
+def load_ssd_component(subjects, samp_freq=250., sba=True):
     """
+    :param subjects: list of subjects or single subject
     :param samp_freq: sampling frequency of SSD-components
     :param sba: if True (=Default), take SBA-z-scored components
     Loads SSD components (files) of each subject in subjects
     :return: SSD component files [sub_df] in form of dictionary
     """
+
+    if not isinstance(subjects, list):
+        subjects = [subjects]
 
     # Create SSD Component Dictionary
     ssd_comp_dic_keys = [str(i) for i in subjects]  # == list(map(str, subjects))  # these keys also work int
@@ -291,13 +305,17 @@ def best_component(subject, best=True):
 
 
 # @function_timed  # after executing following function this returns runtime
-def load_rating_files(samp_freq=1., sba=True):
+def load_rating_files(subjects, samp_freq=1., sba=True):
     """
     Loads (z-scored) Ratings files of each subject in subjects (ignore other files, due to fluctuating samp.freq.).
+    :param subjects: list of subjects or single subject
     :param sba: if TRUE (default), process SBA files
     :param samp_freq: sampling frequency, either 1Hz [default], oder 50Hz
     :return:  Rating Dict
     """
+
+    if not isinstance(subjects, list):
+        subjects = [subjects]
 
     # Check whether input correct
     # assert (samp_freq == 1 or samp_freq == 50), "samp_freq must be either 1 or 50 Hz"
@@ -574,8 +592,8 @@ def read_data_sets(subject, component, s_fold_idx, s_fold=10, cond="NoMov", sba=
     if not type(component) is list:
         assert component in range(5+1), "Component must be in range [1,2,3,4,5]"
 
-    eeg_data = load_ssd_component()
-    rating_data = load_rating_files()
+    eeg_data = load_ssd_component(subjects=subject)
+    rating_data = load_rating_files(subjects=subject)
     condition = rating_data[str(subject)]["condition"]
     t_roller_coasters = update_coaster_lengths(empty_t_array=np.zeros((len(roller_coasters))), sba=sba)
 
@@ -600,16 +618,20 @@ def read_data_sets(subject, component, s_fold_idx, s_fold=10, cond="NoMov", sba=
 
     # Check whether EEG data too long
     if sba:
+
         len_test = eeg_sba.shape[0] / s_freq_eeg - rating_sba.shape[0]
         if len_test > 0.0:
-            to_cut = int(len_test * s_freq_eeg)
-            print("EEG data of S{} trimmed by {} data points".format(str(subject).zfill(2), to_cut))
-            to_cut /= 3  # 3 phases of SBA
             to_delete = np.cumsum(t_roller_coasters)  # [ 148.,  178.,  270.]
             to_delete *= s_freq_eeg
-            assert to_cut == 1, "Code needs to be adapted for other diverging lengths of eeg_sba"
-            # np.delete(arr=eeg_sba, obj=to_delete, axis=0).shape
-            eeg_sba = np.delete(arr=eeg_sba, obj=to_delete, axis=0)
+            to_cut = int(round(len_test * s_freq_eeg))
+            print("EEG data of S{} trimmed by {} data points".format(str(subject).zfill(2), to_cut))
+            del_counter = 2
+            while len_test > 0.0:
+                if del_counter == -1:
+                    del_counter = 2
+                eeg_sba = np.delete(arr=eeg_sba, obj=to_delete[del_counter], axis=0)
+                del_counter -= 1
+                len_test = eeg_sba.shape[0] / s_freq_eeg - rating_sba.shape[0]
 
     # Normalize rating_sba to [-1;1] due to tanh-output of LSTMnet
     rating_sba = normalization(array=rating_sba, lower_bound=-1, upper_bound=1)
@@ -699,6 +721,7 @@ def get_nevro_data(subject, component, s_fold_idx=None, s_fold=10, cond="NoMov",
 
 # Testing
 # nevro_data = get_nevro_data(subject=36, component=5, s_fold_idx=9, s_fold=10, cond="NoMov", sba=True)
+nevro_data = get_nevro_data(subject=44, component=4, s_fold_idx=9, s_fold=10, cond="NoMov", sba=True)
 
 # for _ in range(27):
 #     x = nevro_data["validation"].next_batch(batch_size=4, randomize=True)
