@@ -177,7 +177,8 @@ def load_ssd_component(subjects, samp_freq=250., sba=True):
     condition_keys = [element.split("_")[1] for element in roller_coasters]  # "NoMov", "Mov"
     condition_keys = list(set(condition_keys))
 
-    t_roller_coasters = update_coaster_lengths(empty_t_array=np.zeros((len(roller_coasters))), sba=sba)
+    t_roller_coasters = update_coaster_lengths(subjects=subjects, empty_t_array=np.zeros((len(roller_coasters))),
+                                               sba=sba)
 
     if sba:
         for key in ssd_comp_dic_keys:
@@ -333,7 +334,8 @@ def load_rating_files(subjects, samp_freq=1., sba=True):
     condition_keys = [element.split("_")[1] for element in roller_coasters]  # "NoMov", "Mov"
     condition_keys = list(set(condition_keys))
 
-    t_roller_coasters = update_coaster_lengths(empty_t_array=np.zeros((len(roller_coasters))), sba=sba)
+    t_roller_coasters = update_coaster_lengths(subjects=subjects, empty_t_array=np.zeros((len(roller_coasters))),
+                                               sba=sba)
 
     # For each subject fill condtition in
     for key in rating_dic_keys:
@@ -595,7 +597,8 @@ def read_data_sets(subject, component, s_fold_idx, s_fold=10, cond="NoMov", sba=
     eeg_data = load_ssd_component(subjects=subject)
     rating_data = load_rating_files(subjects=subject)
     condition = rating_data[str(subject)]["condition"]
-    t_roller_coasters = update_coaster_lengths(empty_t_array=np.zeros((len(roller_coasters))), sba=sba)
+    t_roller_coasters = update_coaster_lengths(subjects=subject, empty_t_array=np.zeros((len(roller_coasters))),
+                                               sba=sba)
 
     # Subsample the validation set from the train set
     # 0) Take Space-Break-Ande (SBA) files from dictionaries
@@ -622,6 +625,7 @@ def read_data_sets(subject, component, s_fold_idx, s_fold=10, cond="NoMov", sba=
         len_test = eeg_sba.shape[0] / s_freq_eeg - rating_sba.shape[0]
         if len_test > 0.0:
             to_delete = np.cumsum(t_roller_coasters)  # [ 148.,  178.,  270.]
+            # 3 intersections where values can be removed (instead of cutting only at the end/start)
             to_delete *= s_freq_eeg
             to_cut = int(round(len_test * s_freq_eeg))
             print("EEG data of S{} trimmed by {} data points".format(str(subject).zfill(2), to_cut))
@@ -629,9 +633,11 @@ def read_data_sets(subject, component, s_fold_idx, s_fold=10, cond="NoMov", sba=
             while len_test > 0.0:
                 if del_counter == -1:
                     del_counter = 2
-                eeg_sba = np.delete(arr=eeg_sba, obj=to_delete[del_counter], axis=0)
+                eeg_sba = np.delete(arr=eeg_sba, obj=to_delete[del_counter], axis=0)  # starts to delete in the end
                 del_counter -= 1
                 len_test = eeg_sba.shape[0] / s_freq_eeg - rating_sba.shape[0]
+        elif len_test < 0.0:
+            raise OverflowError("Eeg_sba file is too short. Implement interpolation function.")
 
     # Normalize rating_sba to [-1;1] due to tanh-output of LSTMnet
     rating_sba = normalization(array=rating_sba, lower_bound=-1, upper_bound=1)
