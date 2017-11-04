@@ -21,11 +21,12 @@ import subprocess
 
 from LSTMnet import LSTMnet
 
-# TODO (time-)length per sample is hyperparameter: try also lengths >1sec(=250datapoins)
+# TODO (time-)length per sample is hyperparameter: use x-successive batches
 
 # TODO implenet binary case: low_arousal | (mid-arousal [ignore]) | high_arousal
 
 # TODO Define Default Values dependencies
+
 
 LEARNING_RATE_DEFAULT = 1e-3  # 1e-4
 BATCH_SIZE_DEFAULT = 9  # or bigger
@@ -133,9 +134,9 @@ def train_lstm():
         lstm_hidden_states = []
 
     if FLAGS.fc_n_hidden and len(FLAGS.fc_n_hidden) > 0:
-            n_hidden_units = FLAGS.fc_n_hidden.split(",")
-            n_hidden_units = [int(hidden_unites_) for hidden_unites_ in n_hidden_units]
-            n_hidden_units.append(1)  # output layer == 1 rating-prediction
+        n_hidden_units = FLAGS.fc_n_hidden.split(",")
+        n_hidden_units = [int(hidden_unites_) for hidden_unites_ in n_hidden_units]
+        n_hidden_units.append(1)  # output layer == 1 rating-prediction
     else:
         n_hidden_units = [1]
 

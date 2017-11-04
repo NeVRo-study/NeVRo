@@ -469,10 +469,11 @@ class DataSet(object):
         # print("Still available slices in epoch: {}/{}\n".format(len(self.remaining_slices),
         #                                                         self._num_time_slices))
 
-    def next_batch(self, batch_size=1, randomize=False):
+    def next_batch(self, batch_size=1, randomize=False, successive=None):
         """
         Return the next 'batch_size' examples from this data set
         For MODEL 1: the batch size = 1, i.e. input 1sec=250 data points, gives 1 output (rating), aka. many-to-one
+        :param successive: if random batch drawing True, given int of batches will remain in successive order
         :param batch_size: Batch size
         :param randomize: Whether to randomize the order in data
         :return: Next batch
@@ -489,6 +490,9 @@ class DataSet(object):
                 selection_array_idx = np.random.choice(a=range(len(self.remaining_slices)),
                                                        size=batch_size,
                                                        replace=False)
+
+                # TODO implement succesive batching: maytbe via recursive loop through 1-batch: see Test_Scripty.py
+
                 # = np.random.randint(low=0, high=len(self.remaining_slices), size=batch_size)  # with replacement
 
             else:  # if not random
@@ -727,7 +731,7 @@ def get_nevro_data(subject, component, s_fold_idx=None, s_fold=10, cond="NoMov",
 
 # Testing
 # nevro_data = get_nevro_data(subject=36, component=5, s_fold_idx=9, s_fold=10, cond="NoMov", sba=True)
-nevro_data = get_nevro_data(subject=44, component=4, s_fold_idx=9, s_fold=10, cond="NoMov", sba=True)
+# nevro_data = get_nevro_data(subject=44, component=4, s_fold_idx=9, s_fold=10, cond="NoMov", sba=True)
 
 # for _ in range(27):
 #     x = nevro_data["validation"].next_batch(batch_size=4, randomize=True)
