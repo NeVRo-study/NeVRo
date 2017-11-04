@@ -18,6 +18,7 @@
 # FC_NUM_HIDDEN_UNITS = '100'  # this are two layers n_hidden(FC1)=[lstm,100], n_hidden(FC2)=[100,1]
 # FEAT_EPOCH_DEFAULT = CHECKPOINT_FREQ_DEFAULT-1
 # HILBERT_POWER_INPUT_DEFAULT = True
+# COMPONENT_DEFAULT = "best"
 # SUMMARIES_DEFAULT = True
 # SUBJECT_DEFAULT = 36
 
@@ -85,4 +86,4 @@
 # # Fine-Grainded Search
 # python3 NeVRo.py --subject 36 --lstm_size 100,50,25 --seed True --weight_reg_strength 0.36 --plot True --path_specificities lstm-100-50-25_l2-0.36/
 # python3 NeVRo.py --subject 36 --lstm_size 50,50 --seed True --weight_reg_strength 0.36 --plot True --path_specificities lstm-50-50_l2-0.36/
-python3 NeVRo.py --subject 36 --lstm_size 100 --seed True --weight_reg_strength 0.36 --plot True --path_specificities lstm-100_l2-0.36/
+# python3 NeVRo.py --subject 36 --lstm_size 100 --seed True --weight_reg_strength 0.36 --plot True --path_specificities lstm-100_l2-0.36/

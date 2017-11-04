@@ -469,11 +469,10 @@ class DataSet(object):
         # print("Still available slices in epoch: {}/{}\n".format(len(self.remaining_slices),
         #                                                         self._num_time_slices))
 
-    def next_batch(self, batch_size=1, randomize=False, successive=None):
+    def next_batch(self, batch_size=1, randomize=False):
         """
         Return the next 'batch_size' examples from this data set
         For MODEL 1: the batch size = 1, i.e. input 1sec=250 data points, gives 1 output (rating), aka. many-to-one
-        :param successive: if random batch drawing True, given int of batches will remain in successive order
         :param batch_size: Batch size
         :param randomize: Whether to randomize the order in data
         :return: Next batch
@@ -591,12 +590,20 @@ def read_data_sets(subject, component, s_fold_idx, s_fold=10, cond="NoMov", sba=
         Train, Validation Datasets
     """
 
+    # Check inputs
     assert s_fold_idx < s_fold, "s_fold_idx (={}) must be in the range of the number of folds (={})".format(s_fold_idx,
                                                                                                             s_fold)
     assert cond in ["NoMov", "Mov"], "cond must be either 'NoMov' or 'Mov'"
 
     if not type(component) is list:
-        assert component in range(5+1), "Component must be in range [1,2,3,4,5]"
+        assert component in range(1, 5+1) or component in range(91, 95+1), "Component must be in range [1,2,3,4,5]"
+
+    # Check demand for noise component
+    if component in range(91, 95+1):
+        component -= 90   # decode
+        noise_comp = True  # switch on noise-mode of given component
+    else:
+        noise_comp = False
 
     eeg_data = load_ssd_component(subjects=subject)
     rating_data = load_rating_files(subjects=subject)
@@ -620,6 +627,10 @@ def read_data_sets(subject, component, s_fold_idx, s_fold=10, cond="NoMov", sba=
         eeg_sba = np.reshape(eeg_sba, newshape=(eeg_sba.shape[0], 1))
     else:
         eeg_sba = eeg_data[str(subject)]["SBA"][cond][:, [comp-1 for comp in component]]
+
+    # If Noise-Mode, shuffle component
+    if noise_comp:
+        np.random.shuffle(eeg_sba)
 
     rating_sba = rating_data[str(subject)]["SBA"][cond]
 

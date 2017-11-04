@@ -32,7 +32,7 @@ LEARNING_RATE_DEFAULT = 1e-3  # 1e-4
 BATCH_SIZE_DEFAULT = 9  # or bigger
 RANDOM_BATCH_DEFAULT = True
 S_FOLD_DEFAULT = 10
-REPETITION_SCALAR_DEFAULT = 500  # scaler for how many times it should run through set (can be also fraction)
+REPETITION_SCALAR_DEFAULT = 750 # scaler for how many times it should run through set (can be also fraction)
 MAX_STEPS_DEFAULT = REPETITION_SCALAR_DEFAULT*(270 - 270/S_FOLD_DEFAULT)/BATCH_SIZE_DEFAULT  # runs x-times through set
 assert float(MAX_STEPS_DEFAULT).is_integer(), "max steps must be integer"
 # EVAL_FREQ_DEFAULT = (S_FOLD_DEFAULT - 1)/BATCH_SIZE_DEFAULT  # == MAX_STEPS_DEFAULT / (270/S_FOLD_DEFAULT)
@@ -49,6 +49,7 @@ FEAT_STEP_DEFAULT = CHECKPOINT_FREQ_DEFAULT-1
 LSTM_SIZE_DEFAULT = '100'  # number of hidden units per LSTM layer, e.g., '10, 5' would create second lstm_layer
 FC_NUM_HIDDEN_UNITS = None  # if len(n_hidden_units)>0, create len(n_hidden_units) layers
 HILBERT_POWER_INPUT_DEFAULT = True
+COMPONENT_DEFAULT = "best"  # 'best', 'noise', 'random'
 
 SUBJECT_DEFAULT = 36
 
@@ -156,12 +157,23 @@ def train_lstm():
     # all_acc_val = tf.Variable(tf.zeros(shape=S_FOLD_DEFAULT, dtype=tf.float32, name="all_valid_accuracies"))
     all_acc_val = np.zeros(FLAGS.s_fold)  # case of non-tensor list
 
-    # Find best component
-    best_comp = best_component(subject=FLAGS.subject)
+    # Choose component
+    best_comp = best_component(subject=FLAGS.subject)  # First find best component
+    assert FLAGS.component in ["best", "noise", "random"], "Component must be either 'best', 'noise', 'random'"
+
+    if FLAGS.component == "best":
+        input_component = best_comp
+    elif FLAGS.component == "noise":
+        input_component = 90 + best_comp  # coding for noise component
+    elif FLAGS.component == "random":
+        while True:
+            input_component = np.random.randint(1, 5+1)
+            if input_component != best_comp:
+                break
 
     # Load first data-set
     nevro_data = get_nevro_data(subject=FLAGS.subject,
-                                component=best_comp,
+                                component=input_component,
                                 s_fold_idx=s_fold_idx_list[0],
                                 s_fold=FLAGS.s_fold,
                                 cond="NoMov",
@@ -374,7 +386,7 @@ def train_lstm():
 
                         # Check (average) val_performance during training
                         va_ls_acc = []
-                        va_ls_loss =[]
+                        va_ls_loss = []
 
                         for val_step in range(val_steps):
                             val_train_loss, val_train_acc = sess.run([loss, accuracy],
@@ -632,11 +644,6 @@ def main(_):
 
     # initialize_folders()
 
-    print("FLAGS.is_train is boolean:", isinstance(FLAGS.is_train, bool))
-    print("FLAGS.seed is boolean:", isinstance(FLAGS.seed, bool))
-    print("FLAGS.plot is boolean:", isinstance(FLAGS.plot, bool))
-    print("FLAGS.summaries is boolean:", isinstance(FLAGS.summaries, bool))
-
     # if eval(FLAGS.is_train):
     if FLAGS.is_train:
         if FLAGS.train_model == 'lstm':
@@ -705,6 +712,8 @@ if __name__ == '__main__':
                         help="Comma separated list of number of hidden units in each fully connected (fc) layer")
     parser.add_argument('--plot', type=bool, default=True,
                         help="Whether to plot results and save them.")
+    parser.add_argument('--component', type=str, default=COMPONENT_DEFAULT,
+                        help="Which component: 'best', 'noise' (=shuffled version of best) or 'random'")
     # parser.add_argument('--layer_feat_extr', type=str, default="fc2",
     #                     help='Choose layer for feature extraction')
 
