@@ -336,10 +336,11 @@ def train_lstm():
                         start_timer = datetime.datetime.now().replace(microsecond=0)
 
                     if step % (timer_freq/2) == 0.:
-                        print("Step {}/{} in Fold Nr.{} ({}/{}) | {} | {}".format(step, int(FLAGS.max_steps), s_fold_idx,
-                                                                                  rnd+1, len(s_fold_idx_list),
-                                                                                  FLAGS.path_specificities[:-1],
-                                                                                  str(FLAGS.subject).zfill(2)))
+                        print("Step {}/{} in Fold Nr.{} ({}/{}) | {} | S{}".format(step, int(FLAGS.max_steps),
+                                                                                   s_fold_idx,
+                                                                                   rnd+1, len(s_fold_idx_list),
+                                                                                   FLAGS.path_specificities[:-1],
+                                                                                   str(FLAGS.subject).zfill(2)))
 
                     # Evaluate on training set every print_freq (=10) iterations
                     if (step + 1) % FLAGS.print_freq == 0:
@@ -491,9 +492,9 @@ def train_lstm():
                         rest_duration = chop_microseconds(delta=rest_duration)
                         rest_duration_all_folds = chop_microseconds(delta=rest_duration_all_folds)
 
-                        print("Time passed to train {} steps: {} [h:m:s] | {} | S{}".format(timer_freq, duration,
-                                                                                      FLAGS.path_specificities[:-1],
-                                                                                            str(FLAGS.subject).zfill(2)))
+                        print("Time passed to train {} steps: "
+                              "{} [h:m:s] | {} | S{}".format(timer_freq, duration, FLAGS.path_specificities[:-1],
+                                                             str(FLAGS.subject).zfill(2)))
                         print("Estimated time to train the rest {} steps in current Fold-Nr.{}: "
                               "{} [h:m:s] | {} | S{}".format(int(FLAGS.max_steps - (step + 1)), s_fold_idx,
                                                              rest_duration, FLAGS.path_specificities[:-1],
