@@ -292,14 +292,13 @@ def best_component(subject, best=True):
         # x_corr_table.columns = ["components"]  # renamce columns
         component = x_corr_table.loc["S{}".format(str(subject).zfill(2))].values[0]
 
-    else:
-        component = best_comp = x_corr_table.loc["S{}".format(str(subject).zfill(2))].values[0]
+    else:  # TODO choose the worst
+        component = best_comp = x_corr_table.loc["S{}".format(str(subject).zfill(2))].values[0]  # choose first for now
 
         # choose another component that the best
         while component == best_comp:
             component = np.random.randint(low=1, high=5+1)
 
-    # TODO choose the worst
     print("The best correlating SSD component of Subject {} is Component Number {}".format(subject, component))
 
     return component

@@ -5,8 +5,6 @@ Plot predictions made by the LSTM model
 Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017
 """
 
-# TODO average val acc and loss across Folds
-
 from Meta_Functions import *
 from tensorflow import gfile
 import string
@@ -22,6 +20,7 @@ else:
 @true_false_request
 def save_request():
     print("Do you want to save the plots")
+
 
 try:
     plots = sys.argv[1]
@@ -215,14 +214,25 @@ for fold in range(s_fold):
     last_acc = (np.nanmean(val_acc_fold), len(train_acc_fold)-1)
     val_acc_training_fold.append(last_acc)
 
-    where, vacc = zip(*val_acc_training_fold)
+    vacc, where = zip(*val_acc_training_fold)
+
+    # Save average for later plot
+    if fold == 0:
+        x_fold_mean_vacc = np.array(vacc)
+        x_fold_mean_tacc = train_acc_fold
+    else:
+        x_fold_mean_vacc += np.array(vacc)
+        x_fold_mean_tacc += train_acc_fold
+        if fold == s_fold-1:  # when last fold added, divide by s_fold
+            x_fold_mean_vacc /= s_fold
+            x_fold_mean_tacc /= s_fold
 
     # add subplot
     sub_n += 1
     fig2.add_subplot(sub_rows, sub_col, sub_n)
 
     plt.plot(train_acc_fold, label="train_acc", linewidth=lw/2)
-    plt.plot(vacc, where, label="val_acc", linewidth=lw)
+    plt.plot(where, vacc, label="val_acc", linewidth=lw)
 
     plt.title(s="{}-Fold | val_acc={}".format(fold + 1,
                                               np.round(val_acc[int(np.where(np.array(s_rounds) == fold)[0])], 3)))
@@ -263,7 +273,18 @@ for fold in range(s_fold):
     last_loss = (np.nanmean(val_loss_fold), len(train_loss_fold) - 1)
     val_loss_training_fold.append(last_loss)
 
-    where_loss, vloss = zip(*val_loss_training_fold)
+    vloss, where_loss = zip(*val_loss_training_fold)
+
+    # Save average for later plot
+    if fold == 0:
+        x_fold_mean_vloss = np.array(vloss)
+        x_fold_mean_tloss = train_loss_fold
+    else:
+        x_fold_mean_vloss += np.array(vloss)
+        x_fold_mean_tloss += train_loss_fold
+        if fold == s_fold - 1:  # when last fold added, divide by s_fold
+            x_fold_mean_vloss /= s_fold
+            x_fold_mean_tloss /= s_fold
 
     # add subplot
     sub_n += 1
@@ -271,7 +292,7 @@ for fold in range(s_fold):
 
     # plot
     plt.plot(train_loss_fold, label="train_loss", linewidth=lw/2)
-    plt.plot(vloss, where_loss, label="val_loss", linewidth=lw)
+    plt.plot(where_loss, vloss, label="val_loss", linewidth=lw)
 
     plt.title(s="{}-Fold | val_loss={}".format(fold + 1,
                                                np.round(val_acc[int(np.where(np.array(s_rounds) == fold)[0])], 3)))
@@ -297,7 +318,7 @@ if plots:
 
 fig4 = plt.figure("{}-Folds mean(train)_&_concat(val)_| S{} | mean(val_acc)={} | 1Hz ".format(
     s_fold, str(subject).zfill(2), mean_acc),
-    figsize=(10, 6))
+    figsize=(10, 12))
 
 # delete ratings out of pred_matrix first and then average across rows
 average_train_pred = np.nanmean(a=np.delete(arr=pred_matrix, obj=np.arange(1, 2*s_fold, 2), axis=0), axis=0)
@@ -305,7 +326,7 @@ concat_val_pred = np.nanmean(a=np.delete(arr=val_pred_matrix, obj=np.arange(1, 2
 whole_rating = np.nanmean(a=np.delete(arr=pred_matrix, obj=np.arange(0, 2*s_fold-1, 2), axis=0), axis=0)
 
 # Plot average train prediction
-fig4.add_subplot(2, 1, 1)
+fig4.add_subplot(4, 1, 1)
 plt.plot(average_train_pred, label="mean_train_prediction", linewidth=lw)  # , style='r-'
 plt.plot(whole_rating, ls="dotted", label="rating")
 plt.title(s="Average train prediction | {}-Folds".format(s_fold))
@@ -316,7 +337,7 @@ plt.legend(bbox_to_anchor=(0., 0.90, 1., .102), loc=1, ncol=4, mode="expand", bo
 plt.tight_layout(pad=2)
 
 # Plot average train prediction
-fig4.add_subplot(2, 1, 2)
+fig4.add_subplot(4, 1, 2)
 plt.plot(concat_val_pred, label="concat_val_prediction", linewidth=lw, c="xkcd:coral")
 plt.plot(whole_rating, ls="dotted", label="rating")
 plt.title(s="Concatenated val_prediction | {}-Folds | mean_val_acc={}".format(s_fold, np.round(mean_acc, 3)))
@@ -328,9 +349,39 @@ plt.tight_layout(pad=2)
 
 fig4.show()
 
+# # Plot i) average training & validation accuracy and ii) loss across folds
+
+# Plot average training & validation accuracy
+fig4.add_subplot(4, 1, 3)
+
+plt.plot(x_fold_mean_tacc, label="x_fold_mean_train_acc", linewidth=lw/2)
+plt.plot(where, x_fold_mean_vacc, label="x_fold_mean_val_acc", linewidth=lw)
+
+plt.title(s="across_Folds | mean_tain_validation_accuracy")
+
+# adjust size, add legend
+plt.xlim(0, len(train_acc_fold))
+plt.ylim(0.0, 1.5)
+plt.legend(bbox_to_anchor=(0., 0.90, 1., .102), loc=1, ncol=4, mode="expand", borderaxespad=0.)
+plt.tight_layout(pad=2)
+
+# Plot average training & validation loss
+fig4.add_subplot(4, 1, 4)
+
+plt.plot(x_fold_mean_tloss, label="x_fold_mean_train_loss", linewidth=lw/2)
+plt.plot(where_loss, x_fold_mean_vloss, label="x_fold_mean_val_loss", linewidth=lw)
+
+plt.title(s="across_Folds | mean_train_validation_loss")
+
+# adjust size, add legend
+plt.xlim(0, len(train_loss_fold))
+plt.ylim(-0.05, 1.8)
+plt.legend(bbox_to_anchor=(0., 0.90, 1., .102), loc=1, ncol=4, mode="expand", borderaxespad=0.)
+plt.tight_layout(pad=2)
+
 # Plot
 if plots:
-    plot_filename = "{}{}_|{}{}*{}({})_|_{}-Folds_|_all_val_|_S{}_|_mean(val_acc)_{:.2f}_|_{}.png".format(
+    plot_filename = "{}{}_|{}{}*{}({})_|_{}-Folds_|_all_train_val_|_S{}_|_mean(val_acc)_{:.2f}_|_{}.png".format(
         file_name[0:10], abc, "_Hilbert_" if hilb else "_", int(reps),
         "rnd-batch" if rnd_batch else "subsequent-batch", batch_size, s_fold, str(subject).zfill(2), mean_acc,
         path_specificity[:-1])

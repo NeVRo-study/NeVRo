@@ -27,16 +27,16 @@ from LSTMnet import LSTMnet
 
 # TODO Define Default Values dependencies
 
+# TODO Heart Data, GSR data
+
 
 LEARNING_RATE_DEFAULT = 1e-3  # 1e-4
 BATCH_SIZE_DEFAULT = 9  # or bigger
 RANDOM_BATCH_DEFAULT = True
 S_FOLD_DEFAULT = 10
-REPETITION_SCALAR_DEFAULT = 750 # scaler for how many times it should run through set (can be also fraction)
+REPETITION_SCALAR_DEFAULT = 750  # scaler for how many times it should run through set (can be also fraction)
 MAX_STEPS_DEFAULT = REPETITION_SCALAR_DEFAULT*(270 - 270/S_FOLD_DEFAULT)/BATCH_SIZE_DEFAULT  # runs x-times through set
 assert float(MAX_STEPS_DEFAULT).is_integer(), "max steps must be integer"
-# EVAL_FREQ_DEFAULT = (S_FOLD_DEFAULT - 1)/BATCH_SIZE_DEFAULT  # == MAX_STEPS_DEFAULT / (270/S_FOLD_DEFAULT)
-# assert float(EVAL_FREQ_DEFAULT).is_integer(), "evaluation frequency must be integer"
 EVAL_FREQ_DEFAULT = 50
 CHECKPOINT_FREQ_DEFAULT = MAX_STEPS_DEFAULT
 PRINT_FREQ_DEFAULT = int(MAX_STEPS_DEFAULT/8)  # if too low, uses much memory
@@ -541,12 +541,14 @@ def train_lstm():
                                                                        FLAGS.path_specificities[:-1]), "w") as file:
         file.write("Subject {}\nHilbert_z-Power: {}\ns-Fold: {}\nmax_step: {}\nrepetition_set: {}\nlearning_rate: {}"
                    "\nbatch_size: {}\nbatch_random: {}\nweight_reg: {}({})\nact_fct: {}"
-                   "\nlstm_h_size: {}\nn_hidden_units: {}\n".format(FLAGS.subject, FLAGS.hilbert_power, FLAGS.s_fold,
-                                                                    int(FLAGS.max_steps), FLAGS.repet_scalar,
-                                                                    FLAGS.learning_rate, FLAGS.batch_size,
-                                                                    FLAGS.rand_batch, FLAGS.weight_reg,
-                                                                    FLAGS.weight_reg_strength, FLAGS.activation_fct,
-                                                                    FLAGS.lstm_size, str(n_hidden_units)))
+                   "\nlstm_h_size: {}\nn_hidden_units: {}"
+                   "\ncomponent: {}({})\n".format(FLAGS.subject, FLAGS.hilbert_power, FLAGS.s_fold,
+                                                  int(FLAGS.max_steps), FLAGS.repet_scalar,
+                                                  FLAGS.learning_rate, FLAGS.batch_size,
+                                                  FLAGS.rand_batch, FLAGS.weight_reg,
+                                                  FLAGS.weight_reg_strength, FLAGS.activation_fct,
+                                                  FLAGS.lstm_size, str(n_hidden_units),
+                                                  FLAGS.component, input_component))
         rnd_all_acc_val = ["{:.3f}".format(np.round(acc, 3)) for acc in all_acc_val]  # rounding for the export
         rnd_all_acc_val = [float(acc) for acc in rnd_all_acc_val]  # cleaning
         for i, item in enumerate([s_fold_idx_list,

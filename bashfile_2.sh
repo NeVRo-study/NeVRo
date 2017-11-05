@@ -28,32 +28,34 @@
 ## Experiment: Test best x-corr component vs. shuffled values (i.e. noise) vs. random component
 
 # Per Subject
-python3 NeVRo.py --subject 2 --component best --path_specificities best/
-python3 NeVRo.py --subject 2 --component noise --path_specificities noise/
-python3 NeVRo.py --subject 2 --component random --path_specificities random/
-# python3 NeVRo.py --subject 28 --component best --path_specificities best/
-# python3 NeVRo.py --subject 28 --component noise --path_specificities noise/
-# python3 NeVRo.py --subject 28 --component random --path_specificities random/
-# python3 NeVRo.py --subject 5 --component best --path_specificities best/
-# python3 NeVRo.py --subject 5 --component noise --path_specificities noise/
-# python3 NeVRo.py --subject 5 --component random --path_specificities random/
-# python3 NeVRo.py --subject 14 --component best --path_specificities best/
-# python3 NeVRo.py --subject 14 --component noise --path_specificities noise/
-# python3 NeVRo.py --subject 14 --component random --path_specificities random/
-# python3 NeVRo.py --subject 9 --component best --path_specificities best/
-# python3 NeVRo.py --subject 9 --component noise --path_specificities noise/
-# python3 NeVRo.py --subject 9 --component random --path_specificities random/
-# python3 NeVRo.py --subject 26 --component best --path_specificities best/
-# python3 NeVRo.py --subject 26 --component noise --path_specificities noise/
-# python3 NeVRo.py --subject 26 --component random --path_specificities random/
-# python3 NeVRo.py --subject 31 --component best --path_specificities best/
-# python3 NeVRo.py --subject 31 --component noise --path_specificities noise/
-# python3 NeVRo.py --subject 31 --component random --path_specificities random/
-# python3 NeVRo.py --subject 4 --component best --path_specificities best/
-# python3 NeVRo.py --subject 4 --component noise --path_specificities noise/
-# python3 NeVRo.py --subject 4 --component random --path_specificities random/
-# python3 NeVRo.py --subject 11 --component best --path_specificities best/
-# python3 NeVRo.py --subject 11 --component noise --path_specificities noise/
-# python3 NeVRo.py --subject 11 --component random --path_specificities random/
+python3 NeVRo.py --subject 2 --component best --lstm_size 50,50 --path_specificities best/
+python3 NeVRo.py --subject 2 --component noise --lstm_size 50,50 --path_specificities noise/
+python3 NeVRo.py --subject 2 --component random --lstm_size 50,50 --path_specificities random/
+# python3 NeVRo.py --subject 28 --component best --lstm_size 50,50 --path_specificities best/
+# python3 NeVRo.py --subject 28 --component noise --lstm_size 50,50 --path_specificities noise/
+# python3 NeVRo.py --subject 28 --component random --lstm_size 50,50 --path_specificities random/
+# python3 NeVRo.py --subject 5 --component best --lstm_size 50,50 --path_specificities best/
+# python3 NeVRo.py --subject 5 --component noise --lstm_size 50,50 --path_specificities noise/
+# python3 NeVRo.py --subject 5 --component random --lstm_size 50,50 --path_specificities random/
+# python3 NeVRo.py --subject 14 --component best --lstm_size 50,50 --path_specificities best/
+# python3 NeVRo.py --subject 14 --component noise --lstm_size 50,50 --path_specificities noise/
+# python3 NeVRo.py --subject 14 --component random --lstm_size 50,50 --path_specificities random/
+# python3 NeVRo.py --subject 9 --component best --lstm_size 50,50 --path_specificities best/
+# python3 NeVRo.py --subject 9 --component noise --lstm_size 50,50 --path_specificities noise/
+# python3 NeVRo.py --subject 9 --component random --lstm_size 50,50 --path_specificities random/
+# python3 NeVRo.py --subject 26 --component best --lstm_size 50,50 --path_specificities best/
+# python3 NeVRo.py --subject 26 --component noise --lstm_size 50,50 --path_specificities noise/
+# python3 NeVRo.py --subject 26 --component random --lstm_size 50,50 --path_specificities random/
+# python3 NeVRo.py --subject 31 --component best --lstm_size 50,50 --path_specificities best/
+# python3 NeVRo.py --subject 31 --component noise --lstm_size 50,50 --path_specificities noise/
+# python3 NeVRo.py --subject 31 --component random --lstm_size 50,50 --path_specificities random/
+# python3 NeVRo.py --subject 4 --component best --lstm_size 50,50 --path_specificities best/
+# python3 NeVRo.py --subject 4 --component noise --lstm_size 50,50 --path_specificities noise/
+# python3 NeVRo.py --subject 4 --component random --lstm_size 50,50 --path_specificities random/
+# python3 NeVRo.py --subject 11 --component best --lstm_size 50,50 --path_specificities best/
+# python3 NeVRo.py --subject 11 --component noise --lstm_size 50,50 --path_specificities noise/
+# python3 NeVRo.py --subject 11 --component random --lstm_size 50,50 --path_specificities random/
 
-# python3 NeVRo.py --subject 36
+# python3 NeVRo.py --subject 36 --component best --lstm_size 50,50 --path_specificities best/
+# python3 NeVRo.py --subject 36 --component noise --lstm_size 50,50 --path_specificities noise/
+# python3 NeVRo.py --subject 36 --component random --lstm_size 50,50 --path_specificities random/
