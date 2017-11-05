@@ -37,7 +37,7 @@ S_FOLD_DEFAULT = 10
 REPETITION_SCALAR_DEFAULT = 750  # scaler for how many times it should run through set (can be also fraction)
 MAX_STEPS_DEFAULT = REPETITION_SCALAR_DEFAULT*(270 - 270/S_FOLD_DEFAULT)/BATCH_SIZE_DEFAULT  # runs x-times through set
 assert float(MAX_STEPS_DEFAULT).is_integer(), "max steps must be integer"
-EVAL_FREQ_DEFAULT = 50
+EVAL_FREQ_DEFAULT = int(((270 - 270/S_FOLD_DEFAULT)/BATCH_SIZE_DEFAULT)/2)  # approx. 2 times per epoch
 CHECKPOINT_FREQ_DEFAULT = MAX_STEPS_DEFAULT
 PRINT_FREQ_DEFAULT = int(MAX_STEPS_DEFAULT/8)  # if too low, uses much memory
 OPTIMIZER_DEFAULT = 'ADAM'
