@@ -31,6 +31,4 @@
 python3 NeVRo.py --subject 28 --component best --lstm_size 50,50 --path_specificities best/
 python3 NeVRo.py --subject 28 --component noise --lstm_size 50,50 --path_specificities noise/
 python3 NeVRo.py --subject 28 --component random --lstm_size 50,50 --path_specificities random/
-python3 NeVRo.py --subject 22 --component best --lstm_size 50,50 --path_specificities best/
-python3 NeVRo.py --subject 22 --component noise --lstm_size 50,50 --path_specificities noise/
-python3 NeVRo.py --subject 22 --component random --lstm_size 50,50 --path_specificities random/
+

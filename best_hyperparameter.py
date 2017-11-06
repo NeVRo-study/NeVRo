@@ -38,4 +38,4 @@ for file_n in acc_name_list_sorted[:10]:
 
         if identifier in plot_file:
             current_plot_file = wdic_plot+plot_file
-            subprocess.Popen(["open", current_plot_file])
+            subprocess.Popen(["open", current_plot_file])  # 'open' only works for Mac
