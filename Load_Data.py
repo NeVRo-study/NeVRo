@@ -401,6 +401,22 @@ def load_rating_files(subjects, samp_freq=1., sba=True):
     return rating_dic
 
 
+def zero_line_prediction(subject):
+    """
+    Returns the accuracy if the all predictions would be zero
+    :param subject: Subject ID
+    :return: accuracy of zero-line prediction
+    """
+    rating = load_rating_files(subjects=subject)[str(subject)]["SBA"]["NoMov"]
+    rating = normalization(array=rating, lower_bound=-1, upper_bound=1)
+    zero_line = np.zeros(shape=rating.shape)
+    max_diff = 1.0 - (np.abs(rating) * -1.0)  # chances depending on rating-level
+    correct = 1.0 - np.abs((zero_line - rating)) / max_diff
+    zero_line_accuracy = np.nanmean(correct)
+
+    return zero_line_accuracy
+
+
 class DataSet(object):
     """
     Utility class (http://wiki.c2.com/?UtilityClasses) to handle dataset structure

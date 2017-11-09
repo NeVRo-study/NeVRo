@@ -25,10 +25,8 @@
 # Scripts will be processed successively
 ### Task: LSTM-Network
 
-## Experiment: Test best x-corr component vs. shuffled values (i.e. noise) vs. random component
-
-# Per Subject: 44(lag=0), 02(lag=1), 22, 28, 05(lag=2), 06, 14, 17, 09(lag=3), 24, 26, 41, 31(lag=4), 43, 04, 07(lag=5), 11, 19, 36
-# python3 NeVRo.py --subject 28 --component best --lstm_size 50,50 --path_specificities best/
-# python3 NeVRo.py --subject 28 --component noise --lstm_size 50,50 --path_specificities noise/
-# python3 NeVRo.py --subject 28 --component random --lstm_size 50,50 --path_specificities random/
-
+## Hyperparameter Search
+python3 NeVRo.py --subject 36 --seed True --repet_scalar 320 --lstm_size 50,25 --path_specificities lstm-50-25/
+python3 NeVRo.py --subject 36 --seed True --repet_scalar 320 --lstm_size 50,25 --learning_rate 1e-4 --path_specificities lstm-50-25_lr-1e-4/
+python3 NeVRo.py --subject 36 --seed True --repet_scalar 320 --lstm_size 50,25 --weight_reg_strength 0.36 --path_specificities lstm-50-25_l2-036/
+python3 NeVRo.py --subject 36 --seed True --repet_scalar 320 --lstm_size 50,25 --weight_reg_strength 0.36 --learning_rate 1e-4 --path_specificities lstm-50-25_l2-036_lr-1e-4/

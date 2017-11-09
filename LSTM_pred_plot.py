@@ -115,6 +115,9 @@ for info in acc_date:
     elif "mean(Accuracy):" in info:
         mean_acc = np.round(a=float(info.split(": ")[1]), decimals=3)
 
+    elif "zero_line_acc:" in info:
+        zero_line_acc = float(info.split(": ")[1])
+
     elif "Hilbert_z-Power:" in info:
         hilb = info.split(": ")[1]
         hilb = True if "True" in hilb else False
@@ -233,6 +236,7 @@ for fold in range(s_fold):
 
     plt.plot(train_acc_fold, label="train_acc", linewidth=lw/2)
     plt.plot(where, vacc, label="val_acc", linewidth=lw)
+    plt.hlines(y=zero_line_acc, xmin=0, xmax=train_acc_fold.shape[0], colors="red", linestyles="dashed", lw=lw)
 
     plt.title(s="{}-Fold | val_acc={}".format(fold + 1,
                                               np.round(val_acc[int(np.where(np.array(s_rounds) == fold)[0])], 3)))
@@ -356,8 +360,9 @@ fig4.add_subplot(4, 1, 3)
 
 plt.plot(x_fold_mean_tacc, label="x_fold_mean_train_acc", linewidth=lw/2)
 plt.plot(where, x_fold_mean_vacc, label="x_fold_mean_val_acc", linewidth=lw)
+plt.hlines(y=zero_line_acc, xmin=0, xmax=train_acc_fold.shape[0], colors="red", linestyles="dashed", lw=lw)
 
-plt.title(s="across_Folds | mean_tain_validation_accuracy")
+plt.title(s="across_Folds | mean_train_validation_accuracy")
 
 # adjust size, add legend
 plt.xlim(0, len(train_acc_fold))

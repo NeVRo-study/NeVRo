@@ -27,10 +27,10 @@
 
 ## Experiment: Test best x-corr component vs. shuffled values (i.e. noise) vs. random component
 
-# Per Subject
-python3 NeVRo.py --subject 2 --component best --lstm_size 50,50 --path_specificities best/
-python3 NeVRo.py --subject 2 --component noise --lstm_size 50,50 --path_specificities noise/
-python3 NeVRo.py --subject 2 --component random --lstm_size 50,50 --path_specificities random/
+# Per Subject: 44(lag=0), 02(lag=1), 22, 28, 05(lag=2), 06, 14, 17, 09(lag=3), 24, 26, 41, 31(lag=4), 43, 04, 07(lag=5), 11, 19, 36
+# python3 NeVRo.py --subject 2 --component best --lstm_size 50,50 --path_specificities best/
+# python3 NeVRo.py --subject 2 --component noise --lstm_size 50,50 --path_specificities noise/
+# python3 NeVRo.py --subject 2 --component random --lstm_size 50,50 --path_specificities random/
 # python3 NeVRo.py --subject 5 --component best --lstm_size 50,50 --path_specificities best/
 # python3 NeVRo.py --subject 5 --component noise --lstm_size 50,50 --path_specificities noise/
 # python3 NeVRo.py --subject 5 --component random --lstm_size 50,50 --path_specificities random/

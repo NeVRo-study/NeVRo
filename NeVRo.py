@@ -25,27 +25,18 @@ from LSTMnet import LSTMnet
 
 # TODO implenet binary case: low_arousal | (mid-arousal [ignore]) | high_arousal
 
-# TODO Define Default Values dependencies
-
 # TODO Heart Data, GSR data
-
 
 LEARNING_RATE_DEFAULT = 1e-3  # 1e-4
 BATCH_SIZE_DEFAULT = 9  # or bigger
 RANDOM_BATCH_DEFAULT = True
 S_FOLD_DEFAULT = 10
 REPETITION_SCALAR_DEFAULT = 750  # scaler for how many times it should run through set (can be also fraction)
-MAX_STEPS_DEFAULT = REPETITION_SCALAR_DEFAULT*(270 - 270/S_FOLD_DEFAULT)/BATCH_SIZE_DEFAULT  # runs x-times through set
-assert float(MAX_STEPS_DEFAULT).is_integer(), "max steps must be integer"
-EVAL_FREQ_DEFAULT = int(((270 - 270/S_FOLD_DEFAULT)/BATCH_SIZE_DEFAULT)/2)  # approx. 2 times per epoch
-CHECKPOINT_FREQ_DEFAULT = MAX_STEPS_DEFAULT
-PRINT_FREQ_DEFAULT = int(MAX_STEPS_DEFAULT/8)  # if too low, uses much memory
 OPTIMIZER_DEFAULT = 'ADAM'
 WEIGHT_REGULARIZER_DEFAULT = 'l2'
 WEIGHT_REGULARIZER_STRENGTH_DEFAULT = 0.18
 ACTIVATION_FCT_DEFAULT = 'elu'
 LOSS_DEFAULT = "normal"  # is not used yet
-FEAT_STEP_DEFAULT = CHECKPOINT_FREQ_DEFAULT-1
 LSTM_SIZE_DEFAULT = '100'  # number of hidden units per LSTM layer, e.g., '10, 5' would create second lstm_layer
 FC_NUM_HIDDEN_UNITS = None  # if len(n_hidden_units)>0, create len(n_hidden_units) layers
 HILBERT_POWER_INPUT_DEFAULT = True
@@ -120,7 +111,14 @@ def train_lstm():
     [https://www.tensorflow.org/versions/r0.11/how_tos/variables/index.html]
     """
 
-    # Set the random seeds for reproducibility.
+    # Parameters
+    max_steps = FLAGS.repet_scalar * (270 - 270 / FLAGS.s_fold) / FLAGS.batch_size  # runs x-times through set
+    assert float(max_steps).is_integer(), "max steps must be integer"
+    eval_freq = int(((270 - 270 / FLAGS.s_fold) / FLAGS.batch_size) / 2)  # approx. 2 times per epoch
+    checkpoint_freq = int(max_steps)  # int(max_steps)/2 for chechpoint after half the training
+    print_freq = int(max_steps / 8)  # if too low, uses much memory
+
+    # Set the random seeds on True for reproducibility.
     # Switch for seed
     if FLAGS.seed:
         tf.set_random_seed(42)
@@ -179,6 +177,8 @@ def train_lstm():
                                 cond="NoMov",
                                 sba=True,
                                 hilbert_power=FLAGS.hilbert_power)
+
+    zero_line_acc = zero_line_prediction(subject=FLAGS.subject)
 
     # Define graph using class LSTMnet and its methods:
     ddims = list(nevro_data["train"].eeg.shape[1:])  # [250, 2]
@@ -328,7 +328,7 @@ def train_lstm():
                 # end_timer = 0
                 timer_freq = 100
 
-                for step in range(int(FLAGS.max_steps)):
+                for step in range(int(max_steps)):
 
                     # Timer for every timer_freq=100 steps
                     if step == 0:
@@ -336,14 +336,14 @@ def train_lstm():
                         start_timer = datetime.datetime.now().replace(microsecond=0)
 
                     if step % (timer_freq/2) == 0.:
-                        print("Step {}/{} in Fold Nr.{} ({}/{}) | {} | S{}".format(step, int(FLAGS.max_steps),
+                        print("Step {}/{} in Fold Nr.{} ({}/{}) | {} | S{}".format(step, int(max_steps),
                                                                                    s_fold_idx,
                                                                                    rnd+1, len(s_fold_idx_list),
                                                                                    FLAGS.path_specificities[:-1],
                                                                                    str(FLAGS.subject).zfill(2)))
 
                     # Evaluate on training set every print_freq (=10) iterations
-                    if (step + 1) % FLAGS.print_freq == 0:
+                    if (step + 1) % print_freq == 0:
                         run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
                         run_metadata = tf.RunMetadata()
 
@@ -388,7 +388,7 @@ def train_lstm():
                                                    current_batch=nevro_data["train"].current_batch, train=True)
 
                     # Evaluate on validation set every eval_freq iterations
-                    if (step + 1) % FLAGS.eval_freq == 0:
+                    if (step + 1) % eval_freq == 0:
                         # val_counter += 1  # count the number of validation steps (implementation could improved)
 
                         # Check (average) val_performance during training
@@ -414,7 +414,7 @@ def train_lstm():
                         val_acc_training_list.append((np.mean(va_ls_acc), step))  # tuple of val_acc and at what step
                         val_loss_training_list.append((np.mean(va_ls_loss), step))
 
-                    if step == FLAGS.max_steps - 1:  # Validation in last round
+                    if step == max_steps - 1:  # Validation in last round
                         # val_counter /= FLAGS.repet_scalar
                         # assert float(val_counter).is_integer(), \
                         #     "val_counter (={}) devided by repetition (={}) is not integer".format(
@@ -451,7 +451,7 @@ def train_lstm():
                                                                train=False)
 
                     # Save the variables to disk every checkpoint_freq (=5000) iterations
-                    if (step + 1) % FLAGS.checkpoint_freq == 0:
+                    if (step + 1) % checkpoint_freq == 0:
 
                         # Define checkpoint_dir
                         checkpoint_dir = './LSTM/checkpoints/S{}/{}'.format(str(FLAGS.subject).zfill(2),
@@ -475,12 +475,12 @@ def train_lstm():
                         # estim_t_per_step = np.mean(timer_list) / timer_freq  # only python3
                         mean_timer_list = average_time(list_of_timestamps=timer_list, in_timedelta=False)
                         estim_t_per_step = mean_timer_list/timer_freq
-                        remaining_steps_in_fold = (FLAGS.max_steps - (step + 2))
+                        remaining_steps_in_fold = (max_steps - (step + 2))
                         rest_duration = remaining_steps_in_fold * estim_t_per_step
                         # For whole training
                         remaining_folds = len(s_fold_idx_list) - (rnd + 1)
                         if rnd == 0:
-                            remaining_steps = FLAGS.max_steps * remaining_folds
+                            remaining_steps = max_steps * remaining_folds
                             rest_duration_all_folds = rest_duration + remaining_steps*estim_t_per_step
                         else:  # this is more accurate, but only possible after first round(rnd)/fold
                             rest_duration_all_folds = rest_duration + \
@@ -496,7 +496,7 @@ def train_lstm():
                               "{} [h:m:s] | {} | S{}".format(timer_freq, duration, FLAGS.path_specificities[:-1],
                                                              str(FLAGS.subject).zfill(2)))
                         print("Estimated time to train the rest {} steps in current Fold-Nr.{}: "
-                              "{} [h:m:s] | {} | S{}".format(int(FLAGS.max_steps - (step + 1)), s_fold_idx,
+                              "{} [h:m:s] | {} | S{}".format(int(max_steps - (step + 1)), s_fold_idx,
                                                              rest_duration, FLAGS.path_specificities[:-1],
                                                              str(FLAGS.subject).zfill(2)))
                         print("Estimated time to train the rest steps and {} {}: {} [h:m:s] | {} | S{}".format(
@@ -534,7 +534,7 @@ def train_lstm():
 
     # Final Accuracy & Time
     timer_fold_list.append(duration_fold)
-    print("Time to train all folds (each {} steps): {} [h:m:s] | {} | S{}".format(int(FLAGS.max_steps),
+    print("Time to train all folds (each {} steps): {} [h:m:s] | {} | S{}".format(int(max_steps),
                                                                                   np.sum(timer_fold_list),
                                                                                   FLAGS.path_specificities[:-1],
                                                                                   str(FLAGS.subject).zfill(2)))
@@ -556,7 +556,7 @@ def train_lstm():
                    "\nbatch_size: {}\nbatch_random: {}\nweight_reg: {}({})\nact_fct: {}"
                    "\nlstm_h_size: {}\nn_hidden_units: {}"
                    "\ncomponent: {}({})\n".format(FLAGS.subject, FLAGS.hilbert_power, FLAGS.s_fold,
-                                                  int(FLAGS.max_steps), FLAGS.repet_scalar,
+                                                  int(max_steps), FLAGS.repet_scalar,
                                                   FLAGS.learning_rate, FLAGS.batch_size,
                                                   FLAGS.rand_batch, FLAGS.weight_reg,
                                                   FLAGS.weight_reg_strength, FLAGS.activation_fct,
@@ -567,8 +567,10 @@ def train_lstm():
         for i, item in enumerate([s_fold_idx_list,
                                   rnd_all_acc_val,
                                   np.round(np.mean(all_acc_val), 3),
+                                  np.round(zero_line_acc, 3),
                                   np.sum(timer_fold_list)]):
-            file.write(["S-Fold(Round): ", "Validation-Acc: ", "mean(Accuracy): ", "Train-Time: "][i] + str(item)+"\n")
+            file.write(["S-Fold(Round): ", "Validation-Acc: ",
+                        "mean(Accuracy): ", "zero_line_acc", "Train-Time: "][i] + str(item)+"\n")
 
     # Save Prediction Matrices in File
     np.savetxt(sub_dir + "{}S{}_pred_matrix_{}_folds_{}.csv".format(time.strftime('%Y_%m_%d_'), FLAGS.subject,
@@ -681,18 +683,10 @@ if __name__ == '__main__':
 
     parser.add_argument('--learning_rate', type=float, default=LEARNING_RATE_DEFAULT,
                         help='Learning rate')
-    parser.add_argument('--max_steps', type=int, default=MAX_STEPS_DEFAULT,
-                        help='Number of steps to run trainer.')
     parser.add_argument('--repet_scalar', type=int, default=REPETITION_SCALAR_DEFAULT,
                         help='Number of times it should run through set. repet_scalar*(270 - 270/s_fold)')
     parser.add_argument('--batch_size', type=int, default=BATCH_SIZE_DEFAULT,
                         help='Batch size to run trainer.')
-    parser.add_argument('--print_freq', type=int, default=PRINT_FREQ_DEFAULT,
-                        help='Frequency of printing and saving in log on the train set')
-    parser.add_argument('--eval_freq', type=int, default=EVAL_FREQ_DEFAULT,
-                        help='Frequency of evaluation on the test set')
-    parser.add_argument('--checkpoint_freq', type=int, default=CHECKPOINT_FREQ_DEFAULT,
-                        help='Frequency with which the model state is saved.')
     parser.add_argument('--path_specificities', type=str, default=PATH_SPECIFICITIES_DEFAULT,
                         help='Specificities for the paths (depending on model-setups)')
     parser.add_argument('--is_train', type=bool, default=True,
@@ -709,8 +703,6 @@ if __name__ == '__main__':
                         help='Type of activation function from lstm to fully-connected layers [elu, relu].')
     parser.add_argument('--loss', type=str, default=LOSS_DEFAULT,
                         help='Type of loss. Either "normal" or "Hadsell".')
-    parser.add_argument('--feat_ext_step', type=str, default=FEAT_STEP_DEFAULT,
-                        help='feature_extraction will be applied on specific step of checkpoint data')
     parser.add_argument('--subject', type=int, default=SUBJECT_DEFAULT,
                         help='Which subject data to process')
     parser.add_argument('--lstm_size', type=str, default=LSTM_SIZE_DEFAULT,
