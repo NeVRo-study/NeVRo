@@ -25,10 +25,10 @@
 # Scripts will be processed successively
 ### Task: LSTM-Network
 
-## Hyperparameter Search
+## Hyperparameter Search (HPS)
 
 # Specific Search: 2-LSTM + 1-FC, Learning Rate, Weight Reg-Strength
-python3 NeVRo.py --subject 36 --seed True --repet_scalar 320 --lstm_size 50,50 --path_specificities lstm-50-50/
-python3 NeVRo.py --subject 36 --seed True --repet_scalar 320 --lstm_size 50,50 --learning_rate 1e-4 --path_specificities lstm-50-50_lr-1e-4/
-python3 NeVRo.py --subject 36 --seed True --repet_scalar 320 --lstm_size 50,50 --weight_reg_strength 0.36 --path_specificities lstm-50-50_l2-0.36/
-python3 NeVRo.py --subject 36 --seed True --repet_scalar 320 --lstm_size 50,50 --weight_reg_strength 0.36 --learning_rate 1e-4 --path_specificities lstm-50-50_l2-0.36_lr-1e-4/
+python3 NeVRo.py --subject 36 --seed True --repet_scalar 320 --lstm_size 50,50 --path_specificities HPS_lstm-50-50/
+python3 NeVRo.py --subject 36 --seed True --repet_scalar 320 --lstm_size 50,50 --learning_rate 1e-4 --path_specificities HPS_lstm-50-50_lr-1e-4/
+python3 NeVRo.py --subject 36 --seed True --repet_scalar 320 --lstm_size 50,50 --weight_reg_strength 0.36 --path_specificities HPS_lstm-50-50_l2-0.36/
+python3 NeVRo.py --subject 36 --seed True --repet_scalar 320 --lstm_size 50,50 --weight_reg_strength 0.36 --learning_rate 1e-4 --path_specificities HPS_lstm-50-50_l2-0.36_lr-1e-4/
