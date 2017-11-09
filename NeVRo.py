@@ -570,7 +570,7 @@ def train_lstm():
                                   np.round(zero_line_acc, 3),
                                   np.sum(timer_fold_list)]):
             file.write(["S-Fold(Round): ", "Validation-Acc: ",
-                        "mean(Accuracy): ", "zero_line_acc", "Train-Time: "][i] + str(item)+"\n")
+                        "mean(Accuracy): ", "zero_line_acc: ", "Train-Time: "][i] + str(item)+"\n")
 
     # Save Prediction Matrices in File
     np.savetxt(sub_dir + "{}S{}_pred_matrix_{}_folds_{}.csv".format(time.strftime('%Y_%m_%d_'), FLAGS.subject,
