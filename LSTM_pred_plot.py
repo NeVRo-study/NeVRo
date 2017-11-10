@@ -234,8 +234,8 @@ for fold in range(s_fold):
     sub_n += 1
     fig2.add_subplot(sub_rows, sub_col, sub_n)
 
-    plt.plot(train_acc_fold, label="train_acc", linewidth=lw/2)
-    plt.plot(where, vacc, label="val_acc", linewidth=lw)
+    plt.plot(train_acc_fold, label="train_acc", linewidth=lw/2, alpha=0.8)
+    plt.plot(where, vacc, label="val_acc", linewidth=lw, alpha=0.8)
     plt.hlines(y=zero_line_acc, xmin=0, xmax=train_acc_fold.shape[0], colors="red", linestyles="dashed", lw=lw)
 
     plt.title(s="{}-Fold | val_acc={}".format(fold + 1,
@@ -295,8 +295,8 @@ for fold in range(s_fold):
     fig3.add_subplot(sub_rows, sub_col, sub_n)
 
     # plot
-    plt.plot(train_loss_fold, label="train_loss", linewidth=lw/2)
-    plt.plot(where_loss, vloss, label="val_loss", linewidth=lw)
+    plt.plot(train_loss_fold, label="train_loss", linewidth=lw/2, alpha=0.8)
+    plt.plot(where_loss, vloss, label="val_loss", linewidth=lw, alpha=0.8)
 
     plt.title(s="{}-Fold | val_loss={}".format(fold + 1,
                                                np.round(val_acc[int(np.where(np.array(s_rounds) == fold)[0])], 3)))
@@ -358,8 +358,8 @@ fig4.show()
 # Plot average training & validation accuracy
 fig4.add_subplot(4, 1, 3)
 
-plt.plot(x_fold_mean_tacc, label="x_fold_mean_train_acc", linewidth=lw/2)
-plt.plot(where, x_fold_mean_vacc, label="x_fold_mean_val_acc", linewidth=lw)
+plt.plot(x_fold_mean_tacc, label="x_fold_mean_train_acc", linewidth=lw/2, alpha=0.8)
+plt.plot(where, x_fold_mean_vacc, label="x_fold_mean_val_acc", linewidth=lw, alpha=0.8)
 plt.hlines(y=zero_line_acc, xmin=0, xmax=train_acc_fold.shape[0], colors="red", linestyles="dashed", lw=lw)
 
 plt.title(s="across_Folds | mean_train_validation_accuracy")
@@ -373,8 +373,8 @@ plt.tight_layout(pad=2)
 # Plot average training & validation loss
 fig4.add_subplot(4, 1, 4)
 
-plt.plot(x_fold_mean_tloss, label="x_fold_mean_train_loss", linewidth=lw/2)
-plt.plot(where_loss, x_fold_mean_vloss, label="x_fold_mean_val_loss", linewidth=lw)
+plt.plot(x_fold_mean_tloss, label="x_fold_mean_train_loss", linewidth=lw/2, alpha=0.8)
+plt.plot(where_loss, x_fold_mean_vloss, label="x_fold_mean_val_loss", linewidth=lw, alpha=0.8)
 
 plt.title(s="across_Folds | mean_train_validation_loss")
 

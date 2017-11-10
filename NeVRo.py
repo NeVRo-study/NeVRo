@@ -29,6 +29,7 @@ from LSTMnet import LSTMnet
 
 LEARNING_RATE_DEFAULT = 1e-3  # 1e-4
 BATCH_SIZE_DEFAULT = 9  # or bigger
+SUCCESSIVE_BATCHES_DEFAULT = 1  # batch_size must be a multiple of 'successive'
 RANDOM_BATCH_DEFAULT = True
 S_FOLD_DEFAULT = 10
 REPETITION_SCALAR_DEFAULT = 750  # scaler for how many times it should run through set (can be also fraction)
@@ -117,6 +118,7 @@ def train_lstm():
     eval_freq = int(((270 - 270 / FLAGS.s_fold) / FLAGS.batch_size) / 2)  # approx. 2 times per epoch
     checkpoint_freq = int(max_steps)  # int(max_steps)/2 for chechpoint after half the training
     print_freq = int(max_steps / 8)  # if too low, uses much memory
+    assert FLAGS.batch_size % FLAGS.successive == 0, "batch_size must be a multiple of successive (batches)."
 
     # Set the random seeds on True for reproducibility.
     # Switch for seed
@@ -293,7 +295,8 @@ def train_lstm():
                     # Train
                     if training:
                         xs, ys = nevro_data["train"].next_batch(batch_size=FLAGS.batch_size,
-                                                                randomize=FLAGS.rand_batch)
+                                                                randomize=FLAGS.rand_batch,
+                                                                successive=FLAGS.successive)
                         # print("that is the x-shape:", xs.shape)
                         # print("I am in _feed_dict(Trainining True)")
                         # keep_prob = 1.0-FLAGS.dropout_rate
@@ -303,7 +306,8 @@ def train_lstm():
                     else:
                         # Validation:
                         xs, ys = nevro_data["validation"].next_batch(batch_size=1,
-                                                                     randomize=FLAGS.rand_batch)
+                                                                     randomize=False,
+                                                                     successive=1)
                         # ys = np.reshape(ys, newshape=([FLAGS.batch_size] + list(ys.shape)))
                         ys = np.reshape(ys, newshape=([1, 1]))
 
@@ -687,6 +691,8 @@ if __name__ == '__main__':
                         help='Number of times it should run through set. repet_scalar*(270 - 270/s_fold)')
     parser.add_argument('--batch_size', type=int, default=BATCH_SIZE_DEFAULT,
                         help='Batch size to run trainer.')
+    parser.add_argument('--successive', type=int, default=SUCCESSIVE_BATCHES_DEFAULT,
+                        help='Number of successive batches.')
     parser.add_argument('--path_specificities', type=str, default=PATH_SPECIFICITIES_DEFAULT,
                         help='Specificities for the paths (depending on model-setups)')
     parser.add_argument('--is_train', type=bool, default=True,
