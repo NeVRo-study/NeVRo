@@ -21,15 +21,15 @@ import subprocess
 
 from LSTMnet import LSTMnet
 
-# TODO (time-)length per sample is hyperparameter: use x-successive batches
 
 # TODO implenet binary case: low_arousal | (mid-arousal [ignore]) | high_arousal
 
 # TODO Heart Data, GSR data
 
 LEARNING_RATE_DEFAULT = 1e-3  # 1e-4
-BATCH_SIZE_DEFAULT = 9  # or bigger
-SUCCESSIVE_BATCHES_DEFAULT = 1  # batch_size must be a multiple of 'successive'
+BATCH_SIZE_DEFAULT = 9  # or bigger, batch_size must be a multiple of 'successive batches'
+SUCCESSIVE_BATCHES_DEFAULT = 1  # (time-)length per sample is hyperparameter in form of successive batches
+SUCCESSIVE_MODE_DEFAULT = 1  # either 1 or 2
 RANDOM_BATCH_DEFAULT = True
 S_FOLD_DEFAULT = 10
 REPETITION_SCALAR_DEFAULT = 750  # scaler for how many times it should run through set (can be also fraction)
@@ -296,7 +296,8 @@ def train_lstm():
                     if training:
                         xs, ys = nevro_data["train"].next_batch(batch_size=FLAGS.batch_size,
                                                                 randomize=FLAGS.rand_batch,
-                                                                successive=FLAGS.successive)
+                                                                successive=FLAGS.successive,
+                                                                successive_mode=FLAGS.successive_mode)
                         # print("that is the x-shape:", xs.shape)
                         # print("I am in _feed_dict(Trainining True)")
                         # keep_prob = 1.0-FLAGS.dropout_rate
@@ -693,6 +694,8 @@ if __name__ == '__main__':
                         help='Batch size to run trainer.')
     parser.add_argument('--successive', type=int, default=SUCCESSIVE_BATCHES_DEFAULT,
                         help='Number of successive batches.')
+    parser.add_argument('--successive_mode', type=int, default=SUCCESSIVE_MODE_DEFAULT,
+                        help='Mode of successive batching, 1 or 2.')
     parser.add_argument('--path_specificities', type=str, default=PATH_SPECIFICITIES_DEFAULT,
                         help='Specificities for the paths (depending on model-setups)')
     parser.add_argument('--is_train', type=bool, default=True,

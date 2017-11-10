@@ -484,11 +484,13 @@ class DataSet(object):
         # print("Still available slices in epoch: {}/{}\n".format(len(self.remaining_slices),
         #                                                         self._num_time_slices))
 
-    def next_batch(self, batch_size=1, randomize=True, successive=1):
+    def next_batch(self, batch_size=1, randomize=True, successive=1, successive_mode=1):
         """
         Return the next 'batch_size' examples from this data set
         For MODEL 1: the batch size = 1, i.e. input 1sec=250 data points, gives 1 output (rating), aka. many-to-one
         :param successive: how many of the random batches shall remain in successive order
+        :param successive_mode: Mode 1) successive batches start always at the same spot (-): perfect line-up (+)
+                                Mode 2) successive batches can start at random spots, no perfect line-up guaranteed
         :param batch_size: Batch size
         :param randomize: Whether to randomize the order in data
         :return: Next batch
@@ -498,6 +500,7 @@ class DataSet(object):
         #     raise ValueError("A batch_size of > 1 is not recommanded at this point")
 
         assert batch_size % successive == 0, "batch_size must be a multiple of successive"
+        assert successive_mode in [1, 2], "successive_mode must be either 1 or 2"
 
         if len(self.remaining_slices) >= batch_size:
 
@@ -508,38 +511,63 @@ class DataSet(object):
                                                            size=batch_size, replace=False)
                 else:
                     # # COULDO implement also a mode, where successive batches not start always with the same indices
-                    batch_counter = batch_size
+
                     selection_array_idx = np.array([])
 
-                    while batch_counter > 0:
+                    if successive_mode == 1:
+                        batch_counter = batch_size
+
+                        while batch_counter > 0:
+
+                            while True:
+                                sel_arr_idx = np.random.choice(a=range(len(self.remaining_slices)),
+                                                               size=1, replace=False)
+
+                                # Search around index if remaining_slides are not equally distributed
+                                while len(self.remaining_slices[:sel_arr_idx[0]]) % successive > 0:
+                                    if sel_arr_idx < len(self.remaining_slices)-1:
+                                        if sel_arr_idx > 0:
+                                            sel_arr_idx -= np.random.choice(a=[-1, 1], size=1)
+                                        else:
+                                            sel_arr_idx += 1
+                                    else:
+                                        sel_arr_idx -= 1
+
+                                if sel_arr_idx not in selection_array_idx:
+                                    break
+
+                            # Check whether right number of remaining batches
+                            assert len(self.remaining_slices[sel_arr_idx[0]:]) % successive == 0, \
+                                "successive must devide length of dataset equally"
+
+                            # Attach successive batches
+                            selection_array_idx = np.append(selection_array_idx, sel_arr_idx).astype(int)
+                            for _ in range(successive-1):
+                                selection_array_idx = np.append(selection_array_idx, selection_array_idx[-1]+1)
+
+                            batch_counter -= successive
+
+                    else:  # successive_mode == 2:
 
                         while True:
                             sel_arr_idx = np.random.choice(a=range(len(self.remaining_slices)),
-                                                           size=1, replace=False)
+                                                           size=int(batch_size/successive), replace=False)
 
-                            # Search around index if remaining_slides are not equally distributed
-                            while len(self.remaining_slices[:sel_arr_idx[0]]) % successive > 0:
-                                if sel_arr_idx < len(self.remaining_slices)-1:
-                                    if sel_arr_idx > 0:
-                                        sel_arr_idx -= np.random.choice(a=[-1, 1], size=1)
-                                    else:
-                                        sel_arr_idx += 1
-                                else:
-                                    sel_arr_idx -= 1
-
-                            if not sel_arr_idx in selection_array_idx:
+                            # Check whether distances big enough
+                            counter = 0
+                            for element in sel_arr_idx:
+                                diff = np.abs(element - sel_arr_idx)
+                                diff = np.delete(diff, np.where(diff == 0))
+                                if not np.all(diff >= successive):
+                                    counter += 1
+                            if counter == 0 and np.max(sel_arr_idx)+successive-1 < len(self.remaining_slices):
                                 break
 
-                        # Check whether right number of remaining batches
-                        assert len(self.remaining_slices[sel_arr_idx[0]:]) % successive == 0, \
-                            "successive must devide length of dataset equally"
-
-                        # Attach successive batches
-                        selection_array_idx = np.append(selection_array_idx, sel_arr_idx).astype(int)
-                        for _ in range(successive-1):
-                            selection_array_idx = np.append(selection_array_idx, selection_array_idx[-1]+1)
-
-                        batch_counter -= successive
+                        for element in sel_arr_idx:
+                            # Attach successive batches
+                            selection_array_idx = np.append(selection_array_idx, element).astype(int)
+                            for _ in range(successive - 1):
+                                selection_array_idx = np.append(selection_array_idx, selection_array_idx[-1] + 1)
 
             else:  # if not random
                 selection_array_idx = range(batch_size)
@@ -580,34 +608,57 @@ class DataSet(object):
                                                             size=remaining_slices_to_draw, replace=False)
 
                 else:
-                    batch_counter = remaining_slices_to_draw
                     additional_array_idx = np.array([])
 
-                    while batch_counter > 0:
+                    if successive_mode == 1:
+                        batch_counter = remaining_slices_to_draw
 
-                        sel_arr_idx = np.random.choice(a=range(len(self.remaining_slices)),
-                                                       size=1, replace=False)
+                        while batch_counter > 0:
 
-                        # Search around index if remaining_slides are not equally distributed
-                        while len(self.remaining_slices[:sel_arr_idx[0]]) % successive > 0:
-                            if sel_arr_idx < len(self.remaining_slices)-1:
-                                if sel_arr_idx > 0:
-                                    sel_arr_idx -= np.random.choice(a=[-1, 1], size=1)
+                            sel_arr_idx = np.random.choice(a=range(len(self.remaining_slices)),
+                                                           size=1, replace=False)
+
+                            # Search around index if remaining_slides are not equally distributed
+                            while len(self.remaining_slices[:sel_arr_idx[0]]) % successive > 0:
+                                if sel_arr_idx < len(self.remaining_slices)-1:
+                                    if sel_arr_idx > 0:
+                                        sel_arr_idx -= np.random.choice(a=[-1, 1], size=1)
+                                    else:
+                                        sel_arr_idx += 1
                                 else:
-                                    sel_arr_idx += 1
-                            else:
-                                sel_arr_idx -= 1
+                                    sel_arr_idx -= 1
 
-                        # Check whether right number of remaining batches
-                        assert len(self.remaining_slices[sel_arr_idx[0]:]) % successive == 0, \
-                            "successive must devide length of dataset equally"
+                            # Check whether right number of remaining batches
+                            assert len(self.remaining_slices[sel_arr_idx[0]:]) % successive == 0, \
+                                "successive must devide length of dataset equally"
 
-                        # Attach successive batches
-                        additional_array_idx = np.append(additional_array_idx, sel_arr_idx).astype(int)
-                        for _ in range(successive-1):
-                            additional_array_idx = np.append(additional_array_idx, additional_array_idx[-1]+1)
+                            # Attach successive batches
+                            additional_array_idx = np.append(additional_array_idx, sel_arr_idx).astype(int)
+                            for _ in range(successive-1):
+                                additional_array_idx = np.append(additional_array_idx, additional_array_idx[-1]+1)
 
-                        batch_counter -= successive
+                            batch_counter -= successive
+
+                    else:  # successive_mode == 2:
+                        while True:
+                            sel_arr_idx = np.random.choice(a=range(len(self.remaining_slices)),
+                                                           size=int(remaining_slices_to_draw/successive), replace=False)
+
+                            # Check whether distances big enough
+                            counter = 0
+                            for element in sel_arr_idx:
+                                diff = np.abs(element - sel_arr_idx)
+                                diff = np.delete(diff, np.where(diff == 0))
+                                if not np.all(diff >= successive):
+                                    counter += 1
+                            if counter == 0 and np.max(sel_arr_idx)+successive-1 < len(self.remaining_slices):
+                                break
+
+                        for element in sel_arr_idx:
+                            # Attach successive batches
+                            additional_array_idx = np.append(additional_array_idx, element).astype(int)
+                            for _ in range(successive - 1):
+                                additional_array_idx = np.append(additional_array_idx, additional_array_idx[-1] + 1)
 
             else:  # if not random
                 additional_array_idx = range(remaining_slices_to_draw)
@@ -626,8 +677,9 @@ class DataSet(object):
         self.current_batch = selection_array
 
         # if len(np.unique(selection_array)) != batch_size:  # TESTING
-        #     print("selection_array (len={}, unique_len={})".format(len(selection_array),
-        #                                                            len(np.unique(selection_array))), selection_array)
+        if True:  # TESTING
+            print("selection_array (len={}, unique_len={})".format(len(selection_array),
+                                                                   len(np.unique(selection_array))), selection_array)
 
         return self._eeg[selection_array, :, :], self._ratings[selection_array]
 
