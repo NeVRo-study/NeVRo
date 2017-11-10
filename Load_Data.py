@@ -510,7 +510,6 @@ class DataSet(object):
                     selection_array_idx = np.random.choice(a=range(len(self.remaining_slices)),
                                                            size=batch_size, replace=False)
                 else:
-                    # # COULDO implement also a mode, where successive batches not start always with the same indices
 
                     selection_array_idx = np.array([])
 
@@ -676,7 +675,7 @@ class DataSet(object):
         # Update current_batch
         self.current_batch = selection_array
 
-        if len(np.unique(selection_array)) != batch_size:  # TESTING
+        if len(np.unique(selection_array)) != batch_size:  # TESTING WHETHER UNUSUAL BATCH PROPERTIES
             print("selection_array (len={}, unique_len={})".format(len(selection_array),
                                                                    len(np.unique(selection_array))), selection_array)
 

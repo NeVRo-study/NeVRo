@@ -45,15 +45,6 @@ COMPONENT_DEFAULT = "best"  # 'best', 'noise', 'random'
 
 SUBJECT_DEFAULT = 36
 
-"""Lastly, all the weights are re-initialized (using the same random number generator used to initialize them 
-    originally) or reset in some fashion to undo the learning that was done before moving on to the next set of 
-    validation, training, and testing sets.
-The idea behind cross validation is that each iteration is like training the algorithm from scratch. 
-    This is desirable since by averaging your validation score, you get a more robust value. 
-    It protects against the possibility of a biased validation set."""
-# https://stackoverflow.com/questions/41216976/how-is-cross-validation-implemented
-
-
 PATH_SPECIFICITIES_DEFAULT = ""  # or fill like this: "special_folder/"
 
 WEIGHT_REGULARIZER_DICT = {'none': lambda x: None,  # No regularization
@@ -72,7 +63,7 @@ def train_step(loss):
     rate scheduler or pick optimizer here.
 
     Args:
-        loss: scalar float Tensor, full loss = cross_entropy + reg_loss
+        loss: scalar float Tensor, full loss = mean squared error + reg_loss
 
     Returns:
         train_op: Ops for optimization.
@@ -96,7 +87,7 @@ def train_lstm():
     ---------------------------
     How to evaluate the model:
     ---------------------------
-    Evaluation on test set should be conducted over full batch, i.e. 10k images,
+    Evaluation on test set should be conducted over full batch, i.e. validation fold,
     while it is alright to do it over mini-batch for train set.
     ---------------------------------
     How often to evaluate the model:
@@ -143,10 +134,10 @@ def train_lstm():
 
     # Start TensorFlow Interactive Session
     # sess = tf.InteractiveSession()
+
     # s_fold_idx depending on s_fold and previous index
     s_fold_idx_list = np.arange(FLAGS.s_fold)
     np.random.shuffle(s_fold_idx_list)
-    # rnd = 0
 
     # Create graph_dic
     graph_dict = dict.fromkeys(s_fold_idx_list)
@@ -154,8 +145,7 @@ def train_lstm():
         graph_dict[key] = tf.Graph()
 
     # Create to save the performance for each validation set
-    # all_acc_val = tf.Variable(tf.zeros(shape=S_FOLD_DEFAULT, dtype=tf.float32, name="all_valid_accuracies"))
-    all_acc_val = np.zeros(FLAGS.s_fold)  # case of non-tensor list
+    all_acc_val = np.zeros(FLAGS.s_fold)
 
     # Choose component
     best_comp = best_component(subject=FLAGS.subject)  # First find best component
@@ -298,10 +288,6 @@ def train_lstm():
                                                                 randomize=FLAGS.rand_batch,
                                                                 successive=FLAGS.successive,
                                                                 successive_mode=FLAGS.successive_mode)
-                        # print("that is the x-shape:", xs.shape)
-                        # print("I am in _feed_dict(Trainining True)")
-                        # keep_prob = 1.0-FLAGS.dropout_rate
-                        # ys = np.reshape(ys, newshape=([FLAGS.batch_size] + list(ys.shape)))
                         ys = np.reshape(ys, newshape=([FLAGS.batch_size, 1]))
 
                     else:
@@ -309,7 +295,6 @@ def train_lstm():
                         xs, ys = nevro_data["validation"].next_batch(batch_size=1,
                                                                      randomize=False,
                                                                      successive=1)
-                        # ys = np.reshape(ys, newshape=([FLAGS.batch_size] + list(ys.shape)))
                         ys = np.reshape(ys, newshape=([1, 1]))
 
                     return {x: xs, y: ys}
@@ -476,7 +461,7 @@ def train_lstm():
                         duration = end_timer - start_timer
                         timer_list.append(duration)  # mean(timer_list) = average time per 100steps
                         # For this fold
-                        # Cannot take mean(daytime) in python2
+                        # Can not take mean(daytime) in python2
                         # estim_t_per_step = np.mean(timer_list) / timer_freq  # only python3
                         mean_timer_list = average_time(list_of_timestamps=timer_list, in_timedelta=False)
                         estim_t_per_step = mean_timer_list/timer_freq
