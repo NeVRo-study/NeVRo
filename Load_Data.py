@@ -676,8 +676,7 @@ class DataSet(object):
         # Update current_batch
         self.current_batch = selection_array
 
-        # if len(np.unique(selection_array)) != batch_size:  # TESTING
-        if True:  # TESTING
+        if len(np.unique(selection_array)) != batch_size:  # TESTING
             print("selection_array (len={}, unique_len={})".format(len(selection_array),
                                                                    len(np.unique(selection_array))), selection_array)
 
