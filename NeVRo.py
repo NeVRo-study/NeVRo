@@ -26,6 +26,8 @@ from LSTMnet import LSTMnet
 
 # TODO Heart Data, GSR data
 
+# TODO Feed more than one component
+
 LEARNING_RATE_DEFAULT = 1e-3  # 1e-4
 BATCH_SIZE_DEFAULT = 9  # or bigger, batch_size must be a multiple of 'successive batches'
 SUCCESSIVE_BATCHES_DEFAULT = 1  # (time-)length per sample is hyperparameter in form of successive batches
@@ -367,6 +369,16 @@ def train_lstm():
                         _, train_loss, train_acc, tain_infer, train_y = sess.run([optimization, loss, accuracy,
                                                                                   infer, y],
                                                                                  feed_dict=_feed_dict(training=True))
+
+                        if step % 10 == 0:
+                            print("\nTrain-Loss: {:.3f} at step:{} | {} | S{}".format(np.round(train_loss, 3),
+                                                                                      step + 1,
+                                                                                      FLAGS.path_specificities[:-1],
+                                                                                      str(FLAGS.subject).zfill(2)))
+                            print("Train-Accuracy: {:.3f} at step:{} | {} | S{}\n".format(np.round(train_acc, 3),
+                                                                                          step + 1,
+                                                                                          FLAGS.path_specificities[:-1],
+                                                                                          str(FLAGS.subject).zfill(2)))
 
                         # Update Lists
                         train_acc_list.append(train_acc)
