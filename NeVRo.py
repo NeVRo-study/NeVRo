@@ -163,7 +163,7 @@ def train_lstm():
             if input_component != best_comp:
                 break
 
-    # Load first data-set
+    # Load first data-set for preparation
     nevro_data = get_nevro_data(subject=FLAGS.subject,
                                 component=input_component,
                                 s_fold_idx=s_fold_idx_list[0],
@@ -175,7 +175,7 @@ def train_lstm():
     zero_line_acc = zero_line_prediction(subject=FLAGS.subject)
 
     # Define graph using class LSTMnet and its methods:
-    ddims = list(nevro_data["train"].eeg.shape[1:])  # [250, 2]
+    ddims = list(nevro_data["train"].eeg.shape[1:])  # [250, n_comp]
     full_length = len(nevro_data["validation"].ratings) * FLAGS.s_fold
 
     # Prediction Matrix for each fold
@@ -224,7 +224,7 @@ def train_lstm():
                         str(FLAGS.subject).zfill(2)))
 
                     nevro_data = get_nevro_data(subject=FLAGS.subject,
-                                                component=best_comp,
+                                                component=input_component,
                                                 s_fold_idx=s_fold_idx,
                                                 s_fold=FLAGS.s_fold,
                                                 cond="NoMov",
@@ -370,7 +370,7 @@ def train_lstm():
                                                                                   infer, y],
                                                                                  feed_dict=_feed_dict(training=True))
 
-                        if step % 10 == 0:
+                        if step % 25 == 0:
                             print("\nTrain-Loss: {:.3f} at step:{} | {} | S{}".format(np.round(train_loss, 3),
                                                                                       step + 1,
                                                                                       FLAGS.path_specificities[:-1],

@@ -727,15 +727,22 @@ def read_data_sets(subject, component, s_fold_idx, s_fold=10, cond="NoMov", sba=
                                                                                                             s_fold)
     assert cond in ["NoMov", "Mov"], "cond must be either 'NoMov' or 'Mov'"
 
+    # If int, transform to list
     if not type(component) is list:
-        assert component in range(1, 5+1) or component in range(91, 95+1), "Component must be in range [1,2,3,4,5]"
+        component = [component]
 
-    # Check demand for noise component
-    if component in range(91, 95+1):
-        component -= 90   # decode
-        noise_comp = True  # switch on noise-mode of given component
-    else:
-        noise_comp = False
+    for comp_idx, comp in enumerate(component):
+        assert comp in range(1, 5+1) or comp in range(91, 95+1), "Components must be in range [1,2,3,4,5]"
+        # Check demand for noise component
+        if comp in range(91, 95+1):
+            component[comp_idx] -= 90   # decode
+            noise_comp = True  # switch on noise-mode of given component
+        else:
+            try:
+                if noise_comp:
+                    raise ValueError("If one, then all given components must be noise components")
+            except NameError:
+                noise_comp = False
 
     eeg_data = load_ssd_component(subjects=subject)
     rating_data = load_rating_files(subjects=subject)
@@ -754,11 +761,8 @@ def read_data_sets(subject, component, s_fold_idx, s_fold=10, cond="NoMov", sba=
     # Best component selected based on highest xcorr with ratings
     # Comparison with worst xcorr
     # eeg_sba = eeg_data[str(subject)]["SBA"][cond][:, 0:2]  # = first 2 components
-    if not type(component) is list:
-        eeg_sba = eeg_data[str(subject)]["SBA"][cond][:, component-1]  # does not work with list
-        eeg_sba = np.reshape(eeg_sba, newshape=(eeg_sba.shape[0], 1))
-    else:
-        eeg_sba = eeg_data[str(subject)]["SBA"][cond][:, [comp-1 for comp in component]]
+
+    eeg_sba = eeg_data[str(subject)]["SBA"][cond][:, [comp-1 for comp in component]]
 
     # If Noise-Mode, shuffle component
     if noise_comp:
@@ -805,11 +809,9 @@ def read_data_sets(subject, component, s_fold_idx, s_fold=10, cond="NoMov", sba=
             # could be smoothed to small degree, e.g., smooth(hilbert_z_power, 10)...
             return hilbert_z_power
 
-        if type(component) is list:
-            for comp in range(eeg_sba.shape[1]):
-                eeg_sba[:, comp] = calc_hilbert_z_power(array=eeg_sba[:, comp])
-        else:
-            eeg_sba = calc_hilbert_z_power(array=eeg_sba)
+        # Perform Hilbert Transformation
+        for comp in range(eeg_sba.shape[1]):
+            eeg_sba[:, comp] = calc_hilbert_z_power(array=eeg_sba[:, comp])
 
     # 1) Split data in S(=s_fold) sets
     # np.split(np.array([1,2,3,4,5,6]), 3) >> [array([1, 2]), array([3, 4]), array([5, 6])]
@@ -854,7 +856,7 @@ def get_nevro_data(subject, component, s_fold_idx=None, s_fold=10, cond="NoMov",
       Prepares NeVRo dataset.
       Args:
         subject: Which subject data to train
-        component: Which component to feed
+        component: Which component to feed, can be list
         s_fold_idx: index which of the folds is taken as validation set
         s_fold: s-value of S-Fold Validation [default=10]
         cond: Either "NoMov"(=default) or "Mov"
