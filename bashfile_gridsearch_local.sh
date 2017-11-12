@@ -36,4 +36,4 @@
 # Specific Search: 2-LSTM + 1-FC, Successive Batches
 # python3 NeVRo.py --subject 36 --seed True --repet_scalar 320 --successive 3 --lstm_size 50,25 --path_specificities HPS_lstm-50-25_suc-3/
 # python3 NeVRo.py --subject 36 --seed True --repet_scalar 320 --successive 3 --lstm_size 50,40 --learning_rate 1e-2 --path_specificities HPS_lstm-50-40_lr-1e-2_suc-3/
-python3 NeVRo.py --subject 36 --seed True --repet_scalar 320 --successive 3 --lstm_size 50,40 --learning_rate 1e-4 --path_specificities HPS_lstm-50-40_lr-1e-4_suc-3/
+# python3 NeVRo.py --subject 36 --seed True --repet_scalar 320 --successive 3 --lstm_size 50,40 --learning_rate 1e-4 --path_specificities HPS_lstm-50-40_lr-1e-4_suc-3/
