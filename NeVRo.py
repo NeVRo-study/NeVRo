@@ -26,7 +26,7 @@ from LSTMnet import LSTMnet
 
 # TODO Heart Data, GSR data
 
-# TODO Feed more than one component
+# TODO Test LSTM with inverse up-sampled (to 250Hz) ratings (-1*ratings)
 
 LEARNING_RATE_DEFAULT = 1e-3  # 1e-4
 BATCH_SIZE_DEFAULT = 9  # or bigger, batch_size must be a multiple of 'successive batches'
@@ -40,11 +40,10 @@ WEIGHT_REGULARIZER_DEFAULT = 'l2'
 WEIGHT_REGULARIZER_STRENGTH_DEFAULT = 0.18
 ACTIVATION_FCT_DEFAULT = 'elu'
 LOSS_DEFAULT = "normal"  # is not used yet
-LSTM_SIZE_DEFAULT = '100'  # number of hidden units per LSTM layer, e.g., '10, 5' would create second lstm_layer
+LSTM_SIZE_DEFAULT = '100'  # number of hidden units per LSTM layer, e.g., '10,5' would create second lstm_layer
 FC_NUM_HIDDEN_UNITS = None  # if len(n_hidden_units)>0, create len(n_hidden_units) layers
 HILBERT_POWER_INPUT_DEFAULT = True
-COMPONENT_DEFAULT = "best"  # 'best', 'noise', 'random'
-
+COMPONENT_DEFAULT = "best"  # 'best', 'noise', 'random' or list of 1 or more components (1-5), e.g. '1,3,5' or '4'
 SUBJECT_DEFAULT = 36
 
 PATH_SPECIFICITIES_DEFAULT = ""  # or fill like this: "special_folder/"
@@ -149,19 +148,25 @@ def train_lstm():
     # Create to save the performance for each validation set
     all_acc_val = np.zeros(FLAGS.s_fold)
 
-    # Choose component
+    # Choose component: Given by list e.g., '1,3,5' or as label, e.g., 'best'
     best_comp = best_component(subject=FLAGS.subject)  # First find best component
-    assert FLAGS.component in ["best", "noise", "random"], "Component must be either 'best', 'noise', 'random'"
 
-    if FLAGS.component == "best":
-        input_component = best_comp
-    elif FLAGS.component == "noise":
-        input_component = 90 + best_comp  # coding for noise component
-    elif FLAGS.component == "random":
-        while True:
-            input_component = np.random.randint(1, 5+1)
-            if input_component != best_comp:
-                break
+    if not FLAGS.component.split(",")[0].isnumeric():
+        assert FLAGS.component in ["best", "noise", "random"], "Component must be either 'best', 'noise', 'random'"
+        if FLAGS.component == "best":
+            input_component = best_comp
+        elif FLAGS.component == "noise":
+            input_component = 90 + best_comp  # coding for noise component
+        elif FLAGS.component == "random":
+            while True:
+                input_component = np.random.randint(1, 5 + 1)
+                if input_component != best_comp:
+                    break
+    else:  # given components are in form of list
+        assert np.all([comp.isnumeric() for comp in FLAGS.component.split(",")]), "All given components must be numeric"
+        input_component = [int(comp) for comp in FLAGS.component.split(",")]
+
+    print("LSTM model get trained on input_component:", input_component)
 
     # Load first data-set for preparation
     nevro_data = get_nevro_data(subject=FLAGS.subject,
@@ -726,7 +731,7 @@ if __name__ == '__main__':
     parser.add_argument('--plot', type=bool, default=True,
                         help="Whether to plot results and save them.")
     parser.add_argument('--component', type=str, default=COMPONENT_DEFAULT,
-                        help="Which component: 'best', 'noise' (=shuffled version of best) or 'random'")
+                        help="Which component: 'best', 'noise' or 'random', or comma separated list, e.g., 1,3,5")
     # parser.add_argument('--layer_feat_extr', type=str, default="fc2",
     #                     help='Choose layer for feature extraction')
 

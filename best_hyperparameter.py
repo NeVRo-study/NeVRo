@@ -6,7 +6,7 @@ import os
 import subprocess
 
 wdic = "./LSTM/S36/already_plotted/"
-wdic_plot = "../../Results/Plots/LSTM/"
+wdic_plot = "../../Results/Plots/LSTM/Hyperparameter_Search/"
 
 acc_name_list = []
 acc_list = []
@@ -36,6 +36,6 @@ for file_n in acc_name_list_sorted[:10]:
         except IndexError:
             identifier = file_n.split("_S36")[0]
 
-        if identifier in plot_file:
+        if identifier in plot_file and "_all_train_val_" in plot_file:
             current_plot_file = wdic_plot+plot_file
             subprocess.Popen(["open", current_plot_file])  # 'open' only works for Mac
