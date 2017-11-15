@@ -24,7 +24,7 @@ from LSTMnet import LSTMnet
 
 # TODO implenet binary case: low_arousal | (mid-arousal [ignore]) | high_arousal
 
-# TODO Heart Data, GSR data
+# TODO non-band-passed SSD, SPOC, Heart Data, GSR data
 
 # TODO Test LSTM with inverse up-sampled (to 250Hz) ratings (-1*ratings)
 

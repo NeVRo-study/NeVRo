@@ -61,6 +61,11 @@
 # python3 NeVRo.py --subject 36 --seed True --repet_scalar 320 --learning_rate 1e-3 --path_specificities HPS_lr-1e-3/
 # python3 NeVRo.py --subject 36 --seed True --repet_scalar 320 --learning_rate 1e-4 --path_specificities HPS_lr-1e-4/
 
+# Specific Search: 2-LSTM + 1-FC, Successive Batches
+# python3 NeVRo.py --subject 36 --seed True --repet_scalar 320 --successive 3 --lstm_size 50,25 --path_specificities HPS_lstm-50-25_suc-3/
+# python3 NeVRo.py --subject 36 --seed True --repet_scalar 320 --successive 3 --lstm_size 50,40 --learning_rate 1e-2 --path_specificities HPS_lstm-50-40_lr-1e-2_suc-3/
+# python3 NeVRo.py --subject 36 --seed True --repet_scalar 320 --successive 3 --lstm_size 50,40 --learning_rate 1e-4 --path_specificities HPS_lstm-50-40_lr-1e-4_suc-3/
+
 # Weight Reg
 # python3 NeVRo.py --subject 36 --seed True --repet_scalar 320 --weight_reg none --path_specificities HPS_wreg-none/
 
@@ -108,3 +113,10 @@
 # python3 NeVRo.py --subject 36 --seed True --repet_scalar 320 --lstm_size 100,50,25 --weight_reg_strength 0.36 --path_specificities HPS_lstm-100-50-25_l2-0.36/
 # python3 NeVRo.py --subject 36 --seed True --repet_scalar 320 --lstm_size 50,50 --weight_reg_strength 0.36 --path_specificities HPS_lstm-50-50_l2-0.36/
 # python3 NeVRo.py --subject 36 --seed True --repet_scalar 320 --lstm_size 100 --weight_reg_strength 0.36 --path_specificities HPS_lstm-100_l2-0.36/
+
+# Best so far
+# python3 NeVRo.py --subject 36 --seed True --repet_scalar 320 --lstm_size 100 --weight_reg_strength 0.36 --path_specificities HPS_lstm-100_l2-0.36/
+# python3 NeVRo.py --subject 36 --seed True --repet_scalar 320 --successive 3 --lstm_size 50,40 --learning_rate 1e-4 --path_specificities HPS_lstm-50-40_lr-1e-4_suc-3/
+# python3 NeVRo.py --subject 36 --seed True --repet_scalar 320 --successive 3 --lstm_size 50,30 --learning_rate 1e-4 --path_specificities HPS_lstm-50-30_lr-1e-4_suc-3/
+# python3 NeVRo.py --subject 36 --seed True --repet_scalar 320 --successive 3 --lstm_size 50,40 --path_specificities HPS_lstm-50-40_suc-3/
+# python3 NeVRo.py --subject 36 --seed True --repet_scalar 320 --successive 3 --lstm_size 50,40 --weight_reg_strength 0.09 --path_specificities HPS_lstm-50-40_l2-009_suc-3/

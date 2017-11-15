@@ -323,7 +323,7 @@ class LSTMnet:
         # with tf.name_scope("cross_entropy"):
         with tf.name_scope("mean_squared_error"):
 
-            # TODO adaptations as in accuracy depending on given rating ?
+            # TODO adaptations as in accuracy depending on given rating?
             # diff = tf.losses.mean_squared_error(labels=ratings, predictions=infer, scope="mean_squared_error",
             #                                     loss_collection=reg_losses)
             diff = tf.losses.mean_squared_error(labels=ratings, predictions=infer, scope="mean_squared_error")
