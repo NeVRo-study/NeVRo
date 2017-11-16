@@ -416,14 +416,15 @@ def train_lstm():
                             va_ls_acc.append(val_train_acc)
                             va_ls_loss.append(val_train_loss)
 
-                        print("Val-Loss: {:.3f} at step: {} | {} | S{}".format(np.round(np.mean(va_ls_loss), 3),
-                                                                               step + 1,
-                                                                               FLAGS.path_specificities[:-1],
-                                                                               str(FLAGS.subject).zfill(2)))
-                        print("Val-Accuracy: {:.3f} at step: {} | {} | S{}".format(np.round(np.mean(va_ls_acc), 3),
+                        if step % 25 == 0:
+                            print("Val-Loss: {:.3f} at step: {} | {} | S{}".format(np.round(np.mean(va_ls_loss), 3),
                                                                                    step + 1,
                                                                                    FLAGS.path_specificities[:-1],
                                                                                    str(FLAGS.subject).zfill(2)))
+                            print("Val-Accuracy: {:.3f} at step: {} | {} | S{}".format(np.round(np.mean(va_ls_acc), 3),
+                                                                                       step + 1,
+                                                                                       FLAGS.path_specificities[:-1],
+                                                                                       str(FLAGS.subject).zfill(2)))
 
                         val_acc_training_list.append((np.mean(va_ls_acc), step))  # tuple of val_acc and at what step
                         val_loss_training_list.append((np.mean(va_ls_loss), step))
