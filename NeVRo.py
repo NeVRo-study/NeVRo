@@ -24,7 +24,7 @@ from LSTMnet import LSTMnet
 
 # TODO implenet binary case: low_arousal | (mid-arousal [ignore]) | high_arousal
 
-# TODO non-band-passed SSD, SPOC, Heart Data, GSR data
+# TODO non-band-passed SSD, SPOC, more comps, Heart Data (see array.np.repeat(250), if 1Hz), GSR data
 
 # TODO Test LSTM with inverse up-sampled (to 250Hz) ratings (-1*ratings)
 
@@ -32,7 +32,6 @@ LEARNING_RATE_DEFAULT = 1e-3  # 1e-4
 BATCH_SIZE_DEFAULT = 9  # or bigger, batch_size must be a multiple of 'successive batches'
 SUCCESSIVE_BATCHES_DEFAULT = 1  # (time-)length per sample is hyperparameter in form of successive batches
 SUCCESSIVE_MODE_DEFAULT = 1  # either 1 or 2
-RANDOM_BATCH_DEFAULT = True
 S_FOLD_DEFAULT = 10
 REPETITION_SCALAR_DEFAULT = 750  # scaler for how many times it should run through set (can be also fraction)
 OPTIMIZER_DEFAULT = 'ADAM'
@@ -42,7 +41,7 @@ ACTIVATION_FCT_DEFAULT = 'elu'
 LOSS_DEFAULT = "normal"  # is not used yet
 LSTM_SIZE_DEFAULT = '100'  # number of hidden units per LSTM layer, e.g., '10,5' would create second lstm_layer
 FC_NUM_HIDDEN_UNITS = None  # if len(n_hidden_units)>0, create len(n_hidden_units) layers
-HILBERT_POWER_INPUT_DEFAULT = True
+FILE_TYPE_DEFAULT = "SSD"  # Either 'SSD' or 'SPOC'
 COMPONENT_DEFAULT = "best"  # 'best', 'noise', 'random' or list of 1 or more components (1-5), e.g. '1,3,5' or '4'
 SUBJECT_DEFAULT = 36
 
@@ -149,7 +148,11 @@ def train_lstm():
     all_acc_val = np.zeros(FLAGS.s_fold)
 
     # Choose component: Given by list e.g., '1,3,5' or as label, e.g., 'best'
-    best_comp = best_component(subject=FLAGS.subject)  # First find best component
+    if FLAGS.filetype.upper() == "SSD":
+        best_comp = best_component(subject=FLAGS.subject)  # First find best component
+    elif FLAGS.filetype.upper() == "SPOC":
+        print("The best correlating SPOC component of Subject {} is Component Number 1".format(FLAGS.subject))
+        best_comp = 1
 
     if not FLAGS.component.split(",")[0].isnumeric():
         assert FLAGS.component in ["best", "noise", "random"], "Component must be either 'best', 'noise', 'random'"
@@ -159,7 +162,7 @@ def train_lstm():
             input_component = 90 + best_comp  # coding for noise component
         elif FLAGS.component == "random":
             while True:
-                input_component = np.random.randint(1, 5 + 1)
+                input_component = np.random.randint(1, 5 + 1)  # ! If 'SPOC' some subjects might have less than 5 comps!
                 if input_component != best_comp:
                     break
     else:  # given components are in form of list
@@ -175,6 +178,8 @@ def train_lstm():
                                 s_fold=FLAGS.s_fold,
                                 cond="NoMov",
                                 sba=True,
+                                filetype=FLAGS.filetype,
+                                band_pass=FLAGS.band_pass,
                                 hilbert_power=FLAGS.hilbert_power)
 
     zero_line_acc = zero_line_prediction(subject=FLAGS.subject)
@@ -234,6 +239,8 @@ def train_lstm():
                                                 s_fold=FLAGS.s_fold,
                                                 cond="NoMov",
                                                 sba=True,
+                                                filetype=FLAGS.filetype,
+                                                band_pass=FLAGS.band_pass,
                                                 hilbert_power=FLAGS.hilbert_power)
 
                 with tf.name_scope("input"):
@@ -720,10 +727,14 @@ if __name__ == '__main__':
                         help='Comma separated list of size of hidden states in each LSTM layer')
     parser.add_argument('--s_fold', type=int, default=S_FOLD_DEFAULT,
                         help='Number of folds in S-Fold-Cross Validation')
-    parser.add_argument('--rand_batch', type=str, default=RANDOM_BATCH_DEFAULT,
+    parser.add_argument('--rand_batch', type=str, default=True,
                         help='Whether random batch (True), or cronologically drawn batches (False)')
-    parser.add_argument('--hilbert_power', type=str, default=HILBERT_POWER_INPUT_DEFAULT,
+    parser.add_argument('--hilbert_power', type=bool, default=True,
                         help='Whether input is z-scored power extraction of SSD components (via Hilbert transform)')
+    parser.add_argument('--filetype', type=str, default=FILE_TYPE_DEFAULT,
+                        help="Either 'SSD' or 'SPOC'")
+    parser.add_argument('--band_pass', type=bool, default=True,
+                        help='Whether to load (alpha-)band-passed SSD components')
     parser.add_argument('--summaries', type=bool, default=False,
                         help='Whether to write verbose summaries of tf variables')
     parser.add_argument('--fc_n_hidden', type=str, default=FC_NUM_HIDDEN_UNITS,
