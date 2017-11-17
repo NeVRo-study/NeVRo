@@ -24,7 +24,8 @@ from LSTMnet import LSTMnet
 
 # TODO implenet binary case: low_arousal | (mid-arousal [ignore]) | high_arousal
 
-# TODO non-band-passed SSD, SPOC, more comps, Heart Data (see array.np.repeat(250), if 1Hz), GSR data
+# TODO non-band-passed SSD, SPOC, Heart Data (see array.np.repeat(250), if 1Hz), GSR data
+# TODO more components: successively adding SSD components, hence adding more non-alpha related information (non-b-pass)
 
 # TODO Test LSTM with inverse up-sampled (to 250Hz) ratings (-1*ratings)
 
