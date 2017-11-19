@@ -956,10 +956,12 @@ def read_data_sets(subject, component, s_fold_idx, s_fold=10, cond="NoMov", sba=
         eeg_sba += np.reshape(a=np.repeat(a=slope, repeats=250, axis=0), newshape=eeg_sba.shape)
         # Get it out of [-1,1]-range
         eeg_sba *= 3
+        # 6) inverse [1,2,3] -> [3,2,1]
+        # eeg_sba = eeg_sba[::-1]
 
         # add some random noise ε (scale=0.05 is relatively large)
         eeg_sba += np.random.normal(loc=0., scale=0.05, size=eeg_sba.shape[0]).reshape(eeg_sba.shape)
-        print("In test mode: Input data are negative (-1*) sinus❨ratings❩ + noise ε")
+        print("In test mode: Input data: (-3*ratings + strong_slope) + noise ε")
 
     # 1) Split data in S(=s_fold) sets
     # np.split(np.array([1,2,3,4,5,6]), 3) >> [array([1, 2]), array([3, 4]), array([5, 6])]
