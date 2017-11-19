@@ -27,7 +27,7 @@ from LSTMnet import LSTMnet
 # TODO non-band-passed SSD, SPOC, Heart Data (see array.np.repeat(250), if 1Hz), GSR data
 # TODO more components: successively adding SSD components, hence adding more non-alpha related information (non-b-pass)
 
-# TODO Test LSTM with inverse up-sampled (to 250Hz) ratings (-1*ratings)
+# TODO Test LSTM synthetic data which includes shift over time within the 250dpoints range
 
 LEARNING_RATE_DEFAULT = 1e-3  # 1e-4
 BATCH_SIZE_DEFAULT = 9  # or bigger, batch_size must be a multiple of 'successive batches'
@@ -181,7 +181,8 @@ def train_lstm():
                                 sba=True,
                                 filetype=FLAGS.filetype,
                                 band_pass=FLAGS.band_pass,
-                                hilbert_power=FLAGS.hilbert_power)
+                                hilbert_power=FLAGS.hilbert_power,
+                                testmode=FLAGS.testmodel)
 
     zero_line_acc = zero_line_prediction(subject=FLAGS.subject)
 
@@ -242,7 +243,8 @@ def train_lstm():
                                                 sba=True,
                                                 filetype=FLAGS.filetype,
                                                 band_pass=FLAGS.band_pass,
-                                                hilbert_power=FLAGS.hilbert_power)
+                                                hilbert_power=FLAGS.hilbert_power,
+                                                testmode=FLAGS.testmodel)
 
                 with tf.name_scope("input"):
                     # shape = [None] + ddims includes num_steps = 250
@@ -745,6 +747,9 @@ if __name__ == '__main__':
                         help="Whether to plot results and save them.")
     parser.add_argument('--component', type=str, default=COMPONENT_DEFAULT,
                         help="Which component: 'best', 'noise' or 'random', or comma separated list, e.g., 1,3,5")
+    parser.add_argument('--testmodel', type=bool, default=False,
+                        help="Whether to test the model's learning ability with inverse+stretch+noise ratings as input")
+
     # parser.add_argument('--layer_feat_extr', type=str, default="fc2",
     #                     help='Choose layer for feature extraction')
 

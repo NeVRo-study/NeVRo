@@ -824,7 +824,7 @@ def splitter(array_to_split, n_splits):
 
 
 def read_data_sets(subject, component, s_fold_idx, s_fold=10, cond="NoMov", sba=True, s_freq_eeg=250.,
-                   filetype="SSD", band_pass=True, hilbert_power=True):
+                   filetype="SSD", band_pass=True, hilbert_power=True, testmode=False):
     """
     Returns the s-fold-prepared dataset.
     S-Fold Validation, S=5: [ |-Train-|-Train-|-Train-|-Valid-|-Train-|] Dataset
@@ -839,6 +839,7 @@ def read_data_sets(subject, component, s_fold_idx, s_fold=10, cond="NoMov", sba=
         filetype: Whether 'SSD' or 'SPOC'
         band_pass: Whether SSD components are band-passed filter for alpha
         hilbert_power: hilbert-transform SSD-components, then extract z-scored power
+        testmode: Whether to load data for testmode
     Returns:
         Train, Validation Datasets
     """
@@ -940,6 +941,26 @@ def read_data_sets(subject, component, s_fold_idx, s_fold=10, cond="NoMov", sba=
         for comp in range(eeg_sba.shape[1]):
             eeg_sba[:, comp] = calc_hilbert_z_power(array=eeg_sba[:, comp])
 
+    # If Testset, overwrite eeg_sba data with artifical data (for model testing)
+    if testmode:
+        # 1) negative sin(ratings), then stretch
+        # eeg_sba = np.reshape(a=np.repeat(a=-np.sin(rating_sba), repeats=250, axis=0), newshape=eeg_sba.shape)
+        # 2) negative sin(ratings)**3, then stretch
+        # eeg_sba = np.reshape(a=np.repeat(a=-np.sin(rating_sba**3), repeats=250, axis=0), newshape=eeg_sba.shape)
+        # 3) test with global slope
+        # slope = np.linspace(0, 0.2, len(rating_sba)) + np.random.normal(loc=0., scale=0.01, size=len(rating_sba))
+        slope = np.linspace(0, 0.3, len(rating_sba)) + np.random.normal(loc=0., scale=0.02, size=len(rating_sba))
+        # eeg_sba = np.reshape(a=np.repeat(a=-np.sin(rating_sba+slope), repeats=250, axis=0), newshape=eeg_sba.shape)
+        # 4) with-in-1-second slope (local slope) 5) stronger slope
+        eeg_sba = np.reshape(a=np.repeat(a=-rating_sba, repeats=250, axis=0), newshape=eeg_sba.shape)
+        eeg_sba += np.reshape(a=np.repeat(a=slope, repeats=250, axis=0), newshape=eeg_sba.shape)
+        # Get it out of [-1,1]-range
+        eeg_sba *= 3
+
+        # add some random noise ε (scale=0.05 is relatively large)
+        eeg_sba += np.random.normal(loc=0., scale=0.05, size=eeg_sba.shape[0]).reshape(eeg_sba.shape)
+        print("In test mode: Input data are negative (-1*) sinus❨ratings❩ + noise ε")
+
     # 1) Split data in S(=s_fold) sets
     # np.split(np.array([1,2,3,4,5,6]), 3) >> [array([1, 2]), array([3, 4]), array([5, 6])]
 
@@ -978,7 +999,7 @@ def read_data_sets(subject, component, s_fold_idx, s_fold=10, cond="NoMov", sba=
 
 
 def get_nevro_data(subject, component, s_fold_idx=None, s_fold=10, cond="NoMov", sba=True, s_freq_eeg=250.,
-                   filetype="SSD", band_pass=True, hilbert_power=True):
+                   filetype="SSD", band_pass=True, hilbert_power=True, testmode=False):
     """
       Prepares NeVRo dataset.
       Args:
@@ -992,6 +1013,7 @@ def get_nevro_data(subject, component, s_fold_idx=None, s_fold=10, cond="NoMov",
         filetype: Whether 'SSD' or 'SPOC'
         band_pass: Whether SSD components are band-passed filter for alpha
         hilbert_power: hilbert-transform SSD-components, then extract z-scored power
+        testmode: Whether to load data for testmode
       Returns:
         Train, Validation Datasets (+Test set)
       """
@@ -1001,7 +1023,7 @@ def get_nevro_data(subject, component, s_fold_idx=None, s_fold=10, cond="NoMov",
 
     return read_data_sets(subject=subject, component=component, s_fold_idx=s_fold_idx, s_fold=s_fold,
                           cond=cond, sba=sba, s_freq_eeg=s_freq_eeg,
-                          filetype=filetype, band_pass=band_pass, hilbert_power=hilbert_power)
+                          filetype=filetype, band_pass=band_pass, hilbert_power=hilbert_power, testmode=testmode)
 
 
 # Testing
