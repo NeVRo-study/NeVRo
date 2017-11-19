@@ -32,3 +32,6 @@
 # python3 NeVRo.py --subject 36 --seed True --repet_scalar 320 --lstm_size 75,25 --learning_rate 1e-4 --path_specificities HPS_lstm-75-25_lr-1e-4/
 # python3 NeVRo.py --subject 36 --seed True --repet_scalar 320 --lstm_size 75,25 --weight_reg_strength 0.36 --path_specificities HPS_lstm-75-25_l2-036/
 # python3 NeVRo.py --subject 36 --seed True --repet_scalar 320 --lstm_size 75,25 --weight_reg_strength 0.36 --learning_rate 1e-4 --path_specificities HPS_lstm-75-25_l2-036_lr-1e-4/
+
+# Train with 3 components (>1) non-band-passed
+python3 NeVRo.py --subject 36 --seed True --band_pass False --component 1,2,3,4,5 --repet_scalar 320 --successive 3 --lstm_size 50,30 --learning_rate 1e-4 --path_specificities HPS_lstm-50-30_lr-1e-4_comp-1-2-3-4-5_bpass-F_suc-3/
