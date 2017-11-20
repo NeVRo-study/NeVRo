@@ -26,6 +26,7 @@ from LSTMnet import LSTMnet
 
 # TODO non-band-passed SSD, SPOC, Heart Data (see array.np.repeat(250), if 1Hz), GSR data
 # TODO more components: successively adding SSD components, hence adding more non-alpha related information (non-b-pass)
+# TODO implement "all" comp command
 
 # TODO Test LSTM synthetic data which includes shift over time within the 250dpoints range
 
