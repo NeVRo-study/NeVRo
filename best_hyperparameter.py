@@ -6,6 +6,7 @@ import os
 import subprocess
 
 wdic = "./LSTM/S36/already_plotted/"
+# wdic = "./LSTM/S02/already_plotted/"
 wdic_plot = "../../Results/Plots/LSTM/Hyperparameter_Search/"
 
 acc_name_list = []
