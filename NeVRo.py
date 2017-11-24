@@ -28,7 +28,7 @@ from LSTMnet import LSTMnet
 # TODO more components: successively adding SSD components, hence adding more non-alpha related information (non-b-pass)
 # TODO implement "all" comp command
 
-# TODO Test LSTM synthetic data which includes shift over time within the 250dpoints range
+# TODO random_search write bash script
 
 LEARNING_RATE_DEFAULT = 1e-3  # 1e-4
 BATCH_SIZE_DEFAULT = 9  # or bigger, batch_size must be a multiple of 'successive batches'
