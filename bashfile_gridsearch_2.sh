@@ -36,6 +36,6 @@
 # Train with (x>1) components non-band-passed or SPOC
 # python3 NeVRo.py --subject 36 --seed True --band_pass False --component 1,2,3,4,5 --repet_scalar 320 --successive 3 --lstm_size 50,30 --learning_rate 1e-4 --path_specificities HPS_lstm-50-30_lr-1e-4_comp-1-2-3-4-5_bpass-F_suc-3/
 # python3 NeVRo.py --subject 36 --seed True --band_pass False --component 1,2,3,4,5 --repet_scalar 320 --lstm_size 40,20 --path_specificities HPS_lstm-40-20_comp-1-2-3-4-5_bpass-T/
-python3 NeVRo.py --subject 36 --seed True --filetype SPOC --component 1,2,3,4,5,6,7 --repet_scalar 320 --successive 3 --lstm_size 10,5 --path_specificities HPS_lstm-10-5_ftype-spoc_comp-1-2-3-4-5-6-7_suc-3/
-python3 NeVRo.py --subject 2 --seed True --filetype SPOC --component 1,2,3,4,5,6,7 --repet_scalar 320 --successive 3 --lstm_size 10,5 --path_specificities HPS_lstm-10-5_ftype-spoc_comp-1-2-3-4-5-6-7_suc-3/
+# python3 NeVRo.py --subject 36 --seed True --filetype SPOC --component 1,2,3,4,5,6,7 --repet_scalar 320 --successive 3 --lstm_size 10,5 --path_specificities HPS_lstm-10-5_ftype-spoc_comp-1-2-3-4-5-6-7_suc-3/
+# python3 NeVRo.py --subject 2 --seed True --filetype SPOC --component 1,2,3,4,5,6,7 --repet_scalar 320 --successive 3 --lstm_size 10,5 --path_specificities HPS_lstm-10-5_ftype-spoc_comp-1-2-3-4-5-6-7_suc-3/
 

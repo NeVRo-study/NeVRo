@@ -127,12 +127,17 @@
 # python3 NeVRo.py --subject 36 --seed True --band_pass True --component 1,2,3,4,5 --repet_scalar 320 --lstm_size 30,20 --path_specificities HPS_lstm-30-20_comp-1-2-3-4-5_bpass-T/
 # python3 NeVRo.py --subject 36 --seed True --component 1,2,3,4,5 --repet_scalar 320 --successive 3 --band_pass False --lstm_size 20,10 --weight_reg_strength 0.72 --path_specificities HPS_lstm-20-10_l2-072_comp-1-2-3-4-5_bpass-F_suc-3/
 # python3 NeVRo.py --subject 2 --seed True --component 1,2,3,4,5 --repet_scalar 320 --successive 3 --band_pass False --lstm_size 20,10 --weight_reg_strength 0.72 --path_specificities HPS_lstm-20-10_l2-072_comp-1-2-3-4-5_bpass-F_suc-3/
+# python3 NeVRo.py --subject 36 --seed True --component 1,2,3,4,5 --repet_scalar 320 --successive 3 --band_pass False --lstm_size 15,10 --weight_reg_strength 0.72 --path_specificities HPS_lstm-15-10_l2-072_comp-1-2-3-4-5_bpass-F_suc-3/
+# python3 NeVRo.py --subject 2 --seed True --component 1,2,3,4,5 --repet_scalar 320 --successive 3 --band_pass False --lstm_size 15,10 --weight_reg_strength 0.72 --path_specificities HPS_lstm-15-10_l2-072_comp-1-2-3-4-5_bpass-F_suc-3/
+# python3 NeVRo.py --subject 36 --seed True --component 1,2,3,4,5 --repet_scalar 320 --successive 3 --band_pass False --lstm_size 30 --weight_reg_strength 0.72 --path_specificities HPS_lstm-30_l2-072_comp-1-2-3-4-5_bpass-F_suc-3/
+# python3 NeVRo.py --subject 2 --seed True --component 1,2,3,4,5 --repet_scalar 320 --successive 3 --band_pass False --lstm_size 30 --weight_reg_strength 0.72 --path_specificities HPS_lstm-30_l2-072_comp-1-2-3-4-5_bpass-F_suc-3/
 # python3 NeVRo.py --subject 36 --seed True --filetype SPOC --component 1,2,3,4,5,6,7 --repet_scalar 320 --successive 3 --lstm_size 20,10 --weight_reg_strength 0.72 --path_specificities HPS_lstm-20-10_l2-072_ftype-spoc_comp-1-2-3-4-5-6-7_suc-3/
 # python3 NeVRo.py --subject 2 --seed True --filetype SPOC --component 1,2,3,4,5,6,7 --repet_scalar 320 --successive 3 --lstm_size 20,10 --weight_reg_strength 0.72 --path_specificities HPS_lstm-20-10_l2-072_ftype-spoc_comp-1-2-3-4-5-6-7_suc-3/
 # python3 NeVRo.py --subject 36 --seed True --filetype SPOC --component 1,2,3,4,5,6,7 --repet_scalar 320 --successive 3 --lstm_size 10,5 --path_specificities HPS_lstm-10-5_ftype-spoc_comp-1-2-3-4-5-6-7_suc-3/
 # python3 NeVRo.py --subject 2 --seed True --filetype SPOC --component 1,2,3,4,5,6,7 --repet_scalar 320 --successive 3 --lstm_size 10,5 --path_specificities HPS_lstm-10-5_ftype-spoc_comp-1-2-3-4-5-6-7_suc-3/
 # python3 NeVRo.py --subject 36 --seed True --filetype SPOC --component 1,2,3,4,5,6,7 --repet_scalar 320 --successive 3 --lstm_size 30 --path_specificities HPS_lstm-30_ftype-spoc_comp-1-2-3-4-5-6-7_suc-3/
 # python3 NeVRo.py --subject 2 --seed True --filetype SPOC --component 1,2,3,4,5,6,7 --repet_scalar 320 --successive 3 --lstm_size 30 --path_specificities HPS_lstm-30_ftype-spoc_comp-1-2-3-4-5-6-7_suc-3/
+
 
 # Best so far
 # python3 NeVRo.py --subject 36 --seed True --repet_scalar 320 --lstm_size 100 --weight_reg_strength 0.36 --path_specificities HPS_lstm-100_l2-0.36/
