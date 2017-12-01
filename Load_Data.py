@@ -517,7 +517,7 @@ def load_rating_files(subjects, samp_freq=1., sba=True, bins=False):
                     if np.isnan(sba_rating_file[0]) and len(sba_rating_file) == 271:
                         sba_rating_file = np.delete(sba_rating_file, 0) - 2  # substract 2 to adapt range to [-1,1]
                         # -1: low, 0: mid, 1: high arousal
-                        print("Rating bins and count:", np.unique(sba_rating_file, return_counts=True))
+                        # print("Rating bins and count:", np.unique(sba_rating_file, return_counts=True))
 
                     # Fill in rating dictionary
                     rating_dic[str(subject)]["SBA"][cond_key] = copy.copy(sba_rating_file)

@@ -21,7 +21,7 @@ import subprocess
 
 from LSTMnet import LSTMnet
 
-# TODO binary calculate classification performance [-1, 1] from pred_mat/val_acc_lists and write in files
+# TODO calculate binary classification performance [-1, 1] from pred_mat/val_acc_lists and write in files
 
 # TODO non-band-passed SSD, SPOC, Heart Data (see array.np.repeat(250), if 1Hz), GSR data
 # TODO more components: successively adding SSD components, hence adding more non-alpha related information (non-b-pass)
@@ -562,7 +562,13 @@ def train_lstm():
                                                                                   np.sum(timer_fold_list),
                                                                                   FLAGS.path_specificities[:-1],
                                                                                   str(FLAGS.subject).zfill(2)))
-    print("Average accuracy across all {} validation set: {:.3f} | {} | S{}".format(FLAGS.s_fold, np.mean(all_acc_val),
+
+    # Create all_acc_val_binary
+    all_acc_val_binary = calc_binary_class_accuracy(prediction_matrix=val_pred_matrix)
+    # Calculate mean val accuracy across all folds
+    mean_val_acc = np.mean(all_acc_val if FLAGS.task == "regression" else all_acc_val_binary)
+
+    print("Average accuracy across all {} validation set: {:.3f} | {} | S{}".format(FLAGS.s_fold, mean_val_acc,
                                                                                     FLAGS.path_specificities[:-1],
                                                                                     str(FLAGS.subject).zfill(2)))
 
@@ -588,15 +594,27 @@ def train_lstm():
                                                   FLAGS.weight_reg, FLAGS.weight_reg_strength, FLAGS.activation_fct,
                                                   FLAGS.lstm_size, str(n_hidden_units),
                                                   FLAGS.component, input_component))
-        rnd_all_acc_val = ["{:.3f}".format(np.round(acc, 3)) for acc in all_acc_val]  # rounding for the export
+
+        # rounding for the export
+        rnd_all_acc_val = ["{:.3f}".format(np.round(acc, 3)) for acc in all_acc_val]
+        rnd_all_acc_val_binary = ["{:.3f}".format(np.round(acc, 3)) for acc in all_acc_val_binary]
         rnd_all_acc_val = [float(acc) for acc in rnd_all_acc_val]  # cleaning
-        for i, item in enumerate([s_fold_idx_list,
-                                  rnd_all_acc_val,
-                                  np.round(np.mean(all_acc_val), 3),
-                                  np.round(zero_line_acc, 3),
-                                  np.sum(timer_fold_list)]):
-            file.write(["S-Fold(Round): ", "Validation-Acc: ",
-                        "mean(Accuracy): ", "zero_line_acc: ", "Train-Time: "][i] + str(item)+"\n")
+        rnd_all_acc_val_binary = [float(acc) for acc in rnd_all_acc_val_binary]
+
+        # preparing export
+        lists_export = [s_fold_idx_list, rnd_all_acc_val, np.round(np.mean(all_acc_val), 3),
+                        np.round(zero_line_acc, 3), np.sum(timer_fold_list)]
+        label_export = ["S-Fold(Round): ", "Validation-Acc: ", "mean(Accuracy): ",
+                        "zero_line_acc: ", "Train-Time: "]
+
+        if FLAGS.task == "classification":
+            lists_export.insert(len(lists_export) - 1, rnd_all_acc_val_binary)
+            lists_export.insert(len(lists_export) - 1, np.round(np.mean(rnd_all_acc_val_binary), 3))
+            label_export.insert(len(label_export) - 1, "Validation-Class-Acc: ")
+            label_export.insert(len(label_export) - 1, "mean(Classification_Accuracy): ")
+
+        for i, item in enumerate(lists_export):
+            file.write(label_export[i] + str(item)+"\n")
 
     # Save Prediction Matrices in File
     np.savetxt(sub_dir + "{}S{}_pred_matrix_{}_folds_{}.csv".format(time.strftime('%Y_%m_%d_'), FLAGS.subject,
@@ -663,6 +681,23 @@ def fill_pred_matrix(pred, y, current_mat, s_idx, current_batch, sfold, train=Tr
     updated_mat = current_mat
 
     return updated_mat
+
+
+def calc_binary_class_accuracy(prediction_matrix):
+    """
+    Calculate accuracy of binary classification from given prediction_matrix.
+    Postive values are considered as prediction of high arousal, and negative values as of low arousal.
+    :param prediction_matrix: Contains predictions and ground truth
+    :return: list of accuracy of each fold
+    """
+    n_folds = int(prediction_matrix.shape[0]/2)
+    val_class_acc_list = np.zeros(shape=n_folds)
+    for fo in range(n_folds):
+        cor_incor = np.sign(prediction_matrix[fo*2, :]*prediction_matrix[fo*2+1, :])  # 1: correct, -1: incorrect
+        cor_incor = np.delete(arr=cor_incor, obj=np.where(np.isnan(cor_incor)))  # delete nan's
+        fo_accur = np.unique(ar=cor_incor, return_counts=True)[1][1]/len(cor_incor)  # sum(cor_incor==1)/len(cor_incor)
+        val_class_acc_list[fo] = fo_accur
+    return val_class_acc_list
 
 
 def initialize_folders():
