@@ -21,8 +21,7 @@ import subprocess
 
 from LSTMnet import LSTMnet
 
-
-# TODO implenet binary case: low_arousal | (mid-arousal [ignore]) | high_arousal
+# TODO binary calculate classification performance [-1, 1] from pred_mat/val_acc_lists and write in files
 
 # TODO non-band-passed SSD, SPOC, Heart Data (see array.np.repeat(250), if 1Hz), GSR data
 # TODO more components: successively adding SSD components, hence adding more non-alpha related information (non-b-pass)
@@ -30,6 +29,7 @@ from LSTMnet import LSTMnet
 
 # TODO random_search write bash script
 
+TASK_DEFAULT = 'regression'  # predict ratings via 'regression' (continious) or 'classification' (Low vs. High arousal)
 LEARNING_RATE_DEFAULT = 1e-3  # 1e-4
 BATCH_SIZE_DEFAULT = 9  # or bigger, batch_size must be a multiple of 'successive batches'
 SUCCESSIVE_BATCHES_DEFAULT = 1  # (time-)length per sample is hyperparameter in form of successive batches
@@ -112,6 +112,7 @@ def train_lstm():
     checkpoint_freq = int(max_steps)  # int(max_steps)/2 for chechpoint after half the training
     print_freq = int(max_steps / 8)  # if too low, uses much memory
     assert FLAGS.batch_size % FLAGS.successive == 0, "batch_size must be a multiple of successive (batches)."
+    assert FLAGS.task.upper() in ['REGRESSION', 'CLASSIFICATION'], "Prediction task is undefined."
 
     # Set the random seeds on True for reproducibility.
     # Switch for seed
@@ -183,6 +184,8 @@ def train_lstm():
                                 filetype=FLAGS.filetype,
                                 band_pass=FLAGS.band_pass,
                                 hilbert_power=FLAGS.hilbert_power,
+                                task=FLAGS.task,
+                                shuffle=FLAGS.shuffle,
                                 testmode=FLAGS.testmodel)
 
     zero_line_acc = zero_line_prediction(subject=FLAGS.subject)
@@ -245,6 +248,8 @@ def train_lstm():
                                                 filetype=FLAGS.filetype,
                                                 band_pass=FLAGS.band_pass,
                                                 hilbert_power=FLAGS.hilbert_power,
+                                                task=FLAGS.task,
+                                                shuffle=FLAGS.shuffle,
                                                 testmode=FLAGS.testmodel)
 
                 with tf.name_scope("input"):
@@ -571,10 +576,12 @@ def train_lstm():
                                                                        FLAGS.subject,
                                                                        FLAGS.s_fold,
                                                                        FLAGS.path_specificities[:-1]), "w") as file:
-        file.write("Subject {}\nHilbert_z-Power: {}\ns-Fold: {}\nmax_step: {}\nrepetition_set: {}\nlearning_rate: {}"
-                   "\nbatch_size: {}\nbatch_random: {}\nsuccessive_batches: {}(mode {})\n"
-                   "weight_reg: {}({})\nact_fct: {}\nlstm_h_size: {}\nn_hidden_units: {}"
-                   "\ncomponent: {}({})\n".format(FLAGS.subject, FLAGS.hilbert_power, FLAGS.s_fold,
+        file.write("Subject {}\nTask: {}\nShuffle_data: {}\nHilbert_z-Power: {}\ns-Fold: {}\nmax_step: {}"
+                   "\nrepetition_set: {}\nlearning_rate: {}\nbatch_size: {}\nbatch_random: {}"
+                   "\nsuccessive_batches: {}(mode {})\nweight_reg: {}({})\nact_fct: {}\nlstm_h_size: {}"
+                   "\nn_hidden_units: {}"
+                   "\ncomponent: {}({})\n".format(FLAGS.subject, FLAGS.task, FLAGS.shuffle,
+                                                  FLAGS.hilbert_power, FLAGS.s_fold,
                                                   int(max_steps), FLAGS.repet_scalar,
                                                   FLAGS.learning_rate, FLAGS.batch_size,
                                                   FLAGS.rand_batch, FLAGS.successive, FLAGS.successive_mode,
@@ -700,6 +707,10 @@ if __name__ == '__main__':
     # Command line arguments
     parser = argparse.ArgumentParser()
 
+    parser.add_argument('--task', type=str, default=TASK_DEFAULT,
+                        help="Either 'classification' or 'regression'")
+    parser.add_argument('--shuffle', type=bool, default=False,
+                        help="shuffle data (to have balance low/high arousal in all valsets of classification task)")
     parser.add_argument('--learning_rate', type=float, default=LEARNING_RATE_DEFAULT,
                         help='Learning rate')
     parser.add_argument('--repet_scalar', type=int, default=REPETITION_SCALAR_DEFAULT,
@@ -750,7 +761,6 @@ if __name__ == '__main__':
                         help="Which component: 'best', 'noise' or 'random', or comma separated list, e.g., 1,3,5")
     parser.add_argument('--testmodel', type=bool, default=False,
                         help="Whether to test the model's learning ability with inverse+stretch+noise ratings as input")
-
     # parser.add_argument('--layer_feat_extr', type=str, default="fc2",
     #                     help='Choose layer for feature extraction')
 

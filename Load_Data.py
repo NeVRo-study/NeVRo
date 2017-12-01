@@ -46,6 +46,7 @@ wdic_SBA_Comp_non_band_pass = "../../Data/EEG_SSD/SBA/Components/not_alpha_band_
 wdic_SBA_SPOC_Comp = "../../Data/EEG_SPOC/SBA/Components/"
 # wdic_Rating = "../../Data/ratings/preprocessed/z_scored_alltog/"  # SBA-pruned data (148:space, 30:break, 92:ande)
 wdic_Rating = "../../Data/ratings/preprocessed/not_z_scored/"  # transform later to [-1, +1]
+wdic_Rating_bins = "../../Data/ratings/preprocessed/classbin_ratings/"
 
 wdic_Data = "../../Data/"
 wdic_cropECG = "../../Data/Data EEG export/NeVRo_ECG_Cropped/"
@@ -316,8 +317,8 @@ def load_spoc_component(subjects, samp_freq=250., sba=True, band_pass=True):
                         str(subject).zfill(2), folder)
                 else:
                     raise ValueError("There are no non-band_passed SPOC files here (yet)")
-                    file_name = wdic_SBA_SPOC_Comp_non_band_pass+folder+"/NVR_S{}_SBA_{}_PREP_SPOC_Components.txt".\
-                        format(str(subject).zfill(2), folder)
+                    # file_name = wdic_SBA_SPOC_Comp_non_band_pass+folder+"/NVR_S{}_SBA_{}_PREP_SPOC_Components.txt".\
+                    #     format(str(subject).zfill(2), folder)
                 # "NVR_S36_SBA_NoMov_SSD_Components_SBA_CNT.txt"
             else:
                 file_name = wdic_Comp + "S{}_{}_Components.txt".format(str(subject).zfill(2), coaster)
@@ -424,9 +425,10 @@ def best_component(subject, best=True):
 
 
 # @function_timed  # after executing following function this returns runtime
-def load_rating_files(subjects, samp_freq=1., sba=True):
+def load_rating_files(subjects, samp_freq=1., sba=True, bins=False):
     """
     Loads (z-scored) Ratings files of each subject in subjects (ignore other files, due to fluctuating samp.freq.).
+    :param bins: whether to load ratings in forms of bins (low, medium, high arousal)
     :param subjects: list of subjects or single subject
     :param sba: if TRUE (default), process SBA files
     :param samp_freq: sampling frequency, either 1Hz [default], oder 50Hz
@@ -498,15 +500,25 @@ def load_rating_files(subjects, samp_freq=1., sba=True):
                 cond_key = coaster.split("_")[1]  # either "Mov" or "NoMov" (only needed for sba case)
                 assert cond_key in condition_keys, "Wrong Key"
 
-                sba_rating_filename = wdic_Rating + "alltog/{}/{}Hz/NVR_S{}_run_{}_alltog_rat_z.txt".format(
-                    coast_folder,
-                    str(int(samp_freq)),
-                    str(subject).zfill(2),
-                    runs)
+                if bins:
+                    sba_rating_filename = wdic_Rating_bins + "{}/NVR_S{}_run_{}_alltog_epochs.txt".format(
+                        coast_folder, str(subject).zfill(2), runs)
+                else:
+                    sba_rating_filename = wdic_Rating + "alltog/{}/{}Hz/NVR_S{}_run_{}_alltog_rat_z.txt".format(
+                        coast_folder,
+                        str(int(samp_freq)),
+                        str(subject).zfill(2),
+                        runs)
 
                 if os.path.isfile(sba_rating_filename):
                     # Load according file
                     sba_rating_file = np.genfromtxt(sba_rating_filename, delimiter=',')[:, 1]
+                    # in case of bin-files delete 1.entry (header)
+                    if np.isnan(sba_rating_file[0]) and len(sba_rating_file) == 271:
+                        sba_rating_file = np.delete(sba_rating_file, 0) - 2  # substract 2 to adapt range to [-1,1]
+                        # -1: low, 0: mid, 1: high arousal
+                        print("Rating bins and count:", np.unique(sba_rating_file, return_counts=True))
+
                     # Fill in rating dictionary
                     rating_dic[str(subject)]["SBA"][cond_key] = copy.copy(sba_rating_file)
 
@@ -544,13 +556,14 @@ class DataSet(object):
     # s_fold_idx_list = []  # this needs to be changed across DataSet-instances
     # s_fold_idx = []  # this needs to be changed across DataSet-instances
 
-    def __init__(self, name, eeg, ratings, subject, condition, eeg_samp_freq=250., rating_samp_freq=1.):
+    def __init__(self, name, eeg, ratings, subject, condition, task, eeg_samp_freq=250., rating_samp_freq=1.):
         """
         Builds dataset with EEG data and Ratings
         :param eeg: eeg data, SBA format (space-break-ande) (so far only NoMov)
         :param ratings: rating data, SBA format (space-break-ande)
         :param subject: Subject Nummer
         :param condition: Subject condition
+        :param task: whether data is for binary 'classifaction' (low, high) or 'regression'
         :param eeg_samp_freq: sampling frequency of EEG data (default = 250Hz)
         :param rating_samp_freq: sampling frequency of Rating data (default = 1Hz)
         """
@@ -558,12 +571,15 @@ class DataSet(object):
         assert eeg.shape[0] == ratings.shape[0], "eeg.shape: {}, ratings.shape: {}".format(eeg.shape, ratings.shape)
 
         self.name = name
+        self.task = task
         self.eeg_samp_freq = eeg_samp_freq
         self.rating_samp_freq = rating_samp_freq
-        self._num_time_slices = eeg.shape[0]
-        self.remaining_slices = np.arange(self.num_time_slices)  # for randomized drawing of new_batch
+        # self.remaining_slices = np.arange(self.num_time_slices)  # for randomized drawing of new_batch
         self._eeg = eeg  # input
         self._ratings = ratings  # target
+        self._num_time_slices = eeg.shape[0]
+        self.remaining_slices = []
+        self.reset_remaining_slices()  # creates self.remaining_slices
         self._epochs_completed = 0
         self._index_in_epoch = 0
         self.current_batch = []
@@ -592,7 +608,11 @@ class DataSet(object):
         return self._epochs_completed
 
     def reset_remaining_slices(self):
-        return np.arange(self.num_time_slices)
+        # return np.arange(self.num_time_slices)
+        if self.task == "regression":
+            self.remaining_slices = np.arange(self.num_time_slices)
+        else:  # == "classification"
+            self.remaining_slices = np.delete(arr=np.arange(self.num_time_slices), obj=np.where(self._ratings == 0))
 
     def new_epoch(self):
         self._epochs_completed += 1
@@ -703,7 +723,8 @@ class DataSet(object):
                 # if no slice left, start new epoch
                 self.new_epoch()  # self._epochs_completed += 1
                 self._index_in_epoch = 0
-                self.remaining_slices = self.reset_remaining_slices()
+                # self.remaining_slices = self.reset_remaining_slices()
+                self.reset_remaining_slices()
 
                 # print("\nNo slices left take new slices")  # test
 
@@ -715,7 +736,8 @@ class DataSet(object):
             self.new_epoch()  # self._epochs_completed += 1
             remaining_slices_to_draw = batch_size - len(self.remaining_slices)
             self._index_in_epoch = remaining_slices_to_draw  # index in new epoch
-            self.remaining_slices = self.reset_remaining_slices()  # reset
+            # self.remaining_slices = self.reset_remaining_slices()  # reset
+            self.reset_remaining_slices()  # reset
 
             # Draw remaining slices from new epoch
             if randomize:
@@ -824,7 +846,8 @@ def splitter(array_to_split, n_splits):
 
 
 def read_data_sets(subject, component, s_fold_idx, s_fold=10, cond="NoMov", sba=True, s_freq_eeg=250.,
-                   filetype="SSD", band_pass=True, hilbert_power=True, testmode=False):
+                   filetype="SSD", band_pass=True, hilbert_power=True, task="regression", shuffle=False,
+                   testmode=False):
     """
     Returns the s-fold-prepared dataset.
     S-Fold Validation, S=5: [ |-Train-|-Train-|-Train-|-Valid-|-Train-|] Dataset
@@ -839,6 +862,8 @@ def read_data_sets(subject, component, s_fold_idx, s_fold=10, cond="NoMov", sba=
         filetype: Whether 'SSD' or 'SPOC'
         band_pass: Whether SSD components are band-passed filter for alpha
         hilbert_power: hilbert-transform SSD-components, then extract z-scored power
+        task: either regression or (binary)-classification
+        shuffle: shuffle data (primarily for classification task to have balance low/high arousal in all folds/valsets)
         testmode: Whether to load data for testmode
     Returns:
         Train, Validation Datasets
@@ -850,6 +875,8 @@ def read_data_sets(subject, component, s_fold_idx, s_fold=10, cond="NoMov", sba=
     assert cond in ["NoMov", "Mov"], "cond must be either 'NoMov' or 'Mov'"
 
     assert filetype.upper() in ["SSD", "SPOC"], "filetype must be either 'SSD' or 'SPOC'"
+    task = task.lower()
+    assert task in ["regression", "classification"], "task must be either 'regression' or 'classification'"
 
     # If int, transform to list
     if not type(component) is list:
@@ -876,7 +903,7 @@ def read_data_sets(subject, component, s_fold_idx, s_fold=10, cond="NoMov", sba=
     else:  # == 'SPOC'
         eeg_data = load_spoc_component(subjects=subject, band_pass=band_pass)
 
-    rating_data = load_rating_files(subjects=subject)
+    rating_data = load_rating_files(subjects=subject, bins=True if task == "classification" else False)
     condition = rating_data[str(subject)]["condition"]
     t_roller_coasters = update_coaster_lengths(subjects=subject, empty_t_array=np.zeros((len(roller_coasters))),
                                                sba=sba)
@@ -972,10 +999,18 @@ def read_data_sets(subject, component, s_fold_idx, s_fold=10, cond="NoMov", sba=
     # split EEG data w.r.t. to total sba-length
     eeg_sba_split = splitter(eeg_sba, n_splits=int(sum(t_roller_coasters)))  # [sec, data-points, components)
 
+    # If semi-balanced low-high-arousal values for validation set is required (in binary classification) then do:
+    shuf_idx = np.arange(len(rating_sba))  # here still no change of data rating_sba[shuf_idx] == rating_sba
+    if shuffle:
+        np.random.shuffle(shuf_idx)
+        if task == "regression":
+            print("Shuffling data for regression task leads to more difficult interpretation of results/plots and "
+                  "makes successive batches redundant (if applied).")
+
     # eeg_concat_split[0][0:] first to  250th value in time
     # eeg_concat_split[1][0:] 250...500th value in time
-    rating_split = splitter(array_to_split=rating_sba, n_splits=s_fold)
-    eeg_split = splitter(array_to_split=eeg_sba_split, n_splits=s_fold)
+    rating_split = splitter(array_to_split=rating_sba[shuf_idx], n_splits=s_fold)
+    eeg_split = splitter(array_to_split=eeg_sba_split[shuf_idx], n_splits=s_fold)
 
     # eeg_concat_split.shape    # (n_chunks[in 1sec], n_samples_per_chunk [250Hz], channels)
     # eeg_split.shape           # (s_fold, n_chunks_per_fold, n_samples_per_chunk, channels)
@@ -992,11 +1027,12 @@ def read_data_sets(subject, component, s_fold_idx, s_fold=10, cond="NoMov", sba=
     train_ratings = np.concatenate(train_ratings, axis=0)
 
     # Create datasets
-    train = DataSet(name="Training", eeg=train_eeg, ratings=train_ratings, subject=subject, condition=condition)
+    train = DataSet(name="Training", eeg=train_eeg, ratings=train_ratings, subject=subject,
+                    condition=condition, task=task)
     validation = DataSet(name="Validation", eeg=validation_eeg, ratings=validation_ratings, subject=subject,
-                         condition=condition)
+                         condition=condition, task=task)
     # Test set
-    # test = DataSet(eeg=test_eeg, ratings=test_ratings, subject=subject, condition=condition)
+    # test = DataSet(eeg=test_eeg, ratings=test_ratings, subject=subject, condition=condition, task=task)
     test = None
 
     # return base.Datasets(train=train, validation=validation, test=test), s_fold_idx
@@ -1004,7 +1040,8 @@ def read_data_sets(subject, component, s_fold_idx, s_fold=10, cond="NoMov", sba=
 
 
 def get_nevro_data(subject, component, s_fold_idx=None, s_fold=10, cond="NoMov", sba=True, s_freq_eeg=250.,
-                   filetype="SSD", band_pass=True, hilbert_power=True, testmode=False):
+                   filetype="SSD", band_pass=True, hilbert_power=True, task="regression", shuffle=False,
+                   testmode=False):
     """
       Prepares NeVRo dataset.
       Args:
@@ -1018,6 +1055,8 @@ def get_nevro_data(subject, component, s_fold_idx=None, s_fold=10, cond="NoMov",
         filetype: Whether 'SSD' or 'SPOC'
         band_pass: Whether SSD components are band-passed filter for alpha
         hilbert_power: hilbert-transform SSD-components, then extract z-scored power
+        task: either regression or (binary)-classification
+        shuffle: shuffle data (primarily for classification task to have balance low/high arousal in all folds/valsets)
         testmode: Whether to load data for testmode
       Returns:
         Train, Validation Datasets (+Test set)
@@ -1028,7 +1067,9 @@ def get_nevro_data(subject, component, s_fold_idx=None, s_fold=10, cond="NoMov",
 
     return read_data_sets(subject=subject, component=component, s_fold_idx=s_fold_idx, s_fold=s_fold,
                           cond=cond, sba=sba, s_freq_eeg=s_freq_eeg,
-                          filetype=filetype, band_pass=band_pass, hilbert_power=hilbert_power, testmode=testmode)
+                          filetype=filetype, band_pass=band_pass, hilbert_power=hilbert_power,
+                          task=task, shuffle=shuffle,
+                          testmode=testmode)
 
 
 # Testing
