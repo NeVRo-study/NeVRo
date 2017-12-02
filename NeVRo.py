@@ -682,28 +682,6 @@ def fill_pred_matrix(pred, y, current_mat, s_idx, current_batch, sfold, train=Tr
     return updated_mat
 
 
-def calc_binary_class_accuracy(prediction_matrix):
-    """
-    Calculate accuracy of binary classification from given prediction_matrix.
-    Postive values are considered as prediction of high arousal, and negative values as of low arousal.
-    :param prediction_matrix: Contains predictions and ground truth
-    :return: list of accuracy of each fold
-    """
-    n_folds = int(prediction_matrix.shape[0]/2)
-    val_class_acc_list = np.zeros(shape=n_folds)
-    for fo in range(n_folds):
-        # 1: correct, -1: incorrect
-        cor_incor = np.sign(prediction_matrix[fo*2, :]*prediction_matrix[fo*2+1, :])
-        # delete nan's
-        cor_incor = np.delete(arr=cor_incor, obj=np.where(np.isnan(cor_incor)))
-        if len(cor_incor) > 0:
-            fo_accur = sum(cor_incor == 1)/len(cor_incor)
-        else:
-            fo_accur = np.nan
-        val_class_acc_list[fo] = fo_accur
-    return val_class_acc_list
-
-
 def initialize_folders():
     """
     Initializes all folders in FLAGS variable.
