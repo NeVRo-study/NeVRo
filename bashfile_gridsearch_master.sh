@@ -145,3 +145,14 @@
 # python3 NeVRo.py --subject 36 --seed True --repet_scalar 320 --successive 3 --lstm_size 50,30 --learning_rate 1e-4 --path_specificities HPS_lstm-50-30_lr-1e-4_suc-3/
 # python3 NeVRo.py --subject 36 --seed True --repet_scalar 320 --successive 3 --lstm_size 50,40 --path_specificities HPS_lstm-50-40_suc-3/
 # python3 NeVRo.py --subject 36 --seed True --repet_scalar 320 --successive 3 --lstm_size 50,40 --weight_reg_strength 0.09 --path_specificities HPS_lstm-50-40_l2-009_suc-3/
+
+
+# Binary Classification
+# python3 NeVRo.py --subject 36 --seed True --task classification --shuffle True --repet_scalar 160 --lstm_size 30,10 --path_specificities BiCl_HPS_lstm-30-10/
+# python3 NeVRo.py --subject 36 --seed True --task classification --shuffle True --repet_scalar 160 --lstm_size 30,10 --band_pass False --path_specificities BiCl_HPS_lstm-30-10_bpass-F/
+# python3 NeVRo.py --subject 36 --seed True --task classification --shuffle True --repet_scalar 160 --lstm_size 30,10 --component 1,2,3,4,5,6,7 --path_specificities BiCl_HPS_lstm-30-10_comp-1-2-3-4-5-6-7/
+# python3 NeVRo.py --subject 36 --seed True --task classification --shuffle True --repet_scalar 160 --lstm_size 30,10 --band_pass False --component 1,2,3,4,5,6,7 --path_specificities BiCl_HPS_lstm-30-10_comp-1-2-3-4-5-6-7_bpass-F/
+# python3 NeVRo.py --subject 2 --seed True --task classification --shuffle True --repet_scalar 160 --lstm_size 30,10 --path_specificities BiCl_HPS_lstm-30-10/
+# python3 NeVRo.py --subject 2 --seed True --task classification --shuffle True --repet_scalar 160 --lstm_size 30,10 --band_pass False --path_specificities BiCl_HPS_lstm-30-10_bpass-F/
+# python3 NeVRo.py --subject 2 --seed True --task classification --shuffle True --repet_scalar 160 --lstm_size 30,10 --component 1,2,3,4,5,6,7 --path_specificities BiCl_HPS_lstm-30-10_comp-1-2-3-4-5-6-7/
+# python3 NeVRo.py --subject 2 --seed True --task classification --shuffle True --repet_scalar 160 --lstm_size 30,10 --component 1,2,3,4,5,6,7 --band_pass False --path_specificities BiCl_HPS_lstm-30-10_comp-1-2-3-4-5-6-7_bpass-F/

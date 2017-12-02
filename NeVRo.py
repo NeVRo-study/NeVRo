@@ -21,7 +21,6 @@ import subprocess
 
 from LSTMnet import LSTMnet
 
-# TODO calculate binary classification performance [-1, 1] from pred_mat/val_acc_lists and write in files
 
 # TODO non-band-passed SSD, SPOC, Heart Data (see array.np.repeat(250), if 1Hz), GSR data
 # TODO more components: successively adding SSD components, hence adding more non-alpha related information (non-b-pass)
@@ -566,7 +565,7 @@ def train_lstm():
     # Create all_acc_val_binary
     all_acc_val_binary = calc_binary_class_accuracy(prediction_matrix=val_pred_matrix)
     # Calculate mean val accuracy across all folds
-    mean_val_acc = np.mean(all_acc_val if FLAGS.task == "regression" else all_acc_val_binary)
+    mean_val_acc = np.nanmean(all_acc_val if FLAGS.task == "regression" else all_acc_val_binary)
 
     print("Average accuracy across all {} validation set: {:.3f} | {} | S{}".format(FLAGS.s_fold, mean_val_acc,
                                                                                     FLAGS.path_specificities[:-1],
@@ -609,7 +608,7 @@ def train_lstm():
 
         if FLAGS.task == "classification":
             lists_export.insert(len(lists_export) - 1, rnd_all_acc_val_binary)
-            lists_export.insert(len(lists_export) - 1, np.round(np.mean(rnd_all_acc_val_binary), 3))
+            lists_export.insert(len(lists_export) - 1, np.round(np.nanmean(rnd_all_acc_val_binary), 3))
             label_export.insert(len(label_export) - 1, "Validation-Class-Acc: ")
             label_export.insert(len(label_export) - 1, "mean(Classification_Accuracy): ")
 
@@ -640,7 +639,7 @@ def fill_pred_matrix(pred, y, current_mat, s_idx, current_batch, sfold, train=Tr
     """
 
     # Need to be integer
-    current_batch = [int(step) for step in current_batch]
+    current_batch = [int(s_tep) for s_tep in current_batch]
 
     # Reshape prediction and target
     pred = pred.reshape(pred.shape[0])
@@ -650,12 +649,12 @@ def fill_pred_matrix(pred, y, current_mat, s_idx, current_batch, sfold, train=Tr
     pred_idx = int(s_idx * 2)
     rat_idx = int(pred_idx + 1)
 
-    full_length = len(current_mat[0, :])  # 270
+    fulllength = len(current_mat[0, :])  # 270
 
     # S-Fold, for S=10:
     #    FOLD 0          FOLD 1          FOLD 2                FOLD 9
     # [0, ..., 26] | [27, ..., 53] | [54, ..., 80] | ... | [235, ..., 269]
-    fold_length = int(full_length/sfold)  # len([0, ..., 26]) = 27
+    fold_length = int(fulllength/sfold)  # len([0, ..., 26]) = 27
 
     # S-Fold-Index, e.g. s_idx=1. That is, FOLD 1 is validation set
     verge = s_idx * fold_length  # verge = 27
@@ -690,12 +689,20 @@ def calc_binary_class_accuracy(prediction_matrix):
     :param prediction_matrix: Contains predictions and ground truth
     :return: list of accuracy of each fold
     """
+    # TODO remove print after testing
+    print("Shape prediction_matrix", prediction_matrix.shape)
     n_folds = int(prediction_matrix.shape[0]/2)
+    print("n_folds", n_folds)
     val_class_acc_list = np.zeros(shape=n_folds)
+    print("len(val_class_acc_list)", len(val_class_acc_list))
     for fo in range(n_folds):
         cor_incor = np.sign(prediction_matrix[fo*2, :]*prediction_matrix[fo*2+1, :])  # 1: correct, -1: incorrect
         cor_incor = np.delete(arr=cor_incor, obj=np.where(np.isnan(cor_incor)))  # delete nan's
-        fo_accur = np.unique(ar=cor_incor, return_counts=True)[1][1]/len(cor_incor)  # sum(cor_incor==1)/len(cor_incor)
+        if len(cor_incor) > 0:
+            fo_accur = np.unique(ar=cor_incor, return_counts=True)[1][1]/len(cor_incor)
+            # sum(cor_incor==1)/len(cor_incor)
+        else:
+            fo_accur = np.nan
         val_class_acc_list[fo] = fo_accur
     return val_class_acc_list
 

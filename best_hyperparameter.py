@@ -5,11 +5,11 @@ After we run the gridsearch on S36, we find now the best hyperparamter from the 
 import os
 import subprocess
 
-subjects = ["02", "36"]
+subjects = [2, 36]
 
 for sub in subjects:
 
-    wdic = "./LSTM/S{}/already_plotted/".format(sub)
+    wdic = "./LSTM/S{}/already_plotted/".format(str(sub).zfill(2))
     # wdic = "./LSTM/S02/already_plotted/"
     wdic_plot = "../../Results/Plots/LSTM/Hyperparameter_Search/"
 
