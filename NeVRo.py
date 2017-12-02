@@ -689,18 +689,15 @@ def calc_binary_class_accuracy(prediction_matrix):
     :param prediction_matrix: Contains predictions and ground truth
     :return: list of accuracy of each fold
     """
-    # TODO remove print after testing
-    print("Shape prediction_matrix", prediction_matrix.shape)
     n_folds = int(prediction_matrix.shape[0]/2)
-    print("n_folds", n_folds)
     val_class_acc_list = np.zeros(shape=n_folds)
-    print("len(val_class_acc_list)", len(val_class_acc_list))
     for fo in range(n_folds):
-        cor_incor = np.sign(prediction_matrix[fo*2, :]*prediction_matrix[fo*2+1, :])  # 1: correct, -1: incorrect
-        cor_incor = np.delete(arr=cor_incor, obj=np.where(np.isnan(cor_incor)))  # delete nan's
+        # 1: correct, -1: incorrect
+        cor_incor = np.sign(prediction_matrix[fo*2, :]*prediction_matrix[fo*2+1, :])
+        # delete nan's
+        cor_incor = np.delete(arr=cor_incor, obj=np.where(np.isnan(cor_incor)))
         if len(cor_incor) > 0:
-            fo_accur = np.unique(ar=cor_incor, return_counts=True)[1][1]/len(cor_incor)
-            # sum(cor_incor==1)/len(cor_incor)
+            fo_accur = sum(cor_incor == 1)/len(cor_incor)
         else:
             fo_accur = np.nan
         val_class_acc_list[fo] = fo_accur
