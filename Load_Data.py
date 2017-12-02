@@ -884,7 +884,10 @@ def read_data_sets(subject, component, s_fold_idx, s_fold=10, cond="NoMov", sba=
 
     for comp_idx, comp in enumerate(component):
         if filetype.upper() == "SSD":
-            assert comp in range(1, 5+1) or comp in range(91, 95+1), "Components must be in range [1,2,3,4,5]"
+            if band_pass:
+                assert comp in range(1, 5+1) or comp in range(91, 95+1), "Components must be in range [1,2,3,4,5]"
+            else:  # not band_pass
+                pass
         else:  # == 'SPOC'
             assert comp in range(1, 9 + 1) or comp in range(91, 99 + 1), "Components must be in correct range"
         # Check demand for noise component
