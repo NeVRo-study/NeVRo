@@ -39,5 +39,5 @@
 # python3 NeVRo.py --subject 2 --seed True --filetype SPOC --component 1,2,3,4,5,6,7 --repet_scalar 320 --successive 3 --lstm_size 30 --path_specificities HPS_lstm-30_ftype-spoc_comp-1-2-3-4-5-6-7_suc-3/
 
 # Binary Classification
-python3 NeVRo.py --subject 2 --seed True --task classification --shuffle True --repet_scalar 160 --lstm_size 30,10 --component 1,2,3,4,5 --path_specificities BiCl_HPS_lstm-30-10_comp-1-2-3-4-5/
-python3 NeVRo.py --subject 2 --seed True --task classification --shuffle True --repet_scalar 160 --lstm_size 30,10 --component 1,2,3,4,5,6,7 --band_pass False --path_specificities BiCl_HPS_lstm-30-10_comp-1-2-3-4-5-6-7_bpass-F/
+python3 NeVRo.py --subject 2 --seed True --task classification --shuffle True --repet_scalar 320 --lstm_size 30,10 --component 1,2,3,4,5 --path_specificities BiCl_HPS_lstm-30-10_comp-1-2-3-4-5/
+python3 NeVRo.py --subject 2 --seed True --task classification --shuffle True --repet_scalar 320 --lstm_size 30,10 --component 1,2,3,4,5,6,7 --band_pass False --path_specificities BiCl_HPS_lstm-30-10_comp-1-2-3-4-5-6-7_bpass-F/

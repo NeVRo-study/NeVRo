@@ -1039,7 +1039,7 @@ def read_data_sets(subject, component, s_fold_idx, s_fold=10, cond="NoMov", sba=
     test = None
 
     # return base.Datasets(train=train, validation=validation, test=test), s_fold_idx
-    return {"train": train, "validation": validation, "test": test}
+    return {"train": train, "validation": validation, "test": test, "order": shuf_idx}
 
 
 def get_nevro_data(subject, component, s_fold_idx=None, s_fold=10, cond="NoMov", sba=True, s_freq_eeg=250.,

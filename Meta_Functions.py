@@ -73,7 +73,7 @@ def average_time(list_of_timestamps, in_timedelta=True):
 
 def normalization(array, lower_bound, upper_bound):
     """
-    Normalizes Input Array
+    Min-Max-Scaling: Normalizes Input Array to lower and upper bound
     :param upper_bound: Upper Bound b
     :param lower_bound: Lower Bound a
     :param array: To be transformed array
@@ -189,6 +189,44 @@ def calc_binary_class_accuracy(prediction_matrix):
             fo_accur = np.nan
         val_class_acc_list[fo] = fo_accur
     return val_class_acc_list
+
+
+def sort_mat_by_mat(mat, mat_idx):
+    """
+    mat         mat_idx         sorted mat
+    [[1,2,3],   [[1,2,0],  ==>  [[2,3,1],
+     [4,5,6]]    [2,0,1]]  ==>   [6,4,5]]
+
+    :param mat: matrix to be sorted by rows of mat_idx
+    :param mat_idx: matrix with corresponding indices
+    :return: sorted matrix
+    """
+    mat_idx = mat_idx.astype(int)
+    assert mat.shape == mat_idx.shape, "Matrices must be the same shape"
+    n_rows = mat.shape[0]
+
+    sorted_mat = np.zeros(shape=mat.shape)
+
+    for row in range(n_rows):
+
+        sorted_mat[row, :] = inverse_indexing(arr=mat[row, :], idx=mat_idx[row, :])
+        # sorted_mat[row, :] = mat[row, :][mat_idx[row, :]]
+
+    return sorted_mat
+
+
+def inverse_indexing(arr, idx):
+    """
+    Inverse indexing of array (e.g., [16.,2.,4.]) to its origin (e.g., [2.,4.,16.])
+    given the former index-vector (here: [2,0,1]).
+    :param arr: altered array
+    :param idx: former indexing vector
+    :return: recovered array
+    """
+    inv_arr = np.repeat(np.nan, len(arr))
+    for i, ix in enumerate(idx):
+        inv_arr[ix] = arr[i]
+    return inv_arr
 
 
 def clear():

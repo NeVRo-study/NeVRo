@@ -205,6 +205,10 @@ def train_lstm():
     # We create a separate matrix for the validation (which can be merged with the first pred_matrix later)
     val_pred_matrix = copy.copy(pred_matrix)
 
+    # In case data was shuffled save corresponding order per fold in matrix and save later
+    shuffle_order_matrix = np.zeros(shape=(FLAGS.s_fold, pred_matrix.shape[1]))
+    shuffle_order_matrix[s_fold_idx_list[0], :] = nevro_data["order"]
+
     # Set Variables for timer
     timer_fold_list = []  # list of duration(time) of each fold
     duration_fold = []  # duration of 1 fold
@@ -250,6 +254,9 @@ def train_lstm():
                                                 task=FLAGS.task,
                                                 shuffle=FLAGS.shuffle,
                                                 testmode=FLAGS.testmodel)
+
+                    # Save order in shuffle_order_matrix: shuffle=False:(1,2,...,270); shuffle=True:(56,4,...,173)
+                    shuffle_order_matrix[s_fold_idx, :] = nevro_data["order"]
 
                 with tf.name_scope("input"):
                     # shape = [None] + ddims includes num_steps = 250
@@ -555,6 +562,10 @@ def train_lstm():
             end_timer_fold = datetime.datetime.now().replace(microsecond=0)
             duration_fold = end_timer_fold - start_timer_fold
 
+        # In case data was shuffled save corresponding order externally
+        if FLAGS.shuffle:
+            np.save(file=logdir + str(s_fold_idx) + "/{}_shuffle_order.npy".format(s_fold_idx), arr=nevro_data["order"])
+
     # Final Accuracy & Time
     timer_fold_list.append(duration_fold)
     print("Time to train all folds (each {} steps): {} [h:m:s] | {} | S{}".format(int(max_steps),
@@ -623,6 +634,12 @@ def train_lstm():
     np.savetxt(sub_dir + "{}S{}_val_pred_matrix_{}_folds_{}.csv".format(time.strftime('%Y_%m_%d_'), FLAGS.subject,
                                                                         FLAGS.s_fold, FLAGS.path_specificities[:-1]),
                val_pred_matrix, delimiter=",")
+
+    if FLAGS.shuffle:
+        np.save(sub_dir + "{}S{}_shuffle_order_matrix_{}_folds_{}.npy".format(time.strftime('%Y_%m_%d_'), FLAGS.subject,
+                                                                              FLAGS.s_fold,
+                                                                              FLAGS.path_specificities[:-1]),
+                shuffle_order_matrix)
 
 
 def fill_pred_matrix(pred, y, current_mat, s_idx, current_batch, sfold, train=True):
