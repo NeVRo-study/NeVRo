@@ -482,9 +482,8 @@ else:  # if task == "classification":
     correct_class_train = np.delete(correct_class_train, np.where(np.isnan(correct_class_train)))
     mean_train_acc = sum(correct_class_train[correct_class_train == 1])/len(correct_class_train)
     plt.xlabel("time(s)")
-    plt.title(s="Average train prediction | {}-Folds| {} | mean_train_class_acc={:.3f}".format(s_fold,
-                                                                                               task,
-                                                                                               mean_train_acc))
+    plt.title(s="Average train prediction | {}-Folds| {} | mean training accuracy={:.3f}".format(s_fold, task,
+                                                                                                 mean_train_acc))
 
 # adjust size, add legend
 plt.xlim(0, len(whole_rating))
@@ -524,7 +523,8 @@ else:  # task == "classification":
         # print(whole_rating[i], concat_val_pred[i])
 
 plt.xlabel("time(s)")
-plt.title(s="Concatenated val-prediction | {}-Folds | {} | mean_val_acc={}".format(s_fold, task, np.round(mean_acc, 3)))
+plt.title(s="Concatenated val-prediction | {}-Folds | {} | mean validation accuracy={}".format(s_fold, task,
+                                                                                               np.round(mean_acc, 3)))
 # adjust size, add legend
 plt.xlim(0, len(whole_rating))
 plt.ylim(-1.2, 2)
