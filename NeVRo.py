@@ -23,8 +23,11 @@ from LSTMnet import LSTMnet
 
 
 # TODO non-band-passed SSD, SPOC, Heart Data (see array.np.repeat(250), if 1Hz), GSR data
+# TODO attach ECG string to feeded components
+
 # TODO more components: successively adding SSD components, hence adding more non-alpha related information (non-b-pass)
-# TODO implement "all" comp command
+
+# TODO implement "all" comp command see e.g., load_spoc(n_comp = len(np.genfromtxt(file_name, delimiter=";"....)
 
 # TODO random_search write bash script
 

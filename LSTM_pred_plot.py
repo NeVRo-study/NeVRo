@@ -15,7 +15,7 @@ if platform.system() != 'Darwin':
 else:
     import matplotlib.pyplot as plt
 
-
+# TODO Check concatenated val pred in plot 4 for classification (if shuffle!)
 # Save plot
 @true_false_request
 def save_request():

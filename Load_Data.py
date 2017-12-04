@@ -45,11 +45,12 @@ wdic_SBA_Comp = "../../Data/EEG_SSD/SBA/Components/"
 wdic_SBA_Comp_non_band_pass = "../../Data/EEG_SSD/SBA/Components/not_alpha_band_passed/"
 wdic_SBA_SPOC_Comp = "../../Data/EEG_SPOC/SBA/Components/"
 # wdic_Rating = "../../Data/ratings/preprocessed/z_scored_alltog/"  # SBA-pruned data (148:space, 30:break, 92:ande)
-wdic_Rating = "../../Data/ratings/preprocessed/not_z_scored/"  # transform later to [-1, +1]
+wdic_Rating = "../../Data/ratings/preprocessed/not_z_scored/"  # min-max scale later to [-1, +1]
 wdic_Rating_bins = "../../Data/ratings/preprocessed/classbin_ratings/"
 
 wdic_Data = "../../Data/"
 wdic_cropECG = "../../Data/Data EEG export/NeVRo_ECG_Cropped/"
+wdic_SBA_ECG = "../../Data/ECG/SBA/z_scored_alltog/"
 wdic_x_corr = "../../Results/x_corr/"
 
 # initialize variables
@@ -530,6 +531,91 @@ def load_rating_files(subjects, samp_freq=1., sba=True, bins=False):
                                                                            len(sba_rating_file) / samp_freq))
 
     return rating_dic
+
+
+def load_ecg_files(subjects, sba=True):
+    """
+    Load 1Hz heart rate data (bmp -> z-scored).
+    :param subjects: list of subjects
+    :param sba: Loading them in single phases or concatented into Space-Break-Andes (SBA)
+    :return: ECG data
+    """
+    print(wdic_SBA_ECG)
+
+    if not isinstance(subjects, list):
+        subjects = [subjects]
+
+    # Create SSD Component Dictionary
+    ecg_dic_keys = [str(i) for i in subjects]  # == list(map(str, subjects))  # these keys also work int
+    ecg_dic = {}
+    ecg_dic.update((key, dict.fromkeys(roller_coasters, [])) for key in ecg_dic_keys)
+
+    condition_keys = [element.split("_")[1] for element in roller_coasters]  # "NoMov", "Mov"
+    condition_keys = list(set(condition_keys))
+
+    t_roller_coasters = update_coaster_lengths(subjects=subjects, empty_t_array=np.zeros((len(roller_coasters))),
+                                               sba=sba)
+
+    if sba:
+        for key in ecg_dic_keys:
+            ecg_dic[key].update({"SBA": dict.fromkeys(condition_keys, [])})
+
+    for subject in subjects:
+        for num, coaster in enumerate(roller_coasters):
+            folder = coaster.split("_")[1]  # either "Mov" or "NoMov" (only needed for sba case)
+            if sba:
+                file_name = wdic_SBA_ECG + "{}/NVR_S{}_SBA_{}.txt".format(folder, str(subject).zfill(2), folder)
+                # "NVR_S02_SBA_NoMov.txt"
+            else:
+                raise ValueError("There are no ECG files here (yet) | sba=False case not implemented")
+
+            if os.path.isfile(file_name):
+
+                # columns = components, rows value per timestep
+                hr_vector = np.genfromtxt(file_name, delimiter=";", dtype="float")  # first row = comp.names
+                # hr_vector.shape=(270,) sec
+
+                # Fill in SSD Dictionary: ecg_dic
+                if not sba:
+                    ecg_dic[str(subject)][coaster] = copy.copy(hr_vector)
+
+                else:  # if sba
+                    # Split SBA file in Space-Break-Andes
+                    if "Space" in coaster:
+                        sba_idx_start = 0
+                        sba_idx_end = int(t_roller_coasters[0])
+                    elif "Break" in coaster:
+                        sba_idx_start = int(t_roller_coasters[0])
+                        sba_idx_end = int(sum(t_roller_coasters[0:2]))
+                    else:  # "Ande" in coaster
+                        sba_idx_start = int(sum(t_roller_coasters[0:2]))
+                        sba_idx_end = int(sum(t_roller_coasters))
+                        # Test lengths
+                        if sba_idx_end < hr_vector.shape[0]:
+                            print("hr_vector of S{} has not expected size: Diff={} data points.".format(
+                                str(subject).zfill(2), hr_vector.shape[0] - sba_idx_end))
+                            assert (hr_vector.shape[0] - sba_idx_end) <= 3, "Difference too big, check files"
+
+                    ecg_dic[str(subject)][coaster] = copy.copy(hr_vector[sba_idx_start:sba_idx_end])
+
+                    # process whole SBA only once per condition (NoMov, Mov)
+                    if "Break" in coaster:
+                        assert folder in condition_keys, "Wrong key"
+                        ecg_dic[str(subject)]["SBA"][folder] = copy.copy(hr_vector)
+
+                # Check times:
+                if not sba:
+                    if not (np.round(t_roller_coasters[num], 1) == hr_vector.shape[0]):
+                        print("Should be all approx. the same:\nTime of {}: {}"
+                              "\nLength of hr_vector: {}".format(roller_coasters[num],
+                                                                 t_roller_coasters[num],
+                                                                 hr_vector.shape[0]))
+                else:  # if sba:
+                    if not (np.round(sum(t_roller_coasters), 1) == hr_vector.shape[0]):
+                        print("Should be all approx. the same:\nTime of SBA: {}"
+                              "\nLength of hr_vector: {}".format(sum(t_roller_coasters), hr_vector.shape[0]))
+
+    return ecg_dic
 
 
 def zero_line_prediction(subject):
