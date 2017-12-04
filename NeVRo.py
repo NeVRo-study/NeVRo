@@ -22,8 +22,7 @@ import subprocess
 from LSTMnet import LSTMnet
 
 
-# TODO non-band-passed SSD, SPOC, Heart Data (see array.np.repeat(250), if 1Hz), GSR data
-# TODO attach ECG string to feeded components
+# TODO non-band-passed SSD, SPOC, Heart Data, (GSR data)
 
 # TODO more components: successively adding SSD components, hence adding more non-alpha related information (non-b-pass)
 
@@ -47,6 +46,7 @@ LSTM_SIZE_DEFAULT = '100'  # number of hidden units per LSTM layer, e.g., '10,5'
 FC_NUM_HIDDEN_UNITS = None  # if len(n_hidden_units)>0, create len(n_hidden_units) layers
 FILE_TYPE_DEFAULT = "SSD"  # Either 'SSD' or 'SPOC'
 COMPONENT_DEFAULT = "best"  # 'best', 'noise', 'random' or list of 1 or more components (1-5), e.g. '1,3,5' or '4'
+# HR_COMPONENT_DEFAULT = False
 SUBJECT_DEFAULT = 36
 
 PATH_SPECIFICITIES_DEFAULT = ""  # or fill like this: "special_folder/"
@@ -179,6 +179,7 @@ def train_lstm():
     # Load first data-set for preparation
     nevro_data = get_nevro_data(subject=FLAGS.subject,
                                 component=input_component,
+                                hr_component=FLAGS.hrcomp,
                                 s_fold_idx=s_fold_idx_list[0],
                                 s_fold=FLAGS.s_fold,
                                 cond="NoMov",
@@ -247,6 +248,7 @@ def train_lstm():
 
                     nevro_data = get_nevro_data(subject=FLAGS.subject,
                                                 component=input_component,
+                                                hr_component=FLAGS.hrcomp,
                                                 s_fold_idx=s_fold_idx,
                                                 s_fold=FLAGS.s_fold,
                                                 cond="NoMov",
@@ -599,14 +601,15 @@ def train_lstm():
                    "\nrepetition_set: {}\nlearning_rate: {}\nbatch_size: {}\nbatch_random: {}"
                    "\nsuccessive_batches: {}(mode {})\nweight_reg: {}({})\nact_fct: {}\nlstm_h_size: {}"
                    "\nn_hidden_units: {}"
-                   "\ncomponent: {}({})\n".format(FLAGS.subject, FLAGS.task, FLAGS.shuffle,
-                                                  FLAGS.hilbert_power, FLAGS.s_fold,
-                                                  int(max_steps), FLAGS.repet_scalar,
-                                                  FLAGS.learning_rate, FLAGS.batch_size,
-                                                  FLAGS.rand_batch, FLAGS.successive, FLAGS.successive_mode,
-                                                  FLAGS.weight_reg, FLAGS.weight_reg_strength, FLAGS.activation_fct,
-                                                  FLAGS.lstm_size, str(n_hidden_units),
-                                                  FLAGS.component, input_component))
+                   "\ncomponent: {}({}){}\n".format(FLAGS.subject, FLAGS.task, FLAGS.shuffle,
+                                                    FLAGS.hilbert_power, FLAGS.s_fold,
+                                                    int(max_steps), FLAGS.repet_scalar,
+                                                    FLAGS.learning_rate, FLAGS.batch_size,
+                                                    FLAGS.rand_batch, FLAGS.successive, FLAGS.successive_mode,
+                                                    FLAGS.weight_reg, FLAGS.weight_reg_strength, FLAGS.activation_fct,
+                                                    FLAGS.lstm_size, str(n_hidden_units),
+                                                    FLAGS.component, input_component,
+                                                    " + HRcomp" if FLAGS.hrcomp else ""))
 
         # rounding for the export
         rnd_all_acc_val = ["{:.3f}".format(np.round(acc, 3)) for acc in all_acc_val]
@@ -796,6 +799,8 @@ if __name__ == '__main__':
                         help="Whether to plot results and save them.")
     parser.add_argument('--component', type=str, default=COMPONENT_DEFAULT,
                         help="Which component: 'best', 'noise' or 'random', or comma separated list, e.g., 1,3,5")
+    parser.add_argument('--hrcomp', type=bool, default=False,
+                        help="Whether to attach the hear rate (HR) vector as component to neural components")
     parser.add_argument('--testmodel', type=bool, default=False,
                         help="Whether to test the model's learning ability with inverse+stretch+noise ratings as input")
     # parser.add_argument('--layer_feat_extr', type=str, default="fc2",

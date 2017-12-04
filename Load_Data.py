@@ -533,19 +533,19 @@ def load_rating_files(subjects, samp_freq=1., sba=True, bins=False):
     return rating_dic
 
 
-def load_ecg_files(subjects, sba=True):
+def load_ecg_files(subjects, sba=True, interpolate=True):
     """
     Load 1Hz heart rate data (bmp -> z-scored).
     :param subjects: list of subjects
     :param sba: Loading them in single phases or concatented into Space-Break-Andes (SBA)
+    :param interpolate: whether to interpolate missing values
     :return: ECG data
     """
-    print(wdic_SBA_ECG)
 
     if not isinstance(subjects, list):
         subjects = [subjects]
 
-    # Create SSD Component Dictionary
+    # Create ECG Component Dictionary
     ecg_dic_keys = [str(i) for i in subjects]  # == list(map(str, subjects))  # these keys also work int
     ecg_dic = {}
     ecg_dic.update((key, dict.fromkeys(roller_coasters, [])) for key in ecg_dic_keys)
@@ -575,7 +575,11 @@ def load_ecg_files(subjects, sba=True):
                 hr_vector = np.genfromtxt(file_name, delimiter=";", dtype="float")  # first row = comp.names
                 # hr_vector.shape=(270,) sec
 
-                # Fill in SSD Dictionary: ecg_dic
+                # Interpolate missing values
+                if interpolate:
+                    hr_vector = interpolate_nan(arr_with_nan=hr_vector)
+
+                # Fill in ECG Dictionary: ecg_dic
                 if not sba:
                     ecg_dic[str(subject)][coaster] = copy.copy(hr_vector)
 
@@ -931,7 +935,7 @@ def splitter(array_to_split, n_splits):
     return array_to_split
 
 
-def read_data_sets(subject, component, s_fold_idx, s_fold=10, cond="NoMov", sba=True, s_freq_eeg=250.,
+def read_data_sets(subject, component, hr_component, s_fold_idx, s_fold=10, cond="NoMov", sba=True, s_freq_eeg=250.,
                    filetype="SSD", band_pass=True, hilbert_power=True, task="regression", shuffle=False,
                    testmode=False):
     """
@@ -939,7 +943,8 @@ def read_data_sets(subject, component, s_fold_idx, s_fold=10, cond="NoMov", sba=
     S-Fold Validation, S=5: [ |-Train-|-Train-|-Train-|-Valid-|-Train-|] Dataset
     Args:
         subject: Subject Nr., subject dataset for training
-        component: which component to feed
+        component: which component to feed (int, list(int))
+        hr_component: Whether to attach hear rate component to neural components (True/False)
         s_fold_idx: index which of the folds is taken as validation set
         s_fold: s-value of S-Fold Validation [default=10]
         cond: Either "NoMov"(=default) or "Mov"
@@ -993,6 +998,10 @@ def read_data_sets(subject, component, s_fold_idx, s_fold=10, cond="NoMov", sba=
         eeg_data = load_spoc_component(subjects=subject, band_pass=band_pass)
 
     rating_data = load_rating_files(subjects=subject, bins=True if task == "classification" else False)
+
+    if hr_component:
+        ecg_data = load_ecg_files(subjects=subject, sba=sba)  # interpolation as default
+
     condition = rating_data[str(subject)]["condition"]
     t_roller_coasters = update_coaster_lengths(subjects=subject, empty_t_array=np.zeros((len(roller_coasters))),
                                                sba=sba)
@@ -1017,6 +1026,9 @@ def read_data_sets(subject, component, s_fold_idx, s_fold=10, cond="NoMov", sba=
 
     rating_sba = rating_data[str(subject)]["SBA"][cond]
 
+    if hr_component:
+        ecg_sba = ecg_data[str(subject)]["SBA"][cond]
+
     # Check whether EEG data too long
     if sba:
 
@@ -1039,6 +1051,11 @@ def read_data_sets(subject, component, s_fold_idx, s_fold=10, cond="NoMov", sba=
 
     # Normalize rating_sba to [-1;1] due to tanh-output of LSTMnet
     rating_sba = normalization(array=rating_sba, lower_bound=-1, upper_bound=1)
+
+    # IF, then attach HR to neural components
+    if hr_component:
+        ecg_sba_streched = np.reshape(np.repeat(a=ecg_sba, repeats=int(s_freq_eeg)), newshape=[-1, 1])  # HR is in 1Hz
+        eeg_sba = np.concatenate((eeg_sba, ecg_sba_streched), 1)
 
     if hilbert_power:
         # print("I load Hilbert transformed data (z-power)")
@@ -1128,14 +1145,15 @@ def read_data_sets(subject, component, s_fold_idx, s_fold=10, cond="NoMov", sba=
     return {"train": train, "validation": validation, "test": test, "order": shuf_idx}
 
 
-def get_nevro_data(subject, component, s_fold_idx=None, s_fold=10, cond="NoMov", sba=True, s_freq_eeg=250.,
-                   filetype="SSD", band_pass=True, hilbert_power=True, task="regression", shuffle=False,
-                   testmode=False):
+def get_nevro_data(subject, component, hr_component, s_fold_idx=None, s_fold=10, cond="NoMov", sba=True,
+                   s_freq_eeg=250., filetype="SSD", band_pass=True, hilbert_power=True, task="regression",
+                   shuffle=False, testmode=False):
     """
       Prepares NeVRo dataset.
       Args:
         subject: Which subject data to train
         component: Which component to feed, can be list
+        hr_component: Whether to attach hear rate component to neural components (True/False)
         s_fold_idx: index which of the folds is taken as validation set
         s_fold: s-value of S-Fold Validation [default=10]
         cond: Either "NoMov"(=default) or "Mov"
@@ -1154,7 +1172,8 @@ def get_nevro_data(subject, component, s_fold_idx=None, s_fold=10, cond="NoMov",
         s_fold_idx = np.random.randint(low=0, high=s_fold)
         print("s_fold_idx randomly chosen:", s_fold_idx)
 
-    return read_data_sets(subject=subject, component=component, s_fold_idx=s_fold_idx, s_fold=s_fold,
+    return read_data_sets(subject=subject, component=component, hr_component=hr_component,
+                          s_fold_idx=s_fold_idx, s_fold=s_fold,
                           cond=cond, sba=sba, s_freq_eeg=s_freq_eeg,
                           filetype=filetype, band_pass=band_pass, hilbert_power=hilbert_power,
                           task=task, shuffle=shuffle,

@@ -229,6 +229,49 @@ def inverse_indexing(arr, idx):
     return inv_arr
 
 
+def interpolate_nan(arr_with_nan):
+    """
+    Return array with linearly interpolated values.
+    :param arr_with_nan: array with missing values
+    :return: updated array
+    """
+    missing_idx = np.where(np.isnan(arr_with_nan))[0]
+
+    if len(missing_idx) == 0:
+        print("There are no nan-values in the given vector.")
+
+    else:
+        for midx in missing_idx:
+            # if the first value is missing take average of the next 5sec
+            if midx == 0:
+                arr_with_nan[midx] = np.nanmean(arr_with_nan[midx+1: midx+1+5])
+            # Else Take the mean of the two adjacent values
+            else:  # midx > 0
+                if np.isnan(arr_with_nan[midx]):  # Check whether still missing (see linspace filling below)
+                    if not np.isnan(arr_with_nan[midx+1]):  # we coming from below
+                        arr_with_nan[midx] = np.mean([arr_with_nan[midx-1], arr_with_nan[midx+1]])
+                    else:  # next value is also missing
+                        count = 0
+                        while True:
+                            if np.isnan(arr_with_nan[midx+1+count]):
+                                count += 1
+                            else:
+                                break
+
+                        fillvec = np.linspace(start=arr_with_nan[midx-1], stop=arr_with_nan[midx+1+count],
+                                              num=3 + count)[1:-1]
+
+                        assert len(fillvec) == 1 + count, "Implementation error at interpolation"
+
+                        arr_with_nan[midx: midx+count+1] = fillvec
+
+        print("Interpolated {} values.".format(len(missing_idx)))
+
+    updated_array = arr_with_nan
+
+    return updated_array
+
+
 def clear():
     print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
 
