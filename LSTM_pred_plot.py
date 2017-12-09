@@ -275,7 +275,7 @@ for fold in range(s_fold):
     if task == "regression":
         # Predictions
         plt.plot(pred, color="steelblue", linewidth=lw, label="train-pred")
-        plt.plot(val_pred, color="xkcd:coral", linewidth=lw, label="val-pred")
+        plt.plot(val_pred, color="aquamarine", linewidth=lw, label="val-pred")
         # Ratings
         plt.plot(whole_rating, ls="dotted", color="black", label="rating")
         # Area between
@@ -283,7 +283,7 @@ for fold in range(s_fold):
                          color="steelblue",
                          alpha='0.2')
         plt.fill_between(x=np.arange(0, pred_matrix.shape[1], 1), y1=whole_rating, y2=val_pred,
-                         color="xkcd:coral",
+                         color="aquamarine",
                          alpha='0.2')
         # Input Data
         if plt_input_data:
@@ -293,7 +293,7 @@ for fold in range(s_fold):
         plt.hlines(y=0, xmin=0, xmax=pred_matrix.shape[1], colors="darkgrey", lw=lw, alpha=.8)  # midline
         plt.hlines(y=np.nanmean(pred), xmin=0, xmax=pred_matrix.shape[1], linestyle="dashed", colors="steelblue",
                    lw=lw, alpha=.8)  # mean prediction
-        plt.hlines(y=np.nanmean(val_pred), xmin=0, xmax=pred_matrix.shape[1], linestyle="dashed", colors="xkcd:coral",
+        plt.hlines(y=np.nanmean(val_pred), xmin=0, xmax=pred_matrix.shape[1], linestyle="dashed", colors="aquamarine",
                    lw=lw, alpha=.8)  # mean validation prediction
         plt.hlines(y=np.nanmean(whole_rating), xmin=0, xmax=pred_matrix.shape[1], linestyle="dotted", colors="black",
                    lw=lw, alpha=.8)  # mean ratings
@@ -307,9 +307,9 @@ for fold in range(s_fold):
     else:  # == "classification"
         # Predictions
         plt.plot(pred, marker="o", markerfacecolor="None", ms=2, color="steelblue", linewidth=lw, label="train-pred")
-        plt.plot(val_pred, marker="o", markerfacecolor="None", ms=2, color="xkcd:coral", linewidth=lw, label="val-pred")
+        plt.plot(val_pred, marker="o", markerfacecolor="None", ms=2, color="aquamarine", linewidth=lw, label="val-pred")
         # Ratings
-        plt.plot(real_rating, color="darkgrey", alpha=.5)
+        plt.plot(real_rating, color="darkgrey", alpha=.5, lw=lw)
         plt.plot(only_entries_rating, color="teal", alpha=.3, label="rating")
         plt.plot(whole_rating, ls="None", marker="s", markerfacecolor="None", ms=2, color="black",
                  label="arousal: low=-1 | high=1")
@@ -399,7 +399,7 @@ for fold in range(s_fold):
     fig2.add_subplot(sub_rows, sub_col, sub_n)
 
     plt.plot(train_acc_fold, color="steelblue", linewidth=lw/2, alpha=0.6, label="training set")
-    plt.plot(where, vacc, color="xkcd:coral", linewidth=2*lw, alpha=0.9, label="validation set")
+    plt.plot(where, vacc, color="aquamarine", linewidth=2*lw, alpha=0.9, label="validation set")
     plt.hlines(y=zero_line_acc, xmin=0, xmax=train_acc_fold.shape[0], colors="red", linestyles="dashed", lw=2*lw,
                label="zeroline accuracy")
 
@@ -470,7 +470,7 @@ for fold in range(s_fold):
 
     # plot
     plt.plot(train_loss_fold, color="steelblue", linewidth=lw/2, alpha=0.6, label="training loss")
-    plt.plot(where_loss, vloss, color="xkcd:coral", linewidth=2*lw, alpha=0.9, label="validation loss")
+    plt.plot(where_loss, vloss, color="aquamarine", linewidth=2*lw, alpha=0.9, label="validation loss")
 
     plt.title(s="{}-Fold | val-acc={}".format(fold + 1,
                                                np.round(val_acc[int(np.where(np.array(s_rounds) == fold)[0])], 3)))
@@ -563,20 +563,20 @@ plt.tight_layout(pad=2)
 # Plot average train prediction
 fig4.add_subplot(4, 1, 2)
 if task == "regression":
-    plt.plot(concat_val_pred, c="xkcd:coral", linewidth=2*lw, label="concatenated val-prediction")
+    plt.plot(concat_val_pred, c="aquamarine", linewidth=2*lw, label="concatenated val-prediction")
     plt.plot(whole_rating, ls="dotted", color="black", label="rating")
-    plt.fill_between(x=np.arange(0, pred_matrix.shape[1], 1), y1=whole_rating, y2=concat_val_pred, color="xkcd:coral",
+    plt.fill_between(x=np.arange(0, pred_matrix.shape[1], 1), y1=whole_rating, y2=concat_val_pred, color="aquamarine",
                      alpha='0.2')
 
     plt.hlines(y=0, xmin=0, xmax=pred_matrix.shape[1], colors="darkgrey", lw=lw, alpha=.8)  # midline
-    plt.hlines(y=np.nanmean(concat_val_pred), xmin=0, xmax=pred_matrix.shape[1], linestyle="dashed", colors="xkcd:coral",
+    plt.hlines(y=np.nanmean(concat_val_pred), xmin=0, xmax=pred_matrix.shape[1], linestyle="dashed", colors="aquamarine",
                lw=lw, alpha=.8)  # mean concat validation prediction
     plt.hlines(y=np.nanmean(whole_rating), xmin=0, xmax=pred_matrix.shape[1], linestyle="dotted", colors="black",
                lw=lw, alpha=.8)  # mean ratings
 
 else:  # task == "classification":
 
-    plt.plot(concat_val_pred, marker="o", markerfacecolor="None", ms=2, c="xkcd:coral", linewidth=2*lw,
+    plt.plot(concat_val_pred, marker="o", markerfacecolor="None", ms=2, c="aquamarine", linewidth=2*lw,
              label="concatenated val-prediction")
     # Ratings
     plt.plot(real_rating, color="darkgrey", alpha=.5)
@@ -615,19 +615,20 @@ plt.tight_layout(pad=2)
 fig4.add_subplot(4, 1, 3)
 
 plt.plot(x_fold_mean_tacc, color="steelblue", linewidth=lw/2, alpha=0.6, label="mean training accuracy")
-plt.plot(where, x_fold_mean_vacc, color="xkcd:coral", linewidth=2*lw, alpha=0.9, label="mean validation accuracy")
+plt.plot(where, x_fold_mean_vacc, color="aquamarine", linewidth=2*lw, alpha=0.9, label="mean validation accuracy")
 if task == "regression":
     plt.hlines(y=zero_line_acc, xmin=0, xmax=train_acc_fold.shape[0], colors="red", linestyles="dashed", lw=2*lw,
                label="zeroline accuracy")
 else:  # == "classification"
-    plt.hlines(y=.5, xmin=0, xmax=train_acc_fold.shape[0], colors="red", linestyles="dashed", lw=lw)
+    plt.hlines(y=1.0, xmin=0, xmax=train_acc_fold.shape[0], colors="darkgrey", linestyles="dashed", lw=lw)
+    plt.hlines(y=0.5, xmin=0, xmax=train_acc_fold.shape[0], colors="red", linestyles="dashed", lw=lw)
 plt.xlabel("Training iterations")
 plt.ylabel("Accuracy")
 plt.title(s="Across all S-folds | mean training & validation accuracy")
 
 # adjust size, add legend
 plt.xlim(0, len(train_acc_fold))
-plt.ylim(0.0, 1.5)
+plt.ylim(0.0, 1.25)
 plt.legend(bbox_to_anchor=(0., 0.90, 1., .102), loc=1, ncol=4, mode="expand", borderaxespad=0.)
 plt.tight_layout(pad=2)
 
@@ -636,8 +637,9 @@ fig4.add_subplot(4, 1, 4)
 
 plt.plot(x_fold_mean_tloss, color="steelblue", linewidth=lw/2, alpha=0.6,
          label="mean training loss")
-plt.plot(where_loss, x_fold_mean_vloss, color="xkcd:coral", linewidth=2*lw, alpha=0.9,
+plt.plot(where_loss, x_fold_mean_vloss, color="aquamarine", linewidth=2*lw, alpha=0.9,
          label="mean validation loss")
+plt.hlines(y=0.0, xmin=0, xmax=x_fold_mean_tloss.shape[0], colors="darkgrey", linestyles="dashed", lw=lw)
 plt.xlabel("Training iterations")
 plt.ylabel("Loss")
 plt.title(s="Across all S-folds | mean training & validation loss")
