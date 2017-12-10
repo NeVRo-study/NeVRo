@@ -21,14 +21,10 @@ import subprocess
 
 from LSTMnet import LSTMnet
 
-
-# TODO non-band-passed SSD, SPOC, Heart Data, (GSR data)
-
 # TODO more components: successively adding SSD components, hence adding more non-alpha related information (non-b-pass)
-
 # TODO implement "all" comp command see e.g., load_spoc(n_comp = len(np.genfromtxt(file_name, delimiter=";"....)
 
-# TODO random_search write bash script
+# TODO fill random_search results in Random_Search_Table.csv
 
 TASK_DEFAULT = 'regression'  # predict ratings via 'regression' (continious) or 'classification' (Low vs. High arousal)
 LEARNING_RATE_DEFAULT = 1e-3  # 1e-4
@@ -130,7 +126,7 @@ def train_lstm():
     else:
         lstm_hidden_states = []
 
-    if FLAGS.fc_n_hidden and len(FLAGS.fc_n_hidden) > 0:
+    if FLAGS.fc_n_hidden and len(FLAGS.fc_n_hidden) > 0 and FLAGS.fc_n_hidden not in "0":
         n_hidden_units = FLAGS.fc_n_hidden.split(",")
         n_hidden_units = [int(hidden_unites_) for hidden_unites_ in n_hidden_units]
         n_hidden_units.append(1)  # output layer == 1 rating-prediction
@@ -776,7 +772,7 @@ if __name__ == '__main__':
     parser.add_argument('--activation_fct', type=str, default=ACTIVATION_FCT_DEFAULT,
                         help='Type of activation function from lstm to fully-connected layers [elu, relu].')
     parser.add_argument('--loss', type=str, default=LOSS_DEFAULT,
-                        help='Type of loss. Either "normal" or "Hadsell".')
+                        help='Type of loss. For now only: "normal".')
     parser.add_argument('--subject', type=int, default=SUBJECT_DEFAULT,
                         help='Which subject data to process')
     parser.add_argument('--lstm_size', type=str, default=LSTM_SIZE_DEFAULT,
