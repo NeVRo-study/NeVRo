@@ -182,7 +182,7 @@ for combi in range(n_combinations):
             sub_bashfile.write("\n"+bash_line)
 
         # Fill in Random_Search_Table.csv
-        table_name = "Random_Search_Table_{}.csv".format('BiCl' if "c" in task else "Reg")
+        table_name = "./LSTM/Random_Search_Table_{}.csv".format('BiCl' if "c" in task else "Reg")
 
         if not os.path.exists(table_name):
             rs_table = np.array(['round', 'subject', 'seed', 'task', 'shuffle', 'repet_scalar',

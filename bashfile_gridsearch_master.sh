@@ -158,9 +158,9 @@
 # # repet_scalar 200
 # python3 NeVRo.py --subject 36 --seed True --task classification --shuffle True --repet_scalar 200 --lstm_size 40,15 --path_specificities BiCl_HPS_lstm-40-15/
 # python3 NeVRo.py --subject 36 --seed True --task classification --shuffle True --repet_scalar 200 --lstm_size 40,15 --band_pass False --path_specificities BiCl_HPS_lstm-40-15_bpass-F/
-python3 NeVRo.py --subject 36 --seed True --task classification --shuffle True --repet_scalar 200 --lstm_size 40,15 --component 1,2,3,4,5 --path_specificities BiCl_HPS_lstm-40-15_comp-1-2-3-4-5/
-python3 NeVRo.py --subject 36 --seed True --task classification --shuffle True --repet_scalar 200 --lstm_size 40,15 --band_pass False --component 1,2,3,4,5,6,7 --path_specificities BiCl_HPS_lstm-40-15_comp-1-2-3-4-5-6-7_bpass-F/
-python3 NeVRo.py --subject 2 --seed True --task classification --shuffle True --repet_scalar 200 --lstm_size 40,15 --path_specificities BiCl_HPS_lstm-40-15/
-python3 NeVRo.py --subject 2 --seed True --task classification --shuffle True --repet_scalar 200 --lstm_size 40,15 --band_pass False --path_specificities BiCl_HPS_lstm-40-15_bpass-F/
-python3 NeVRo.py --subject 2 --seed True --task classification --shuffle True --repet_scalar 200 --lstm_size 40,15 --component 1,2,3,4,5 --path_specificities BiCl_HPS_lstm-40-15_comp-1-2-3-4-5/
-python3 NeVRo.py --subject 2 --seed True --task classification --shuffle True --repet_scalar 200 --lstm_size 40,15 --component 1,2,3,4,5,6,7 --band_pass False --path_specificities BiCl_HPS_lstm-40-15_comp-1-2-3-4-5-6-7_bpass-F/
+# python3 NeVRo.py --subject 36 --seed True --task classification --shuffle True --repet_scalar 200 --lstm_size 40,15 --component 1,2,3,4,5 --path_specificities BiCl_HPS_lstm-40-15_comp-1-2-3-4-5/
+# python3 NeVRo.py --subject 36 --seed True --task classification --shuffle True --repet_scalar 200 --lstm_size 40,15 --band_pass False --component 1,2,3,4,5,6,7 --path_specificities BiCl_HPS_lstm-40-15_comp-1-2-3-4-5-6-7_bpass-F/
+# python3 NeVRo.py --subject 2 --seed True --task classification --shuffle True --repet_scalar 200 --lstm_size 40,15 --path_specificities BiCl_HPS_lstm-40-15/
+# python3 NeVRo.py --subject 2 --seed True --task classification --shuffle True --repet_scalar 200 --lstm_size 40,15 --band_pass False --path_specificities BiCl_HPS_lstm-40-15_bpass-F/
+# python3 NeVRo.py --subject 2 --seed True --task classification --shuffle True --repet_scalar 200 --lstm_size 40,15 --component 1,2,3,4,5 --path_specificities BiCl_HPS_lstm-40-15_comp-1-2-3-4-5/
+# python3 NeVRo.py --subject 2 --seed True --task classification --shuffle True --repet_scalar 200 --lstm_size 40,15 --component 1,2,3,4,5,6,7 --band_pass False --path_specificities BiCl_HPS_lstm-40-15_comp-1-2-3-4-5-6-7_bpass-F/
