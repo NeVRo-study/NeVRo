@@ -24,8 +24,6 @@ from LSTMnet import LSTMnet
 # TODO more components: successively adding SSD components, hence adding more non-alpha related information (non-b-pass)
 # TODO implement "all" comp command see e.g., load_spoc(n_comp = len(np.genfromtxt(file_name, delimiter=";"....)
 
-# TODO fill random_search results in Random_Search_Table.csv
-
 TASK_DEFAULT = 'regression'  # predict ratings via 'regression' (continious) or 'classification' (Low vs. High arousal)
 LEARNING_RATE_DEFAULT = 1e-3  # 1e-4
 BATCH_SIZE_DEFAULT = 9  # or bigger, batch_size must be a multiple of 'successive batches'
@@ -627,6 +625,36 @@ def train_lstm():
 
         for i, item in enumerate(lists_export):
             file.write(label_export[i] + str(item)+"\n")
+
+    # Save Accuracies in Random_Search_Table.csv if applicable
+    table_name = "./LSTM/Random_Search_Table_{}.csv".format("BiCl" if FLAGS.task == "classification" else "Reg")
+    if os.path.exists(table_name):
+        rs_table = np.genfromtxt(table_name, delimiter=";", dtype=str)
+
+        if FLAGS.path_specificities in rs_table:
+            # Find corresponding indeces
+            path_idx = np.where(rs_table == FLAGS.path_specificities)
+            # len(path_idx[0]) > 0 and len(path_idx[1]) > 0
+            sub_idx = np.where(rs_table[:, np.where(rs_table == "subject")[1]] == str(FLAGS.subject))[0]
+            # rs_table[list(set(path_idx[0]) & set(sub_idx)), path_idx[1][0]][0]  == FLAGS.path_specificities
+            trial_row = list(set(path_idx[0]) & set(sub_idx))[0]
+            mvacc_col = np.where(rs_table == "mean_val_acc")[1][0]
+            zlacc_col = np.where(rs_table == "zeroline_acc")[1][0]
+            mcvacc_col = np.where(rs_table == "mean_class_val_acc")[1][0]
+            # Write in table
+            rs_table[trial_row, [mvacc_col, zlacc_col, mcvacc_col]] = np.array([np.round(np.mean(all_acc_val), 3),
+                                                                                np.round(zero_line_acc, 3),
+                                                                                np.round(np.nanmean(
+                                                                                    rnd_all_acc_val_binary), 3) if
+                                                                                FLAGS.task == "classification" else
+                                                                                rs_table[trial_row, mcvacc_col]])
+
+            # Save table
+            np.savetxt(fname=table_name, X=rs_table, delimiter=";", fmt="%s")
+
+        else:
+            print("There is no entry for this trial in Random_Search_Table_{}.csv".format(
+                "BiCl" if FLAGS.task == "classification" else "Reg"))
 
     # Save Prediction Matrices in File
     np.savetxt(sub_dir + "{}S{}_pred_matrix_{}_folds_{}.csv".format(time.strftime('%Y_%m_%d_'), FLAGS.subject,

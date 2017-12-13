@@ -213,3 +213,4 @@ for combi in range(n_combinations):
         # Set Counter
         combi_count = combi_count+1 if combi_count < 3 else 0
 
+print("\nBashfiles and Table completed.")
