@@ -156,7 +156,7 @@ for combi in range(n_combinations):
                     "--successive {} --successive_mode {} --rand_batch {} " \
                     "--plot {} " \
                     "--lstm_size {} --fc_n_hidden {} --learning_rate {} " \
-                    "--weight_reg {} --weight_reg_strength {:.2f} " \
+                    "--weight_reg {} --weight_reg_strength {} " \
                     "--activation_fct {} " \
                     "--filetype {} --hilbert_power {} --band_pass {}" \
                     "--component {} --hrcomp {} " \
