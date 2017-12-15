@@ -27,7 +27,6 @@ Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017
 
 import os.path
 import copy
-from scipy.signal import hilbert
 from Meta_Functions import *
 import pandas as pd
 
@@ -1059,20 +1058,6 @@ def read_data_sets(subject, component, hr_component, s_fold_idx, s_fold=10, cond
 
     if hilbert_power:
         # print("I load Hilbert transformed data (z-power)")
-
-        def calc_hilbert_z_power(array):
-            """
-            square(abs(complex number)) = power = squarred length of complex number, see: Cohen (2014, p.160-2)
-            Do on narrow-band data (alpha-filtered)
-            """
-            analytical_signal = hilbert(array)
-            amplitude_envelope = np.abs(analytical_signal)
-            power = np.square(amplitude_envelope)
-            # z-score of power contains power information and its variance, while centred around zero
-            hilbert_z_power = z_score(array=power)  # z-score
-            # could be smoothed to small degree, e.g., smooth(hilbert_z_power, 10)...
-            return hilbert_z_power
-
         # Perform Hilbert Transformation
         for comp in range(eeg_sba.shape[1]):
             eeg_sba[:, comp] = calc_hilbert_z_power(array=eeg_sba[:, comp])

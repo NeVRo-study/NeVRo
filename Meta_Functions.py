@@ -8,6 +8,7 @@ Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017
 import datetime
 from functools import wraps
 import numpy as np
+from scipy.signal import hilbert
 import sys
 import subprocess
 import platform
@@ -149,6 +150,20 @@ def downsampling(array_to_ds, target_hertz=1, given_hertz=250):
         idx += int(ds_ratio)
 
     return output_array
+
+
+def calc_hilbert_z_power(array):
+    """
+    square(abs(complex number)) = power = squarred length of complex number, see: Cohen (2014, p.160-2)
+    Do on narrow-band data (alpha-filtered)
+    """
+    analytical_signal = hilbert(array)
+    amplitude_envelope = np.abs(analytical_signal)
+    power = np.square(amplitude_envelope)
+    # z-score of power contains power information and its variance, while centred around zero
+    hilbert_z_power = z_score(array=power)  # z-score
+    # could be smoothed to small degree, e.g., smooth(hilbert_z_power, 10)...
+    return hilbert_z_power
 
 
 def create_s_fold_idx(s_folds, list_prev_indices=[]):
