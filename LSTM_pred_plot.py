@@ -16,6 +16,7 @@ else:
     import matplotlib.pyplot as plt
 
 
+# TODO fill_between for classification
 # TODO Add mean input data
 plt_input_data = False  # deault value
 
