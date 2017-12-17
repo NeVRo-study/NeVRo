@@ -87,6 +87,7 @@ for combi in range(n_combinations):
 
     # filetype
     filetype = np.random.choice(a=['SSD', 'SPOC'])
+    # filetype = 'SSD'
 
     # hilbert_power
     hilbert_power = np.random.choice(a=[True, False])
