@@ -8,6 +8,7 @@ Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017
 from Load_Data import *
 from tensorflow import gfile
 import string
+import shutil
 if platform.system() != 'Darwin':
     import matplotlib
     matplotlib.use('Agg')
@@ -15,10 +16,16 @@ if platform.system() != 'Darwin':
 else:
     import matplotlib.pyplot as plt
 
-# TODO delete log_folder from server after plotting
 # TODO fill_between for classification
+
 # TODO Add mean input data
 plt_input_data = False  # deault value
+
+# TODO delete log_folder from server after plotting
+if platform.system() != 'Darwin':
+    delete_log_folder = True  # deault value for server
+else:
+    delete_log_folder = False
 
 
 # Save plot
@@ -691,3 +698,7 @@ if plots:
 
     # open folder
     open_folder(wdic_plot)
+
+    # delete log folder and subfolders
+    if delete_log_folder:
+        shutil.rmtree(wdic_lists_sub)
