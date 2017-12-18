@@ -15,7 +15,7 @@ if platform.system() != 'Darwin':
 else:
     import matplotlib.pyplot as plt
 
-
+# TODO delete log_folder from server after plotting
 # TODO fill_between for classification
 # TODO Add mean input data
 plt_input_data = False  # deault value
