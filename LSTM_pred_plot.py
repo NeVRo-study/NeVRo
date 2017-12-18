@@ -68,10 +68,12 @@ assert path_specificity == "" or path_specificity[-1] == "/", "path_specificity 
 wdic = "./LSTM"
 wdic_plot = "../../Results/Plots/LSTM/"
 wdic_lists = wdic + "/logs"
+wdic_checkpoint = wdic + "/checkpoints"
 lw = 0.5  # linewidth
 
 wdic_sub = wdic + "/S{}/{}".format(str(subject).zfill(2), path_specificity)
 wdic_lists_sub = wdic_lists + "/S{}/{}".format(str(subject).zfill(2), path_specificity)
+wdic_checkpoint_sub = wdic_checkpoint + "/S{}/{}".format(str(subject).zfill(2), path_specificity)
 
 # Find correct files (csv-tables)
 shuff_filename = "None"
@@ -699,6 +701,7 @@ if plots:
     # open folder
     open_folder(wdic_plot)
 
-    # delete log folder and subfolders
+    # delete log + checkpoint folders and subfolders
     if delete_log_folder:
         shutil.rmtree(wdic_lists_sub)
+        shutil.rmtree(wdic_checkpoint_sub)
