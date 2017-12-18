@@ -16,8 +16,6 @@ if platform.system() != 'Darwin':
 else:
     import matplotlib.pyplot as plt
 
-# TODO fill_between for classification
-
 # TODO Add mean input data
 plt_input_data = False  # deault value
 
@@ -321,7 +319,15 @@ for fold in range(s_fold):
         # Ratings
         plt.plot(real_rating, color="darkgrey", alpha=.5, lw=lw)
         plt.plot(only_entries_rating, color="teal", alpha=.3, label="rating")
-        plt.plot(whole_rating, ls="None", marker="s", markerfacecolor="None", ms=2, color="black",
+
+        whole_rating_shift = copy.copy(whole_rating)
+        for idx, ele in enumerate(whole_rating):
+            if ele == 1.:
+                whole_rating_shift[idx] = ele + .1
+            elif ele == -1.:
+                whole_rating_shift[idx] = ele - .1
+
+        plt.plot(whole_rating_shift, ls="None", marker="s", markerfacecolor="None", ms=2, color="black",
                  label="arousal: low=-1 | high=1")
         # midline and tertile borders
         plt.hlines(y=0, xmin=0, xmax=pred_matrix.shape[1], colors="darkgrey", lw=lw, alpha=.8)
@@ -332,16 +338,44 @@ for fold in range(s_fold):
         # Correct classified
         corr_class_train = np.sign(pred * rating)
         corr_class_val = np.sign(val_pred * val_rating)
+
+        plt.fill_between(x=np.arange(0, corr_class_train.shape[0], 1), y1=pred, y2=real_rating,
+                         where=corr_class_train == 1,
+                         color="green",
+                         alpha='0.2')
+
+        plt.fill_between(x=np.arange(0, corr_class_train.shape[0], 1), y1=pred, y2=real_rating,
+                         where=corr_class_train == -1,
+                         color="red",
+                         alpha='0.2')
+
+        plt.fill_between(x=np.arange(0, corr_class_val.shape[0], 1), y1=val_pred, y2=real_rating,
+                         where=corr_class_val == 1,
+                         color="lime",
+                         alpha='0.2')
+
+        plt.fill_between(x=np.arange(0, corr_class_val.shape[0], 1), y1=val_pred, y2=real_rating,
+                         where=corr_class_val == -1,
+                         color="orangered",
+                         alpha='0.2')
+
         for i in range(corr_class_train.shape[0]):
             corr_col_train = "green" if corr_class_train[i] == 1 else "red"
             corr_col_val = "lime" if corr_class_val[i] == 1 else "orangered"
-            plt.vlines(i, ymin=whole_rating[i], ymax=pred[i], colors=corr_col_train, alpha=.5, lw=lw/1.5)
+            # wr = whole_rating[i]
+            wr = whole_rating_shift[i]
+
+            # plt.vlines(i, ymin=wr, ymax=pred[i], colors=corr_col_train, alpha=.5, lw=lw/1.5)
+            # plt.vlines(i, ymin=wr, ymax=real_rating[i], colors=corr_col_train, alpha=.5, lw=lw/1.5)
             if not np.isnan(pred[i]):
                 # set a point at the end of line
-                plt.plot(i, whole_rating[i], marker="o", color=corr_col_train, alpha=.5, ms=1)
-            plt.vlines(i, ymin=whole_rating[i], ymax=val_pred[i], colors=corr_col_val, alpha=.5, lw=lw/1.5)
+                plt.plot(i, np.sign(wr)*(np.abs(wr)+.01) if corr_class_train[i] == 1 else wr,
+                         marker="o", color=corr_col_train, alpha=.5, ms=1)
+            # plt.vlines(i, ymin=wr, ymax=val_pred[i], colors=corr_col_val, alpha=.5, lw=lw/1.5)
+            # plt.vlines(i, ymin=wr, ymax=real_rating[i], colors=corr_col_val, alpha=.5, lw=lw/1.5)
             if not np.isnan(val_pred[i]):
-                plt.plot(i, whole_rating[i], marker="o", color=corr_col_val, alpha=.5, ms=1)
+                plt.plot(i, np.sign(wr) * (np.abs(wr) + .01) if corr_class_val[i] == 1 else wr,
+                         marker="o", color=corr_col_val, alpha=.5, ms=1)
         corr_class_val = np.delete(corr_class_val, np.where(np.isnan(corr_class_val)))
         if len(corr_class_val) > 0:
             fold_acc = np.round(sum(corr_class_val[corr_class_val == 1])/len(corr_class_val), 3)
@@ -542,7 +576,7 @@ else:  # if task == "classification":
     # Ratings
     plt.plot(real_rating, color="darkgrey", alpha=.5)
     plt.plot(only_entries_rating, color="teal", alpha=.3, label="ground-truth rating")
-    plt.plot(whole_rating, ls="None", marker="s", markerfacecolor="None", ms=3, color="black",
+    plt.plot(whole_rating_shift, ls="None", marker="s", markerfacecolor="None", ms=3, color="black",
              label="arousal classes: low=-1 | high=1")
     # midline and tertile borders
     plt.hlines(y=0, xmin=0, xmax=pred_matrix.shape[1], colors="darkgrey", lw=lw, alpha=.8)
@@ -552,12 +586,27 @@ else:  # if task == "classification":
                alpha=.8)
     # Correct classified
     correct_class_train = np.sign(average_train_pred * whole_rating)
+
+    plt.fill_between(x=np.arange(0, correct_class_train.shape[0], 1), y1=average_train_pred, y2=real_rating,
+                     where=correct_class_train == 1,
+                     color="green",
+                     alpha='0.2')
+
+    plt.fill_between(x=np.arange(0, correct_class_train.shape[0], 1), y1=average_train_pred, y2=real_rating,
+                     where=correct_class_train == -1,
+                     color="red",
+                     alpha='0.2')
+
     for i in range(correct_class_train.shape[0]):
         corr_col = "green" if correct_class_train[i] == 1 else "red"
-        plt.vlines(i, ymin=whole_rating[i], ymax=average_train_pred[i], colors=corr_col, alpha=.5, lw=lw/1.5)
+        # wr = whole_rating[i]
+        wr = whole_rating_shift[i]
+        # plt.vlines(i, ymin=wr, ymax=average_train_pred[i], colors=corr_col, alpha=.5, lw=lw/1.5)
         if not np.isnan(average_train_pred[i]):
             # set a point at the end of line
-            plt.plot(i, whole_rating[i], marker="o", color=corr_col, alpha=.5, ms=2)
+            plt.plot(i, np.sign(wr) * (np.abs(wr) + .01) if correct_class_train[i] == 1 else wr,
+                     marker="o", color=corr_col, alpha=.5, ms=2)
+
     correct_class_train = np.delete(correct_class_train, np.where(np.isnan(correct_class_train)))
     mean_train_acc = sum(correct_class_train[correct_class_train == 1])/len(correct_class_train)
     plt.xlabel("time(s)")
@@ -591,7 +640,7 @@ else:  # task == "classification":
     # Ratings
     plt.plot(real_rating, color="darkgrey", alpha=.5)
     plt.plot(only_entries_rating, color="teal", alpha=.3, label="ground-truth rating")
-    plt.plot(whole_rating, ls="None", marker="s", markerfacecolor="None", ms=3, color="black",
+    plt.plot(whole_rating_shift, ls="None", marker="s", markerfacecolor="None", ms=3, color="black",
              label="arousal classes: low=-1 | high=1")
     # midline and tertile borders
     plt.hlines(y=0, xmin=0, xmax=pred_matrix.shape[1], colors="darkgrey", lw=lw, alpha=.8)
@@ -601,14 +650,29 @@ else:  # task == "classification":
                alpha=.8)
     # Correct classified
     correct_class = np.sign(concat_val_pred * whole_rating)
+
+    plt.fill_between(x=np.arange(0, correct_class.shape[0], 1), y1=concat_val_pred, y2=real_rating,
+                     where=correct_class == 1,
+                     color="lime",
+                     alpha='0.2')
+
+    plt.fill_between(x=np.arange(0, correct_class.shape[0], 1), y1=concat_val_pred, y2=real_rating,
+                     where=correct_class == -1,
+                     color="orangered",
+                     alpha='0.2')
+
     for i in range(correct_class.shape[0]):
         corr_col = "lime" if correct_class[i] == 1 else "orangered"
-        plt.vlines(i, ymin=whole_rating[i], ymax=concat_val_pred[i], colors=corr_col, alpha=.5, lw=lw/1.5)
+        # wr = whole_rating[i]
+        wr = whole_rating_shift[i]
+        # plt.vlines(i, ymin=wr, ymax=concat_val_pred[i], colors=corr_col, alpha=.5, lw=lw/1.5)
         if not np.isnan(concat_val_pred[i]):
             # set a point at the end of line
-            plt.plot(i, whole_rating[i], marker="o", color=corr_col, alpha=.5, ms=2)
-        # plt.vlines(i, ymin=concat_val_pred[i], ymax=whole_rating[i], colors=corr_col, alpha=.5, lw=lw)
-        # print(whole_rating[i], concat_val_pred[i])
+            plt.plot(i, np.sign(wr) * (np.abs(wr) + .01) if correct_class[i] == 1 else wr,
+                     marker="o", color=corr_col, alpha=.5, ms=2)
+
+        # plt.vlines(i, ymin=concat_val_pred[i], ymax=wr, colors=corr_col, alpha=.5, lw=lw)
+        # print(wr, concat_val_pred[i])
 
 plt.xlabel("time(s)")
 plt.title(s="Concatenated val-prediction | {}-Folds | {} | mean validation accuracy={}".format(s_fold, task,
