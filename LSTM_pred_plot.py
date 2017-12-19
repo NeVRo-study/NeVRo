@@ -230,8 +230,8 @@ else:
 
 # Load Neural/HR Data
 if plt_input_data:
-    data = get_nevro_data(subject=subject, component=components, hr_component=hr_comp, s_fold_idx=s_fold-1, s_fold=s_fold,
-                          filetype=file_type, band_pass=bpass, hilbert_power=hilb, task=task)
+    data = get_nevro_data(subject=subject, component=components, hr_component=hr_comp, s_fold_idx=s_fold-1,
+                          s_fold=s_fold, filetype=file_type, band_pass=bpass, hilbert_power=hilb, task=task)
 
     eeg_data = np.concatenate((data["train"].eeg, data["validation"].eeg))
     assert eeg_data.shape[0] == pred_matrix.shape[1], "Shapes differ!"
@@ -390,7 +390,7 @@ for fold in range(s_fold):
 
     # adjust size, add legend
     plt.xlim(0, len(pred))
-    plt.ylim(-1.1, 2.1)
+    plt.ylim(-1.15, 2.1)
 
 plt.xlabel("time(s)")
 plt.tight_layout(pad=2)
@@ -517,7 +517,7 @@ for fold in range(s_fold):
     plt.plot(where_loss, vloss, color="aquamarine", linewidth=2*lw, alpha=0.9, label="validation loss")
 
     plt.title(s="{}-Fold | val-acc={}".format(fold + 1,
-                                               np.round(val_acc[int(np.where(np.array(s_rounds) == fold)[0])], 3)))
+                                              np.round(val_acc[int(np.where(np.array(s_rounds) == fold)[0])], 3)))
 
     # adjust size, add legend
     plt.xlim(0, len(train_loss_fold))
@@ -565,10 +565,10 @@ if task == "regression":
     plt.title(s="Average train prediction | {}-Folds".format(s_fold))
 
     plt.hlines(y=0, xmin=0, xmax=pred_matrix.shape[1], colors="darkgrey", lw=lw, alpha=.8)  # midline
-    plt.hlines(y=np.nanmean(average_train_pred), xmin=0, xmax=pred_matrix.shape[1], linestyle="dashed", colors="steelblue",
-               lw=lw, alpha=.8)  # mean mean train prediction
-    plt.hlines(y=np.nanmean(whole_rating), xmin=0, xmax=pred_matrix.shape[1], linestyle="dotted", colors="black",
-               lw=lw, alpha=.8)  # mean ratings
+    plt.hlines(y=np.nanmean(average_train_pred), xmin=0, xmax=pred_matrix.shape[1], linestyle="dashed",
+               colors="steelblue", lw=lw, alpha=.8)  # mean mean train prediction
+    plt.hlines(y=np.nanmean(whole_rating), xmin=0, xmax=pred_matrix.shape[1], linestyle="dotted",
+               colors="black", lw=lw, alpha=.8)  # mean ratings
 else:  # if task == "classification":
     # Predictions
     plt.plot(average_train_pred, color="steelblue", marker="o", markerfacecolor="None", ms=2, linewidth=2*lw,
@@ -628,10 +628,10 @@ if task == "regression":
                      alpha='0.2')
 
     plt.hlines(y=0, xmin=0, xmax=pred_matrix.shape[1], colors="darkgrey", lw=lw, alpha=.8)  # midline
-    plt.hlines(y=np.nanmean(concat_val_pred), xmin=0, xmax=pred_matrix.shape[1], linestyle="dashed", colors="aquamarine",
-               lw=lw, alpha=.8)  # mean concat validation prediction
-    plt.hlines(y=np.nanmean(whole_rating), xmin=0, xmax=pred_matrix.shape[1], linestyle="dotted", colors="black",
-               lw=lw, alpha=.8)  # mean ratings
+    plt.hlines(y=np.nanmean(concat_val_pred), xmin=0, xmax=pred_matrix.shape[1], linestyle="dashed",
+               colors="aquamarine", lw=lw, alpha=.8)  # mean concat validation prediction
+    plt.hlines(y=np.nanmean(whole_rating), xmin=0, xmax=pred_matrix.shape[1], linestyle="dotted",
+               colors="black", lw=lw, alpha=.8)  # mean ratings
 
 else:  # task == "classification":
 
