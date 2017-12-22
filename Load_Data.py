@@ -55,6 +55,7 @@ wdic_x_corr = "../../Results/x_corr/"
 # initialize variables
 # subjects = [36]  # [36, 37]
 # subjects = range(1, 45+1)
+# dropouts = [1,12,32,33,38,40,45]
 
 # roller_coasters = np.array(['Space_NoMov', 'Space_Mov', 'Ande_Mov', 'Ande_NoMov'])
 roller_coasters = np.array(['Space_NoMov', "Break_NoMov", 'Ande_NoMov']) if True \

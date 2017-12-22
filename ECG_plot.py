@@ -16,7 +16,6 @@ import copy
 
 
 class ECGplot:
-
     def __init__(self, n_sub=45, dropouts=[1, 12, 32, 35, 40, 42, 45], subject_selection=[], smooth_w_size=3,
                  trimmed=True):
         """
