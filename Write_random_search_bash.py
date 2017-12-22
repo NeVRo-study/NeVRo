@@ -13,7 +13,8 @@ import os.path
 n_combinations = int(input("How many combinations to test (given value will be multpied with n_subjects)): "))
 assert n_combinations % 4 == 0, "Number of combinations must be a multiple of 4"
 # subjects = [2, 36]
-subjects = [22, 44]
+# subjects = [22, 44]
+subjects = [28, 5, 6, 14, 17, 9]
 seed = True
 tasks = ["regression", "classification"]
 task_request = input("For which task is the random search bash? ['r' for'regression', 'c' for 'classification']: ")
@@ -75,8 +76,8 @@ for combi in range(n_combinations):
                     break
 
     # learning_rate
-    learning_rate = np.random.choice(a=['1e-1', '1e-2', '1e-3', '5e-4'])
-    # learning_rate = np.random.choice(a=['1e-2', '1e-3', '5e-4'])
+    # learning_rate = np.random.choice(a=['1e-1', '1e-2', '1e-3', '5e-4'])
+    learning_rate = np.random.choice(a=['1e-2', '1e-3', '5e-4'])
 
     # weight_reg
     weight_reg = np.random.choice(a=['l1', 'l2'])
@@ -88,8 +89,8 @@ for combi in range(n_combinations):
     activation_fct = np.random.choice(a=['elu', 'relu'])
 
     # filetype
-    filetype = np.random.choice(a=['SSD', 'SPOC'])
-    # filetype = 'SSD'
+    # filetype = np.random.choice(a=['SSD', 'SPOC'])
+    filetype = 'SSD'
 
     # hilbert_power
     hilbert_power = np.random.choice(a=[True, False])
