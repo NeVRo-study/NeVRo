@@ -17,13 +17,14 @@ else:
     import matplotlib.pyplot as plt
 
 # TODO Add mean input data
-plt_input_data = False  # deault value
+plt_input_data = False  # default value
 
 # TODO delete log_folder from server after plotting
 if platform.system() != 'Darwin':
-    delete_log_folder = True  # deault value for server
+    delete_log_folder = True  # default value for server
 else:
-    delete_log_folder = False
+    delete_log_folder = True  # swith on over night
+    # delete_log_folder = False
 
 
 # Save plot

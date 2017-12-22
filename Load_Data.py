@@ -396,7 +396,7 @@ def best_component(subject, best=True):
     """
     Choose the best SSD-alpha-component, w.r.t. x-corr with ratings, from list for given subject.
     :param subject: subject number
-    :param best: if false, take the worst
+    :param best: if false, take random
     :return: best component number
     """
 
@@ -412,10 +412,10 @@ def best_component(subject, best=True):
         # x_corr_table.columns = ["components"]  # renamce columns
         component = x_corr_table.loc["S{}".format(str(subject).zfill(2))].values[0]
 
-    else:  # TODO choose the worst
+    else:
         component = best_comp = x_corr_table.loc["S{}".format(str(subject).zfill(2))].values[0]  # choose first for now
 
-        # choose another component that the best
+        # choose another component that is not the best
         while component == best_comp:
             component = np.random.randint(low=1, high=5+1)
 
