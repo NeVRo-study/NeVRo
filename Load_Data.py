@@ -95,6 +95,44 @@ def update_coaster_lengths(subjects, empty_t_array, sba=True):
 # t_roller_coasters = np.array([148, 30, 92])   # SBA
 
 
+def get_filename(subject, filetype, band_pass, cond="NoMov", sba=True):
+    """
+    Receive the filename for specific setup.
+    :param subject: subject number
+    :param filetype: Either 'SSD' or 'SPOC'
+    :param band_pass: Data either band-pass filtered or not. 'SPOC' always band-pass filtered
+    :param cond: 'NoMov' [Default] or 'Mov'
+    :param sba: SBA data
+    :return: filename
+    """
+
+    assert cond in ["NoMov", "Mov"], "cond must be either 'NoMov' or 'Mov'"
+
+    assert filetype.upper() in ["SSD", "SPOC"], "filetype must be either 'SSD' or 'SPOC'"
+
+    if sba:
+        if filetype.upper() == "SSD":
+            if not band_pass:
+                file_name = wdic_SBA_Comp_non_band_pass + cond + "/NVR_S{}_SBA_{}_SSD_Components_SBA_CNT.txt"\
+                    .format(str(subject).zfill(2), cond)
+            else:
+                file_name = wdic_SBA_Comp + cond + "/NVR_S{}_SBA_{}_SSD_Components_SBA_CNT.txt".format(
+                    str(subject).zfill(2), cond)
+
+        else:  # filetype.upper() == "SPOC":
+            if band_pass:
+                file_name = wdic_SBA_SPOC_Comp + cond + "/NVR_S{}_SBA_{}_PREP_SPOC_Components.txt".format(
+                    str(subject).zfill(2), cond)
+            else:
+                raise ValueError("There are no non-band_passed SPOC files here (yet)")
+
+
+    else:
+        raise FileExistsError("Non-SBA data not yet implemented.")
+
+    return file_name
+
+
 # Load file
 def load_ssd_files(subjects, samp_freq=250., sba=True):
     """

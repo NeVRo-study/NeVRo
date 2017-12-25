@@ -22,7 +22,6 @@ import subprocess
 from LSTMnet import LSTMnet
 
 # TODO more components: successively adding SSD components, hence adding more non-alpha related information (non-b-pass)
-# TODO implement "all" comp command see e.g., load_spoc(n_comp = len(np.genfromtxt(file_name, delimiter=";"....)
 # TODO subjects 1:45, dropouts = [1, 12, 32, 33, 38, 40, 45]
 
 TASK_DEFAULT = 'regression'  # predict ratings via 'regression' (continious) or 'classification' (Low vs. High arousal)
@@ -40,7 +39,7 @@ LOSS_DEFAULT = "normal"  # is not used yet
 LSTM_SIZE_DEFAULT = '100'  # number of hidden units per LSTM layer, e.g., '10,5' would create second lstm_layer
 FC_NUM_HIDDEN_UNITS = None  # if len(n_hidden_units)>0, create len(n_hidden_units) layers
 FILE_TYPE_DEFAULT = "SSD"  # Either 'SSD' or 'SPOC'
-COMPONENT_DEFAULT = "best"  # 'best', 'noise', 'random' or list of 1 or more components (1-5), e.g. '1,3,5' or '4'
+COMPONENT_DEFAULT = "best"  # 'best', 'noise', 'random', 'all' or list of 1 or more comps (1-5), e.g. '1,3,5' or '4'
 # HR_COMPONENT_DEFAULT = False
 SUBJECT_DEFAULT = 36
 
@@ -155,7 +154,8 @@ def train_lstm():
         best_comp = 1
 
     if not FLAGS.component.split(",")[0].isnumeric():
-        assert FLAGS.component in ["best", "noise", "random"], "Component must be either 'best', 'noise', 'random'"
+        assert FLAGS.component in ["best", "noise", "random", "all"], \
+            "Component must be either 'best', 'noise', 'random', or 'all'"
         if FLAGS.component == "best":
             input_component = best_comp
         elif FLAGS.component == "noise":
@@ -165,6 +165,15 @@ def train_lstm():
                 input_component = np.random.randint(1, 5 + 1)  # ! If 'SPOC' some subjects might have less than 5 comps!
                 if input_component != best_comp:
                     break
+        elif FLAGS.component == "all":
+            cfname = get_filename(subject=FLAGS.subject, filetype=FLAGS.filetype, band_pass=FLAGS.band_pass,
+                                  cond="NoMov", sba=True)
+            if os.path.isfile(cfname):
+                n_comp = len(np.genfromtxt(cfname, delimiter=";", dtype="str")[0].split("\t")[:-1])  # last=' '
+                input_component = list(range(1, n_comp + 1))
+            else:
+                raise FileNotFoundError(cfname)
+
     else:  # given components are in form of list
         assert np.all([comp.isnumeric() for comp in FLAGS.component.split(",")]), "All given components must be numeric"
         input_component = [int(comp) for comp in FLAGS.component.split(",")]
@@ -823,7 +832,7 @@ if __name__ == '__main__':
     parser.add_argument('--plot', type=bool, default=True,
                         help="Whether to plot results and save them.")
     parser.add_argument('--component', type=str, default=COMPONENT_DEFAULT,
-                        help="Which component: 'best', 'noise' or 'random', or comma separated list, e.g., 1,3,5")
+                        help="Which component: 'best', 'noise', 'random', 'all', or comma separated list, e.g., 1,3,5")
     parser.add_argument('--hrcomp', type=bool, default=False,
                         help="Whether to attach the hear rate (HR) vector as component to neural components")
     parser.add_argument('--testmodel', type=bool, default=False,
