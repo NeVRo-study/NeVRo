@@ -774,7 +774,8 @@ def main(_):
 
     if FLAGS.plot:
         # ["python3", "LSTM_pred_plot.py", Save_plots='True', Path specificities]
-        subprocess.Popen(["python3", "LSTM_pred_plot.py", 'True', str(FLAGS.subject), FLAGS.path_specificities])
+        subprocess.Popen(["python3", "LSTM_pred_plot.py", 'True', str(FLAGS.subject), FLAGS.path_specificities,
+                          str(FLAGS.dellog)])
 
 
 if __name__ == '__main__':
@@ -831,6 +832,8 @@ if __name__ == '__main__':
                         help="Comma separated list of number of hidden units in each fully connected (fc) layer")
     parser.add_argument('--plot', type=bool, default=True,
                         help="Whether to plot results and save them.")
+    parser.add_argument('--dellog', type=bool, default=True,  # TODO rather False
+                        help="Whether to delete log folders after plotting.")
     parser.add_argument('--component', type=str, default=COMPONENT_DEFAULT,
                         help="Which component: 'best', 'noise', 'random', 'all', or comma separated list, e.g., 1,3,5")
     parser.add_argument('--hrcomp', type=bool, default=False,

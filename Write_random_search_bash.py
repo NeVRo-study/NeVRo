@@ -28,6 +28,7 @@ successive = 1 if task == "classification" else 3
 successive_mode = 1
 rand_batch = True
 plot = True
+del_log_folders = True
 
 # Create bashfile if not there already:
 bash_file_name = "bashfile_randomsearch_{}.sh".format('BiCl' if "c" in task else "Reg")
@@ -158,7 +159,7 @@ for combi in range(n_combinations):
                     "--subject {} --seed {} --task {} --shuffle {} " \
                     "--repet_scalar {} --s_fold {} --batch_size {} " \
                     "--successive {} --successive_mode {} --rand_batch {} " \
-                    "--plot {} " \
+                    "--plot {} --dellog {}" \
                     "--lstm_size {} --fc_n_hidden {} --learning_rate {} " \
                     "--weight_reg {} --weight_reg_strength {} " \
                     "--activation_fct {} " \
@@ -167,7 +168,7 @@ for combi in range(n_combinations):
                     "--path_specificities {}".format(subject, seed, task, shuffle,
                                                      repet_scalar, s_fold, batch_size,
                                                      successive, successive_mode, rand_batch,
-                                                     plot,
+                                                     plot, del_log_folders,
                                                      lstm_size, fc_n_hidden, learning_rate,
                                                      weight_reg, weight_reg_strength,
                                                      activation_fct,
@@ -187,6 +188,8 @@ for combi in range(n_combinations):
 
         # Fill in Random_Search_Table.csv
         table_name = "./LSTM/Random_Search_Table_{}.csv".format('BiCl' if "c" in task else "Reg")
+
+        # TODO write del_log_folders in table
 
         if not os.path.exists(table_name):
             rs_table = np.array(['round', 'subject', 'seed', 'task', 'shuffle', 'repet_scalar',

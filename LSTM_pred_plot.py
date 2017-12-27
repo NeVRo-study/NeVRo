@@ -19,18 +19,16 @@ else:
 # TODO Add mean input data
 plt_input_data = False  # default value
 
-# TODO delete log_folder from server after plotting
-if platform.system() != 'Darwin':
-    delete_log_folder = True  # default value for server
-else:
-    delete_log_folder = True  # swith on over night
-    # delete_log_folder = False
-
 
 # Save plot
 @true_false_request
 def save_request():
-    print("Do you want to save the plots")
+    print("Do you want to save the plots?")
+
+
+@true_false_request
+def logfolder_delete_request():
+    print("Do you want to delete the log folders after plotting (+saving)?")
 
 
 try:
@@ -63,6 +61,25 @@ else:
     path_specificity = input("Provide specific subfolder (if any), in form 'subfolder/': ")
 
 assert path_specificity == "" or path_specificity[-1] == "/", "path_specificity must be either empty or end with '/'"
+
+
+# Ask whether to delete log (large files) and checkpoint folders after plotting and saving plots:
+# if platform.system() != 'Darwin':
+if plots:
+    if script_external_exe:
+        try:
+            delete_log_folder = sys.argv[4]
+            delete_log_folder = True if "True" in delete_log_folder else False
+        except IndexError:
+            delete_log_folder = True  # rather False to save logs if not clear
+    else:
+        delete_log_folder = logfolder_delete_request()
+        # delete_log_folder = True  # switch on over night
+        # delete_log_folder = False
+
+else:  # If plots are not saved, do not delete log folders
+    delete_log_folder = False
+
 
 wdic = "./LSTM"
 wdic_plot = "../../Results/Plots/LSTM/"
