@@ -1,5 +1,5 @@
 """
-After we run the gridsearch on S36, we find now the best hyperparamter from the processed files.
+After we run grid or random search on subjects, we find now the best hyperparameters from the processed files.
 """
 
 import os
@@ -7,46 +7,80 @@ import subprocess
 import numpy as np
 import copy
 
-subjects = [2, 36]
 
-for sub in subjects:
+def open_best_params(subjects, rand_search, task, n=5):
+    """
+    Print filenames and open plots of best hyperparameters per subjects
+    :param subjects: list of subjects
+    :param rand_search: From Random Search: True or False
+    :param task: "classification" or "regression"
+    :param n: number of settings to print and plot
+    :return:
+    """
 
-    wdic = "./LSTM/S{}/already_plotted/".format(str(sub).zfill(2))
-    # wdic = "./LSTM/S02/already_plotted/"
-    wdic_plot = "../../Results/Plots/LSTM/Hyperparameter_Search/"
+    assert task in ["classification", "regression"], "Task must be either 'classification' or 'regression'."
 
-    acc_name_list = []
-    acc_list = []
+    if not isinstance(subjects, list):
+        subjects = [subjects]
 
-    for file_name in os.listdir(wdic):
-        if "txt" in file_name:
-            with open(wdic+file_name) as f:
-                for line_terminated in f:
-                    line = line_terminated.rstrip("\n")
-                    if "mean(Accuracy)" in line:
-                        accuracy = line.split(" ")[1]
-                        # print(accuracy)
+    for sub in subjects:
 
-                        # Fill in lists
-                        acc_list.append(float(accuracy))
-                        acc_name_list.append(file_name)
+        wdic = "./LSTM/S{}/already_plotted/".format(str(sub).zfill(2))
+        # wdic = "./LSTM/S02/already_plotted/"
+        if rand_search:
+            wdic_plot = "../../Results/Plots/LSTM/Hyperparameter_Search_C_RndSearch/"
+        else:
+            wdic_plot = "../../Results/Plots/LSTM/Hyperparameter_Search/"
 
-    acc_list_sorted, acc_name_list_sorted = map(list, zip(*sorted(zip(acc_list, acc_name_list))[::-1]))
+        acc_name_list = []
+        acc_list = []
 
-    print("\n")
-    for i, j in zip(acc_list_sorted[:5], acc_name_list_sorted[:5]):
-        print(i, "\t\t\t", j)
+        for file_name in os.listdir(wdic):
+            if "txt" in file_name:
+                with open(wdic+file_name) as f:
+                    # classification = False  # init
+                    for line_terminated in f:
+                        line = line_terminated.rstrip("\n")
 
-    for file_n in acc_name_list_sorted[:10]:
-        for plot_file in os.listdir(wdic_plot):
-            try:
-                identifier = file_n.split("folds_")[1].split(".")[0]
-            except IndexError:
-                identifier = file_n.split("_S{}".format(sub))[0]
+                        # if "Task" in line:
+                        #     tsk = line.split(" ")[1]
+                        #     assert tsk in ["classification", "regression"], "Task is not given."
+                        #     classification = True if tsk == "classification" else False
 
-            if identifier in plot_file and "_all_train_val_" in plot_file:
-                current_plot_file = wdic_plot+plot_file
-                subprocess.Popen(["open", current_plot_file])  # 'open' only works for Mac
+                        if task == "classification":  # and if classification
+                            if "mean(Classification_Accuracy)" in line:
+                                accuracy = line.split(" ")[1]
+                                # Fill in lists
+                                acc_list.append(float(accuracy))
+                                acc_name_list.append(file_name)
+
+                        elif task == "regression":
+                            if "mean(Accuracy)" in line:
+                                accuracy = line.split(" ")[1]
+                                # print(accuracy)
+                                # Fill in lists
+                                acc_list.append(float(accuracy))
+                                acc_name_list.append(file_name)
+
+        acc_list_sorted, acc_name_list_sorted = map(list, zip(*sorted(zip(acc_list, acc_name_list))[::-1]))
+
+        print("\n")
+        for i, j in zip(acc_list_sorted[:n], acc_name_list_sorted[:n]):
+            print(i, "\t\t\t", j)
+
+        for file_n in acc_name_list_sorted[:n]:
+            for plot_file in os.listdir(wdic_plot):
+                try:
+                    identifier = file_n.split("folds_")[1].split(".")[0]
+                except IndexError:
+                    identifier = file_n.split("_S{}".format(sub))[0]
+
+                if identifier in plot_file and "_all_train_val_" in plot_file:
+                    current_plot_file = wdic_plot+plot_file
+                    subprocess.Popen(["open", current_plot_file])  # 'open' only works for Mac
+
+# open_best_params(subjects=[2, 36], rand_search=True, task="classification", n=5)
+# open_best_params(subjects=[2, 36], rand_search=False, task="regression", n=5)
 
 
 # Merge Random Search Tables from server and local computer:
@@ -122,6 +156,65 @@ def merge_randsearch_tables(task, sort=True):
     except NameError:
         raise FileExistsError("There is no set of tables to merge.")
 
-
 # merge_randsearch_tables(task="classification", sort=True)
 # sort_table(task="classification")
+
+
+# # Save random search tables per subject, extract n best settings per subject
+def rnd_search_table_per_subject():
+    wd_tables = "./LSTM/Random Search Tables/"
+
+    for file_name in os.listdir(wd_tables):
+        if ".csv" in file_name:
+            rs_table = np.genfromtxt(wd_tables+file_name, delimiter=";", dtype=str)
+            subjects = np.unique([int(sub) for sub in rs_table[1:, 1]])  # subjects
+            header = np.reshape(rs_table[0, :], newshape=(1, rs_table.shape[1]))
+
+            for sub in subjects:
+                sub_rs_table = rs_table[np.where(rs_table[:, 1] == str(sub))[0], :]  # extract sub-table
+                sub_rs_table = np.concatenate((header, sub_rs_table), axis=0)  # attach header
+
+                # Save
+                export_filename = "S{}_R".format(str(sub).zfill(2)) + file_name.split("R")[1].split("_m")[0] + ".csv"
+                np.savetxt(fname=wd_tables+export_filename, X=sub_rs_table, delimiter=";", fmt="%s")
+# rnd_search_table_per_subject()
+
+
+def table_of_best_hp_over_all_subjects(n):
+    """
+    Takes from each subject n best hyper parameter settings and writes in new table
+    :param n: number of hyper parameter settings to be saved in new table
+    """
+    wd_tables = "./LSTM/Random Search Tables/"
+    # count subjects:
+    cntr = 0  # == number of subjects
+    for file_name in os.listdir(wd_tables):
+        if file_name[0] == "S":
+            # Load random search table:
+            rs_table = np.genfromtxt(wd_tables + file_name, delimiter=";", dtype=str)
+            if cntr == 0:
+                # init new table
+                header = np.reshape(rs_table[0, :], newshape=(1, rs_table.shape[1]))
+                bhp_table = copy.copy(header)
+            cntr += 1
+
+            bhp_table = np.concatenate((bhp_table, rs_table[1:n+1, :]))
+
+    mc = np.mean([float(x) for x in bhp_table[1:, -1]])
+    print("Average Accuracy:", mc)
+
+    # Delete redundant entries
+    bhp_table_unique = np.unique(bhp_table[1:, 2:-3], axis=0)
+    bhp_table_unique = np.concatenate((header[:, 2:-3], bhp_table_unique))
+    print("{} entries repeat each other. ".format(bhp_table.shape[0]-bhp_table_unique.shape[0]))
+
+    # Save
+    export_filename = "Best_{}_HPsets_over_{}_Subjects_mean_acc_{:.3f}_R".format(n, cntr, mc) + file_name.split("_R")[1]
+    export_filename_unique = "unique_" + export_filename
+    np.savetxt(fname=wd_tables + export_filename, X=bhp_table, delimiter=";", fmt="%s")
+    np.savetxt(fname=wd_tables + export_filename_unique, X=bhp_table_unique, delimiter=";", fmt="%s")
+
+# table_of_best_hp_over_all_subjects(n=5)
+# table_of_best_hp_over_all_subjects(n=2)
+
+
