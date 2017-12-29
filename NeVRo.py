@@ -22,7 +22,6 @@ import subprocess
 from LSTMnet import LSTMnet
 
 # TODO more components: successively adding SSD components, hence adding more non-alpha related information (non-b-pass)
-# TODO subjects 1:45, dropouts = [1, 12, 32, 33, 38, 40, 45]
 
 TASK_DEFAULT = 'regression'  # predict ratings via 'regression' (continious) or 'classification' (Low vs. High arousal)
 LEARNING_RATE_DEFAULT = 1e-3  # 1e-4

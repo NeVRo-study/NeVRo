@@ -51,7 +51,7 @@ class LSTMnet:
 
         Using variable and name scopes in order to make your graph more intelligible
         for later references in TensorBoard.
-        Define name scope for the whole model or for each operator group (e.g. fc+relu)
+        Define name scope for the whole model or for each operator group (e.g., fc+relu)
         individually to group them by name.
 
         Args:
@@ -59,8 +59,8 @@ class LSTMnet:
 
         Returns:
           infer: 2D float Tensor of size [batch_size, self.n_classes]. Returns
-                 the infer outputs (before softmax transformation) of the
-                 network. These infer(logits) can be used with loss and accuracy
+                 the infer outputs (as tanh transformation) of the
+                 network. These infer can be used with loss and accuracy
                  to evaluate the model.
         """
 
