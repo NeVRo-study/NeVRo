@@ -37,7 +37,7 @@ class LSTMnet:
         self.activation_function = activation_function
         self.lstm_size = lstm_size  # = [n_hidden], list
         self.fc_hidden_units = fc_hidden_unites  # number of hidden units in fc layers (if n-layers > 1), list
-        self.n_steps = n_steps  # samp.freq. = 250
+        self.n_steps = n_steps  # sampling freq. = 250
         self.batch_size = batch_size
         self.final_state = None
         self.lstm_output = None
@@ -115,7 +115,7 @@ class LSTMnet:
 
                 # shape = [post_lstm.get_shape()[1], post_lstm.get_shape()[0]]
 
-                # For the featuer_extractor:
+                # For the feature_extractor:
                 self.fc_post_activation.append(fc_activation)
 
             # Use tanh ([-1, 1]) for final prediction
@@ -123,7 +123,7 @@ class LSTMnet:
 
             # Write summary
             with tf.name_scope("inference"):
-                tf.summary.histogram("hist", infer)  # logits
+                tf.summary.histogram("hist", infer)
                 tf.summary.scalar(name="scalar", tensor=infer[0][0])
 
         # probabilities = []
@@ -159,7 +159,7 @@ class LSTMnet:
             x = tf.unstack(value=x, num=self.n_steps, axis=1, name="unstack")  # does not work like that
             # Now: x is list of [250 x (batch_size, 1)]
 
-            # Define LSTM cell
+            # Define LSTM cell (Zaremba et al., 2015)
             lstm_cell = tf.nn.rnn_cell.BasicLSTMCell(num_units=lstm_size)  # == tf.contrib.rnn.BasicLSTMCell(lstm_size)
             # lstm_cell.state_size
 
@@ -187,7 +187,7 @@ class LSTMnet:
             #     outputs.append(output)
             # Check: https://www.tensorflow.org/versions/r1.1/api_docs/python/tf/contrib/rnn/static_rnn
 
-            # TODO how to define output:
+            # # How to define output:
             # Different options: 1) last lstm output 2) average over all outputs
             # or 3) right-weighted average (last values have stronger impact)
             # here option 1)
@@ -214,13 +214,13 @@ class LSTMnet:
     def _create_fc_layer(self, x, layer_name, shape, last_layer):
         """
         Create fully connected layer
+        [Check out tf.layers.dense()]
         :param x: Input to layer
         :param layer_name: Name of Layer
         :param shape: Shape from input to output
         :return: Layer activation
         """
 
-        # TODO check out tf.layers.dense()
         with tf.variable_scope(layer_name):
             weights = tf.get_variable(name="weights",
                                       shape=shape,
@@ -270,8 +270,7 @@ class LSTMnet:
     @staticmethod
     def accuracy(infer, ratings):
         """
-        Calculate the prediction accuracy, i.e. the average correct predictions
-        of the network.
+        Calculate the prediction accuracy, i.e. the average correct predictions of the network.
         As in self.loss above, use tf.summary.scalar to save
         scalar summaries of accuracy for later use with the TensorBoard.
 
@@ -324,11 +323,8 @@ class LSTMnet:
         with tf.name_scope("mean_squared_error"):
 
             # TODO adaptations as in accuracy depending on given rating?
-            # diff = tf.losses.mean_squared_error(labels=ratings, predictions=infer, scope="mean_squared_error",
-            #                                     loss_collection=reg_losses)
             diff = tf.losses.mean_squared_error(labels=ratings, predictions=infer, scope="mean_squared_error")
             #                                   , loss_collection=reg_losses)
-            # print("Just produced the diff in the loss function")
 
             with tf.name_scope("total"):
                 mean_squared_error = tf.reduce_mean(diff, name='mean_squared_error_mean')
