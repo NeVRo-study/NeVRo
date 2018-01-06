@@ -125,12 +125,14 @@ def merge_randsearch_tables(task, sort=True):
     # Check function input
     assert task.lower() in ["classification", "regression"], "task must be either 'classification' or 'regression'"
 
+    tfix = "_BiCl" if task.lower() == "classification" else "_Reg"
+
     # Find tables
     wd_table = "./LSTM/"
     for file in os.listdir(wd_table):
-        if "Random_Search_Table" in file and "_server.csv" not in file:
+        if "Random_Search_Table" in file and tfix in file and "_server.csv" not in file:
             local_table_filename = wd_table + file
-        elif "Random_Search_Table" in file and "_server.csv" in file:
+        elif "Random_Search_Table" in file and tfix in file and "_server.csv" in file:
             server_table_filename = wd_table + file
 
     try:
@@ -157,27 +159,52 @@ def merge_randsearch_tables(task, sort=True):
         raise FileExistsError("There is no set of tables to merge.")
 
 # merge_randsearch_tables(task="classification", sort=True)
+# merge_randsearch_tables(task="regression", sort=True)
 # sort_table(task="classification")
 
 
 # # Save random search tables per subject, extract n best settings per subject
-def rnd_search_table_per_subject():
+def rnd_search_table_per_subject(table_name):
+
     wd_tables = "./LSTM/Random Search Tables/"
 
-    for file_name in os.listdir(wd_tables):
-        if ".csv" in file_name:
-            rs_table = np.genfromtxt(wd_tables+file_name, delimiter=";", dtype=str)
-            subjects = np.unique([int(sub) for sub in rs_table[1:, 1]])  # subjects
-            header = np.reshape(rs_table[0, :], newshape=(1, rs_table.shape[1]))
+    assert ".csv" in table_name, "Must be a csv file and filename ending with '.csv'"
+    assert os.path.exists(wd_tables+table_name), "File does not exist:\t{}".format(table_name)
 
-            for sub in subjects:
-                sub_rs_table = rs_table[np.where(rs_table[:, 1] == str(sub))[0], :]  # extract sub-table
-                sub_rs_table = np.concatenate((header, sub_rs_table), axis=0)  # attach header
+    rs_table = np.genfromtxt(wd_tables+table_name, delimiter=";", dtype=str)
+    subjects = np.unique([int(sub) for sub in rs_table[1:, 1]])  # subjects
+    header = np.reshape(rs_table[0, :], newshape=(1, rs_table.shape[1]))
 
-                # Save
-                export_filename = "S{}_R".format(str(sub).zfill(2)) + file_name.split("R")[1].split("_m")[0] + ".csv"
-                np.savetxt(fname=wd_tables+export_filename, X=sub_rs_table, delimiter=";", fmt="%s")
-# rnd_search_table_per_subject()
+    for sub in subjects:
+        sub_rs_table = rs_table[np.where(rs_table[:, 1] == str(sub))[0], :]  # extract sub-table
+        sub_rs_table = np.concatenate((header, sub_rs_table), axis=0)  # attach header
+
+        # Save
+        export_filename = "S{}_R".format(str(sub).zfill(2)) + table_name.split("R")[1].split("_m")[0] + ".csv"
+        np.savetxt(fname=wd_tables+export_filename, X=sub_rs_table, delimiter=";", fmt="%s")
+# rnd_search_table_per_subject(table_name='Random_Search_Final_Table_BiCl_merged_sorted.csv')
+
+
+def table_per_hp_setting(table_name):
+
+    wd_tables = "./LSTM/Random Search Tables/"
+
+    assert ".csv" in table_name, "Must be a csv file and filename ending with '.csv'"
+    assert os.path.exists(wd_tables+table_name), "File does not exist:\t{}".format(table_name)
+
+    rs_table = np.genfromtxt(wd_tables+table_name, delimiter=";", dtype=str)
+    # subjects = np.unique([int(sub) for sub in rs_table[1:, 1]])  # subjects
+    settings = np.unique([str(setting) for setting in rs_table[1:, 23]])  # settings
+    header = np.reshape(rs_table[0, :], newshape=(1, rs_table.shape[1]))
+
+    for setx, setting in enumerate(settings):
+        set_rs_table = rs_table[np.where(rs_table[:, 23] == str(setting))[0], :]  # extract sub-table
+        set_rs_table = np.concatenate((header, set_rs_table), axis=0)  # attach header
+
+        # Save
+        export_filename = "Set{}_R".format(str(setx+1).zfill(2)) + table_name.split("R")[1].split("_m")[0] + ".csv"
+        np.savetxt(fname=wd_tables+export_filename, X=set_rs_table, delimiter=";", fmt="%s")
+# table_per_hp_setting(table_name='Random_Search_Final_Table_BiCl_merged_sorted.csv')
 
 
 def table_of_best_hp_over_all_subjects(n):
@@ -213,8 +240,86 @@ def table_of_best_hp_over_all_subjects(n):
     export_filename_unique = "unique_" + export_filename
     np.savetxt(fname=wd_tables + export_filename, X=bhp_table, delimiter=";", fmt="%s")
     np.savetxt(fname=wd_tables + export_filename_unique, X=bhp_table_unique, delimiter=";", fmt="%s")
-
 # table_of_best_hp_over_all_subjects(n=5)
 # table_of_best_hp_over_all_subjects(n=2)
 
 
+def model_performance(over, task="classification"):
+    """
+    Calculate the overall performance over subjects or over hyperparameter sets
+    :param task: which task: either 'classification' or 'regression'
+    :param over: type=str, either 'subjects' or 'hp-sets'
+    :return: performance table
+    """
+
+    assert task == "classification", "Not implemented for 'regression' task yet"
+    assert task.lower() in ['classification', 'regression'], "task must be either 'regression' or 'classification'"
+    assert over.lower() in ['subjects', 'hp-sets'], "over must be either 'subjects' or 'hp-sets'"
+
+    wd_tables = "./LSTM/Random Search Tables/Random_Search_Final_Table/"
+    wd_tables += "per_subject/" if over == "subjects" else "per_hp_set/"
+
+    count_entries = 0
+
+    if over == "subjects":
+
+        head_idx = [1, 23, -1] if task == "classification" else [1, 23, 24, 25]
+
+        for file_name in os.listdir(wd_tables):
+            if ".csv" in file_name:
+                count_entries += 1
+                rs_table = np.genfromtxt(wd_tables + file_name, delimiter=";", dtype=str)
+                if count_entries == 1:
+                    fin_table = np.reshape(rs_table[0, head_idx], newshape=(1, len(head_idx)))  # header
+
+                perform = rs_table[1, -1]  # float()
+                setting = rs_table[1, 23]
+                sub = file_name.split("_Random")[0].split("S")[1]  # subject number (str)
+
+                fin_table = np.concatenate((fin_table, np.reshape(np.array([sub, setting, perform]), (1, 3))))
+
+        performances = [float(x) if x != "nan" else np.nan for x in fin_table[1:, -1]]
+        mean_perform = np.round(np.nanmean(performances), 3)
+        fin_table = np.concatenate((fin_table, np.reshape(np.array(["all",
+                                                                    "average_performance",
+                                                                    str(mean_perform)]), newshape=(1, 3))))
+
+        # Save
+        export_filename = "AllSub_Ran" + file_name.split("Ran")[1]
+        np.savetxt(fname=wd_tables + export_filename, X=fin_table, delimiter=";", fmt="%s")
+
+    else:  # over == "hp-sets"
+
+        head_idx = [23, -1] if task == "classification" else [23, 24, 25]
+
+        for file_name in os.listdir(wd_tables):
+            if "Set" in file_name and ".csv" in file_name:
+                count_entries += 1
+                rs_table = np.genfromtxt(wd_tables + file_name, delimiter=";", dtype=str)
+                if count_entries == 1:
+                    fin_table = np.reshape(np.concatenate((["subjects"], rs_table[0, head_idx], ["SD"])),
+                                           newshape=(1, len(head_idx)+2))  # header
+
+                performances = [float(x) if x != "nan" else np.nan for x in rs_table[1:, -1]]
+                mean_perform = np.round(np.nanmean(performances), 3)
+                std_perform = np.round(np.nanstd(performances), 3)
+                setting = rs_table[1, 23]  # for all the same
+
+                fin_table = np.concatenate((fin_table, np.reshape(np.array(["all", setting, mean_perform, std_perform]),
+                                                                  newshape=(1, len(head_idx)+2))))
+
+        # Sort w.r.t. mean_perform
+        acc_col = 2  # mean_acc column,  fin_table[:, acc_col]
+        sorted_fin_table = copy.copy(fin_table)
+        sorted_fin_table[1:, :] = sorted_fin_table[np.argsort(sorted_fin_table[1:, acc_col]) + 1]
+        if "nan" in sorted_fin_table[:, acc_col]:
+            nan_start = np.where(sorted_fin_table[:, acc_col] == "nan")[0][0]
+        else:
+            nan_start = sorted_fin_table.shape[0]
+        sorted_fin_table[1:nan_start, ] = sorted_fin_table[np.argsort(sorted_fin_table[1:nan_start, acc_col])+1, ][::-1]
+
+        # Save
+        export_filename = "AllHPsets_Ran" + file_name.split("Ran")[1]
+        np.savetxt(fname=wd_tables + export_filename, X=sorted_fin_table, delimiter=";", fmt="%s")
+# model_performance(over="subjects")
+# model_performance(over="hp-sets")
