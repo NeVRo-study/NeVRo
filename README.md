@@ -1,6 +1,6 @@
 # NeVRo
 
-Abstract
+<b>Abstract</b>
 
 A fundamental question in cognitive neuroscience concerns the relationship between physiological states and subjectively experienced mental phenomena such as emotions.  Arousal is a key feature of both subjective experience and bodily activation and prepares an agent to behaviourally respond to events of the environment. The dynamic and non-linear characteristics of arousal are not easily captured in classic laboratory designs, which often employ static and simplified stimuli.
 We used virtual reality (VR) to investigate arousal under ecologically valid conditions. 45 subjects experienced virtual roller coaster rides while their neural (EEG) and peripheral physiological (ECG) responses were recorded. Afterwards, they rated their arousal during the rides on a continuous scale while viewing a recording of their experience.
