@@ -1165,7 +1165,8 @@ ec = ECGplot(n_sub=45,
              dropouts=[1, 12, 32, 35, 40, 42, 45],
              subject_selection=[6, 11, 14, 17, 20, 27, 31, 34, 36],
              smooth_w_size=21)
-# dropouts=[1, 12, 32, 33, 35, 38, 41, 42, 45]  # more conservative
+# dropouts = [1, 12, 32, 33, 35, 38, 41, 42, 45]  # more conservative
+# dropouts = np.array([1, 12, 32, 33, 38, 40, 45])
 
 # ec.plot_hr(save_plot=False)
 # ec.plot_hr(save_plot=True)
