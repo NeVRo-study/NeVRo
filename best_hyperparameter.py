@@ -180,9 +180,10 @@ def rnd_search_table_per_subject(table_name):
         sub_rs_table = np.concatenate((header, sub_rs_table), axis=0)  # attach header
 
         # Save
-        export_filename = "S{}_R".format(str(sub).zfill(2)) + table_name.split("R")[1].split("_m")[0] + ".csv"
+        export_filename = "S{}_Ran".format(str(sub).zfill(2)) + table_name.split("Ran")[1].split("_m")[0] + ".csv"
         np.savetxt(fname=wd_tables+export_filename, X=sub_rs_table, delimiter=";", fmt="%s")
 # rnd_search_table_per_subject(table_name='Random_Search_Final_Table_BiCl_merged_sorted.csv')
+# rnd_search_table_per_subject(table_name='Random_Search_Table_Reg_merged_sorted.csv')
 
 
 def table_per_hp_setting(table_name):
@@ -207,16 +208,22 @@ def table_per_hp_setting(table_name):
 # table_per_hp_setting(table_name='Random_Search_Final_Table_BiCl_merged_sorted.csv')
 
 
-def table_of_best_hp_over_all_subjects(n):
+# first apply rnd_search_table_per_subject() then:
+def table_of_best_hp_over_all_subjects(n, task):
     """
     Takes from each subject n best hyper parameter settings and writes in new table
+    :param task: 'classification' or 'regression'
     :param n: number of hyper parameter settings to be saved in new table
     """
+    assert task.lower() in ["classification", "regression"], "task must be either 'classification' or 'regression'"
+
     wd_tables = "./LSTM/Random Search Tables/"
+
+    tsk = "BiCl" if task.lower() == "classification" else "Reg"
     # count subjects:
     cntr = 0  # == number of subjects
     for file_name in os.listdir(wd_tables):
-        if file_name[0] == "S":
+        if file_name[0] == "S" and tsk in file_name:
             # Load random search table:
             rs_table = np.genfromtxt(wd_tables + file_name, delimiter=";", dtype=str)
             if cntr == 0:
@@ -226,9 +233,17 @@ def table_of_best_hp_over_all_subjects(n):
             cntr += 1
 
             bhp_table = np.concatenate((bhp_table, rs_table[1:n+1, :]))
+            exp_filename = file_name
 
-    mc = np.mean([float(x) for x in bhp_table[1:, -1]])
-    print("Average Accuracy:", mc)
+    if tsk == "BiCl":
+        mc = np.mean([float(x) for x in bhp_table[1:, -1]])
+        print("Average Accuracy:", mc)
+
+    else:  # tsk == "Reg"
+        mean_val_acc = np.array([float(x) for x in bhp_table[1:, -3]])
+        zeroline_acc = np.array([float(x) for x in bhp_table[1:, -2]])
+        mc = np.mean(mean_val_acc - zeroline_acc)
+        print("Average Above-Zero-Accuracy:", mc)
 
     # Delete redundant entries
     bhp_table_unique = np.unique(bhp_table[1:, 2:-3], axis=0)
@@ -236,12 +251,13 @@ def table_of_best_hp_over_all_subjects(n):
     print("{} entries repeat each other. ".format(bhp_table.shape[0]-bhp_table_unique.shape[0]))
 
     # Save
-    export_filename = "Best_{}_HPsets_over_{}_Subjects_mean_acc_{:.3f}_R".format(n, cntr, mc) + file_name.split("_R")[1]
+    export_filename = "Best_{}_HPsets_over_{}_Subjects_mean_acc_{:.3f}_Ran".format(
+        n, cntr, mc) + exp_filename.split("_Ran")[1]
     export_filename_unique = "unique_" + export_filename
     np.savetxt(fname=wd_tables + export_filename, X=bhp_table, delimiter=";", fmt="%s")
     np.savetxt(fname=wd_tables + export_filename_unique, X=bhp_table_unique, delimiter=";", fmt="%s")
-# table_of_best_hp_over_all_subjects(n=5)
-# table_of_best_hp_over_all_subjects(n=2)
+# table_of_best_hp_over_all_subjects(n=2, task="classification")
+# table_of_best_hp_over_all_subjects(n=2, task="regression")
 
 
 def model_performance(over, task="classification"):

@@ -270,7 +270,7 @@ def write_bash_from_table(subs, table_path):
     new_hp_table = np.concatenate((np.concatenate((lside_table, mid_table), 1), rside_table), 1)
 
     # Save new HP-table
-    new_table_name = "./LSTM/" + "R" + table_path.split("_R")[1]
+    new_table_name = "./LSTM/" + "Ran" + table_path.split("_Ran")[-1]
     np.savetxt(fname=new_table_name, X=new_hp_table, delimiter=";", fmt="%s")
 
     # Create bashfile if not there already:
@@ -340,3 +340,5 @@ def write_bash_from_table(subs, table_path):
 
 # write_bash_from_table(subs=subjects,
 #                       table_path='unique_Best_2_HPsets_over_10_Subjects_mean_acc_0.660_Random_Search_Table_BiCl.csv')
+write_bash_from_table(subs=subjects,
+                      table_path='unique_Best_2_HPsets_over_10_Subjects_mean_acc_0.046_Random_Search_Table_Reg.csv')

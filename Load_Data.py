@@ -126,7 +126,6 @@ def get_filename(subject, filetype, band_pass, cond="NoMov", sba=True):
             else:
                 raise ValueError("There are no non-band_passed SPOC files here (yet)")
 
-
     else:
         raise FileExistsError("Non-SBA data not yet implemented.")
 
