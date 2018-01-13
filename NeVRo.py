@@ -21,7 +21,9 @@ import subprocess
 
 from LSTMnet import LSTMnet
 
-# TODO more components: successively adding SSD components, hence adding more non-alpha related information (non-b-pass)
+# TODO more components: 1) define size of input-matrix before,
+# TODO then 2) successively adding SSD components, hence adding more non-alpha related information (non-b-pass)
+# TODO Exchange zeroline with mean
 
 TASK_DEFAULT = 'regression'  # predict ratings via 'regression' (continious) or 'classification' (Low vs. High arousal)
 LEARNING_RATE_DEFAULT = 1e-3  # 1e-4

@@ -100,7 +100,14 @@ def sort_table(task, table=None):
         else:
             raise FileNotFoundError("No table given and no table found in './LSTM/'")
 
-    acc_col = -1 if task == "classification" else -3
+    # acc_col = -1 if task == "classification" else -3
+    acc_col = -1
+    if task == "regression":
+        # Sort according to difference of mean validation accuracy and zeroline accuracy
+        table[0, -1] = "meanval-zeroline_acc"
+        for idx in range(1, table.shape[0]):
+            table[idx, -1] = "{:.5}".format(str(float(table[idx, -3]) - float(table[idx, -2])))  # acc - zeroline_acc
+
     sorted_table = copy.copy(table)
     sorted_table[1:, :] = sorted_table[np.argsort(sorted_table[1:, acc_col]) + 1]
     if "nan" in sorted_table[:, acc_col]:
@@ -130,7 +137,7 @@ def merge_randsearch_tables(task, sort=True):
     # Find tables
     wd_table = "./LSTM/"
     for file in os.listdir(wd_table):
-        if "Random_Search_Table" in file and tfix in file and "_server.csv" not in file:
+        if "Random_Search_Table" in file and tfix in file and "_server.csv" not in file and ".csv" in file:
             local_table_filename = wd_table + file
         elif "Random_Search_Table" in file and tfix in file and "_server.csv" in file:
             server_table_filename = wd_table + file
@@ -157,10 +164,9 @@ def merge_randsearch_tables(task, sort=True):
 
     except NameError:
         raise FileExistsError("There is no set of tables to merge.")
-
 # merge_randsearch_tables(task="classification", sort=True)
-# merge_randsearch_tables(task="regression", sort=True)
 # sort_table(task="classification")
+# merge_randsearch_tables(task="regression", sort=True)
 
 
 # # Save random search tables per subject, extract n best settings per subject
@@ -183,6 +189,7 @@ def rnd_search_table_per_subject(table_name):
         export_filename = "S{}_Ran".format(str(sub).zfill(2)) + table_name.split("Ran")[1].split("_m")[0] + ".csv"
         np.savetxt(fname=wd_tables+export_filename, X=sub_rs_table, delimiter=";", fmt="%s")
 # rnd_search_table_per_subject(table_name='Random_Search_Final_Table_BiCl_merged_sorted.csv')
+# rnd_search_table_per_subject(table_name='Random_Search_Final_Table_Reg_merged_sorted.csv')
 # rnd_search_table_per_subject(table_name='Random_Search_Table_Reg_merged_sorted.csv')
 
 
@@ -203,9 +210,10 @@ def table_per_hp_setting(table_name):
         set_rs_table = np.concatenate((header, set_rs_table), axis=0)  # attach header
 
         # Save
-        export_filename = "Set{}_R".format(str(setx+1).zfill(2)) + table_name.split("R")[1].split("_m")[0] + ".csv"
+        export_filename = "Set{}_Ran".format(str(setx+1).zfill(2)) + table_name.split("Ran")[1].split("_m")[0] + ".csv"
         np.savetxt(fname=wd_tables+export_filename, X=set_rs_table, delimiter=";", fmt="%s")
 # table_per_hp_setting(table_name='Random_Search_Final_Table_BiCl_merged_sorted.csv')
+# table_per_hp_setting(table_name='Random_Search_Final_Table_Reg_merged_sorted.csv')
 
 
 # first apply rnd_search_table_per_subject() then:
@@ -260,7 +268,7 @@ def table_of_best_hp_over_all_subjects(n, task):
 # table_of_best_hp_over_all_subjects(n=2, task="regression")
 
 
-def model_performance(over, task="classification"):
+def model_performance(over, task):
     """
     Calculate the overall performance over subjects or over hyperparameter sets
     :param task: which task: either 'classification' or 'regression'
@@ -268,18 +276,18 @@ def model_performance(over, task="classification"):
     :return: performance table
     """
 
-    assert task == "classification", "Not implemented for 'regression' task yet"
     assert task.lower() in ['classification', 'regression'], "task must be either 'regression' or 'classification'"
     assert over.lower() in ['subjects', 'hp-sets'], "over must be either 'subjects' or 'hp-sets'"
 
-    wd_tables = "./LSTM/Random Search Tables/Random_Search_Final_Table/"
+    wd_tables = "./LSTM/Random Search Tables/Random_Search_Final_Table{}/".format(
+        "_Reg" if task == "regression" else "")
     wd_tables += "per_subject/" if over == "subjects" else "per_hp_set/"
 
     count_entries = 0
 
     if over == "subjects":
 
-        head_idx = [1, 23, -1] if task == "classification" else [1, 23, 24, 25]
+        head_idx = [1, 23, -1] if task == "classification" else [1, 23, 24, 25, 26]
 
         for file_name in os.listdir(wd_tables):
             if ".csv" in file_name:
@@ -288,17 +296,20 @@ def model_performance(over, task="classification"):
                 if count_entries == 1:
                     fin_table = np.reshape(rs_table[0, head_idx], newshape=(1, len(head_idx)))  # header
 
-                perform = rs_table[1, -1]  # float()
+                perform = [rs_table[1, -1]] if task == "classification" else list(rs_table[1, -3:])  # float()
                 setting = rs_table[1, 23]
                 sub = file_name.split("_Random")[0].split("S")[1]  # subject number (str)
 
-                fin_table = np.concatenate((fin_table, np.reshape(np.array([sub, setting, perform]), (1, 3))))
+                fin_table = np.concatenate((fin_table, np.reshape([sub, setting] + perform, (1, len(fin_table[0])))))
 
-        performances = [float(x) if x != "nan" else np.nan for x in fin_table[1:, -1]]
-        mean_perform = np.round(np.nanmean(performances), 3)
+        # performances = [float(x) if x != "nan" else np.nan for x in fin_table[1:, 2:]]
+        # mean_perform = np.round(np.nanmean(performances), 3)
+        performances = np.array(fin_table[1:, -1 if task == "classification" else -3:], dtype=float)
+        mean_perform = np.round(np.nanmean(performances, axis=0), 3)
         fin_table = np.concatenate((fin_table, np.reshape(np.array(["all",
                                                                     "average_performance",
-                                                                    str(mean_perform)]), newshape=(1, 3))))
+                                                                    ] + list(mean_perform.astype(str))),
+                                                          newshape=(1, len(fin_table[0])))))
 
         # Save
         export_filename = "AllSub_Ran" + file_name.split("Ran")[1]
@@ -306,7 +317,7 @@ def model_performance(over, task="classification"):
 
     else:  # over == "hp-sets"
 
-        head_idx = [23, -1] if task == "classification" else [23, 24, 25]
+        head_idx = [23, -1]  # here no differentiation between the tasks
 
         for file_name in os.listdir(wd_tables):
             if "Set" in file_name and ".csv" in file_name:
@@ -316,9 +327,11 @@ def model_performance(over, task="classification"):
                     fin_table = np.reshape(np.concatenate((["subjects"], rs_table[0, head_idx], ["SD"])),
                                            newshape=(1, len(head_idx)+2))  # header
 
-                performances = [float(x) if x != "nan" else np.nan for x in rs_table[1:, -1]]
-                mean_perform = np.round(np.nanmean(performances), 3)
-                std_perform = np.round(np.nanstd(performances), 3)
+                # performances = [float(x) if x != "nan" else np.nan for x in rs_table[1:, -1]]
+                # mean_perform = np.round(np.nanmean(performances), 3)
+                performances = np.array(rs_table[1:, -1], dtype=float)
+                mean_perform = np.round(np.nanmean(performances, axis=0), 3)
+                std_perform = np.round(np.nanstd(performances, axis=0), 3)
                 setting = rs_table[1, 23]  # for all the same
 
                 fin_table = np.concatenate((fin_table, np.reshape(np.array(["all", setting, mean_perform, std_perform]),
@@ -337,5 +350,7 @@ def model_performance(over, task="classification"):
         # Save
         export_filename = "AllHPsets_Ran" + file_name.split("Ran")[1]
         np.savetxt(fname=wd_tables + export_filename, X=sorted_fin_table, delimiter=";", fmt="%s")
-# model_performance(over="subjects")
-# model_performance(over="hp-sets")
+# model_performance(over="subjects", task="classification")
+# model_performance(over="hp-sets", task="classification")
+# model_performance(over="subjects", task="regression")
+# model_performance(over="hp-sets", task="regression")
