@@ -782,6 +782,148 @@ class ECGplot:
                         for item in self.SBA_split["zSBA"][cond][phase][sub_idx, :]:
                             file.write("{}\n".format(item))
 
+    def plot_sba_ratings(self, condition="NoMov", save_plot=False, class_bins=True):
+        """Plot ratings for each subject over all phases (SBA)"""
+        # self.SBA_ratings["zSBA"]["NoMov"].shape
+
+        fig_rat = plt.figure("All Subjects | Rating | SBA", figsize=(14, 8))
+        for sub in range(self.n_sub):
+            plt.plot(self.SBA_ratings["zSBA"][condition][sub], alpha=.5)
+
+        mean_rating = np.nanmean(self.SBA_ratings["zSBA"][condition], axis=0)
+        plt.plot(mean_rating, alpha=.8, c="black", lw=3, label="mean rating")
+
+        rat_min = np.nanmin(self.SBA_ratings["zSBA"][condition])
+        rat_max = np.nanmax(self.SBA_ratings["zSBA"][condition])
+        ylims = np.max(np.abs((rat_min, rat_max)))
+
+        for coaster in ["Space", "Ande"]:
+            # Include events for roller coasters:
+            if "Space" in coaster:
+                events = np.genfromtxt(self.wdic + "space_events.csv", delimiter=",", dtype="|U18")
+                # U18, 18 for max-length of str (n characters) of col_names
+            else:  # elif "Ande" in coaster:
+                events = np.genfromtxt(self.wdic + "ande_events.csv", delimiter=",", dtype="|U12")
+                # U12, 12 for max-length of str (n characters) of col_names
+
+            events = events[:, 1:]  # drop start=0
+
+            subtractor = self.trim_time / 2 if self.trimmed else 0  # Events need to be shifted, if trimmed
+            if "Ande" in coaster:
+                subtractor -=  self.trimmed_time_space + ec.trimmed_time_break
+
+            shift_counter = 0
+            for idxe, event in enumerate(events[0, :]):
+                shift_counter += 1
+                if shift_counter > 4:  # reset
+                    shift_counter = 1
+                shift = 1 if shift_counter > 2 else 0  # switch between 1 and zero
+
+                t_event = float(events[1, idxe]) - subtractor  # timepoint of event
+                up_down = -1 if idxe % 2 == 0 else 1
+
+                if up_down > 0:
+                    y_max_value = np.min(mean_rating[int(t_event)])
+                else:  # up_down < 0:
+                    y_max_value = np.max(mean_rating[int(t_event)])
+
+                plt.vlines(x=t_event, ymin=(ylims - shift) * up_down, ymax=y_max_value, linestyles="dotted",
+                           alpha=1)
+                plt.text(x=t_event, y=(ylims - shift) * up_down, s=event, size=6)
+
+        plt.legend(loc="lower center")
+
+        line = 0
+        phase_names = [x.split("_")[0] for x in self.phases[-6:-3]]
+        phase_names[-1] = phase_names[-1] + "s"
+        plt.vlines(line, ymin=int(rat_min), ymax=rat_max, linestyles="--", alpha=0.5, lw=.8)  # int(min) smaller
+        for num, lines in enumerate(self.phase_lengths_int[-3:]):
+            line += lines
+            plt.vlines(line, ymin=int(rat_min), ymax=rat_max, linestyles="--", alpha=0.5, lw=.8)
+            plt.text(x=line - lines, y=rat_max, s=phase_names[num], size=10)
+        fig_rat.suptitle("Ratings of all Subjects ({} condition, SBA)".format(condition))
+
+        fig_rat.tight_layout(pad=0.6)
+
+        if save_plot:
+            self.save_plot(filename="All_Subjects_|_Rating_|_SBA.png")
+
+        # # Classification bins
+        if class_bins:
+            fig_rat_bins = plt.figure("All Subjects | Rating 2-Class Bins | SBA", figsize=(14, 8))
+            plt.plot(mean_rating, alpha=.8, c="black", lw=3, label="mean rating")
+
+            tertile = int(len(mean_rating) / 3)
+            lower_tert_bound = np.sort(mean_rating)[tertile]  # np.percentile(a=real_rating, q=33.33)
+            upper_tert_bound = np.sort(mean_rating)[tertile * 2]  # np.percentile(a=real_rating, q=66.66)
+
+            lw = 0.5
+            plt.hlines(y=lower_tert_bound, xmin=0, xmax=len(mean_rating), linestyle="dashed", colors="darkgrey", lw=lw,
+                       alpha=.8)
+            plt.hlines(y=upper_tert_bound, xmin=0, xmax=len(mean_rating), linestyle="dashed", colors="darkgrey", lw=lw,
+                       alpha=.8)
+
+            plt.fill_between(x=np.arange(0, len(mean_rating), 1), y1=upper_tert_bound, y2=mean_rating,
+                             where=mean_rating > upper_tert_bound,
+                             color="orangered",
+                             alpha='0.4')
+
+            plt.fill_between(x=np.arange(0, len(mean_rating), 1), y1=lower_tert_bound, y2=mean_rating,
+                             where=mean_rating < lower_tert_bound,
+                             color="blue",
+                             alpha='0.4')
+
+            for coaster in ["Space", "Ande"]:
+                # Include events for roller coasters:
+                if "Space" in coaster:
+                    events = np.genfromtxt(self.wdic + "space_events.csv", delimiter=",", dtype="|U18")
+                    # U18, 18 for max-length of str (n characters) of col_names
+                else:  # elif "Ande" in coaster:
+                    events = np.genfromtxt(self.wdic + "ande_events.csv", delimiter=",", dtype="|U12")
+                    # U12, 12 for max-length of str (n characters) of col_names
+
+                events = events[:, 1:]  # drop start=0
+
+                subtractor = self.trim_time / 2 if self.trimmed else 0  # Events need to be shifted, if trimmed
+                if "Ande" in coaster:
+                    subtractor -=  self.trimmed_time_space + ec.trimmed_time_break
+
+                shift_counter = 0
+                for idxe, event in enumerate(events[0, :]):
+                    shift_counter += 1
+                    if shift_counter > 4:  # reset
+                        shift_counter = 1
+                    shift = 1 if shift_counter > 2 else 0  # switch between 1 and zero
+
+                    t_event = float(events[1, idxe]) - subtractor  # timepoint of event
+                    up_down = -1 if idxe % 2 == 0 else 1
+
+                    if up_down > 0:
+                        y_max_value = np.min(mean_rating[int(t_event)])
+                    else:  # up_down < 0:
+                        y_max_value = np.max(mean_rating[int(t_event)])
+
+                    plt.vlines(x=t_event, ymin=(ylims - shift) * up_down, ymax=y_max_value, linestyles="dotted",
+                               alpha=1)
+                    plt.text(x=t_event, y=(ylims - shift) * up_down, s=event, size=6)
+
+            plt.legend(loc="lower center")
+
+            line = 0
+            phase_names = [x.split("_")[0] for x in self.phases[-6:-3]]
+            phase_names[-1] = phase_names[-1] + "s"
+            plt.vlines(line, ymin=int(rat_min), ymax=rat_max, linestyles="--", alpha=0.5, lw=.8)  # int(min) smaller
+            for num, lines in enumerate(self.phase_lengths_int[-3:]):
+                line += lines
+                plt.vlines(line, ymin=int(rat_min), ymax=rat_max, linestyles="--", alpha=0.5, lw=.8)
+                plt.text(x=line - lines, y=rat_max, s=phase_names[num], size=10)
+            fig_rat_bins.suptitle("Ratings of all Subjects ({} condition, SBA) ".format(condition))
+
+            fig_rat_bins.tight_layout(pad=0.6)
+
+            if save_plot:
+                self.save_plot(filename="All Subjects | Rating 2-Class Bins | SBA")
+
     def plot_hr(self, save_plot=False):
         """Plot HR for each subject over all phases"""
         for sub in range(self.n_sub):
