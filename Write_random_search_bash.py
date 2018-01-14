@@ -337,8 +337,7 @@ def write_bash_from_table(subs, table_path):
         combi_count = combi_count + 1 if combi_count < 3 else 0
 
     print("\nBashfiles and Table completed.")
-
 # write_bash_from_table(subs=subjects,
 #                       table_path='unique_Best_2_HPsets_over_10_Subjects_mean_acc_0.660_Random_Search_Table_BiCl.csv')
-write_bash_from_table(subs=subjects,
-                      table_path='unique_Best_2_HPsets_over_10_Subjects_mean_acc_0.046_Random_Search_Table_Reg.csv')
+# write_bash_from_table(subs=subjects,
+#                       table_path='unique_Best_2_HPsets_over_10_Subjects_mean_acc_0.046_Random_Search_Table_Reg.csv')
