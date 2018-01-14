@@ -779,13 +779,24 @@ def main(_):
                           str(FLAGS.dellog)])
 
 
+def str2bool(v):
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
+
 if __name__ == '__main__':
     # Command line arguments
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--task', type=str, default=TASK_DEFAULT,
                         help="Either 'classification' or 'regression'")
-    parser.add_argument('--shuffle', type=bool, default=False,
+    # parser.add_argument('--shuffle', type=bool, default=False,
+    #                     help="shuffle data (to have balance low/high arousal in all valsets of classification task)")
+    parser.add_argument('--shuffle', type=str2bool, default=False,
                         help="shuffle data (to have balance low/high arousal in all valsets of classification task)")
     parser.add_argument('--learning_rate', type=float, default=LEARNING_RATE_DEFAULT,
                         help='Learning rate')
@@ -799,9 +810,9 @@ if __name__ == '__main__':
                         help='Mode of successive batching, 1 or 2.')
     parser.add_argument('--path_specificities', type=str, default=PATH_SPECIFICITIES_DEFAULT,
                         help='Specificities for the paths (depending on model-setups)')
-    parser.add_argument('--is_train', type=bool, default=True,
+    parser.add_argument('--is_train', type=str2bool, default=True,
                         help='Training or feature extraction')
-    parser.add_argument('--seed', type=bool, default=False,
+    parser.add_argument('--seed', type=str2bool, default=False,
                         help='Random seed(42) either off or on')
     parser.add_argument('--train_model', type=str, default='lstm',
                         help='Type of model. Possible option(s): lstm')
@@ -821,25 +832,25 @@ if __name__ == '__main__':
                         help='Number of folds in S-Fold-Cross Validation')
     parser.add_argument('--rand_batch', type=str, default=True,
                         help='Whether random batch (True), or cronologically drawn batches (False)')
-    parser.add_argument('--hilbert_power', type=bool, default=True,
+    parser.add_argument('--hilbert_power', type=str2bool, default=True,
                         help='Whether input is z-scored power extraction of SSD components (via Hilbert transform)')
     parser.add_argument('--filetype', type=str, default=FILE_TYPE_DEFAULT,
                         help="Either 'SSD' or 'SPOC'")
-    parser.add_argument('--band_pass', type=bool, default=True,
+    parser.add_argument('--band_pass', type=str2bool, default=True,
                         help='Whether to load (alpha-)band-passed SSD components')
-    parser.add_argument('--summaries', type=bool, default=False,
+    parser.add_argument('--summaries', type=str2bool, default=False,
                         help='Whether to write verbose summaries of tf variables')
     parser.add_argument('--fc_n_hidden', type=str, default=FC_NUM_HIDDEN_UNITS,
                         help="Comma separated list of number of hidden units in each fully connected (fc) layer")
-    parser.add_argument('--plot', type=bool, default=True,
+    parser.add_argument('--plot', type=str2bool, default=True,
                         help="Whether to plot results and save them.")
-    parser.add_argument('--dellog', type=bool, default=True,  # TODO rather False
+    parser.add_argument('--dellog', type=str2bool, default=True,  # TODO rather False
                         help="Whether to delete log folders after plotting.")
     parser.add_argument('--component', type=str, default=COMPONENT_DEFAULT,
                         help="Which component: 'best', 'noise', 'random', 'all', or comma separated list, e.g., 1,3,5")
-    parser.add_argument('--hrcomp', type=bool, default=False,
+    parser.add_argument('--hrcomp', type=str2bool, default=False,
                         help="Whether to attach the hear rate (HR) vector as component to neural components")
-    parser.add_argument('--testmodel', type=bool, default=False,
+    parser.add_argument('--testmodel', type=str2bool, default=False,
                         help="Whether to test the model's learning ability with inverse+stretch+noise ratings as input")
     # parser.add_argument('--layer_feat_extr', type=str, default="fc2",
     #                     help='Choose layer for feature extraction')
