@@ -794,8 +794,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--task', type=str, default=TASK_DEFAULT,
                         help="Either 'classification' or 'regression'")
-    # parser.add_argument('--shuffle', type=bool, default=False,
-    #                     help="shuffle data (to have balance low/high arousal in all valsets of classification task)")
+    # parser.add_argument('--shuffle', type=bool, default=False) # This does not work: 'type=bool' (!)
     parser.add_argument('--shuffle', type=str2bool, default=False,
                         help="shuffle data (to have balance low/high arousal in all valsets of classification task)")
     parser.add_argument('--learning_rate', type=float, default=LEARNING_RATE_DEFAULT,
@@ -852,8 +851,6 @@ if __name__ == '__main__':
                         help="Whether to attach the hear rate (HR) vector as component to neural components")
     parser.add_argument('--testmodel', type=str2bool, default=False,
                         help="Whether to test the model's learning ability with inverse+stretch+noise ratings as input")
-    # parser.add_argument('--layer_feat_extr', type=str, default="fc2",
-    #                     help='Choose layer for feature extraction')
 
     FLAGS, unparsed = parser.parse_known_args()
 
