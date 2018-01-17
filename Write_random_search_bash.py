@@ -176,7 +176,7 @@ def write_search_bash_files(subs):
                         "--lstm_size {} --fc_n_hidden {} --learning_rate {} " \
                         "--weight_reg {} --weight_reg_strength {} " \
                         "--activation_fct {} " \
-                        "--filetype {} --hilbert_power {} --band_pass {}" \
+                        "--filetype {} --hilbert_power {} --band_pass {} " \
                         "--component {} --hrcomp {} " \
                         "--path_specificities {}".format(subject, seed, task, shuffle,
                                                          repet_scalar, s_fold, batch_size,
@@ -300,7 +300,7 @@ def write_bash_from_table(subs, table_path):
             component, hrcomp, \
             path_specificities = line
 
-        # Write line for bashfile
+        # Write line for bashfile (Important: [Space] after each entry)
 
         bash_line = "python3 NeVRo.py " \
                     "--subject {} --seed {} --task {} --shuffle {} " \
@@ -310,7 +310,7 @@ def write_bash_from_table(subs, table_path):
                     "--lstm_size {} --fc_n_hidden {} --learning_rate {} " \
                     "--weight_reg {} --weight_reg_strength {} " \
                     "--activation_fct {} " \
-                    "--filetype {} --hilbert_power {} --band_pass {}" \
+                    "--filetype {} --hilbert_power {} --band_pass {} " \
                     "--component {} --hrcomp {} " \
                     "--path_specificities {}".format(subject, seed, task, shuffle,
                                                      repet_scalar, s_fold, batch_size,

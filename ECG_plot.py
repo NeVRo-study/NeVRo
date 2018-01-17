@@ -10,6 +10,7 @@ Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017
 """
 
 import numpy as np
+from Meta_Functions import *
 import os.path
 import matplotlib.pyplot as plt
 import copy
@@ -29,7 +30,7 @@ class ECGplot:
 
         # Change to folder which contains files
         self.wdic = "../../Data/"
-        self.wdic_plots = "../../Data/Plots/"
+        self.wdic_plots = "../../Results/Plots/"
         self.wdic_cropRR = "../../Data/ECG/TR_cropped/"
         self.wdic_SBA = "../../Data/ECG/SBA/"
         self.wdic_SA = "../../Data/ECG/SA/"
@@ -886,7 +887,7 @@ class ECGplot:
 
                 subtractor = self.trim_time / 2 if self.trimmed else 0  # Events need to be shifted, if trimmed
                 if "Ande" in coaster:
-                    subtractor -=  self.trimmed_time_space + ec.trimmed_time_break
+                    subtractor -= self.trimmed_time_space + ec.trimmed_time_break
 
                 shift_counter = 0
                 for idxe, event in enumerate(events[0, :]):
@@ -923,6 +924,76 @@ class ECGplot:
 
             if save_plot:
                 self.save_plot(filename="All Subjects | Rating 2-Class Bins | SBA")
+
+    def plot_sba_hr(self, condition="NoMov", save_plot=False):
+        """Plot heart rate vectors for each subject over all phases (SBA)"""
+        # self.SBA["zSBA"]["NoMov"].shape
+
+        fig_hr = plt.figure("All Subjects | Heart Rate | SBA", figsize=(14, 8))
+        for sub in range(self.n_sub):
+            plt.plot(interpolate_nan(arr_with_nan=self.SBA["zSBA"][condition][sub]), alpha=.5)
+            # Note: here this automatically overwrites self.SBA["zSBA"][condition][sub] with interpolated data
+            # Normalization range(-1,1), Note: does not overwrite automatically
+            # plt.plot(normalization(interpolate_nan(arr_with_nan=self.SBA["zSBA"][condition][sub]), -1, 1), alpha=.5)
+            # self.SBA["zSBA"][condition][sub] = normalization(self.SBA["zSBA"][condition][sub], -1, 1)
+
+        mean_hr = np.nanmean(self.SBA["zSBA"][condition], axis=0)  # of interpolated data
+        plt.plot(mean_hr, alpha=.8, c="black", lw=3, label="mean hr")
+
+        hr_min = np.nanmin(self.SBA["zSBA"][condition])
+        hr_max = np.nanmax(self.SBA["zSBA"][condition])
+        ylims = np.max(np.abs((hr_min, hr_max)))
+
+        for coaster in ["Space", "Andes"]:
+            # Include events for roller coasters:
+            if "Space" in coaster:
+                events = np.genfromtxt(self.wdic + "space_events.csv", delimiter=",", dtype="|U18")
+                # U18, 18 for max-length of str (n characters) of col_names
+            else:  # elif "Andes" in coaster:
+                events = np.genfromtxt(self.wdic + "ande_events.csv", delimiter=",", dtype="|U12")
+                # U12, 12 for max-length of str (n characters) of col_names
+
+            events = events[:, 1:]  # drop start=0
+
+            subtractor = self.trim_time / 2 if self.trimmed else 0  # Events need to be shifted, if trimmed
+            if "Andes" in coaster:
+                subtractor -= self.trimmed_time_space + ec.trimmed_time_break
+
+            shift_counter = 0
+            for idxe, event in enumerate(events[0, :]):
+                shift_counter += 1
+                if shift_counter > 4:  # reset
+                    shift_counter = 1
+                shift = 1 if shift_counter > 2 else 0  # switch between 1 and zero
+
+                t_event = float(events[1, idxe]) - subtractor  # timepoint of event
+                up_down = -1 if idxe % 2 == 0 else 1
+
+                if up_down > 0:
+                    y_max_value = np.min(mean_hr[int(t_event)])
+                else:  # up_down < 0:
+                    y_max_value = np.max(mean_hr[int(t_event)])
+
+                plt.vlines(x=t_event, ymin=(ylims - shift) * up_down, ymax=y_max_value, linestyles="dotted",
+                           alpha=1)
+                plt.text(x=t_event, y=(ylims - shift) * up_down, s=event, size=6)
+
+        plt.legend(loc="lower center")
+
+        line = 0
+        phase_names = [x.split("_")[0] for x in self.phases[-6:-3]]
+        phase_names[-1] = phase_names[-1] + "s"
+        plt.vlines(line, ymin=int(hr_min), ymax=hr_max, linestyles="--", alpha=0.5, lw=.8)  # int(min) smaller
+        for num, lines in enumerate(self.phase_lengths_int[-3:]):
+            line += lines
+            plt.vlines(line, ymin=int(hr_min), ymax=hr_max, linestyles="--", alpha=0.5, lw=.8)
+            plt.text(x=line - lines, y=hr_max, s=phase_names[num], size=10)
+        fig_hr.suptitle("HR of all Subjects ({} condition, SBA)".format(condition))
+
+        fig_hr.tight_layout(pad=0.6)
+
+        if save_plot:
+            self.save_plot(filename="All_Subjects_|_HR_|_SBA.png")
 
     def plot_hr(self, save_plot=False):
         """Plot HR for each subject over all phases"""
@@ -1307,6 +1378,7 @@ ec = ECGplot(n_sub=45,
              dropouts=[1, 12, 32, 35, 40, 42, 45],
              subject_selection=[6, 11, 14, 17, 20, 27, 31, 34, 36],
              smooth_w_size=21)
+
 # dropouts = [1, 12, 32, 33, 35, 38, 41, 42, 45]  # more conservative
 # dropouts = np.array([1, 12, 32, 33, 38, 40, 45])
 
