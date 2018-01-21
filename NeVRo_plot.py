@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 import copy
 
 
-class ECGplot:
+class NeVRoPlot:
     def __init__(self, n_sub=45, dropouts=[1, 12, 32, 35, 40, 42, 45], subject_selection=[], smooth_w_size=3,
                  trimmed=True):
         """
@@ -814,7 +814,7 @@ class ECGplot:
 
             subtractor = self.trim_time / 2 if self.trimmed else 0  # Events need to be shifted, if trimmed
             if "Ande" in coaster:
-                subtractor -=  self.trimmed_time_space + self.trimmed_time_break
+                subtractor -= self.trimmed_time_space + self.trimmed_time_break
 
             shift_counter = 0
             for idxe, event in enumerate(events[0, :]):
@@ -1408,7 +1408,7 @@ class ECGplot:
             # Finding the max ylims
             conditions = [key for key in self.SBA["zSBA"].keys()]  # ['NoMov', 'Mov']
             for cond in conditions:
-                if np.abs(int(np.nanmin(self.SBA["zSBA"][cond]) -1)) > ylims:
+                if np.abs(int(np.nanmin(self.SBA["zSBA"][cond]) - 1)) > ylims:
                     ylims = np.abs(int(np.nanmin(self.SBA["zSBA"][cond])) - 1)
                 if np.int(np.nanmax(self.SBA["zSBA"][cond])) + 1 > ylims:
                     ylims = np.int(np.nanmax(self.SBA["zSBA"][cond])) + 1
@@ -1513,10 +1513,10 @@ class ECGplot:
                 self.save_plot("S{}_z_Ratings_HR_x_corr".format(str(sub).zfill(2)))
 
 
-ec = ECGplot(n_sub=45,
-             dropouts=[1, 12, 32, 35, 40, 42, 45],  # [1, 12, 32, 35, 40, 42, 45, 33, 41]
-             subject_selection=[6, 11, 14, 17, 20, 27, 31, 34, 36],
-             smooth_w_size=21)
+ec = NeVRoPlot(n_sub=45,
+               dropouts=[1, 12, 32, 35, 40, 42, 45],  # [1, 12, 32, 35, 40, 42, 45, 33, 41]
+               subject_selection=[6, 11, 14, 17, 20, 27, 31, 34, 36],
+               smooth_w_size=21)
 
 # dropouts = [1, 12, 32, 33, 35, 38, 41, 42, 45]  # more conservative
 # dropouts = np.array([1, 12, 32, 33, 38, 40, 45])
@@ -1556,4 +1556,3 @@ ec = ECGplot(n_sub=45,
 # ec.save_sba()
 # ec.save_sa()
 # ec.save_sba_split()
-
