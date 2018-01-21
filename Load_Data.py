@@ -1039,6 +1039,7 @@ def read_data_sets(subject, component, hr_component, s_fold_idx, s_fold=10, cond
     if hr_component:
         ecg_data = load_ecg_files(subjects=subject, sba=sba)  # interpolation as default
 
+    # TODO Load for more than one subject
     condition = rating_data[str(subject)]["condition"]
     t_roller_coasters = update_coaster_lengths(subjects=subject, empty_t_array=np.zeros((len(roller_coasters))),
                                                sba=sba)

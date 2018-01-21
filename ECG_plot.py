@@ -9,9 +9,12 @@ Plot ECG (RR and HR) Trajectories
 Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017
 """
 
-import numpy as np
 from Meta_Functions import *
+from Load_Data import load_ssd_component, load_spoc_component, update_coaster_lengths
 import os.path
+import matplotlib
+# matplotlib.use('Agg')
+matplotlib.use('TkAgg')  # 'Qt5Agg'
 import matplotlib.pyplot as plt
 import copy
 
@@ -811,7 +814,7 @@ class ECGplot:
 
             subtractor = self.trim_time / 2 if self.trimmed else 0  # Events need to be shifted, if trimmed
             if "Ande" in coaster:
-                subtractor -=  self.trimmed_time_space + ec.trimmed_time_break
+                subtractor -=  self.trimmed_time_space + self.trimmed_time_break
 
             shift_counter = 0
             for idxe, event in enumerate(events[0, :]):
@@ -887,7 +890,7 @@ class ECGplot:
 
                 subtractor = self.trim_time / 2 if self.trimmed else 0  # Events need to be shifted, if trimmed
                 if "Ande" in coaster:
-                    subtractor -= self.trimmed_time_space + ec.trimmed_time_break
+                    subtractor -= self.trimmed_time_space + self.trimmed_time_break
 
                 shift_counter = 0
                 for idxe, event in enumerate(events[0, :]):
@@ -957,7 +960,7 @@ class ECGplot:
 
             subtractor = self.trim_time / 2 if self.trimmed else 0  # Events need to be shifted, if trimmed
             if "Andes" in coaster:
-                subtractor -= self.trimmed_time_space + ec.trimmed_time_break
+                subtractor -= self.trimmed_time_space + self.trimmed_time_break
 
             shift_counter = 0
             for idxe, event in enumerate(events[0, :]):
@@ -994,6 +997,142 @@ class ECGplot:
 
         if save_plot:
             self.save_plot(filename="All_Subjects_|_HR_|_SBA.png")
+
+    def plot_sba_eeg(self, condition="NoMov", filetype="SSD", hilbert_power=True, band_pass=False, save_plot=False):
+        """Plot heart rate vectors for each subject over all phases (SBA)"""
+        # self.SBA["zSBA"]["NoMov"].shape
+
+        fs = 250  # sampling frequency
+
+        roller_coasters = self.roller_coaster
+
+        t_roller_coasters = update_coaster_lengths(subjects=self.subjects[0],
+                                                   empty_t_array=np.zeros((len(roller_coasters))),
+                                                   sba=True)
+
+        if filetype.upper() == "SSD":
+            eeg_data = load_ssd_component(subjects=list(self.subjects), band_pass=band_pass)
+        else:  # == 'SPOC'
+            eeg_data = load_spoc_component(subjects=list(self.subjects), band_pass=band_pass)
+
+        len_runs = int(np.cumsum(t_roller_coasters)[-1])
+        for sub in self.subjects:
+            if len(eeg_data[str(sub)]["SBA"][condition]) > 0:
+
+                len_test = eeg_data[str(sub)]["SBA"][condition].shape[0] / fs - len_runs
+                if len_test > 0.0:
+                    to_delete = np.cumsum(t_roller_coasters)  # [ 148.,  178.,  270.]
+                    # 3 intersections where values can be removed (instead of cutting only at the end/start)
+                    to_delete *= fs
+                    to_cut = int(round(len_test * fs))
+                    print("EEG data of S{} trimmed by {} data points".format(str(sub).zfill(2), to_cut))
+                    del_counter = 2
+                    while len_test > 0.0:
+                        if del_counter == -1:
+                            del_counter = 2
+                        # starts to delete in the end
+                            eeg_data[str(sub)]["SBA"][condition] = np.delete(arr=eeg_data[str(sub)]["SBA"][condition],
+                                                                             obj=to_delete[del_counter], axis=0)
+                        del_counter -= 1
+                        len_test = eeg_data[str(sub)]["SBA"][condition].shape[0] / fs - len_runs
+
+                elif len_test < 0.0:
+                    raise OverflowError("Eeg_sba file is too short. Implement interpolation function.")
+
+        if hilbert_power:
+            # print("I load Hilbert transformed data (z-power)")
+            # Perform Hilbert Transformation only on first component
+            for sub in self.subjects:
+                # for comp in range(eeg_data[str(sub)]["SBA"][condition].shape[1]):
+                if len(eeg_data[str(sub)]["SBA"][condition]) > 0:
+                    for comp in [0]:
+                        eeg_data[str(sub)]["SBA"][condition][:, comp] = \
+                            calc_hilbert_z_power(array=eeg_data[str(sub)]["SBA"][condition][:, comp])
+
+        fig_eeg = plt.figure("All Subjects | EEG {} | SBA".format(filetype), figsize=(14, 8))
+
+        comp = 0  # first component
+        complete_count = 0
+        mean_eeg = []
+        for sub in self.subjects:
+            if len(eeg_data[str(sub)]["SBA"][condition]) > 0:
+                complete_count += 1
+                plt.plot(eeg_data[str(sub)]["SBA"][condition][:, comp], alpha=.5)
+
+                if complete_count == 1:
+                    mean_eeg = eeg_data[str(sub)]["SBA"][condition][:, comp]
+                    eeg_min = np.nanmin(eeg_data[str(sub)]["SBA"][condition][:, comp])
+                    eeg_max = np.nanmax(eeg_data[str(sub)]["SBA"][condition][:, comp])
+                else:
+                    mean_eeg += eeg_data[str(sub)]["SBA"][condition][:, comp]
+                    if np.nanmin(eeg_data[str(sub)]["SBA"][condition][:, comp]) < eeg_min:
+                        eeg_min = np.nanmin(eeg_data[str(sub)]["SBA"][condition][:, comp])
+                    if np.nanmax(eeg_data[str(sub)]["SBA"][condition][:, comp]) > eeg_max:
+                        eeg_max = np.nanmax(eeg_data[str(sub)]["SBA"][condition][:, comp])
+
+        mean_eeg /= complete_count
+        plt.plot(mean_eeg, alpha=.8, c="black", lw=1, label="mean {}".format(filetype))
+
+        mean_rating = np.nanmean(self.SBA_ratings["zSBA"][condition], axis=0)
+        mean_rating = np.repeat(mean_rating, fs)
+        mean_rating = normalization(mean_rating, lower_bound=eeg_min, upper_bound=eeg_max)
+        mean_rating -= np.nanmean(mean_rating)
+
+        plt.plot(mean_rating, alpha=.8, c="darkgrey", lw=1, ls="-.", label="mean rating")
+
+        ylims = np.max(np.abs((eeg_min, eeg_max)))
+
+        for coaster in ["Space", "Andes"]:
+            # Include events for roller coasters:
+            if "Space" in coaster:
+                events = np.genfromtxt(self.wdic + "space_events.csv", delimiter=",", dtype="|U18")
+                # U18, 18 for max-length of str (n characters) of col_names
+            else:  # elif "Andes" in coaster:
+                events = np.genfromtxt(self.wdic + "ande_events.csv", delimiter=",", dtype="|U12")
+                # U12, 12 for max-length of str (n characters) of col_names
+
+            events = events[:, 1:]  # drop start=0
+
+            subtractor = self.trim_time / 2 if self.trimmed else 0  # Events need to be shifted, if trimmed
+            if "Andes" in coaster:
+                subtractor -= self.trimmed_time_space + self.trimmed_time_break
+
+            shift_counter = 0
+            for idxe, event in enumerate(events[0, :]):
+                shift_counter += 1
+                if shift_counter > 4:  # reset
+                    shift_counter = 1
+                shift = 1 if shift_counter > 2 else 0  # switch between 1 and zero
+
+                t_event = float(events[1, idxe]) - subtractor  # timepoint of event
+                up_down = -1 if idxe % 2 == 0 else 1
+
+                if up_down > 0:
+                    y_max_value = np.min(mean_eeg[int(t_event)*fs])
+                else:  # up_down < 0:
+                    y_max_value = np.max(mean_eeg[int(t_event)*fs])
+
+                plt.vlines(x=t_event*fs, ymin=(ylims - shift) * up_down, ymax=y_max_value, linestyles="dotted",
+                           alpha=1)
+                plt.text(x=t_event*fs, y=(ylims - shift) * up_down, s=event, size=6)
+
+        plt.legend(loc="lower center")
+
+        line = 0
+        phase_names = [x.split("_")[0] for x in self.phases[-6:-3]]
+        phase_names[-1] = phase_names[-1] + "s"
+        plt.vlines(line, ymin=int(eeg_min), ymax=eeg_max, linestyles="--", alpha=0.5, lw=.8)  # int(min) smaller
+        for num, lines in enumerate(self.phase_lengths_int[-3:]):
+            line += lines*fs
+            plt.vlines(line, ymin=int(eeg_min), ymax=eeg_max, linestyles="--", alpha=0.5, lw=.8)
+            plt.text(x=line - lines*fs, y=eeg_max, s=phase_names[num], size=10)
+        fig_eeg.suptitle("First {} component of all Subjects ({} condition, SBA)".format(filetype, condition))
+
+        fig_eeg.tight_layout(pad=0.6)
+        fig_eeg.show()
+
+        if save_plot:
+            self.save_plot(filename="All_Subjects_|_EEG_{}_|_SBA.png".format(filetype))
 
     def plot_hr(self, save_plot=False):
         """Plot HR for each subject over all phases"""
@@ -1375,12 +1514,19 @@ class ECGplot:
 
 
 ec = ECGplot(n_sub=45,
-             dropouts=[1, 12, 32, 35, 40, 42, 45],
+             dropouts=[1, 12, 32, 35, 40, 42, 45],  # [1, 12, 32, 35, 40, 42, 45, 33, 41]
              subject_selection=[6, 11, 14, 17, 20, 27, 31, 34, 36],
              smooth_w_size=21)
 
 # dropouts = [1, 12, 32, 33, 35, 38, 41, 42, 45]  # more conservative
 # dropouts = np.array([1, 12, 32, 33, 38, 40, 45])
+
+# ec.plot_sba_eeg(filetype="SSD", band_pass=False, save_plot=False)
+# ec.plot_sba_eeg(filetype="SSD", band_pass=True, save_plot=False)
+# ec.plot_sba_eeg(filetype="SSD", band_pass=False, save_plot=True)
+# ec.plot_sba_eeg(filetype="SSD", band_pass=True, save_plot=True)
+# ec.plot_sba_eeg(filetype="SPOC"", band_pass=True, save_plot=False)
+# ec.plot_sba_eeg(filetype="SPOC", band_pass=True, save_plot=True)
 
 # ec.plot_hr(save_plot=False)
 # ec.plot_hr(save_plot=True)
