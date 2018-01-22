@@ -123,6 +123,7 @@ def sort_table(task, table=None):
         np.savetxt(fname="." + table_filename.split(".")[1] + "_sorted.csv", X=sorted_table, delimiter=";", fmt="%s")
     else:
         return sorted_table
+# sort_table(task="classification")
 
 
 def merge_randsearch_tables(task, sort=True):
@@ -168,14 +169,13 @@ def merge_randsearch_tables(task, sort=True):
     except NameError:
         raise FileExistsError("There is no set of tables to merge.")
 # merge_randsearch_tables(task="classification", sort=True)
-# sort_table(task="classification")
 # merge_randsearch_tables(task="regression", sort=True)
 
 
 # # Save random search tables per subject, extract n best settings per subject
 def rnd_search_table_per_subject(table_name):
 
-    wd_tables = "./LSTM/Random Search Tables/"
+    wd_tables = "./LSTM/Random_Search_Tables/"
 
     assert ".csv" in table_name, "Must be a csv file and filename ending with '.csv'"
     assert os.path.exists(wd_tables+table_name), "File does not exist:\t{}".format(table_name)
@@ -194,11 +194,13 @@ def rnd_search_table_per_subject(table_name):
 # rnd_search_table_per_subject(table_name='Random_Search_Final_Table_BiCl_merged_sorted.csv')
 # rnd_search_table_per_subject(table_name='Random_Search_Final_Table_Reg_merged_sorted.csv')
 # rnd_search_table_per_subject(table_name='Random_Search_Table_Reg_merged_sorted.csv')
+# rnd_search_table_per_subject(table_name='Random_Search_Final_Table_BiCl_SPOC_merged_sorted.csv')
+# rnd_search_table_per_subject(table_name='Random_Search_Final_Table_Reg_SPOC_merged_sorted.csv')
 
 
 def table_per_hp_setting(table_name):
 
-    wd_tables = "./LSTM/Random Search Tables/"
+    wd_tables = "./LSTM/Random_Search_Tables/"
 
     assert ".csv" in table_name, "Must be a csv file and filename ending with '.csv'"
     assert os.path.exists(wd_tables+table_name), "File does not exist:\t{}".format(table_name)
@@ -217,6 +219,8 @@ def table_per_hp_setting(table_name):
         np.savetxt(fname=wd_tables+export_filename, X=set_rs_table, delimiter=";", fmt="%s")
 # table_per_hp_setting(table_name='Random_Search_Final_Table_BiCl_merged_sorted.csv')
 # table_per_hp_setting(table_name='Random_Search_Final_Table_Reg_merged_sorted.csv')
+# table_per_hp_setting(table_name='Random_Search_Final_Table_BiCl_SPOC_merged_sorted.csv')
+# table_per_hp_setting(table_name='Random_Search_Final_Table_Reg_SPOC_merged_sorted.csv')
 
 
 # first apply rnd_search_table_per_subject() then:
@@ -228,7 +232,7 @@ def table_of_best_hp_over_all_subjects(n, task):
     """
     assert task.lower() in ["classification", "regression"], "task must be either 'classification' or 'regression'"
 
-    wd_tables = "./LSTM/Random Search Tables/"
+    wd_tables = "./LSTM/Random_Search_Tables/"
 
     tsk = "BiCl" if task.lower() == "classification" else "Reg"
     # count subjects:
@@ -271,19 +275,22 @@ def table_of_best_hp_over_all_subjects(n, task):
 # table_of_best_hp_over_all_subjects(n=2, task="regression")
 
 
-def model_performance(over, task):
+def model_performance(over, task, input_type):
     """
     Calculate the overall performance over subjects or over hyperparameter sets
     :param task: which task: either 'classification' or 'regression'
     :param over: type=str, either 'subjects' or 'hp-sets'
+    :param input_type: either "SSD" for SSD data, or "SPOC" for SPoC data
     :return: performance table
     """
 
     assert task.lower() in ['classification', 'regression'], "task must be either 'regression' or 'classification'"
+    assert input_type.lower() in ['ssd', 'spoc'], "input_type must be either 'SSD' or 'SPOC'"
     assert over.lower() in ['subjects', 'hp-sets'], "over must be either 'subjects' or 'hp-sets'"
 
-    wd_tables = "./LSTM/Random Search Tables/Random_Search_Final_Table{}/".format(
-        "_Reg" if task == "regression" else "")
+    wd_tables = "./LSTM/Random_Search_Tables/Random_Search_Final_Table{}{}/".format(
+        "_Reg" if task == "regression" else "",
+        "_SPOC" if input_type.lower() == "spoc" else "")
     wd_tables += "per_subject/" if over == "subjects" else "per_hp_set/"
 
     count_entries = 0
@@ -353,7 +360,11 @@ def model_performance(over, task):
         # Save
         export_filename = "AllHPsets_Ran" + file_name.split("Ran")[1]
         np.savetxt(fname=wd_tables + export_filename, X=sorted_fin_table, delimiter=";", fmt="%s")
-# model_performance(over="subjects", task="classification")
-# model_performance(over="hp-sets", task="classification")
-# model_performance(over="subjects", task="regression")
-# model_performance(over="hp-sets", task="regression")
+# model_performance(over="subjects", task="classification", input_type="SSD")
+# model_performance(over="hp-sets", task="classification", input_type="SSD")
+# model_performance(over="subjects", task="regression", input_type="SSD")
+# model_performance(over="hp-sets", task="regression", input_type="SSD")
+# model_performance(over="subjects", task="classification", input_type="SPOC")
+# model_performance(over="hp-sets", task="classification", input_type="SPOC")
+# model_performance(over="subjects", task="regression", input_type="SPOC")
+# model_performance(over="hp-sets", task="regression", input_type="SPOC")
