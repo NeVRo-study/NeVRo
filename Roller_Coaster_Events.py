@@ -1,8 +1,8 @@
 # coding=utf-8
 """
 Arousing Events in Roller Coaster
-Used beforehand Video "NVR_S06_run_1.mp4" for detection of such events.
-- create (time-)array with events of each roller coaster (Space, Ande), first row:= event name, second row := event time
+For detection of those events the video "NVR_S06_run_1.mp4" was used.
+- create (time-)array with events of each roller coaster (Space, Andes), first row:= event name, 2nd row := event time
 - save them externally (*.txt)
 """
 

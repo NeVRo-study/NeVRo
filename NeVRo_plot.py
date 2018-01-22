@@ -1,9 +1,11 @@
 # coding=utf-8
 """
-Plot ECG (RR and HR) Trajectories
+Plot ECG (RR and HR), EEG, and Rating Trajectories
     • indicate different phases
     • plot RR intervals
     • plot HR (heart beats per minute, 1/RR)
+    • plot EEG (SSD, SPoC)
+    • plot subjective Ratings
     • save plots
 
 Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017

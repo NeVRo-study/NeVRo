@@ -1,4 +1,7 @@
-"""Test GPU implemntation"""
+# coding=utf-8
+"""
+Test GPU implementation
+"""
 
 import tensorflow as tf
 

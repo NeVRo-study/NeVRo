@@ -2,6 +2,7 @@
 """
 Main script
     • run model
+    • script should be called via bash files (see parser)
 
 Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017
 """
