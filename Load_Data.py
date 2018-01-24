@@ -1087,7 +1087,7 @@ def read_data_sets(subject, component, hr_component, s_fold_idx, s_fold=10, cond
         elif len_test < 0.0:
             raise OverflowError("Eeg_sba file is too short. Implement interpolation function.")
 
-    # Normalize rating_sba to [-1;1] due to tanh-output of LSTMnet
+    # Normalize rating_sba to [-1;1] due to tanh-output of NeVRoNet
     rating_sba = normalization(array=rating_sba, lower_bound=-1, upper_bound=1)
 
     # IF, then attach HR to neural components

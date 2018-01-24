@@ -20,7 +20,7 @@ import time
 import copy
 import subprocess
 
-from LSTMnet import LSTMnet
+from NEVROnet import NeVRoNet
 
 # TODO more components: 1) define size of input-matrix before,
 # TODO then 2) successively adding SSD components, hence adding more non-alpha related information (non-b-pass)
@@ -199,7 +199,7 @@ def train_lstm():
 
     zero_line_acc = zero_line_prediction(subject=FLAGS.subject)
 
-    # Define graph using class LSTMnet and its methods:
+    # Define graph using class NeVRoNet and its methods:
     ddims = list(nevro_data["train"].eeg.shape[1:])  # [250, n_comp]
     full_length = len(nevro_data["validation"].ratings) * FLAGS.s_fold
 
@@ -278,13 +278,13 @@ def train_lstm():
                     y = tf.placeholder(dtype=tf.float32, shape=[None, 1], name="y-input")
 
                 # Model
-                lstm_model = LSTMnet(lstm_size=lstm_hidden_states,
-                                     fc_hidden_unites=n_hidden_units,
-                                     activation_function=ACTIVATION_FCT_DICT.get(FLAGS.activation_fct),
-                                     weight_regularizer=WEIGHT_REGULARIZER_DICT.get(FLAGS.weight_reg)(
-                                         scale=FLAGS.weight_reg_strength),
-                                     n_steps=ddims[0], batch_size=FLAGS.batch_size,
-                                     summaries=FLAGS.summaries)  # n_step = 250
+                lstm_model = NeVRoNet(lstm_size=lstm_hidden_states,
+                                      fc_hidden_unites=n_hidden_units,
+                                      activation_function=ACTIVATION_FCT_DICT.get(FLAGS.activation_fct),
+                                      weight_regularizer=WEIGHT_REGULARIZER_DICT.get(FLAGS.weight_reg)(
+                                          scale=FLAGS.weight_reg_strength),
+                                      n_steps=ddims[0], batch_size=FLAGS.batch_size,
+                                      summaries=FLAGS.summaries)  # n_step = 250
 
                 # Prediction
                 with tf.variable_scope(name_or_scope="Inference"):

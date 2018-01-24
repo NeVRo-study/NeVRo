@@ -9,7 +9,7 @@ import tensorflow as tf
 # import numpy as np
 
 
-class LSTMnet:
+class NeVRoNet:
     """
     This class implements a LSTM neural network in TensorFlow.
     It incorporates a certain graph model to be trained and to be used
@@ -23,11 +23,11 @@ class LSTMnet:
                  weight_regularizer=tf.contrib.layers.l2_regularizer(scale=0.18),
                  lstm_size=None, fc_hidden_unites=None, n_steps=250, batch_size=1, summaries=True):
         """
-        Constructor for an LSTMnet object.
+        Constructor for an NeVRoNet object.
         Args:
             # n_classes: in t, number of classes of the classification problem. This number is required in order to
             # specify
-            the output dimensions of the LSTMnet.
+            the output dimensions of the NeVRoNet.
             weight_regularizer: to be applied weight regularization
         """
 
@@ -64,7 +64,7 @@ class LSTMnet:
                  to evaluate the model.
         """
 
-        with tf.variable_scope('LSTMnet'):
+        with tf.variable_scope('NeVRoNet'):
 
             lstm_input = x
 
