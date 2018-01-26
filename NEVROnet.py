@@ -25,9 +25,7 @@ class NeVRoNet:
         """
         Constructor for an NeVRoNet object.
         Args:
-            # n_classes: in t, number of classes of the classification problem. This number is required in order to
-            # specify
-            the output dimensions of the NeVRoNet.
+            output dimensions of the NeVRoNet.
             weight_regularizer: to be applied weight regularization
         """
 
@@ -42,23 +40,20 @@ class NeVRoNet:
         self.final_state = None
         self.lstm_output = None
         self.summaries = summaries  # so far just for weights and biases of FC
-        # self.n_classes = n_classes  # n_classes (include for, e.g., binary cases)
 
     def inference(self, x):
         """
         Performs inference given an input tensor. Here an input
         tensor undergoes a series of nonlinear operations as defined in this method.
 
-        Using variable and name scopes in order to make your graph more intelligible
-        for later references in TensorBoard.
-        Define name scope for the whole model or for each operator group (e.g., fc+relu)
-        individually to group them by name.
+        Using variable and name scopes in order to make the graph more i
+        ntelligible for later references in TensorBoard.
 
         Args:
           x: 3D float Tensor of size [batch_size, input_length, input_channels]
 
         Returns:
-          infer: 2D float Tensor of size [batch_size, self.n_classes]. Returns
+          infer: 2D float Tensor of size [batch_size, -1]. Returns
                  the infer outputs (as tanh transformation) of the
                  network. These infer can be used with loss and accuracy
                  to evaluate the model.
@@ -213,8 +208,7 @@ class NeVRoNet:
 
     def _create_fc_layer(self, x, layer_name, shape, last_layer):
         """
-        Create fully connected layer
-        [Check out tf.layers.dense()]
+        Create fully connected layer [Check out tf.layers.dense()]
         :param x: Input to layer
         :param layer_name: Name of Layer
         :param shape: Shape from input to output
@@ -271,14 +265,13 @@ class NeVRoNet:
     def accuracy(infer, ratings):
         """
         Calculate the prediction accuracy, i.e. the average correct predictions of the network.
-        As in self.loss above, use tf.summary.scalar to save
+        As in self.loss below, use tf.summary.scalar to save
         scalar summaries of accuracy for later use with the TensorBoard.
 
         Args:
           infer: 2D float Tensor of size [batch_size].
                        The predictions returned through infer.
-          ratings: 2D int Tensor of size [batch_size]
-                     continious range [-1,1]
+          ratings: 2D int Tensor of size [batch_size], continious range [-1,1]
 
         Returns:
           accuracy: scalar float Tensor, the accuracy of predictions,
