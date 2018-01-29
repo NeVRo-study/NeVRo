@@ -15,8 +15,8 @@ from Meta_Functions import *
 from Load_Data import load_ssd_component, load_spoc_component, update_coaster_lengths
 import os.path
 import copy
-import matplotlib
-matplotlib.use('TkAgg')  # 'Agg', 'Qt5Agg'
+# import matplotlib
+# matplotlib.use('TkAgg')  # 'Agg', 'Qt5Agg'
 import matplotlib.pyplot as plt
 
 
@@ -802,7 +802,7 @@ class NeVRoPlot:
         rat_max = np.nanmax(self.SBA_ratings["zSBA"][condition])
         ylims = np.max(np.abs((rat_min, rat_max)))
 
-        for coaster in ["Space", "Ande"]:
+        for coaster in ["Space", "Andes"]:
             # Include events for roller coasters:
             if "Space" in coaster:
                 events = np.genfromtxt(self.wdic + "space_events.csv", delimiter=",", dtype="|U18")
@@ -814,7 +814,7 @@ class NeVRoPlot:
             events = events[:, 1:]  # drop start=0
 
             subtractor = self.trim_time / 2 if self.trimmed else 0  # Events need to be shifted, if trimmed
-            if "Ande" in coaster:
+            if "Andes" in coaster:
                 subtractor -= self.trimmed_time_space + self.trimmed_time_break
 
             shift_counter = 0
@@ -834,7 +834,7 @@ class NeVRoPlot:
 
                 plt.vlines(x=t_event, ymin=(ylims - shift) * up_down, ymax=y_max_value, linestyles="dotted",
                            alpha=1)
-                plt.text(x=t_event, y=(ylims - shift) * up_down, s=event, size=6)
+                plt.text(x=t_event, y=(ylims - shift) * up_down, s=event, size=8)
 
         plt.legend(loc="lower center")
 
@@ -846,12 +846,15 @@ class NeVRoPlot:
             line += lines
             plt.vlines(line, ymin=int(rat_min), ymax=rat_max, linestyles="--", alpha=0.5, lw=.8)
             plt.text(x=line - lines, y=rat_max, s=phase_names[num], size=10)
-        fig_rat.suptitle("Ratings of all Subjects ({} condition, SBA)".format(condition))
+        # fig_rat.suptitle("Ratings of all Subjects ({} condition, SBA)".format(condition))
+        fig_rat.suptitle("Ratings of all Subjects")
+        plt.xlabel("in sec")
+        plt.ylabel("z-scored rating")
 
         fig_rat.tight_layout(pad=0.6)
 
         if save_plot:
-            self.save_plot(filename="All_Subjects_|_Rating_|_SBA.png")
+            self.save_plot(filename="All_Subjects_|_Ratingd_|_SBA.png")
 
         # # Classification bins
         if class_bins:
@@ -910,7 +913,7 @@ class NeVRoPlot:
 
                     plt.vlines(x=t_event, ymin=(ylims - shift) * up_down, ymax=y_max_value, linestyles="dotted",
                                alpha=1)
-                    plt.text(x=t_event, y=(ylims - shift) * up_down, s=event, size=6)
+                    plt.text(x=t_event, y=(ylims - shift) * up_down, s=event, size=8)
 
             plt.legend(loc="lower center")
 
@@ -922,7 +925,10 @@ class NeVRoPlot:
                 line += lines
                 plt.vlines(line, ymin=int(rat_min), ymax=rat_max, linestyles="--", alpha=0.5, lw=.8)
                 plt.text(x=line - lines, y=rat_max, s=phase_names[num], size=10)
-            fig_rat_bins.suptitle("Ratings of all Subjects ({} condition, SBA) ".format(condition))
+            # fig_rat_bins.suptitle("Ratings of all Subjects ({} condition, SBA) ".format(condition))
+            fig_rat_bins.suptitle("Ratings of all Subjects")
+            plt.xlabel("in sec")
+            plt.ylabel("z-scored rating")
 
             fig_rat_bins.tight_layout(pad=0.6)
 
