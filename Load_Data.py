@@ -30,10 +30,10 @@ import copy
 from Meta_Functions import *
 import pandas as pd
 
-# from Meta_Functions import *
 # import tensorflow as tf
 # from tensorflow.contrib.learn.python.learn.datasets import base
 # import mne
+# import scipy  # syipy.ffpack (Fast Fourier Transform)
 
 #  load EEG data of from *.set (EEGlab format) with: mne.io.read_raw_eeglab() and mne.read_epochs_eeglab()
 
