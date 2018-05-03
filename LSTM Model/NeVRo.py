@@ -12,6 +12,8 @@ from __future__ import absolute_import
 from __future__ import division  # int/int can result in float now, e.g. 1/2 = 0.5 (in python2 1/2=0, 1/2.=0.5)
 from __future__ import print_function  # : Use print as a function as in Python 3: print()
 
+# import sys
+# sys.path.insert(0, './LSTM Model')  # or set the folder as source root
 from Load_Data import *
 import numpy as np
 import tensorflow as tf

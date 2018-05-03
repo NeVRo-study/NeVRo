@@ -15,7 +15,7 @@ library("R.matlab")
 library("BioPhysConnectoR")
 
 
-setwd("./Desktop/Research Project II/Data/HBP/")
+setwd("../../../Data/HBP/")
 getwd()
 
 nSub = 45
@@ -66,17 +66,17 @@ for (part in sub_list[1:length(sub_list)]) {
 
 
 # ## Count sum of recorded Rpeaks for each interval -> create dataframe hbpr
-#
+
 hbpr <- data.frame()
 
 for (part in sub_list[1:length(sub_list)]) {
   hbp_exg2_peaks_s <- hbp_exg2_peaks_s_list[[part]]
   hbpr_cur <- NULL
   hbpr_cur$hbpr_1 <- length(which(hbp_exg2_peaks_s <= 25.142))  # create new column for first interval: count sum of peaks
-  hbpr_cur$hbpr_2 <- length(which((hbp_exg2_peaks_s > 38.244) & (hbp_exg2_peaks_s <= 83.346))) # second
-  hbpr_cur$hbpr_3 <- length(which((hbp_exg2_peaks_s > 96.448) & (hbp_exg2_peaks_s <= 111.548))) # third
-  hbpr_cur$hbpr_4 <- length(which((hbp_exg2_peaks_s > 124.65) & (hbp_exg2_peaks_s <= 179.753))) # fourth
-  hbpr_cur$hbpr_5 <- length(which((hbp_exg2_peaks_s > 192.854))) # fifth
+  hbpr_cur$hbpr_2 <- length(which((hbp_exg2_peaks_s > 38.244) & (hbp_exg2_peaks_s <= 83.346)))  # second
+  hbpr_cur$hbpr_3 <- length(which((hbp_exg2_peaks_s > 96.448) & (hbp_exg2_peaks_s <= 111.548)))  # third
+  hbpr_cur$hbpr_4 <- length(which((hbp_exg2_peaks_s > 124.65) & (hbp_exg2_peaks_s <= 179.753)))  # fourth
+  hbpr_cur$hbpr_5 <- length(which((hbp_exg2_peaks_s > 192.854)))  # fifth
   hbpr <- rbind(hbpr, hbpr_cur)
 }
 

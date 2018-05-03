@@ -1,5 +1,7 @@
 # coding=utf-8
 
+# import sys
+# sys.path.insert(0, './LSTM Model')  # or set the folder as source root
 import tensorflow as tf
 from Load_Data import *
 

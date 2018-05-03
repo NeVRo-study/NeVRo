@@ -11,6 +11,8 @@ Plot ECG (RR and HR), EEG, and Rating Trajectories
 Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017
 """
 
+# import sys
+# sys.path.insert(0, './LSTM Model')  # or set the folder as source root
 from Meta_Functions import *
 from Load_Data import load_ssd_component, load_spoc_component, update_coaster_lengths
 import os.path

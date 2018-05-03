@@ -25,6 +25,8 @@ Channel30: [x30_0, ..., x30_250], [x30_251, ..., x30_500], ... ]  ==> LSTM /
 Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017
 """
 
+# import sys
+# sys.path.insert(0, './LSTM Model')  # or set the folder as source root
 import os.path
 import copy
 from Meta_Functions import *
