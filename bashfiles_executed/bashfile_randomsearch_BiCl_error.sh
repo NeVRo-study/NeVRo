@@ -1,9 +1,0 @@
-#!/usr/bin/env bash
-
-# Random Search Bashfile_error: classification
-# These file do not work
-
-# Tried altered learning rate: 9e-2
-python3 NeVRo.py --subject 36 --seed True --task classification --shuffle True --repet_scalar 30 --s_fold 10 --batch_size 9 --successive 1 --successive_mode 1 --rand_batch True --plot True --lstm_size 50 --fc_n_hidden 0 --learning_rate 1e-1 --weight_reg l1 --weight_reg_strength 0.18 --activation_fct relu --filetype SPOC --hilbert_power False --band_pass True--component 1 --hrcomp True --path_specificities BiCl_RndHPS_lstm-50_fc-0_lr-1e-1_wreg-l1-0.18_actfunc-relu_ftype-SPOC_hilb-F_bpass-T_comp-1_hrcomp-T/
-python3 NeVRo.py --subject 2 --seed True --task classification --shuffle True --repet_scalar 30 --s_fold 10 --batch_size 9 --successive 1 --successive_mode 1 --rand_batch True --plot True --lstm_size 50 --fc_n_hidden 0 --learning_rate 1e-1 --weight_reg l1 --weight_reg_strength 0.18 --activation_fct relu --filetype SPOC --hilbert_power False --band_pass True--component 1 --hrcomp True --path_specificities BiCl_RndHPS_lstm-50_fc-0_lr-1e-1_wreg-l1-0.18_actfunc-relu_ftype-SPOC_hilb-F_bpass-T_comp-1_hrcomp-T/
-python3 NeVRo.py --subject 2 --seed True --task classification --shuffle True --repet_scalar 30 --s_fold 10 --batch_size 9 --successive 1 --successive_mode 1 --rand_batch True --plot True --lstm_size 100 --fc_n_hidden 0 --learning_rate 1e-1 --weight_reg l1 --weight_reg_strength 1.44 --activation_fct elu --filetype SSD --hilbert_power False --band_pass True--component 1,2,3,4,5 --hrcomp True --path_specificities BiCl_RndHPS_lstm-100_fc-0_lr-1e-1_wreg-l1-1.44_actfunc-elu_ftype-SSD_hilb-F_bpass-T_comp-1-2-3-4-5_hrcomp-T/
