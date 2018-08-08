@@ -1,0 +1,1 @@
+round;subject;seed;task;shuffle;repet_scalar;s_fold;batch_size;successive;successive_mode;rand_batch;plot;lstm_size;fc_n_hidden;learning_rate;weight_reg;weight_reg_strength;activation_fct;filetype;hilbert_power;band_pass;component;hrcomp;path_specificities;mean_val_acc;zeroline_acc;mean_class_val_acc
