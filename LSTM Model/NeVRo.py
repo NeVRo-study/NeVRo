@@ -16,7 +16,7 @@ from __future__ import print_function  # : Use print as a function as in Python 
 # sys.path.insert(0, './LSTM Model')  # or set the folder as source root
 from Load_Data import *
 import numpy as np
-import tensorflow as tf
+import tensorflow as tf  # implemented with TensorFlow 1.3.0
 import argparse
 import time
 import copy
