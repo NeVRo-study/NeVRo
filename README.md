@@ -1,11 +1,20 @@
 # NeVRo
 
-<b>Abstract</b>
-
-A fundamental question in cognitive neuroscience concerns the relationship between physiological states and subjectively experienced mental phenomena such as emotions.  Arousal is a key feature of both subjective experience and bodily activation and prepares an agent to behaviourally respond to events of the environment. The dynamic and non-linear characteristics of arousal are not easily captured in classic laboratory designs, which often employ static and simplified stimuli.
+<b>Intro</b>
 
 We used virtual reality (VR) to investigate arousal under ecologically valid conditions. 45 subjects experienced virtual roller coaster rides while their neural (EEG) and peripheral physiological (ECG) responses were recorded. Afterwards, they rated their arousal during the rides on a continuous scale while viewing a recording of their experience.
 
-Particularly under naturalistic settings, continuous measurements and the analysis of the resulting multimodal time series of dynamic phenomena such as arousal require new analytical methods. Therefore, we applied a Long Short-Term Memory (LSTM) recurrent neural network (RNN), a deep neural network able to transform high dimensional data into target output variables, by finding statistical invariances and hidden representations in time-sequential input data. The network was trained on alpha-frequency (8-12Hz) band-passed neural components of the recorded EEG signal that were generated via Spatio Spectral Decomposition (SSD) or Source Power Comodulation (SPoC). The neural network was able to predict retrospective reports of our subjects above chance level on the unseen validation set. Thus, the model is able to find meaningful features in the neural signal that reflect the phenomenal experience of the subjects. Furthermore, by extending the neural components with the recorded ECG signal to train the LSTM, we tested whether the peripheral physiological responses, here the cardiac information, increases the performance of the model, and therefore encodes additional information about the subjective experience of arousal.
+<b>Methods</b>
 
-The study demonstrates that i) VR is a valuable research tool to investigate not just peripheral physiological but also neurophysiological and subjective phenomena, since users can fully immerse in their experience while experimental control is retained. Moreover it suggests that ii) LSTM models can be an invaluable analytical method to more ecologically valid research designs.
+We tackled the data with three model approaches.
+
+*SPoC Model*
+Source Power Comodulation (SPoC) algorithm finds the maximal covariance between the power-band of the frequency of interest (here alpha, 8-12Hz) and the target variable (ratings).
+
+*CSP Model*
+The Common Spatial Pattern (CSP) algorithm maximes the difference in variance between two dichotomic classes (here low and high arousal) in the EEG signal.
+
+*LSTM Model*
+Long Short-Term Memory (LSTM) recurrent neural networks (RNNs) were trained on alpha-frequency band-passed neural components of the recorded EEG signal to predict subjective reports of arousal (ratings). The EEG components were generated via Spatio Spectral Decomposition (SSD) or SPoC. The SSD emphasizes the frequency of interest (here alpha) while attenuating the adjecent frequency bins. 
+
+Furthermore, we tested whether peripheral physiological responses, here the cardiac information (ECG), increases the performance of the model, and therefore encodes additional information about the subjective experience of arousal.
