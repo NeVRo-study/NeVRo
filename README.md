@@ -8,7 +8,7 @@ We used virtual reality (VR) to investigate arousal under ecologically valid con
 
 We tackled the data with three model approaches.
 
-*SPoC Model* <br>
+*SPoC Model* [upload coming soon] <br> 
 Source Power Comodulation (SPoC) decomposes the EEG signal such that it maximes the covariance between the power-band of the frequency of interest (here alpha, 8-12Hz) and the target variable (ratings).
 
 *CSP Model* <br>
