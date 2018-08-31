@@ -1,5 +1,7 @@
 <h1>NeVRo</h1> 
 
+*This is a rough outline. A more detailed description will come soon.*
+
 <h2>Introduction</h2> 
 
 We used virtual reality (VR) to investigate emotional arousal under ecologically valid conditions. 45 subjects experienced virtual roller coaster rides while their neural (EEG) and peripheral physiological (ECG) responses were recorded. Afterwards, they rated their subjectivly experienced arousal retrospectively on a continuous scale while viewing a recording of their experience.
