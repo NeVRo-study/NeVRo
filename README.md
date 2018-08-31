@@ -5,7 +5,7 @@
 We used virtual reality (VR) to investigate emotional arousal under ecologically valid conditions. 45 subjects experienced virtual roller coaster rides while their neural (EEG) and peripheral physiological (ECG) responses were recorded. Afterwards, they rated their subjectivly experienced arousal retrospectively on a continuous scale while viewing a recording of their experience.
 
 <h2>Methods</h2> 
-We tackled the data with three model approaches.
+We tackled the data with three model approaches. The corresponding code can be found in the respective folders.
 
 <h4>SPoC Model</h4> 
 <em>upload coming soon</em><br> 
@@ -17,3 +17,6 @@ We tackled the data with three model approaches.
 <h4>LSTM Model</h4>
 <a href="https://doi.org/10.1162/neco.1997.9.8.1735">Long Short-Term Memory (LSTM)</a> recurrent neural networks (RNNs) were trained on alpha-frequency components of the recorded EEG signal to predict subjective reports of arousal (ratings) in a binary (low and high arousal) and a continuous prediction task. The fed EEG components were generated via <a href="https://doi.org/10.1016/j.neuroimage.2011.01.057">Spatio Spectral Decomposition (SSD)</a> or SPoC. The SSD emphasizes the frequency of interest (here alpha) while attenuating the adjacent frequency bins. Performances of SPoC-trained models served as benchmark-proxies for models that were trained only on neural alpha information.<br> 
 Furthermore, we tested whether peripheral physiological responses, here the cardiac information (ECG), increases the performance of the model, and therefore encodes additional information about the subjective experience of arousal.
+
+<h3>Miscellaneous</h3> 
+Before the main phase of the experiment, we tested the interceptive accuracy (IA) of each subject with the <a href="https://doi.org/10.1111/j.1469-8986.1981.tb02486.x">Heart Beat Perception (HBP)</a> task.   
