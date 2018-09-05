@@ -4,7 +4,7 @@
 
 <h2>Introduction</h2> 
 
-We used virtual reality (VR) to investigate emotional arousal under ecologically valid conditions. 45 subjects experienced virtual roller coaster rides while their neural (EEG) and peripheral physiological (ECG) responses were recorded. Afterwards, they rated their subjectivly experienced arousal retrospectively on a continuous scale while viewing a recording of their experience.
+We used virtual reality (VR) to investigate emotional arousal under ecologically valid conditions. 45 subjects experienced virtual roller coaster rides while their neural (EEG) and peripheral physiological (ECG) responses were recorded. Afterwards, they rated their subject levels of arousal retrospectively on a continuous scale while viewing a recording of their experience.
 
 <h2>Methods</h2> 
 We tackled the data with three model approaches. The corresponding code can be found in the respective folders.
