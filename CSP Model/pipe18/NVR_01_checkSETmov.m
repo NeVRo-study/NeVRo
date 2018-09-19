@@ -29,8 +29,8 @@ files_eeg = {files_eeg.name};
 %1.3 Launch EEGLAB:
 [ALLEEG EEG CURRENTSET ALLCOM] = eeglab;
 
-n_eve = zeros(length(files_eeg));
-win_length = zeros(length(files_eeg));
+n_eve = zeros(length(files_eeg),1);
+win_length = zeros(length(files_eeg),1);
 
 for isub = 1:length(files_eeg)
     
@@ -58,6 +58,9 @@ for isub = 1:length(files_eeg)
     
     % Check number of events:       
     
+    n_eve(isub) = size(EEG.event, 2);
+    win_length(isub) = EEG.xmax;
+    
     if (~(size(EEG.event, 2) == 7))
         fprintf('###############\n\n\n\n\n\n\n\n###############');
         fprintf(['Problem with subject ' thissubject '.\n']);
@@ -71,8 +74,6 @@ for isub = 1:length(files_eeg)
     fprintf([num2str(size(EEG.event, 2)) ' events found.\n']);
     fprintf('###############\n');
     
-    n_eve(isub) = size(EEG.event, 2);
-    win_length(isub) = EEG.xmax;
     
     %% 2.Import EEG data as .set files
     %         [EEG, com] = pop_loadset([path_in_eeg, filename '.set']);
