@@ -15,11 +15,11 @@ function NVR_03_crop(cropstyle, mov_cond)
 %1.1 Set different paths:
 % input paths:
 path_dataeeg =  '../../Data/EEG/';
-path_in_eeg = [path_dataeeg 'PREP3/' mov_cond '/']; 
+path_in_eeg = [path_dataeeg 'PREP/' mov_cond '/']; 
 
 % output paths:
 
-path_out_eeg = [path_dataeeg 'CROP/' cropstyle '/']; 
+path_out_eeg = [path_dataeeg 'CROP/' mov_cond '/' cropstyle '/']; 
 if ~exist(path_out_eeg, 'dir'); mkdir(path_out_eeg); end
 
 %1.2 Get data files
