@@ -28,6 +28,27 @@ fid = fopen([path_reports 'rejected_epos.csv'], 'a') ;
 fprintf(fid, 'ID,n_epos_rejected,epos_rejected\n') ;
 fclose(fid);
 
+% prepare some parameters for ICA preparation:
+% Which channels shall be used to determine noisy epochs (which will be 
+% discarded for ICA decomp)?
+% We exclude channels that show coactivation with eye-movements as
+% rejection via extreme values is used and eye-movements cause big
+% deflections. However, ICA will do a way better job to discard this noisy,
+% so we actually want to keep epochs with "only" eye-activity. We want to
+% discard channels with strong motor noise or electrode displacement ("huge
+% bursts").
+ICA_prep_ignore_chans = [];
+ICA_prep_ignore = {'HEOG', 'VEOG', 'Fp1', 'Fp2', 'F8', 'F7'};
+for igc = 1:numel(ICA_prep_ignore)
+    idx = find(strcmp({EEG.chanlocs.labels}, ICA_prep_ignore{igc}));
+    if ~isempty(idx)
+        ICA_prep_ignore_chans(end+1) = idx;
+    end
+end
+
+ICA_prep_chans = setdiff([1:32], ICA_prep_ignore_chans);
+
+    
 
 discarded = {};
 discarded_mat = zeros(length(files_eeg),20);
@@ -53,48 +74,9 @@ for isub = 1:length(files_eeg)
     full_eeg_idx = CURRENTSET;
     eeg_rank = rank(EEG.data);
     
-    % make copy to clean:
-    [ALLEEG EEG CURRENTSET] = pop_newset(ALLEEG, EEG, CURRENTSET, ... 
-                               'setname', 'too be cleaned');
-    tbc_eeg_idx = CURRENTSET;
-                           
-    
-    % prep for cleaning:
-    EEG = pop_epoch( EEG, {'1','2','3'}, [-0.5 0.5], ...
-        'newname', [filename '_epo'], ...
-        'epochinfo', 'yes');
-    EEG = eegh(com,EEG);
-    EEG.setname=[filename '_epo'];
     
     
-    %% Bandpass filter (5-45Hz):
-    %EEG = pop_eegfiltnew(EEG, [], 5, 414, true, [], 0);
-    EEG = pop_eegfiltnew(EEG, 'locutoff',5);
-    %EEG = pop_eegfiltnew(EEG, [], 45, 74, 0, [], 0);
-    EEG = pop_eegfiltnew(EEG, 'hicutoff',45);
-    
-    %% Calculate variance threshhold:
-    EEGsize = size(EEG.data);
-    n_chan = EEGsize(1);
-    n_trials = EEGsize(3);
-    tri_var = ones(n_chan,n_trials);
-    for tri = 1:n_trials
-        for cha = 1:n_chan
-            tri_var(cha,tri) = var(EEG.data(cha,:,tri));
-        end
-    end
-    
-    avg_per_trial = mean(tri_var,1);
-    q5 = prctile(avg_per_trial,5);
-    q95 = prctile(avg_per_trial,95);
-    %thresh = q95 ;%+ 1 * (q95 - q5);
-    %disc_epo = find(avg_per_trial > thresh);
-    disc_epo = find(avg_per_trial > 
-    disp(filename)
-    fprintf('\nTo be discarded:\n');
-    disp(disc_epo)
-    
-    EEG = pop_rejepoch( EEG, disc_epo, 0);
+    EEG = NVR_S01_prep4ICA
     
     counter = counter+1;
     discarded_mat(counter,1:length(disc_epo)) = disc_epo;
