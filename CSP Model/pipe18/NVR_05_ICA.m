@@ -33,7 +33,7 @@ discarded_mat = zeros(length(files_eeg),20);
 counter = 0;
 
 
-for isub = 1%:length(files_eeg)
+for isub = 1:length(files_eeg)
     %1.3 Launch EEGLAB:
     [ALLEEG EEG CURRENTSET ALLCOM] = eeglab;
     
