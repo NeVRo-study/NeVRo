@@ -49,7 +49,10 @@ EEG = pop_epoch( EEG, {'1','2','3'}, [-0.5 0.5], ...
 EEG = pop_eegthresh(EEG,1,ICA_prep_chans ,-rejthresh,rejthresh,-0.5,0.496,0,0);
 %[ALLEEG, EEG, CURRENTSET] = eeg_store(ALLEEG, EEG);
 
-% prepare for plotting (thx to eeglablist!):
+% prepare for plotting (thx to eeglablist!)
+% This, however, for now is only for checking (!) and not interactive.
+% Epochs cannot be added or unmarked manually. This is on purpose in order 
+% to increase replicability.
 epoch = find(EEG.reject.rejthresh);
 epochchanind = cell(1,1);
 for run = 1:length(epoch)
@@ -86,6 +89,14 @@ if resp == 'y'
     keyboard;
     input('are you done?');
 end
+
+% Do some checks and reject the marked epochs:
+EEG = eeg_checkset(EEG);
+% Update rejglobal in channel space with rejections from threshold-rej
+EEG = eeg_rejsuperpose(EEG, 1, 0, 1, 0, 0, 0, 0, 0);
+% Kick out marked epochs: 
+EEG = pop_rejepoch(EEG, find(EEG.reject.rejglobal), 0);
+EEG = eeg_checkset(EEG);
 
 end
 

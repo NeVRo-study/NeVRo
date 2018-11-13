@@ -3,15 +3,23 @@ function [EEG] = NVR_S01_prep4ICA(EEG,varargin)
 %particularly noisy "epochs"
 %   
 
-% Do you want to manually check
+% Do you want to manually check:
+if nargin>2
+    man_check = varargin{2};
+    fprintf(['\n\n\n\n' num2str(man_check) '\n\n\n\n']);
+else
+    man_check = 1;
+    fprintf('\n\nnaaa\n\n\n\n');
+end
 
 
+fprintf(['\n\n\n\n' num2str(nargin) '\n\n\n\n'])
 % take rejection threshold parameter if given;
 if nargin>1
-    rejthres = varargin{1};
+    rejthresh = varargin{1};
     % otherwise set to default (100mV):
 else
-    rejthres = 100;
+    rejthresh = 100;
 end
 
 % prepare some parameters for ICA preparation:
@@ -36,13 +44,15 @@ ICA_prep_chans = setdiff([1:32], ICA_prep_ignore_chans);
 
 % epoch for cleaning:
 EEG = pop_epoch( EEG, {'1','2','3'}, [-0.5 0.5], ...
-    'newname', [filename '_epo'], ...
     'epochinfo', 'yes');
 % reject epochs with values >threshhold in at least one channel:
-EEG = pop_eegthresh(EEG,1,ICA_prep_chans ,-rejthres,rejthresh,-0.5,0.496,0,0);
-[ALLEEG, EEG, CURRENTSET] = eeg_store(ALLEEG, EEG);
+EEG = pop_eegthresh(EEG,1,ICA_prep_chans ,-rejthresh,rejthresh,-0.5,0.496,0,0);
+%[ALLEEG, EEG, CURRENTSET] = eeg_store(ALLEEG, EEG);
 
-% prepare for plotting (thx to eeglablist!):
+% prepare for plotting (thx to eeglablist!)
+% This, however, for now is only for checking (!) and not interactive.
+% Epochs cannot be added or unmarked manually. This is on purpose in order 
+% to increase replicability.
 epoch = find(EEG.reject.rejthresh);
 epochchanind = cell(1,1);
 for run = 1:length(epoch)
@@ -59,11 +69,14 @@ end
 
 winrej=trial2eegplot(rejepoch,rejepochE,EEG.pnts,rejepochcol);
 
-resp = [];
+if man_check
+    resp = [];
+else
+    resp = 'n';
+end
+
 while ~any(strcmp({'y' 'n'},resp))
-    fprintf(['This is file: \n\n' ...
-        filename '.set \n\n' ...
-        'Do you want to inspect the data? \n' ...
+    fprintf(['Do you want to inspect the data? \n' ...
         'Enter "y" for "yes" \n' ...
         'or "n" in order to go to next subject: \n'])
     resp = input('Confirm with Enter. \n', 's');
@@ -76,6 +89,11 @@ if resp == 'y'
     keyboard;
     input('are you done?');
 end
+
+% Do some checks and reject the marked epochs:
+EEG = eeg_checkset( EEG );
+EEG = eeg_rejsuperpose( EEG, 1, 1, 1, 1, 1, 1, 1, 1);
+
 
 end
 
