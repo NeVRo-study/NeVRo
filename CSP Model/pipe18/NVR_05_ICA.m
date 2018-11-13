@@ -1,11 +1,17 @@
 %% NVR_EventsAro
 %This script adds the arousal events to the NeVRo EEG data. 
 
-function NVR_05_ICA(cropstyle, mov_cond) 
+function NVR_05_ICA(cropstyle, mov_cond, varargin) 
 
 %% 1.Set Variables
 %clc
 %clear all
+
+if nargin>2
+    icatype = varargin{1};
+else
+    icatype = 'runica';
+end
 
 %1.1 Set different paths:
 path_data = '../../Data/';
@@ -75,7 +81,12 @@ for isub = 1:length(files_eeg)
        
 
     % run ICA:
-    EEG = pop_runica(EEG, 'extended',1,'interupt','on','pca',eeg_rank);
+    EEG = pop_runica(EEG, ... 
+        'icatype', icatype, ... 
+        'extended',1, ... 
+        'interupt','on', ...
+        'pca',eeg_rank);
+    
     EEG = eegh(com,EEG);
     EEG.setname=filename;
     [ALLEEG EEG CURRENTSET] = eeg_store(ALLEEG, EEG);
