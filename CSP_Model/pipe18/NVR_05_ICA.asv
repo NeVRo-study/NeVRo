@@ -79,10 +79,7 @@ for isub = 1:length(files_eeg)
     fclose(fid);
     
     % for subjects with too many rejected epochs, running an ICA on the 
-    % shortened data, does not make sense. Therefore, we skip these:
-    if EEG.etc.rejepo_overkill
-        continue
-    end
+    % shortened   
 
     % run ICA:
     EEG = pop_runica(EEG, ... 

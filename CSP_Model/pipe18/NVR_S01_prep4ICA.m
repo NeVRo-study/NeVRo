@@ -92,10 +92,18 @@ end
 
 % Do some checks and reject the marked epochs:
 EEG = eeg_checkset(EEG);
+rej_epos = find(EEG.reject.rejglobal);
+EEG.etc.rejepo_thresh = rej_epos;
+if length(rej_epos) > 200
+    EEG.etc.rejepo_overkill = 1;
+    return
+else
+    EEG.etc.rejepo_overkill = 0;
+end
 % Update rejglobal in channel space with rejections from threshold-rej
 EEG = eeg_rejsuperpose(EEG, 1, 0, 1, 0, 0, 0, 0, 0);
 % Kick out marked epochs: 
-EEG.etc.rejepo_thresh = find(EEG.reject.rejglobal);
+
 EEG = pop_rejepoch(EEG, find(EEG.reject.rejglobal), 0);
 EEG = eeg_checkset(EEG);
 
