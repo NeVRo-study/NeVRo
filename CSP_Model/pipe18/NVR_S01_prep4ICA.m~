@@ -117,7 +117,7 @@ rej_epos = find(EEG.reject.rejglobal);
 EEG.etc.rejepo_thresh = rej_epos;
 % calculate exclusion threshold in number of epochs:
 epos_thresh = floor(excl_thresh * numel(EEG.epoch));
-if length(rej_epos) > epos_thresh
+if length(rej_epos) > 200
     EEG.etc.rejepo_overkill = 1;
     return
 else
