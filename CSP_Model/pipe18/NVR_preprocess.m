@@ -8,6 +8,7 @@ addpath(NVR_path);
 m_conds = {'mov' 'nomov'}; %{'nomov'}; % {'mov'}; % 
 c_styles = {'SBA'}; %{'SBA', 'SA'};
 
+%time it:
 tic
 for mc=1:numel(m_conds)
     for cs = 1:numel(c_styles)
