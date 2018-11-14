@@ -39,7 +39,9 @@ discarded_mat = zeros(length(files_eeg),20);
 counter = 0;
 
 
+
 for isub = length(files_eeg) % 1:length(files_eeg)
+
     tic
     
     %1.3 Launch EEGLAB:
