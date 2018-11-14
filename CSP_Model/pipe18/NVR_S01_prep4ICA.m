@@ -113,18 +113,23 @@ end
 
 % Do some checks and reject the marked epochs:
 EEG = eeg_checkset(EEG);
+% Update rejglobal in channel space with rejections from threshold-rej
+EEG = eeg_rejsuperpose(EEG, 1, 0, 1, 0, 0, 0, 0, 0);
+
 rej_epos = find(EEG.reject.rejglobal);
 EEG.etc.rejepo_thresh = rej_epos;
+
 % calculate exclusion threshold in number of epochs:
 epos_thresh = floor(excl_thresh * numel(EEG.epoch));
+
 if length(rej_epos) > epos_thresh
+    disp('yep')
     EEG.etc.rejepo_overkill = 1;
     return
 else
     EEG.etc.rejepo_overkill = 0;
 end
-% Update rejglobal in channel space with rejections from threshold-rej
-EEG = eeg_rejsuperpose(EEG, 1, 0, 1, 0, 0, 0, 0, 0);
+
 % Kick out marked epochs: 
 
 EEG = pop_rejepoch(EEG, find(EEG.reject.rejglobal), 0);

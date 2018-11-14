@@ -31,7 +31,7 @@ files_eeg = {files_eeg.name};
 
 % Create report file:
 fid = fopen([path_reports 'rejected_epos.csv'], 'a') ;
-fprintf(fid, 'ID,n_epos_rejected,epos_rejected\n') ;
+%fprintf(fid, 'ID,n_epos_rejected,epos_rejected\n') ;
 fclose(fid);
 
 discarded = {};
@@ -39,7 +39,9 @@ discarded_mat = zeros(length(files_eeg),20);
 counter = 0;
 
 
-for isub = 1:length(files_eeg)
+for isub = length(files_eeg) % 1:length(files_eeg)
+    tic
+    
     %1.3 Launch EEGLAB:
     [ALLEEG EEG CURRENTSET ALLCOM] = eeglab;
     
@@ -75,12 +77,13 @@ for isub = 1:length(files_eeg)
     c = {sub_name, ...
         sprintf('%i',length(rej_epos)), ...
         sprintf('%s', epos)};
-    fprintf(fid, '%s,%s,%s\n',c{1,:}) ;
+    %fprintf(fid, '%s,%s,%s\n',c{1,:}) ;
     fclose(fid);
     
     % for subjects with too many rejected epochs, running an ICA on the 
     % shortened data, does not make sense. Therefore, we skip these:
     if EEG.etc.rejepo_overkill
+        toc
         continue
     end
 
@@ -94,10 +97,14 @@ for isub = 1:length(files_eeg)
     EEG = eegh(com,EEG);
     EEG.setname=filename;
     [ALLEEG EEG CURRENTSET] = eeg_store(ALLEEG, EEG);
-    EEG = pop_saveset(EEG, [filename  '_cleanICA.set'] , path_out_eeg);
+    %EEG = pop_saveset(EEG, [filename  '_cleanICA.set'] , path_out_eeg);
     [ALLEEG EEG CURRENTSET] = eeg_store(ALLEEG, EEG);
     
+    % give out time elapsed:
+    ela_time = toc;
+    ela_time = ela_time/60;
     
+    fprintf('\n\n\n\n This round took %f minutes \n\n\n', ela_time);
     
         
 end
