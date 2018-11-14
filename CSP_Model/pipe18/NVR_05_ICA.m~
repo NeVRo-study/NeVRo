@@ -61,7 +61,7 @@ for isub = 1:length(files_eeg)
     % arg1: EEG, arg2: threshold (in mV), arg3: manual check?
     EEG = NVR_S01_prep4ICA(EEG, 100, 0);
     
-    disc_epo = EEG.etc.rejepo_thresh;
+    disc_epo = EEG.reject.reje;
     
     counter = counter+1;
     discarded_mat(counter,1:length(disc_epo)) = disc_epo;

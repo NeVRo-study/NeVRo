@@ -95,6 +95,7 @@ EEG = eeg_checkset(EEG);
 % Update rejglobal in channel space with rejections from threshold-rej
 EEG = eeg_rejsuperpose(EEG, 1, 0, 1, 0, 0, 0, 0, 0);
 % Kick out marked epochs: 
+EEG.etc.rejepo_thresh = find(EEG.reject.rejglobal);
 EEG = pop_rejepoch(EEG, find(EEG.reject.rejglobal), 0);
 EEG = eeg_checkset(EEG);
 

@@ -5,7 +5,7 @@
 NVR_path = genpath('..\..\..\NeVRo');
 addpath(NVR_path);
 
-m_conds = {'mov' 'nomov'}; %{'nomov'}; % {'mov'}; % 
+m_conds = {'mov' 'nomov'}; % {'mov'}; % {'nomov'}; %  
 c_styles = {'SBA'}; %{'SBA', 'SA'};
 
 %time it:
