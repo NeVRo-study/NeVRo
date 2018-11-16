@@ -106,7 +106,7 @@ for isub = 1:length(files_eeg)
     avg_per_trial = mean(tri_var,1);
     q5 = prctile(avg_per_trial,5);
     q95 = prctile(avg_per_trial,95);
-    thresh = q95 + 1 * (q95 - q5);
+    thresh = q95 + 0.3 * (q95 - q5);
     disc_epo = find(avg_per_trial > thresh);
     disp(filename)
     fprintf('\nTo be discarded:\n');
