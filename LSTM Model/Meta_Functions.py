@@ -303,9 +303,9 @@ def true_false_request(func):
 
 def open_folder(path):
     """Open specific folder in Finder. Can also be a file"""
-    if platform.system() == "Windows":
+    if platform.system() == "Windows":  # for Windows
         os.startfile(path)
-    elif platform.system() == 'Darwin':  # ≈ sys.platform = 'darwin'
+    elif platform.system() == 'Darwin':  # ≈ sys.platform = 'darwin' | for Mac
         subprocess.Popen(["open", path])
-    else:
+    else:  # for Linux
         subprocess.Popen(["xdg-open", path])
