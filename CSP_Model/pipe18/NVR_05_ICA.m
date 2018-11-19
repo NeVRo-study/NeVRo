@@ -40,7 +40,7 @@ counter = 0;
 
 
 
-for isub = 1:length(files_eeg) % 1:length(files_eeg)
+for isub = 30:length(files_eeg) % 1:length(files_eeg)
 
     tic
     
