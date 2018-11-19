@@ -15,7 +15,7 @@ for mc=1:numel(m_conds)
         %NVR_03_crop(c_styles{cs},m_conds{mc});%('SBA','mov')
         %NVR_04_eventsARO(c_styles{cs},m_conds{mc});%('SBA','mov')
         %NVR_05_ICA(c_styles{cs},m_conds{mc}, 'runica');
-        %NVR_06_rejcomp(c_styles{cs},m_conds{mc});
+        NVR_06_rejcomp(c_styles{cs},m_conds{mc});
     end
 end
 toc

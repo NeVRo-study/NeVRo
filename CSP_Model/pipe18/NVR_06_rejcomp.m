@@ -13,7 +13,7 @@ clear EEG
 %1.1 Set different paths:
 path_data = '../../Data/';
 path_dataeeg =  [path_data 'EEG/'];
-path_in_eegICA = [path_dataeeg 'ICAclean/' mov_cond '/' cropstyle '/'];
+path_in_eegICA = [path_dataeeg 'cleanICA/' mov_cond '/' cropstyle '/'];
 path_in_eegFull = [path_dataeeg 'eventsAro/' mov_cond '/' cropstyle '/'];
 
 % output paths:
@@ -25,8 +25,6 @@ if ~exist(path_out_eeg_full, 'dir'); mkdir(path_out_eeg_full); end
 %1.2 Get data files
 files_eegICA = dir([path_in_eegICA '*.set']);
 files_eegICA = {files_eegICA.name};
-files_eegFull = dir([path_in_eegFull '*.set']);
-files_eegFull = {files_eegFull.name};
 
 
 for isub = 1:length(files_eegICA)
@@ -49,7 +47,7 @@ for isub = 1:length(files_eegICA)
     filenameFull = char(filenameFull);
     
     % check if there is already an outputfile for this participant:
-    if exist([path_out_eeg_short filenameFull '_rejcomp.set'], 'file')
+    if exist([path_out_eeg_full filenameFull '_rejcomp.set'], 'file')
         fprintf('\n\n\n\n')
         resp = [];
         while ~any(strcmp({'y' 'n'},resp))
@@ -118,6 +116,7 @@ for isub = 1:length(files_eegICA)
     fprintf('\n\n\n\n\n');
     disp('Use command "dbcont" to continue.')
     keyboard;
+    fprintf("This was %s.\n\n", filenameFull);
     input('are you done?');
     % SASICA stores the results in base workspace via assignin.
     % [Info from Niko Busch's pipeline:
@@ -125,9 +124,6 @@ for isub = 1:length(files_eegICA)
     EEG = evalin('base','EEG');
     rej_comps = find(EEG.reject.gcompreject);
     SASICAinfo = EEG.reject.SASICA;
-    
-    % remove marked components from data:
-    [EEG, com] = pop_subcomp(EEG, rej_comps, 1);
     
     % save which components were removed and SASICA info:
     EEG.etc.rejcomp = rej_comps;
