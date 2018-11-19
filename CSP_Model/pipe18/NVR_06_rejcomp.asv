@@ -1,8 +1,5 @@
 %% NVR_06_rejcomp
 % 
-% Inspirations and code snippets from:
-% https://www.aesthetics.mpg.de/fileadmin/user_upload/Services/ProgressFiles/EEGLab_RunICA_PruneData.html
-% by R. Muralikrishnan
 
 function NVR_06_rejcomp(cropstyle, mov_cond)
 
@@ -162,11 +159,9 @@ for isub = 1:length(files_eegICA)
     EEGFull = pop_saveset(EEGFull, [filenameFull  '_rejcomp.set'] , path_out_eeg_full);
 
     fprintf('\n\n###################################################\n\n');    
-    fprintf("We're done with %s.\n\n", filenameFull);
-    fprintf('Number of Removed Components ... %d. \n\n', length(rej_comps));
-    fprintf('\n\n###################################################\n\n');
-    fprintf('Do you want to proceed with another subject?\n');
-    input('Confirm with ENTER or terminate with CTRL+C\n');
+    fprintf("We're done with %s.\n\n", thissubject);
+    fprintf('Number of Removed Components ... %d. \n\n', length(V_Components_to_remove));
+    fprintf('\n\n###################################################\n\n');    
 end
 
 end
