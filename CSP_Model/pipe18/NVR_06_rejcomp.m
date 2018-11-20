@@ -4,11 +4,18 @@
 % https://www.aesthetics.mpg.de/fileadmin/user_upload/Services/ProgressFiles/EEGLab_RunICA_PruneData.html
 % by R. Muralikrishnan
 
-function NVR_06_rejcomp(cropstyle, mov_cond)
+function NVR_06_rejcomp(cropstyle, mov_cond, varargin)
 
 %% 1.Set Variables
 %clc
 clear EEG
+
+% check input:
+if nargin > 2
+    skipsubs = varargin{1};
+else
+    skipsubs= 0;
+end
 
 %1.1 Set different paths:
 path_data = '../../Data/';
@@ -27,7 +34,7 @@ files_eegICA = dir([path_in_eegICA '*.set']);
 files_eegICA = {files_eegICA.name};
 
 
-for isub = 1:length(files_eegICA)
+for isub = (1+skipsubs):length(files_eegICA)
     
     %1.3 Launch EEGLAB:
     [ALLEEG EEG CURRENTSET ALLCOM] = eeglab;
