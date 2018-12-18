@@ -77,7 +77,25 @@ for isub = (1+skipsubs):length(files_eegICA)
     [EEG, com] = pop_loadset([path_in_eegICA, filenameICA '.set']);
     EEG = eegh(com,EEG);
     
-    %eeg_rank = rank(EEG.data);
+    % check how many epochs have been rejected and ignore subjects with
+    % rejection rate >33%:
+    
+    if strcmp(cropstyle, 'SBA')
+        len_full = 270;
+    elseif strcmp(cropstyle, 'SA')
+        len_full = 240;
+    end
+    
+    if length(EEG.etc.rejepo_thresh) > ceil(0.33 * len_full)
+        fprintf(['\n\n\n\n##########################\n\n' ...
+                 'Subject skipped due too many rejected epochs.\n' ...
+                 thissubject '\n# of rejected epochs: ' ... 
+                 num2str(length(EEG.etc.rejepo_thresh)) ...
+                 '\n\n\n\n##########################\n\n']);
+        pause(2);
+        continue
+    end
+    
     
     % eeg_SASICA crashes in loop, so let's do it manually (below)
     % defualt parameters (for GUI) can be takenfrom here:
@@ -124,6 +142,7 @@ for isub = (1+skipsubs):length(files_eegICA)
     disp('Use command "dbcont" to continue.')
     keyboard;
     fprintf("This was %s.\n\n", filenameFull);
+    clipboard('copy', filenameFull);
     input('are you done?');
     % SASICA stores the results in base workspace via assignin.
     % [Info from Niko Busch's pipeline:
@@ -131,6 +150,9 @@ for isub = (1+skipsubs):length(files_eegICA)
     EEG = evalin('base','EEG');
     rej_comps = find(EEG.reject.gcompreject);
     SASICAinfo = EEG.reject.SASICA;
+    fprintf('\n\n\n\n\n');
+    fprintf(['Rejected components:\n' num2str(rej_comps)])
+    fprintf('\n\n\n\n\n');
     
     % save which components were removed and SASICA info:
     EEG.etc.rejcomp = rej_comps;
