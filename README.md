@@ -22,3 +22,7 @@ Furthermore, we tested whether peripheral physiological responses, here the card
 
 <h3>Miscellaneous</h3> 
 Before the main phase of the experiment, we tested the Interceptive Accuracy (IA) of each subject with the <a href="https://doi.org/10.1111/j.1469-8986.1981.tb02486.x">Heart Beat Perception (HBP)</a> task.   
+
+<h3>Collaborators</h3>
+href="https://github.com/eioe">Felix Klotzsche</a>
+href="https://github.com/langestroop">Alberto Mariola</a>
