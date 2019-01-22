@@ -5,7 +5,7 @@ Load Data for LSTM Model. Only use Space-Break-Andes (SBA) Versions, which are p
     • Create Batches
 
 ......................................................................................................................
-Model 1) Feed to best SSD-extracted alpha components (250Hz), i.e. 2 channels, into LSTM to predict ratings (1Hz)
+Model 1) Feed best SSD-extracted alpha components (250Hz), i.e. 2 channels, into LSTM to predict ratings (1Hz)
 
 
 Comp1: [x1_0, ..., x1_250], [x1_251, ..., x1_500], ... ]  ==> LSTM \
