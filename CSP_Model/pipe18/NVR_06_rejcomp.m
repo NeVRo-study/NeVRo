@@ -1,5 +1,6 @@
 %% NVR_06_rejcomp
 % 
+% 
 % Inspirations and code snippets from:
 % https://www.aesthetics.mpg.de/fileadmin/user_upload/Services/ProgressFiles/EEGLab_RunICA_PruneData.html
 % by R. Muralikrishnan
@@ -20,14 +21,14 @@ end
 %1.1 Set different paths:
 path_data = '../../Data/';
 path_dataeeg =  [path_data 'EEG/'];
-path_in_eegICA = [path_dataeeg 'cleanICA/' mov_cond '/' cropstyle '/'];
-path_in_eegFull = [path_dataeeg 'eventsAro/' mov_cond '/' cropstyle '/'];
+path_in_eegICA = [path_dataeeg '05_cleanICA/' mov_cond '/' cropstyle '/'];
+path_in_eegFull = [path_dataeeg '04_eventsAro/' mov_cond '/' cropstyle '/'];
 
 % output paths:
-path_out_eeg_short = [path_dataeeg 'rejcomp/' mov_cond '/' cropstyle '/short/'];
-if ~exist(path_out_eeg_short, 'dir'); mkdir(path_out_eeg_short); end
-path_out_eeg_full = [path_dataeeg 'rejcomp/' mov_cond '/' cropstyle '/'];
+path_out_eeg_full = [path_dataeeg '06_rejcomp/' mov_cond '/' cropstyle '/'];
 if ~exist(path_out_eeg_full, 'dir'); mkdir(path_out_eeg_full); end
+path_out_eeg_short = [path_out_eeg_full '/short/'];
+if ~exist(path_out_eeg_short, 'dir'); mkdir(path_out_eeg_short); end
 
 %1.2 Get data files
 files_eegICA = dir([path_in_eegICA '*.set']);

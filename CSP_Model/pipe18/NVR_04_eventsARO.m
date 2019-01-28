@@ -1,5 +1,8 @@
 %% NVR_EventsAro
-%This script adds the arousal events to the NeVRo EEG data. 
+% This script adds the arousal events to the NeVRo EEG data. 
+% Requires behavioral arousal rating data in seperate folder (ratings/...).
+%
+% 2017 (edited 2018) by Felix Klotzsche 
 
 function NVR_04_eventsARO(cropstyle, mov_cond) 
 
@@ -10,11 +13,11 @@ function NVR_04_eventsARO(cropstyle, mov_cond)
 %1.1 Set different paths:
 path_data = '../../Data/';
 path_dataeeg =  [path_data 'EEG/'];
-path_in_eeg = [path_dataeeg 'CROP/' mov_cond '/' cropstyle '/']; 
+path_in_eeg = [path_dataeeg '03_CROP/' mov_cond '/' cropstyle '/']; 
 path_evaro_rat = [path_data 'ratings/ratings_' cropstyle '/' mov_cond '/'];
 
 % output paths:
-path_out_eeg = [path_dataeeg 'eventsAro/' mov_cond '/' cropstyle '/'];
+path_out_eeg = [path_dataeeg '04_eventsAro/' mov_cond '/' cropstyle '/'];
 if ~exist(path_out_eeg, 'dir'); mkdir(path_out_eeg); end
 
 %1.2 Get data files
@@ -28,7 +31,6 @@ files_evaro = {files_evaro.name};
 [ALLEEG EEG CURRENTSET ALLCOM] = eeglab;
 
 for isub = 1:length(files_eeg)
-    %for itask=1:length(task_red)
     
     % 1.4 Get subj name for getting the right event file later:
     thissubject = files_eeg{isub};

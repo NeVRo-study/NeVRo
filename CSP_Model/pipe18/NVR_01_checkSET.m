@@ -1,14 +1,17 @@
 %% NVR checkSET
-% 2017 by Felix Klotzsche 
-% 
+%  
 % This script loads the raw and continuous EEG data for either MOV or NOMOV 
 % condition and performs a sanity check:
 % Are any weird markers included (esp. boundary events)? 7 events are
 % expected (1 boundary at the very start + 2 events (start+end) per roller 
 % coaster and the break)
 %
-% Data directory (path_in_eeg) has to be defined manually to read in the 
-% according files . 
+% Can be extended to have further sanity checks. 
+%
+% 2017 (edited 2018) by Felix Klotzsche 
+%
+
+function NVR_01_checkSET(m_cond)
 
 %% 1.Set Variables
 clc
@@ -16,10 +19,9 @@ clc
 
 %1.1 Set different paths:
 % path to NeVRo/Data:
-path_master = 'D:/Felix/ownCloud/NeVRo/Data/';
-% input paths:
-path_dataeeg = [path_master 'EEG/raw/'];
-path_in_eeg = [path_dataeeg 'nomov_SETs/']; %[path_dataeeg 'mov_SETs']
+path_data = '../../Data/';
+path_dataeeg = [path_data 'EEG/raw/'];
+path_in_eeg = [path_dataeeg m_cond '_SETs/']; 
 
 
 %1.2 Get data files
@@ -64,6 +66,7 @@ for isub = 5:length(files_eeg)
     if (~(size(EEG.event, 2) == 7))
         fprintf('###############\n\n\n\n\n\n\n\n###############');
         fprintf(['Problem with subject ' thissubject '.\n']);
+        fprintf(['In this condition: ' m_cond '\n']); 
         fprintf(['There were ' num2str(size(EEG.event, 2)) ' events.\n']);
         fprintf('###############\n\n\n\n\n\n\n\n###############');
         break; %continue

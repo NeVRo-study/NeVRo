@@ -1,7 +1,6 @@
 
 %% NVR artifact rejection
-% 2017 by Felix Klotzsche*
-% *: main contribution
+% 2017 by Felix Klotzsche
 %
 %This script calculates which epoch shall be discarded due to high variance
 %in the signal. The procedure is oriented at the approach by Haufe, Daehne &
@@ -19,7 +18,7 @@ function NVR6_artrej(cropstyle)
 %1.1 Set different paths:
 path_data = '../../Data/';
 path_dataeeg =  [path_data 'EEG/'];
-path_in_eeg = [path_dataeeg 'eventsAro/' mov_cond '/' cropstyle '/']; 
+path_in_eeg = [path_dataeeg '04_eventsAro/' mov_cond '/' cropstyle '/']; 
 
 % output paths:
 path_out_eeg = [path_dataeeg 'preICA/' mov_cond '/' cropstyle '/'];

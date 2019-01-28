@@ -1,5 +1,5 @@
-%% NVR_EventsAro
-%This script adds the arousal events to the NeVRo EEG data. 
+%% NVR ICA
+%
 
 function NVR_05_ICA(cropstyle, mov_cond, varargin) 
 
@@ -16,10 +16,10 @@ end
 %1.1 Set different paths:
 path_data = '../../Data/';
 path_dataeeg =  [path_data 'EEG/'];
-path_in_eeg = [path_dataeeg 'eventsAro/' mov_cond '/' cropstyle '/']; 
+path_in_eeg = [path_dataeeg '04_eventsAro/' mov_cond '/' cropstyle '/']; 
 
 % output paths:
-path_out_eeg = [path_dataeeg 'cleanICA/' mov_cond '/' cropstyle '/'];
+path_out_eeg = [path_dataeeg '05_cleanICA/' mov_cond '/' cropstyle '/'];
 if ~exist(path_out_eeg, 'dir'); mkdir(path_out_eeg); end
 path_reports = [path_out_eeg 'reports/'];
 if ~exist(path_reports, 'dir'); mkdir(path_reports); end
