@@ -22,11 +22,11 @@ end
 path_master = 'G:/NEVRO/NVR_master/';
 % input paths:
 path_dataeeg = [path_master 'data/EEG/'];
-path_in_eeg = [path_dataeeg 'F_EEG/' cropstyle '/3_SSD/' filt_folder '/' ssd_freq '/'];
-path_results = [path_dataeeg 'F_EEG/' cropstyle '/4_CSP/' filt_folder '/' ssd_freq '/'];
+path_in_eeg = 'D:\Felix\ownCloud\NeVRo\Data\EEG\10.1_SSD\mov\SBA\narrowband\'; %[path_dataeeg 'F_EEG/' cropstyle '/3_SSD/' filt_folder '/' ssd_freq '/'];
+path_results = 'D:\Felix\ownCloud\NeVRo\Data\EEG\08_CSPtemp\mov\narrowband\' ; %[path_dataeeg 'F_EEG/' cropstyle '/4_CSP/' filt_folder '/' ssd_freq '/'];
 path_reports = [path_results 'reports/'];
 if ~exist(path_reports, 'dir'); mkdir(path_reports); end
-
+if ~exist(path_results, 'dir'); mkdir(path_results); end
 %% === CONSTANTS ===
 freqs = [6 8 13 15];
 timewnd = [-0.5 0.5]; 
@@ -34,7 +34,7 @@ mrks = {'1','3'};
 
 trainsets = {[path_in_eeg '*.set']};
 
-run('E:\Felix\BCILAB\BCILAB-devel\bcilab.m')
+% run('E:\Felix\BCILAB\BCILAB-devel\bcilab.m')
 
 % === DEFINE APPROACHES ===
 % (note: use unique names for all your approaches)
@@ -46,8 +46,8 @@ approach = {'CSP' 'SignalProcessing', {'EpochExtraction', timewnd, ...
                                          'LogTransform', 1, ...
                                          'ShrinkageCovariance', 1},...
                    'MachineLearning', {'Learner', {'lda', ...
-                                                   'Regularizer', 'shrinkage', ...
-                                                   'Lambda', search([0:0.2:1])}}}};
+                                                   'Regularizer', 'auto'}}}}; % 'shrinkage', ...
+                                                  % 'Lambda', search([0:0.2:1])}}}};
 
 % === RUN BATCH ANALYSIS ===
 
@@ -56,7 +56,7 @@ results = bci_batchtrain('StudyTag','CSPBatch', ...
     'Approaches',approach, ...
     'TargetMarkers',mrks, ...
     'ReuseExisting',false, ...
-    'TrainArguments',{'EvaluationScheme',[10 3], ... 
+    'TrainArguments',{'EvaluationScheme',[5 3], ... 
                       'OptimizationScheme', 5}, ... 
     'StoragePattern',[path_results, '%approach-%set.mat']);
 

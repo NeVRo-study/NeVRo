@@ -1,6 +1,6 @@
 <h1>NeVRo</h1> 
 
-*This is a rough outline. A more detailed description will come soon.*
+*This is a rough outline. A more detailed description will come soon. Please see the publications for the specific models linked in the corresponding sections.*
 
 <h2>Introduction</h2> 
 
