@@ -40,22 +40,18 @@ import pandas as pd
 
 # # # Define data folder roots
 
-new_prep = True  # TODO True if freshly prepocessed data (late 2018/early 2019) should be loaded
-
 path_data = "../../Data/"
 
-path_ssd = path_data + ("EEG/10.1_SSD/" if new_prep else "EEG_SSD/")
-path_ssd_comp = path_ssd + "Components/"
+path_ssd = path_data + "EEG/10_SSD/"
+path_spoc = path_data + "EEG/11_SPOC/"
 
 # # SBA-pruned data (148:space, 30:break, 92:ande)
-path_ssd_sba_comp = path_ssd + "SBA/Components/"
-path_ssd_sba_comp_broadband = path_ssd_sba_comp + "not_alpha_band_passed/"  # i.e. broadband
-path_spoc_sba_comp = path_data + "EEG_SPOC/SBA/Components/"
 
+# # Rating data
 # path_rating = path_data + "ratings/preprocessed/z_scored_alltog/"
 path_rating = path_data + "ratings/preprocessed/not_z_scored/"  # min-max scale later to [-1, +1]
 path_rating_bins = path_data + "ratings/preprocessed/classbin_ratings/"
-
+# # ECG data
 path_ecg_crop = path_data + "Data EEG export/NeVRo_ECG_Cropped/"
 path_ecg_sba = path_data + "ECG/SBA/z_scored_alltog/"
 path_results_xcorr = "../../Results/x_corr/"
@@ -104,22 +100,22 @@ def update_coaster_lengths(subjects, empty_t_array, sba=True):
     return full_t_array
 
 # t_roller_coasters = np.zeros((len(roller_coasters)))  # init
-# t_roller_coasters = update_coaster_lengths(subjects=[36,44], empty_t_array=t_roller_coasters, sba=True)
+# t_roller_coasters = update_coaster_lengths(subjects=[36, 44], empty_t_array=t_roller_coasters, sba=True)
 # t_roller_coasters = np.array([148, 30, 92])   # SBA
 
 
-def get_filename(subject, filetype, band_pass, cond="NoMov", sba=True):
+def get_filename(subject, filetype, band_pass, cond="nomov", sba=True):
     """
     Receive the filename for specific setup.
     :param subject: subject number
     :param filetype: Either 'SSD' or 'SPOC'
     :param band_pass: Data either band-pass filtered or not. 'SPOC' always band-pass filtered
-    :param cond: 'NoMov' [Default] or 'Mov'
+    :param cond: 'nomov' [Default] or 'mov'
     :param sba: SBA data
     :return: filename
     """
 
-    assert cond in ["NoMov", "Mov"], "cond must be either 'NoMov' or 'Mov'"
+    assert cond in ["nomov", "mov"], "cond must be either 'nomov' or 'mov'"
 
     assert filetype.upper() in ["SSD", "SPOC"], "filetype must be either 'SSD' or 'SPOC'"
 
