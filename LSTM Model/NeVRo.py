@@ -154,9 +154,10 @@ def train_lstm():
 
     # Choose component: Given by list e.g., '1,3,5' or as label, e.g., 'best'
     if FLAGS.filetype.upper() == "SSD":
-        best_comp = best_component(subject=FLAGS.subject)  # First find best component
+        best_comp = choose_component(subject=FLAGS.subject, best=True)  # First find best component
     elif FLAGS.filetype.upper() == "SPOC":
-        print("The best correlating SPOC component of Subject {} is Component Number 1".format(FLAGS.subject))
+        print("The best correlating SPOC component of Subject {} is Component Number 1".format(
+            FLAGS.subject))
         best_comp = 1
 
     if not FLAGS.component.split(",")[0].isnumeric():
@@ -168,20 +169,23 @@ def train_lstm():
             input_component = 90 + best_comp  # coding for noise component
         elif FLAGS.component == "random":
             while True:
-                input_component = np.random.randint(1, 5 + 1)  # ! If 'SPOC' some subjects might have less than 5 comps!
+                input_component = np.random.randint(1, 5 + 1)
+                # ! If 'SPOC' some subjects might have less than 5 comps!
                 if input_component != best_comp:
                     break
         elif FLAGS.component == "all":
             cfname = get_filename(subject=FLAGS.subject, filetype=FLAGS.filetype, band_pass=FLAGS.band_pass,
                                   cond="NoMov", sba=True)
             if os.path.isfile(cfname):
-                n_comp = len(np.genfromtxt(cfname, delimiter=";", dtype="str")[0].split("\t")[:-1])  # last=' '
+                n_comp = len(np.genfromtxt(cfname, delimiter=";", dtype="str")[0].split("\t")[:-1])
+                # last=' '
                 input_component = list(range(1, n_comp + 1))
             else:
                 raise FileNotFoundError(cfname)
 
     else:  # given components are in form of list
-        assert np.all([comp.isnumeric() for comp in FLAGS.component.split(",")]), "All given components must be numeric"
+        assert np.all([comp.isnumeric() for comp in FLAGS.component.split(",")]), \
+            "All given components must be numeric"
         input_component = [int(comp) for comp in FLAGS.component.split(",")]
 
     print("LSTM model get trained on input_component:", input_component)
@@ -216,7 +220,7 @@ def train_lstm():
 
     pred_matrix = np.zeros(shape=(FLAGS.s_fold*2, full_length), dtype=np.float32)
     pred_matrix[np.where(pred_matrix == 0)] = np.nan  # set to NaN values
-    # We create a separate matrix for the validation (which can be merged with the first pred_matrix later)
+    # We create a separate matrix for the validation (which can be merged with the 1. pred_matrix later)
     val_pred_matrix = copy.copy(pred_matrix)
 
     # In case data was shuffled save corresponding order per fold in matrix and save later

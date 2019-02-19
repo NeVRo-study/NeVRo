@@ -206,8 +206,8 @@ def _feed_dict(training):
     return {x: xs, y: ys}
 
 
-nevro_data = get_nevro_data(subject=36, component=best_component(36), s_fold_idx=9, s_fold=10,
-                            cond="NoMov", sba=True, hilbert_power=True)
+nevro_data = get_nevro_data(subject=36, component=choose_component(36, best=True), s_fold_idx=9,
+                            s_fold=10, cond="NoMov", sba=True, hilbert_power=True)
 
 ddims = list(nevro_data["train"].eeg.shape[1:])  # [250, 2]
 

@@ -38,18 +38,20 @@ import pandas as pd
 
 #  load EEG data of from *.set (EEGlab format) with: mne.io.read_raw_eeglab() and mne.read_epochs_eeglab()
 
-# # # Define data folder roots
+fresh_prep = True  # with refreshed preprocessed data is to be used
 
+# # # Define data folder roots
 print("Current working dir:", os.getcwd())
+
+prfx_path = "../../"
 
 path_data = "Data/"
 if not os.path.exists(path_data):  # depending on root-folder
-    path_data = "../../" + path_data
+    path_data = prfx_path + path_data
 
 path_ssd = path_data + "EEG/10_SSD/"
 path_spoc = path_data + "EEG/11_SPOC/"
-
-# # SBA-pruned data (148:space, 30:break, 92:ande)
+# # SBA-pruned data (148:space, 30:break, 92:andes)
 
 # # Rating data
 # path_rating = path_data + "ratings/preprocessed/z_scored_alltog/"
@@ -58,54 +60,33 @@ path_rating_bins = path_data + "ratings/preprocessed/classbin_ratings/"
 # # ECG data
 path_ecg_crop = path_data + "Data EEG export/NeVRo_ECG_Cropped/"
 path_ecg_sba = path_data + "ECG/SBA/z_scored_alltog/"
-path_results_xcorr = "../../Results/x_corr/"
+
+path_results_xcorr = "Results/x_corr/"
+if not os.path.exists(path_results_xcorr):  # depending on root-folder
+    path_results_xcorr = prfx_path + path_results_xcorr
 
 # # # Initialize variables
 # subjects = [36]  # [36, 37]
 # subjects = range(1, 45+1)
 # dropouts = [1,12,32,33,38,40,45]
 
-# roller_coasters = np.array(['Space_NoMov', 'Space_Mov', 'Ande_Mov', 'Ande_NoMov'])
-roller_coasters = np.array(['Space_NoMov', "Break_NoMov", 'Ande_NoMov']) if True \
-    else np.array(['Space_NoMov', 'Ande_NoMov'])
-
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
 
-def update_coaster_lengths(subjects, empty_t_array, sba=True):
+def t_roller_coasters(sba=True):
     """
-    Creates an array of the lengths of the different phases (e.g., roller coasters)
-    :param subjects: list of subjects or single subject
-    :param empty_t_array: array to be filled
-    :param sba: asks whether pruned SBA-files should be used to calculate times.
-    :return: array with lengths of phases
+    :return: array with lengths of phases for sba or sa
     """
-    sfreq = 500.
+    return np.array([148., 30., 92]) if sba else np.array([148., 92])
 
-    if not sba:
 
-        if not isinstance(subjects, list):
-            subjects = [subjects]
+def roller_coasters(cond, sba=True):
 
-        for sub in subjects:
-            for n, coast in enumerate(roller_coasters):
-                time_ecg_fname = path_ecg_crop + "NVR_S{}_{}.txt".format(str(sub).zfill(2), coast)
-                if os.path.isfile(time_ecg_fname):
-                    ecg_file = np.loadtxt(time_ecg_fname)
-                    len_time_ecg = len(ecg_file) / sfreq
-                    empty_t_array[n] = len_time_ecg if len_time_ecg > empty_t_array[n] \
-                        else empty_t_array[n]
+    sfx = "_Mov" if cond.lower() == "mov" else "_NoMov"  # suffix
 
-    else:
-        empty_t_array = np.array([148., 30., 92])
+    rl = np.array(['Space'+sfx, 'Break'+sfx, 'Ande'+sfx])
 
-    full_t_array = empty_t_array  # make-up
-    # print("Length of each roller coaster:\n", full_t_array)
-    return full_t_array
-
-# t_roller_coasters = np.zeros((len(roller_coasters)))  # init
-# t_roller_coasters = update_coaster_lengths(subjects=[36, 44], empty_t_array=t_roller_coasters, sba=True)
-# t_roller_coasters = np.array([148, 30, 92])   # SBA
+    return rl if sba else rl[[0, 2]]
 
 
 def get_filename(subject, filetype, band_pass, cond="nomov", sba=True):
@@ -146,257 +127,120 @@ def get_filename(subject, filetype, band_pass, cond="nomov", sba=True):
     return file_name
 
 
-# Load file
-def load_ssd_component(subjects, condition, band_pass, samp_freq=250., sba=True):
+def load_component(subjects, condition, f_type, band_pass, samp_freq=250., sba=True):
     """
+    Load components files (SSD, SPOC) and prepare them in dictionary
     :param subjects: list of subjects or single subject
     :param condition: 'nomov' or 'mov' condition
-    :param band_pass: Whether SSD components are band-passed filter around alpha
-    :param samp_freq: sampling frequency of SSD-components
-    :param sba: if True (=Default), take SBA-z-scored components
-    Loads SSD components (files) of each subject in subjects
-    :return: SSD component files [sub_df] in form of dictionary
+    :param f_type: either "SSD" or "SPOC"
+    :param band_pass: Whether components are band-passed filter around alpha (SPOC normally is)
+    :param samp_freq: sampling frequency of components
+    :param sba: if True (=Default), take SBA-z-scored components  # TODO check whether z-scored
+    Loads components of each subject in subjects
+    :return: component files [sub_df] in form of dictionary
     """
 
     if not isinstance(subjects, list):
         subjects = [subjects]
 
-    # Create SSD Component Dictionary
-    ssd_comp_dic_keys = [str(i) for i in subjects]
+    assert f_type.upper() in ["SSD", "SPOC"], "f_type must be 'SSD' or 'SPOC'"
+
+    # Create Component Dictionary
+    comp_dic_keys = [str(i) for i in subjects]
     # == list(map(str, subjects))  # these keys also work int
-    ssd_comp_dic = {}
-    ssd_comp_dic.update((key, dict.fromkeys(roller_coasters, [])) for key in ssd_comp_dic_keys)
+    comp_dic = {}
+    comp_dic.update((key, dict.fromkeys(roller_coasters(condition, sba), [])) for key in comp_dic_keys)
 
-    condition_keys = [element.split("_")[1] for element in roller_coasters]  # "NoMov", "Mov"
-    condition_keys = list(set(condition_keys))
+    condition_keys = [condition]  # "NoMov", "Mov"
 
-    t_roller_coasters = update_coaster_lengths(subjects=subjects,
-                                               empty_t_array=np.zeros((len(roller_coasters))),
-                                               sba=sba)
-
-    for key in ssd_comp_dic_keys:
-        ssd_comp_dic[key].update({"SBA" if sba else "SA": dict.fromkeys(condition_keys, [])})
+    for key in comp_dic_keys:
+        comp_dic[key].update({"SBA" if sba else "SA": dict.fromkeys(condition_keys, [])})
 
     for subject in subjects:
 
-        for num, coaster in enumerate(roller_coasters):
+        file_name = get_filename(subject=subject, filetype=f_type.upper(), band_pass=band_pass,
+                                 cond=condition, sba=sba)
+        # "NVR_S36_1_SSD_nonfilt_cmp.csv"
 
-            folder = coaster.split("_")[1]  # either "Mov" or "NoMov" (only needed for sba case)
+        if os.path.isfile(file_name):
 
-            file_name = get_filename(subject=subject, filetype="SSD", band_pass=band_pass,cond=condition,
-                                     sba=sba)
-            # "NVR_S36_1_SSD_nonfilt_cmp.csv"
+            # N components sorted
+            #   SSD:  from 1-N according to the signal-to-noise-ration (SNR)
+            #   SPOC: from 1-N according to comodulation between component and target
 
-            if os.path.isfile(file_name):
-                # x = x.split("\t")  # '\t' divides values
-                # N components sorted from 1-N according to the signal-to-noise-ration (SNR)
-                n_comp = len(np.genfromtxt(file_name, delimiter="\t")[:, 0])  # first column = comp nr.
+            # rows = components, columns value per timestep
+            sub_df = np.genfromtxt(file_name, delimiter="\t")[:, 1:-1].transpose()  # last column is empty
+            # sub_df.shape=(67503, 6=N-comps)  # for S36 with samp_freq=250: 67503/250. = 270.012 sec
 
-                # rows = components, columns value per timestep
-                sub_df = np.genfromtxt(file_name, delimiter="\t")[:, 1:-1]  # last column is empty
-                sub_df = sub_df.transpose()
-                # sub_df.shape=(67503, n_comp=6)  # for S36 with samp_freq=250: 67503/250. = 270.012 sec
+            # Save whole SBA/SA under condition (nomov, mov)
+            comp_dic[str(subject)]["SBA" if sba else "SA"][condition] = copy.copy(sub_df)
 
-                # TODO continue here
-                # Fill in SSD Dictionary: ssd_comp_dic
+            for num, coaster in enumerate(roller_coasters(condition, sba)):
+
+                # Fill in Dictionary: comp_dic
                 # Split SBA file in Space-Break-Andes
                 if "Space" in coaster:
                     sba_idx_start = 0
-                    sba_idx_end = int(t_roller_coasters[0] * samp_freq)
+                    sba_idx_end = int(t_roller_coasters(sba)[0] * samp_freq)
                 elif "Break" in coaster:
-                    sba_idx_start = int(t_roller_coasters[0] * samp_freq)
-                    sba_idx_end = int(sum(t_roller_coasters[0:2]) * samp_freq)
+                    sba_idx_start = int(t_roller_coasters(sba)[0] * samp_freq)
+                    sba_idx_end = int(sum(t_roller_coasters(sba)[0:2]) * samp_freq)
                 else:  # "Ande" in coaster
-                    sba_idx_start = int(sum(t_roller_coasters[0:2]) * samp_freq)
-                    sba_idx_end = int(sum(t_roller_coasters) * samp_freq)
+                    sba_idx_start = int(sum(t_roller_coasters(sba)[0:2]) * samp_freq)
+                    sba_idx_end = int(sum(t_roller_coasters(sba)) * samp_freq)
                     # Test lengths
                     if sba_idx_end < sub_df.shape[0]:
-                        print("sub_df of S{} has not expected size: Diff={} data points.".format(
+                        print("sub_df of S{} has not expected size: Difference is {} data points.".format(
                             str(subject).zfill(2), sub_df.shape[0] - sba_idx_end))
                         assert (sub_df.shape[0] - sba_idx_end) <= 3, "Difference too big, check files"
 
-                    ssd_comp_dic[str(subject)][coaster] = copy.copy(sub_df[sba_idx_start:sba_idx_end, :])
-
-                    # process whole SBA only once per condition (NoMov, Mov)
-                    if "Break" in coaster:
-                        assert folder in condition_keys, "Wrong key"
-                        ssd_comp_dic[str(subject)]["SBA"][folder] = copy.copy(sub_df)
+                comp_dic[str(subject)][coaster] = copy.copy(sub_df[sba_idx_start:sba_idx_end, :])
 
                 # Check times:
                 # samp_freq = 250.
-                if not sba:
-                    if not (np.round(t_roller_coasters[num], 1) == np.round(sub_df.shape[0] / samp_freq,
-                                                                            1)):
-                        print("Should be all approx. the same:\nTime of {}: {}"
-                              "\nLength of sub_df/samp_freq({}): {}".format(roller_coasters[num],
-                                                                            t_roller_coasters[num],
-                                                                            int(samp_freq),
-                                                                            sub_df.shape[0] / samp_freq))
-                else:  # if sba:
-                    if not (np.round(sum(t_roller_coasters), 1) == np.round(sub_df.shape[0] / samp_freq,
-                                                                            1)):
-                        print("Should be all approx. the same:\nTime of SBA: {}"
-                              "\nLength of sub_df/samp_freq({}): {}".format(sum(t_roller_coasters),
-                                                                            int(samp_freq),
-                                                                            sub_df.shape[0] / samp_freq))
+                if not (np.round(sum(t_roller_coasters(sba)), 1) == np.round(sub_df.shape[0] / samp_freq,
+                                                                             1)):
+                    print("Should be all approx. the same:\nTime of SBA: {}"
+                          "\nLength of sub_df/samp_freq({}): {}".format(sum(t_roller_coasters(sba)),
+                                                                        int(samp_freq),
+                                                                        sub_df.shape[0] / samp_freq))
 
-    return ssd_comp_dic
-
-# SSD_Comp_dic = load_ssd_component(samp_freq=250., sba=True)
-# for num, coaster in enumerate(roller_coasters):
-#     print(SSD_Comp_dic[str(subjects[0])][roller_coasters[num]].shape,
-#           "=",
-#           SSD_Comp_dic[str(subjects[0])][roller_coasters[num]].shape[0]/250.,
-#           "sec\t|",
-#           SSD_Comp_dic[str(subjects[0])][roller_coasters[num]].shape[1],
-#           "components\t|",
-#           roller_coasters[num])
+    return comp_dic
 
 
-def load_spoc_component(subjects, condition, band_pass=True, samp_freq=250., sba=True):
+# TODO continue here
+def choose_component(subject, best=True):
     """
-    :param subjects: list of subjects or single subject
-    :param condition: mov or nomov condition
-    :param band_pass: Whether SPOC components are band-passed filter for alpha
-    :param samp_freq: sampling frequency of SPOC-components
-    :param sba: if True (=Default), take SBA-z-scored components
-    Loads SSD components (files) of each subject in subjects
-    :return: SSD component files [sub_df] in form of dictionary
-    """
-
-    if not isinstance(subjects, list):
-        subjects = [subjects]
-
-    # Create SSD Component Dictionary
-    spoc_comp_dic_keys = [str(i) for i in subjects]
-    # == list(map(str, subjects))  # these keys also work int
-    spoc_comp_dic = {}
-    spoc_comp_dic.update((key, dict.fromkeys(roller_coasters, [])) for key in spoc_comp_dic_keys)
-
-    condition_keys = [element.split("_")[1] for element in roller_coasters]  # "NoMov", "Mov"
-    condition_keys = list(set(condition_keys))
-
-    t_roller_coasters = update_coaster_lengths(subjects=subjects,
-                                               empty_t_array=np.zeros((len(roller_coasters))),
-                                               sba=sba)
-
-    if sba:
-        for key in spoc_comp_dic_keys:
-            spoc_comp_dic[key].update({"SBA": dict.fromkeys(condition_keys, [])})
-
-    for subject in subjects:
-        for num, coaster in enumerate(roller_coasters):
-            folder = coaster.split("_")[1]  # either "Mov" or "NoMov" (only needed for sba case)
-            if sba:
-                if band_pass:
-                    file_name = path_spoc_sba_comp + \
-                                folder + \
-                                "/NVR_S{}_SBA_{}_PREP_SPOC_Components.txt".format(str(subject).zfill(2),
-                                                                                  folder)
-                else:
-                    raise ValueError("There are no non-band_passed SPOC files here (yet)")
-
-            else:
-                file_name = path_ssd_comp + "S{}_{}_Components.txt".format(str(subject).zfill(2), coaster)
-
-            if os.path.isfile(file_name):
-
-                n_comp = len(np.genfromtxt(file_name, delimiter=";", dtype="str")[0].split("\t")[:-1])
-                # last=' '
-
-                # columns = components, rows value per timestep
-                pre_sub_df = np.genfromtxt(file_name, delimiter=";", dtype="str")[1:]
-                # first row = comp.names
-                sub_df = np.zeros((pre_sub_df.shape[0], n_comp))
-                for row in range(pre_sub_df.shape[0]):
-                    values_at_t = pre_sub_df[row].split("\t")
-                    sub_df[row] = list(map(float, values_at_t))  # == [float(i) for i in values_at_t]
-                # del pre_sub_df  # save WM
-
-                # sub_df.shape=(38267, n_comp=22)
-                # for S36_Space_NoMov | Samp. Freq. = 250 | 38267/250 = 153.068sec
-
-                # Fill in SSD Dictionary: spoc_comp_dic
-                if not sba:
-                    spoc_comp_dic[str(subject)][coaster] = copy.copy(sub_df)
-
-                else:  # if sba
-                    # Split SBA file in Space-Break-Andes
-                    if "Space" in coaster:
-                        sba_idx_start = 0
-                        sba_idx_end = int(t_roller_coasters[0] * samp_freq)
-                    elif "Break" in coaster:
-                        sba_idx_start = int(t_roller_coasters[0] * samp_freq)
-                        sba_idx_end = int(sum(t_roller_coasters[0:2]) * samp_freq)
-                    else:  # "Ande" in coaster
-                        sba_idx_start = int(sum(t_roller_coasters[0:2]) * samp_freq)
-                        sba_idx_end = int(sum(t_roller_coasters) * samp_freq)
-                        # Test lengths
-                        if sba_idx_end < sub_df.shape[0]:
-                            print("sub_df of S{} has not expected size: Diff={} data points.".format(
-                                str(subject).zfill(2), sub_df.shape[0] - sba_idx_end))
-                            assert (sub_df.shape[0] - sba_idx_end) <= 3, "Difference too big, check files"
-
-                    spoc_comp_dic[str(subject)][coaster] = copy.copy(sub_df[sba_idx_start:sba_idx_end, :])
-
-                    # process whole SBA only once per condition (NoMov, Mov)
-                    if "Break" in coaster:
-                        assert folder in condition_keys, "Wrong key"
-                        spoc_comp_dic[str(subject)]["SBA"][folder] = copy.copy(sub_df)
-
-                # Check times:
-                # samp_freq = 250.
-                if not sba:
-                    if not (np.round(t_roller_coasters[num], 1) == np.round(sub_df.shape[0] / samp_freq,
-                                                                            1)):
-                        print("Should be all approx. the same:\nTime of {}: {}"
-                              "\nLength of sub_df/samp_freq({}): {}".format(roller_coasters[num],
-                                                                            t_roller_coasters[num],
-                                                                            int(samp_freq),
-                                                                            sub_df.shape[0] / samp_freq))
-                else:  # if sba:
-                    if not (np.round(sum(t_roller_coasters), 1) == np.round(sub_df.shape[0] / samp_freq,
-                                                                            1)):
-                        print("Should be all approx. the same:\nTime of SBA: {}"
-                              "\nLength of sub_df/samp_freq({}): {}".format(sum(t_roller_coasters),
-                                                                            int(samp_freq),
-                                                                            sub_df.shape[0] / samp_freq))
-
-    return spoc_comp_dic
-# SPOC_Comp_dic = load_spoc_component(subjects=44)
-
-
-def best_component(subject, best=True):
-    """
-    Choose the best SSD-alpha-component, w.r.t. x-corr with ratings, from list for given subject.
+    Choose the SSD-alpha-component, either randomly or the best
     :param subject: subject number
-    :param best: if false, take random
-    :return: best component number
+    :param best: False: take random. If True: Choose w.r.t. x-corr with ratings from list for given subj.
+    :return: component number
     """
 
-    # x_corr_table = np.genfromtxt(path_results_xcorr + "CC_AllSubj_Alpha_Ratings_smooth.csv",
-    #                              delimiter=",", skip_header=1, dtype=float)
+    if fresh_prep:
+        raise ImportError("Xcorr table needs to be updated")  # TODO table need to be updated
 
     # Load Table
     x_corr_table = pd.read_csv(path_results_xcorr + "CC_AllSubj_Alpha_Ratings_smooth.csv", index_col=0)
-    # first col is idx
-    # drop non-used columns
-    x_corr_table = x_corr_table.drop(x_corr_table.columns[0:3], axis=1)
+
+    # Drop non-used columns
+    x_corr_table = x_corr_table.drop(x_corr_table.columns[0:3], axis=1)  # first col is idx
 
     if best:
-        # x_corr_table.columns = ["components"]  # renamce columns
         component = x_corr_table.loc["S{}".format(str(subject).zfill(2))].values[0]
+
+        print("The best correlating SSD component of Subject {} is Component Number {}".format(subject,
+                                                                                               component))
 
     else:
         component = best_comp = x_corr_table.loc["S{}".format(str(subject).zfill(2))].values[0]
-        # choose first for now
-
-        # choose another component that is not the best
+        # First, choose best for now
+        # Then, choose another component that is not the best
         while component == best_comp:
-            component = np.random.randint(low=1, high=5+1)
+            component = np.random.randint(low=1, high=5+1)  # TODO depends on number of available comps
 
-    print("The best correlating SSD component of Subject {} is Component Number {}".format(subject,
-                                                                                           component))
+        print("A random SSD component of S{} is chosen (which is not the best one): Component {}".format(
+            subject, component))
 
     return component
 
@@ -430,14 +274,10 @@ def load_rating_files(subjects, samp_freq=1., sba=True, bins=False):
     rating_dic_keys = list(map(str, subjects))  # == [str(i) for i in subjects]
     rating_dic = {}
     # each subejct has a sub-dic for each roller coaster
-    rating_dic.update((key, dict.fromkeys(roller_coasters, [])) for key in rating_dic_keys)
+    rating_dic.update((key, dict.fromkeys(roller_coasters(sba), [])) for key in rating_dic_keys)
 
-    condition_keys = [element.split("_")[1] for element in roller_coasters]  # "NoMov", "Mov"
+    condition_keys = [element.split("_")[1] for element in roller_coasters(sba)]  # "NoMov", "Mov"
     condition_keys = list(set(condition_keys))
-
-    t_roller_coasters = update_coaster_lengths(subjects=subjects,
-                                               empty_t_array=np.zeros((len(roller_coasters))),
-                                               sba=sba)
 
     # For each subject fill condtition in
     for key in rating_dic_keys:
@@ -447,7 +287,7 @@ def load_rating_files(subjects, samp_freq=1., sba=True, bins=False):
             rating_dic[key].update({"SBA": dict.fromkeys(condition_keys, [])})
 
     for subject in subjects:
-        for num, coaster in enumerate(roller_coasters):
+        for num, coaster in enumerate(roller_coasters(sba)):
             # adapt file_name accordingly (run <=> condition,
             if "Space" in coaster:
                 coast = "Space".lower()
@@ -475,11 +315,11 @@ def load_rating_files(subjects, samp_freq=1., sba=True, bins=False):
                 rating_dic[str(subject)][coaster] = copy.copy(rating_file)
 
                 # Check times:
-                if not (np.round(t_roller_coasters[num], 1) == np.round(len(rating_file) / samp_freq, 1)):
+                if not (np.round(t_roller_coasters(sba)[num], 1) == np.round(len(rating_file) / samp_freq, 1)):
                     print("Should be all approx. the same:"
                           "\nTime of {}: {}"
-                          "\nLength of Rating / s_freq({}): {}".format(roller_coasters[num],
-                                                                       t_roller_coasters[num],
+                          "\nLength of Rating / s_freq({}): {}".format(roller_coasters(sba)[num],
+                                                                       t_roller_coasters(sba)[num],
                                                                        samp_freq,
                                                                        len(rating_file) / samp_freq))
 
@@ -511,12 +351,12 @@ def load_rating_files(subjects, samp_freq=1., sba=True, bins=False):
                     rating_dic[str(subject)]["SBA"][cond_key] = copy.copy(sba_rating_file)
 
                     # Check times:
-                    if not (np.round(sum(t_roller_coasters), 1) == np.round(
+                    if not (np.round(sum(t_roller_coasters(sba)), 1) == np.round(
                             len(sba_rating_file) / samp_freq, 1)):
                         print("Should be all approx. the same:"
                               "\nTime of SBA: {}"
                               "\nLength of Rating/s_freq({}Hz): {}".format(
-                            sum(t_roller_coasters), int(samp_freq), len(sba_rating_file) / samp_freq))
+                            sum(t_roller_coasters(sba)), int(samp_freq), len(sba_rating_file) / samp_freq))
 
     return rating_dic
 
@@ -536,21 +376,18 @@ def load_ecg_files(subjects, sba=True, interpolate=True):
     # Create ECG Component Dictionary
     ecg_dic_keys = [str(i) for i in subjects]  # == list(map(str, subjects))  # these keys also work int
     ecg_dic = {}
-    ecg_dic.update((key, dict.fromkeys(roller_coasters, [])) for key in ecg_dic_keys)
+    ecg_dic.update((key, dict.fromkeys(roller_coasters(sba), [])) for key in ecg_dic_keys)
 
-    condition_keys = [element.split("_")[1] for element in roller_coasters]  # "NoMov", "Mov"
+    condition_keys = [element.split("_")[1] for element in roller_coasters(sba)]  # "NoMov", "Mov"
     condition_keys = list(set(condition_keys))
 
-    t_roller_coasters = update_coaster_lengths(subjects=subjects,
-                                               empty_t_array=np.zeros((len(roller_coasters))),
-                                               sba=sba)
 
     if sba:
         for key in ecg_dic_keys:
             ecg_dic[key].update({"SBA": dict.fromkeys(condition_keys, [])})
 
     for subject in subjects:
-        for num, coaster in enumerate(roller_coasters):
+        for num, coaster in enumerate(roller_coasters(sba)):
             folder = coaster.split("_")[1]  # either "Mov" or "NoMov" (only needed for sba case)
             if sba:
                 file_name = path_ecg_sba + "{}/NVR_S{}_SBA_{}.txt".format(folder, str(subject).zfill(2),
@@ -578,13 +415,13 @@ def load_ecg_files(subjects, sba=True, interpolate=True):
                     # Split SBA file in Space-Break-Andes
                     if "Space" in coaster:
                         sba_idx_start = 0
-                        sba_idx_end = int(t_roller_coasters[0])
+                        sba_idx_end = int(t_roller_coasters(sba)[0])
                     elif "Break" in coaster:
-                        sba_idx_start = int(t_roller_coasters[0])
-                        sba_idx_end = int(sum(t_roller_coasters[0:2]))
+                        sba_idx_start = int(t_roller_coasters(sba)[0])
+                        sba_idx_end = int(sum(t_roller_coasters(sba)[0:2]))
                     else:  # "Ande" in coaster
-                        sba_idx_start = int(sum(t_roller_coasters[0:2]))
-                        sba_idx_end = int(sum(t_roller_coasters))
+                        sba_idx_start = int(sum(t_roller_coasters(sba)[0:2]))
+                        sba_idx_end = int(sum(t_roller_coasters(sba)))
                         # Test lengths
                         if sba_idx_end < hr_vector.shape[0]:
                             print("hr_vector of S{} has not expected size: Diff={} data points.".format(
@@ -601,15 +438,15 @@ def load_ecg_files(subjects, sba=True, interpolate=True):
 
                 # Check times:
                 if not sba:
-                    if not (np.round(t_roller_coasters[num], 1) == hr_vector.shape[0]):
+                    if not (np.round(t_roller_coasters(sba)[num], 1) == hr_vector.shape[0]):
                         print("Should be all approx. the same:\nTime of {}: {}"
-                              "\nLength of hr_vector: {}".format(roller_coasters[num],
-                                                                 t_roller_coasters[num],
+                              "\nLength of hr_vector: {}".format(roller_coasters(sba)[num],
+                                                                 t_roller_coasters(sba)[num],
                                                                  hr_vector.shape[0]))
                 else:  # if sba:
-                    if not (np.round(sum(t_roller_coasters), 1) == hr_vector.shape[0]):
+                    if not (np.round(sum(t_roller_coasters(sba)), 1) == hr_vector.shape[0]):
                         print("Should be all approx. the same:\nTime of SBA: {}"
-                              "\nLength of hr_vector: {}".format(sum(t_roller_coasters),
+                              "\nLength of hr_vector: {}".format(sum(t_roller_coasters(sba)),
                                                                  hr_vector.shape[0]))
 
     return ecg_dic
@@ -999,21 +836,18 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
             except NameError:
                 noise_comp = False
 
-    if filetype.upper() == "SSD":
-        eeg_data = load_ssd_component(subjects=subject, condition=cond, band_pass=band_pass)
-    else:  # == 'SPOC'
-        eeg_data = load_spoc_component(subjects=subject, condition=cond, band_pass=band_pass)
+    # Load and prepare EEG components
+    eeg_data = load_component(subjects=subject, condition=cond, f_type=filetype.upper(),
+                              band_pass=band_pass, sba=sba)
 
+    # Load and prepare Rating targets
     rating_data = load_rating_files(subjects=subject, bins=True if task == "classification" else False)
 
+    # Load and prepare heart-rate data
     if hr_component:
         ecg_data = load_ecg_files(subjects=subject, sba=sba)  # interpolation as default
 
     # TODO Load for more than one subject
-    condition = rating_data[str(subject)]["condition"]
-    t_roller_coasters = update_coaster_lengths(subjects=subject,
-                                               empty_t_array=np.zeros((len(roller_coasters))),
-                                               sba=sba)
 
     # 0) Take Space-Break-Ande (SBA) files from dictionaries
     # 1) and choose specific components
@@ -1035,7 +869,7 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
 
         len_test = eeg_sba.shape[0] / s_freq_eeg - rating_sba.shape[0]
         if len_test > 0.0:
-            to_delete = np.cumsum(t_roller_coasters)  # [ 148.,  178.,  270.]
+            to_delete = np.cumsum(t_roller_coasters(sba))  # [ 148.,  178.,  270.]
             # 3 intersections where values can be removed (instead of cutting only at the end/start)
             to_delete *= s_freq_eeg
             to_cut = int(round(len_test * s_freq_eeg))
@@ -1097,7 +931,7 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
     # np.split(np.array([1,2,3,4,5,6]), 3) >> [array([1, 2]), array([3, 4]), array([5, 6])]
 
     # split EEG data w.r.t. to total sba-length
-    eeg_sba_split = splitter(eeg_sba, n_splits=int(sum(t_roller_coasters)))
+    eeg_sba_split = splitter(eeg_sba, n_splits=int(sum(t_roller_coasters(sba))))
     # [sec, data-points, components)
 
     # If semi-balanced low-high-arousal values for valid. set is required (in binary classi.) then do:
@@ -1130,9 +964,9 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
 
     # Create datasets
     train = DataSet(name="Training", eeg=train_eeg, ratings=train_ratings, subject=subject,
-                    condition=condition, task=task)
+                    condition=cond, task=task)
     validation = DataSet(name="Validation", eeg=validation_eeg, ratings=validation_ratings,
-                         subject=subject, condition=condition, task=task)
+                         subject=subject, condition=cond, task=task)
     # Test set
     # test = DataSet(eeg=test_eeg, ratings=test_ratings, subject=subject, condition=condition, task=task)
     test = None
