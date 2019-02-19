@@ -38,23 +38,29 @@ import pandas as pd
 
 #  load EEG data of from *.set (EEGlab format) with: mne.io.read_raw_eeglab() and mne.read_epochs_eeglab()
 
-# # # Change to Folder which contains files
-wdic = "../../Data/EEG_SSD/"
-wdic_Comp = "../../Data/EEG_SSD/Components/"
-wdic_SBA_Comp = "../../Data/EEG_SSD/SBA/Components/"
-wdic_SBA_Comp_non_band_pass = "../../Data/EEG_SSD/SBA/Components/not_alpha_band_passed/"
-wdic_SBA_SPOC_Comp = "../../Data/EEG_SPOC/SBA/Components/"
+# # # Define data folder roots
+
+new_prep = True  # TODO True if freshly prepocessed data (late 2018/early 2019) should be loaded
+
+path_data = "../../Data/"
+
+path_ssd = path_data + ("EEG/10.1_SSD/" if new_prep else "EEG_SSD/")
+path_ssd_comp = path_ssd + "Components/"
+
 # # SBA-pruned data (148:space, 30:break, 92:ande)
-# wdic_Rating = "../../Data/ratings/preprocessed/z_scored_alltog/"
-wdic_Rating = "../../Data/ratings/preprocessed/not_z_scored/"  # min-max scale later to [-1, +1]
-wdic_Rating_bins = "../../Data/ratings/preprocessed/classbin_ratings/"
+path_ssd_sba_comp = path_ssd + "SBA/Components/"
+path_ssd_sba_comp_broadband = path_ssd_sba_comp + "not_alpha_band_passed/"  # i.e. broadband
+path_spoc_sba_comp = path_data + "EEG_SPOC/SBA/Components/"
 
-wdic_Data = "../../Data/"
-wdic_cropECG = "../../Data/Data EEG export/NeVRo_ECG_Cropped/"
-wdic_SBA_ECG = "../../Data/ECG/SBA/z_scored_alltog/"
-wdic_x_corr = "../../Results/x_corr/"
+# path_rating = path_data + "ratings/preprocessed/z_scored_alltog/"
+path_rating = path_data + "ratings/preprocessed/not_z_scored/"  # min-max scale later to [-1, +1]
+path_rating_bins = path_data + "ratings/preprocessed/classbin_ratings/"
 
-# # Initialize variables
+path_ecg_crop = path_data + "Data EEG export/NeVRo_ECG_Cropped/"
+path_ecg_sba = path_data + "ECG/SBA/z_scored_alltog/"
+path_results_xcorr = "../../Results/x_corr/"
+
+# # # Initialize variables
 # subjects = [36]  # [36, 37]
 # subjects = range(1, 45+1)
 # dropouts = [1,12,32,33,38,40,45]
@@ -83,7 +89,7 @@ def update_coaster_lengths(subjects, empty_t_array, sba=True):
 
         for sub in subjects:
             for n, coast in enumerate(roller_coasters):
-                time_ecg_fname = wdic_cropECG + "NVR_S{}_{}.txt".format(str(sub).zfill(2), coast)
+                time_ecg_fname = path_ecg_crop + "NVR_S{}_{}.txt".format(str(sub).zfill(2), coast)
                 if os.path.isfile(time_ecg_fname):
                     ecg_file = np.loadtxt(time_ecg_fname)
                     len_time_ecg = len(ecg_file) / sfreq
@@ -120,16 +126,16 @@ def get_filename(subject, filetype, band_pass, cond="NoMov", sba=True):
     if sba:
         if filetype.upper() == "SSD":
             if not band_pass:
-                file_name = wdic_SBA_Comp_non_band_pass + cond + \
+                file_name = path_ssd_sba_comp_broadband + cond + \
                             "/NVR_S{}_SBA_{}_SSD_Components_SBA_CNT.txt".format(
                                 str(subject).zfill(2), cond)
             else:
-                file_name = wdic_SBA_Comp + cond + "/NVR_S{}_SBA_{}_SSD_Components_SBA_CNT.txt".format(
+                file_name = path_ssd_sba_comp + cond + "/NVR_S{}_SBA_{}_SSD_Components_SBA_CNT.txt".format(
                     str(subject).zfill(2), cond)
 
         else:  # filetype.upper() == "SPOC":
             if band_pass:
-                file_name = wdic_SBA_SPOC_Comp + cond + "/NVR_S{}_SBA_{}_PREP_SPOC_Components.txt".format(
+                file_name = path_spoc_sba_comp + cond + "/NVR_S{}_SBA_{}_PREP_SPOC_Components.txt".format(
                     str(subject).zfill(2), cond)
             else:
                 raise ValueError("There are no non-band_passed SPOC files here (yet)")
@@ -251,19 +257,19 @@ def load_ssd_component(subjects, samp_freq=250., sba=True, band_pass=True):
             if sba:
 
                 if band_pass:
-                    file_name = wdic_SBA_Comp + \
+                    file_name = path_ssd_sba_comp + \
                                 folder + \
                                 "/NVR_S{}_SBA_{}_SSD_Components_SBA_CNT.txt".format(str(subject).zfill(2),
                                                                                     folder)
                 else:
-                    file_name = wdic_SBA_Comp_non_band_pass + \
+                    file_name = path_ssd_sba_comp_broadband + \
                                 folder + \
                                 "/NVR_S{}_SBA_{}_SSD_Components_SBA_CNT.txt".format(str(subject).zfill(2),
                                                                                     folder)
                     # "NVR_S36_SBA_NoMov_SSD_Components_SBA_CNT.txt"
 
             else:
-                file_name = wdic_Comp + "S{}_{}_Components.txt".format(str(subject).zfill(2), coaster)
+                file_name = path_ssd_comp + "S{}_{}_Components.txt".format(str(subject).zfill(2), coaster)
 
             if os.path.isfile(file_name):
                 # x = x.split("\t")  # '\t' divides values
@@ -382,7 +388,7 @@ def load_spoc_component(subjects, samp_freq=250., sba=True, band_pass=True):
             folder = coaster.split("_")[1]  # either "Mov" or "NoMov" (only needed for sba case)
             if sba:
                 if band_pass:
-                    file_name = wdic_SBA_SPOC_Comp + \
+                    file_name = path_spoc_sba_comp + \
                                 folder + \
                                 "/NVR_S{}_SBA_{}_PREP_SPOC_Components.txt".format(str(subject).zfill(2),
                                                                                   folder)
@@ -390,7 +396,7 @@ def load_spoc_component(subjects, samp_freq=250., sba=True, band_pass=True):
                     raise ValueError("There are no non-band_passed SPOC files here (yet)")
 
             else:
-                file_name = wdic_Comp + "S{}_{}_Components.txt".format(str(subject).zfill(2), coaster)
+                file_name = path_ssd_comp + "S{}_{}_Components.txt".format(str(subject).zfill(2), coaster)
 
             if os.path.isfile(file_name):
 
@@ -467,11 +473,11 @@ def best_component(subject, best=True):
     :return: best component number
     """
 
-    # x_corr_table = np.genfromtxt(wdic_x_corr + "CC_AllSubj_Alpha_Ratings_smooth.csv",
+    # x_corr_table = np.genfromtxt(path_results_xcorr + "CC_AllSubj_Alpha_Ratings_smooth.csv",
     #                              delimiter=",", skip_header=1, dtype=float)
 
     # Load Table
-    x_corr_table = pd.read_csv(wdic_x_corr + "CC_AllSubj_Alpha_Ratings_smooth.csv", index_col=0)
+    x_corr_table = pd.read_csv(path_results_xcorr + "CC_AllSubj_Alpha_Ratings_smooth.csv", index_col=0)
     # first col is idx
     # drop non-used columns
     x_corr_table = x_corr_table.drop(x_corr_table.columns[0:3], axis=1)
@@ -515,7 +521,7 @@ def load_rating_files(subjects, samp_freq=1., sba=True, bins=False):
         raise ValueError("samp_freq must be either 1 or 50 Hz")
 
     # Load Table of Conditions
-    table_of_condition = np.genfromtxt(wdic_Data + "Table_of_Conditions.csv", delimiter=";")
+    table_of_condition = np.genfromtxt(path_data + "Table_of_Conditions.csv", delimiter=";")
     table_of_condition = table_of_condition[1:, ]
     # remove first column (sub-nr, condition, gender (1=f, 2=m))
 
@@ -552,7 +558,7 @@ def load_rating_files(subjects, samp_freq=1., sba=True, bins=False):
             runs = "1" if "NoMov" in coaster and rating_dic[str(subject)]["condition"] == 2 else "2"
             coast_folder = "nomove" if "NoMov" in coaster else "move"
 
-            rating_filename = wdic_Rating + \
+            rating_filename = path_rating + \
                               "{}/{}/{}Hz/NVR_S{}_run_{}_{}_rat_z.txt".format(coast,
                                                                               coast_folder,
                                                                               str(int(samp_freq)),
@@ -582,10 +588,10 @@ def load_rating_files(subjects, samp_freq=1., sba=True, bins=False):
                 assert cond_key in condition_keys, "Wrong Key"
 
                 if bins:
-                    sba_rating_filename = wdic_Rating_bins + "{}/NVR_S{}_run_{}_alltog_epochs.txt".format(
+                    sba_rating_filename = path_rating_bins + "{}/NVR_S{}_run_{}_alltog_epochs.txt".format(
                         coast_folder, str(subject).zfill(2), runs)
                 else:
-                    sba_rating_filename = wdic_Rating + \
+                    sba_rating_filename = path_rating + \
                                           "alltog/{}/{}Hz/NVR_S{}_run_{}_alltog_rat_z.txt".format(
                                               coast_folder, str(int(samp_freq)), str(subject).zfill(2),
                                               runs)
@@ -646,7 +652,7 @@ def load_ecg_files(subjects, sba=True, interpolate=True):
         for num, coaster in enumerate(roller_coasters):
             folder = coaster.split("_")[1]  # either "Mov" or "NoMov" (only needed for sba case)
             if sba:
-                file_name = wdic_SBA_ECG + "{}/NVR_S{}_SBA_{}.txt".format(folder, str(subject).zfill(2),
+                file_name = path_ecg_sba + "{}/NVR_S{}_SBA_{}.txt".format(folder, str(subject).zfill(2),
                                                                           folder)
                 # "NVR_S02_SBA_NoMov.txt"
             else:
