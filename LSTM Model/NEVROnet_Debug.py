@@ -2,7 +2,7 @@
 
 # import sys
 # sys.path.insert(0, './LSTM Model')  # or set the folder as source root
-import tensorflow as tf  # implemented with TensorFlow 1.3.0
+import tensorflow as tf  # implemented with TensorFlow 1.12.0
 from Load_Data import *
 
 

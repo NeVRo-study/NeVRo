@@ -5,7 +5,7 @@ Build LSTM architecture
 Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017
 """
 
-import tensorflow as tf  # implemented with TensorFlow 1.3.0
+import tensorflow as tf  # implemented with TensorFlow 1.12.0
 # import numpy as np
 
 

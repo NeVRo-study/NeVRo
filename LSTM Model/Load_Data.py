@@ -40,7 +40,11 @@ import pandas as pd
 
 # # # Define data folder roots
 
-path_data = "../../Data/"
+print("Current working dir:", os.getcwd())
+
+path_data = "Data/"
+if not os.path.exists(path_data):  # depending on root-folder
+    path_data = "../../" + path_data
 
 path_ssd = path_data + "EEG/10_SSD/"
 path_spoc = path_data + "EEG/11_SPOC/"
@@ -81,7 +85,7 @@ def update_coaster_lengths(subjects, empty_t_array, sba=True):
     if not sba:
 
         if not isinstance(subjects, list):
-            subjects = list(subjects)
+            subjects = [subjects]
 
         for sub in subjects:
             for n, coast in enumerate(roller_coasters):
@@ -109,7 +113,7 @@ def get_filename(subject, filetype, band_pass, cond="nomov", sba=True):
     Receive the filename for specific setup.
     :param subject: subject number
     :param filetype: Either 'SSD' or 'SPOC'
-    :param band_pass: Data either band-pass filtered or not. 'SPOC' always band-pass filtered
+    :param band_pass: Data either band-pass filtered (True) or not. 'SPOC' always band-pass filtered
     :param cond: 'nomov' [Default] or 'mov'
     :param sba: SBA data
     :return: filename
@@ -119,105 +123,35 @@ def get_filename(subject, filetype, band_pass, cond="nomov", sba=True):
 
     assert filetype.upper() in ["SSD", "SPOC"], "filetype must be either 'SSD' or 'SPOC'"
 
-    if sba:
-        if filetype.upper() == "SSD":
-            if not band_pass:
-                file_name = path_ssd_sba_comp_broadband + cond + \
-                            "/NVR_S{}_SBA_{}_SSD_Components_SBA_CNT.txt".format(
-                                str(subject).zfill(2), cond)
-            else:
-                file_name = path_ssd_sba_comp + cond + "/NVR_S{}_SBA_{}_SSD_Components_SBA_CNT.txt".format(
-                    str(subject).zfill(2), cond)
+    if not sba:
+        raise NotImplementedError("For SA data not implemented yet.")
 
-        else:  # filetype.upper() == "SPOC":
-            if band_pass:
-                file_name = path_spoc_sba_comp + cond + "/NVR_S{}_SBA_{}_PREP_SPOC_Components.txt".format(
-                    str(subject).zfill(2), cond)
-            else:
-                raise ValueError("There are no non-band_passed SPOC files here (yet)")
+    get_path = path_ssd if filetype.upper() == "SSD" else path_spoc
 
-    else:
-        raise FileExistsError("Non-SBA data not yet implemented.")
+    if filetype.upper() == "SPOC":
+        band_pass = True  # 'SPOC' always band-pass filtered
+
+    get_path += cond.lower() + "/"
+
+    get_path += "SBA/" if sba else "SA/"
+
+    get_path += "narrowband/" if band_pass else "broadband/"
+
+    # e.g. "NVR_S36_1_SSD_filt_cmp.csv"
+    file_name = get_path + "NVR_S{}_{}_{}_{}_cmp.csv".format(str(subject).zfill(2),
+                                                             1 if cond.lower() == "nomov" else 2,
+                                                             filetype.upper(),
+                                                             "filt" if band_pass else "nonfilt")
 
     return file_name
 
 
 # Load file
-def load_ssd_files(subjects, samp_freq=250., sba=True):
+def load_ssd_component(subjects, condition, band_pass, samp_freq=250., sba=True):
     """
-    Loads all channel SSD files of each subject in subjects
-    :return: SSD files [channels, time_steps, sub_df] in form of dictionary
-    """
-
-    if not isinstance(subjects, list):
-        subjects = list(subjects)
-
-    count = 0
-    # Create SSD-dictionary
-    # dic = {k: v for k, v in [("bla", [])]}
-    # dic.update({newkey: newkey_value})
-    ssd_dic_keys = ["channels"] + [str(i) for i in subjects]
-    ssd_dic = dict.fromkeys(ssd_dic_keys, {})  # creats dict from sequence and given value (can be None)
-    ssd_dic_keys.pop(0)  # remove channels-key again
-    # create sub_dic for each roller coaster (time, df)
-    coast_dic = {}
-    coast_dic.update((key, {"t_steps": [], "df": []}) for key in roller_coasters)
-    # each subejct has a sub-dic for each roller coaster
-    ssd_dic.update((key, copy.deepcopy(coast_dic)) for key in ssd_dic_keys)  # deep.copy(!)
-    # # Test
-    # print("ssd_dic\n", ssd_dic)
-    # ssd_dic["36"]['Ande_NoMov']["df"] = 999
-    # print("ssd_dic\n", ssd_dic)  # ssd_dic["36"] is ssd_dic["37"]
-
-    for subject in subjects:
-        for num, coaster in enumerate(roller_coasters):
-            count += 1
-            file_name = wdic + "S{}_{}_SSD.txt".format(str(subject).zfill(2), coaster)  # adapt file_name
-
-            if os.path.isfile(file_name):
-                if count == 1:  # do only once
-                    # x = x.split("\t")  # '\t' divides values
-                    channels = np.genfromtxt(file_name, delimiter="\t", dtype="str")[1:, 0]
-                    ssd_dic["channels"] = channels  # 32 channels; shape=(32,)
-                sub_df = np.genfromtxt(file_name, delimiter="\t")[0:, 1:-1]
-                # first row:= time; in last col only NAs
-
-                # Sampling Frequency = 250
-                time_steps = sub_df[0, :]  # shape=(24276,) for S36_Ande_NoMov
-                sub_df = sub_df[1:, :]  # shape=(32, 24276) for S36_Ande_NoMov
-
-                # Fill in SSD Dictionary: ssd_dic
-                ssd_dic[str(subject)][coaster]["t_steps"] = copy.copy(time_steps)
-                ssd_dic[str(subject)][coaster]["df"] = copy.copy(sub_df)
-
-                # Check times:
-                # samp_freq = 250.
-
-                t_roller_coasters = update_coaster_lengths(subjects=subject,
-                                                           empty_t_array=np.zeros((len(roller_coasters))),
-                                                           sba=sba)
-                if not (np.round(t_roller_coasters[num], 1) == np.round(time_steps[-1] / 1000., 1)
-                        and np.round(time_steps[-1] / 1000., 1) == np.round(len(time_steps) / samp_freq, 1)):
-                    print("Should be all approx. the same:"
-                          "\nt_roller_coasters[num]: {} "
-                          "\ntime_steps[-1]/1000: {}"
-                          "\nlen(time_steps)/sfreq(250): {}".format(t_roller_coasters[num],
-                                                                    time_steps[-1] / 1000.,
-                                                                    len(time_steps) / samp_freq))
-
-    return ssd_dic
-
-# SSD_dic = load_ssd_files(subjects=[36,44], samp_freq=250.)
-# print(SSD_dic[str(subjects[0])][roller_coasters[0]]["df"].shape)  # roller_coasters[0] == 'Space_NoMov'
-# print(SSD_dic[str(subjects[0])][roller_coasters[0]]["df"].shape)  # str(subjects[0]) == '36'
-# print(SSD_dic[str(subjects[0])][roller_coasters[0]]["t_steps"].shape)
-# print(SSD_dic["channels"].shape)
-
-
-def load_ssd_component(subjects, samp_freq=250., sba=True, band_pass=True):
-    """
-    :param band_pass: Whether SSD components are band-passed filter for alpha
     :param subjects: list of subjects or single subject
+    :param condition: 'nomov' or 'mov' condition
+    :param band_pass: Whether SSD components are band-passed filter around alpha
     :param samp_freq: sampling frequency of SSD-components
     :param sba: if True (=Default), take SBA-z-scored components
     Loads SSD components (files) of each subject in subjects
@@ -240,9 +174,8 @@ def load_ssd_component(subjects, samp_freq=250., sba=True, band_pass=True):
                                                empty_t_array=np.zeros((len(roller_coasters))),
                                                sba=sba)
 
-    if sba:
-        for key in ssd_comp_dic_keys:
-            ssd_comp_dic[key].update({"SBA": dict.fromkeys(condition_keys, [])})
+    for key in ssd_comp_dic_keys:
+        ssd_comp_dic[key].update({"SBA" if sba else "SA": dict.fromkeys(condition_keys, [])})
 
     for subject in subjects:
 
@@ -250,66 +183,37 @@ def load_ssd_component(subjects, samp_freq=250., sba=True, band_pass=True):
 
             folder = coaster.split("_")[1]  # either "Mov" or "NoMov" (only needed for sba case)
 
-            if sba:
-
-                if band_pass:
-                    file_name = path_ssd_sba_comp + \
-                                folder + \
-                                "/NVR_S{}_SBA_{}_SSD_Components_SBA_CNT.txt".format(str(subject).zfill(2),
-                                                                                    folder)
-                else:
-                    file_name = path_ssd_sba_comp_broadband + \
-                                folder + \
-                                "/NVR_S{}_SBA_{}_SSD_Components_SBA_CNT.txt".format(str(subject).zfill(2),
-                                                                                    folder)
-                    # "NVR_S36_SBA_NoMov_SSD_Components_SBA_CNT.txt"
-
-            else:
-                file_name = path_ssd_comp + "S{}_{}_Components.txt".format(str(subject).zfill(2), coaster)
+            file_name = get_filename(subject=subject, filetype="SSD", band_pass=band_pass,cond=condition,
+                                     sba=sba)
+            # "NVR_S36_1_SSD_nonfilt_cmp.csv"
 
             if os.path.isfile(file_name):
                 # x = x.split("\t")  # '\t' divides values
-                # N ≈ 20 components sorted from 1-N according to the signal-to-noise-ration (SNR)
-                # cpts = np.genfromtxt(file_name, delimiter=";", dtype="str")[0].split("\t")[:-1]
-                # # last=' '
-                # for idx, comp in enumerate(cpts):
-                #     cpts[idx] = "comp_" + comp
-                # ssd_comp_dic["cpts"] = cpts  # 32 cpts; shape=(32,)
+                # N components sorted from 1-N according to the signal-to-noise-ration (SNR)
+                n_comp = len(np.genfromtxt(file_name, delimiter="\t")[:, 0])  # first column = comp nr.
 
-                n_comp = len(np.genfromtxt(file_name, delimiter=";", dtype="str")[0].split("\t")[:-1])
-                # last=' '
+                # rows = components, columns value per timestep
+                sub_df = np.genfromtxt(file_name, delimiter="\t")[:, 1:-1]  # last column is empty
+                sub_df = sub_df.transpose()
+                # sub_df.shape=(67503, n_comp=6)  # for S36 with samp_freq=250: 67503/250. = 270.012 sec
 
-                # columns = components, rows value per timestep
-                pre_sub_df = np.genfromtxt(file_name, delimiter=";", dtype="str")[1:]
-                # first row = comp.names
-                sub_df = np.zeros((pre_sub_df.shape[0], n_comp))
-                for row in range(pre_sub_df.shape[0]):
-                    values_at_t = pre_sub_df[row].split("\t")
-                    sub_df[row] = list(map(float, values_at_t))  # == [float(i) for i in values_at_t]
-
-                # sub_df.shape=(38267, n_comp=22)
-                # for S36_Space_NoMov | Samp. Freq. = 250 | 38267/250 = 153.068sec
-
+                # TODO continue here
                 # Fill in SSD Dictionary: ssd_comp_dic
-                if not sba:
-                    ssd_comp_dic[str(subject)][coaster] = copy.copy(sub_df)
-
-                else:  # if sba
-                    # Split SBA file in Space-Break-Andes
-                    if "Space" in coaster:
-                        sba_idx_start = 0
-                        sba_idx_end = int(t_roller_coasters[0] * samp_freq)
-                    elif "Break" in coaster:
-                        sba_idx_start = int(t_roller_coasters[0] * samp_freq)
-                        sba_idx_end = int(sum(t_roller_coasters[0:2]) * samp_freq)
-                    else:  # "Ande" in coaster
-                        sba_idx_start = int(sum(t_roller_coasters[0:2]) * samp_freq)
-                        sba_idx_end = int(sum(t_roller_coasters) * samp_freq)
-                        # Test lengths
-                        if sba_idx_end < sub_df.shape[0]:
-                            print("sub_df of S{} has not expected size: Diff={} data points.".format(
-                                str(subject).zfill(2), sub_df.shape[0] - sba_idx_end))
-                            assert (sub_df.shape[0] - sba_idx_end) <= 3, "Difference too big, check files"
+                # Split SBA file in Space-Break-Andes
+                if "Space" in coaster:
+                    sba_idx_start = 0
+                    sba_idx_end = int(t_roller_coasters[0] * samp_freq)
+                elif "Break" in coaster:
+                    sba_idx_start = int(t_roller_coasters[0] * samp_freq)
+                    sba_idx_end = int(sum(t_roller_coasters[0:2]) * samp_freq)
+                else:  # "Ande" in coaster
+                    sba_idx_start = int(sum(t_roller_coasters[0:2]) * samp_freq)
+                    sba_idx_end = int(sum(t_roller_coasters) * samp_freq)
+                    # Test lengths
+                    if sba_idx_end < sub_df.shape[0]:
+                        print("sub_df of S{} has not expected size: Diff={} data points.".format(
+                            str(subject).zfill(2), sub_df.shape[0] - sba_idx_end))
+                        assert (sub_df.shape[0] - sba_idx_end) <= 3, "Difference too big, check files"
 
                     ssd_comp_dic[str(subject)][coaster] = copy.copy(sub_df[sba_idx_start:sba_idx_end, :])
 
@@ -349,10 +253,11 @@ def load_ssd_component(subjects, samp_freq=250., sba=True, band_pass=True):
 #           roller_coasters[num])
 
 
-def load_spoc_component(subjects, samp_freq=250., sba=True, band_pass=True):
+def load_spoc_component(subjects, condition, band_pass=True, samp_freq=250., sba=True):
     """
-    :param band_pass: Whether SPOC components are band-passed filter for alpha
     :param subjects: list of subjects or single subject
+    :param condition: mov or nomov condition
+    :param band_pass: Whether SPOC components are band-passed filter for alpha
     :param samp_freq: sampling frequency of SPOC-components
     :param sba: if True (=Default), take SBA-z-scored components
     Loads SSD components (files) of each subject in subjects
@@ -1030,40 +935,44 @@ def splitter(array_to_split, n_splits):
     return array_to_split
 
 
-def read_data_sets(subject, component, hr_component, s_fold_idx, s_fold=10, cond="NoMov", sba=True,
-                   s_freq_eeg=250.,
-                   filetype="SSD", band_pass=True, hilbert_power=True, task="regression", shuffle=False,
-                   testmode=False):
+def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbert_power, band_pass,
+                   s_fold_idx=None, s_fold=10,
+                   sba=True, s_freq_eeg=250.,
+                   shuffle=False, testmode=False):
     """
-    Returns the s-fold-prepared dataset.
+    Prepares NeVRo dataset and returns the s-fold-prepared dataset.
     S-Fold Validation, S=5: [ |-Train-|-Train-|-Train-|-Valid-|-Train-|] Dataset
     Args:
         subject: Subject Nr., subject dataset for training
+        task: either regression or (binary)-classification
+        cond: Either "NoMov"(=default) or "Mov"
         component: which component to feed (int, list(int))
         hr_component: Whether to attach hear rate component to neural components (True/False)
+        filetype: Whether 'SSD' or 'SPOC'
+        hilbert_power: hilbert-transform SSD-components, then extract z-scored power
+        band_pass: Whether SSD components are band-passed filter for alpha
         s_fold_idx: index which of the folds is taken as validation set
         s_fold: s-value of S-Fold Validation [default=10]
-        cond: Either "NoMov"(=default) or "Mov"
         sba: Whether to use SBA-data
         s_freq_eeg: Sampling Frequency of EEG
-        filetype: Whether 'SSD' or 'SPOC'
-        band_pass: Whether SSD components are band-passed filter for alpha
-        hilbert_power: hilbert-transform SSD-components, then extract z-scored power
-        task: either regression or (binary)-classification
-        shuffle: shuffle data (primarily for classification task to have balance low/high arousal in all folds/valsets)
+        shuffle: shuffle data (for classific. task to have balance low/high arousal in all folds/valsets)
         testmode: Whether to load data for testmode
     Returns:
         Train, Validation Datasets
     """
-
+    cond = cond.lower()
     # Check inputs
     assert s_fold_idx < s_fold, \
         "s_fold_idx (={}) must be in the range of the number of folds (={})".format(s_fold_idx, s_fold)
-    assert cond in ["NoMov", "Mov"], "cond must be either 'NoMov' or 'Mov'"
+    assert cond in ["nomov", "mov"], "cond must be either 'nomov' or 'mov'"
 
     assert filetype.upper() in ["SSD", "SPOC"], "filetype must be either 'SSD' or 'SPOC'"
     task = task.lower()
     assert task in ["regression", "classification"], "task must be 'regression' or 'classification'"
+
+    if s_fold_idx is None:
+        s_fold_idx = np.random.randint(low=0, high=s_fold)
+        print("s_fold_idx randomly chosen:", s_fold_idx)
 
     # If int, transform to list
     if not type(component) is list:
@@ -1091,9 +1000,9 @@ def read_data_sets(subject, component, hr_component, s_fold_idx, s_fold=10, cond
                 noise_comp = False
 
     if filetype.upper() == "SSD":
-        eeg_data = load_ssd_component(subjects=subject, band_pass=band_pass)
+        eeg_data = load_ssd_component(subjects=subject, condition=cond, band_pass=band_pass)
     else:  # == 'SPOC'
-        eeg_data = load_spoc_component(subjects=subject, band_pass=band_pass)
+        eeg_data = load_spoc_component(subjects=subject, condition=cond, band_pass=band_pass)
 
     rating_data = load_rating_files(subjects=subject, bins=True if task == "classification" else False)
 
@@ -1106,17 +1015,9 @@ def read_data_sets(subject, component, hr_component, s_fold_idx, s_fold=10, cond
                                                empty_t_array=np.zeros((len(roller_coasters))),
                                                sba=sba)
 
-    # Subsample the validation set from the train set
     # 0) Take Space-Break-Ande (SBA) files from dictionaries
-
-    # eeg_concat = concatenate(array1=eeg_data[str(subject)]["Space_NoMov"][:, 0:2],
-    #                          array2=eeg_data[str(subject)]["Ande_NoMov"][:, 0:2])
-    # rating_concat = concatenate(array1=rating_data[str(subject)]["Space_NoMov"],
-    #                             array2=rating_data[str(subject)]["Ande_NoMov"])
-
-    # Best component selected based on highest xcorr with ratings
-    # Comparison with worst xcorr
-    # eeg_sba = eeg_data[str(subject)]["SBA"][cond][:, 0:2]  # = first 2 components
+    # 1) and choose specific components
+    # eeg_sba = eeg_data[str(subject)]["SBA"][cond][:, 0:2]  # = first 2 components; or best, or other
 
     eeg_sba = eeg_data[str(subject)]["SBA"][cond][:, [comp-1 for comp in component]]
 
@@ -1238,42 +1139,6 @@ def read_data_sets(subject, component, hr_component, s_fold_idx, s_fold=10, cond
 
     # return base.Datasets(train=train, validation=validation, test=test), s_fold_idx
     return {"train": train, "validation": validation, "test": test, "order": shuf_idx}
-
-
-def get_nevro_data(subject, component, hr_component, s_fold_idx=None, s_fold=10, cond="NoMov", sba=True,
-                   s_freq_eeg=250., filetype="SSD", band_pass=True, hilbert_power=True, task="regression",
-                   shuffle=False, testmode=False):
-    """
-      Prepares NeVRo dataset.
-      Args:
-        subject: Which subject data to train
-        component: Which component to feed, can be list
-        hr_component: Whether to attach hear rate component to neural components (True/False)
-        s_fold_idx: index which of the folds is taken as validation set
-        s_fold: s-value of S-Fold Validation [default=10]
-        cond: Either "NoMov"(=default) or "Mov"
-        sba: Whether to use SBA-data
-        s_freq_eeg: Sampling Frequency of EEG
-        filetype: Whether 'SSD' or 'SPOC'
-        band_pass: Whether SSD components are band-passed filter for alpha
-        hilbert_power: hilbert-transform SSD-components, then extract z-scored power
-        task: either regression or (binary)-classification
-        shuffle: shuffle data (primarily for classif. task to have balance low/high arousal in all folds)
-        testmode: Whether to load data for testmode
-      Returns:
-        Train, Validation Datasets (+Test set)
-      """
-    if s_fold_idx is None:
-        s_fold_idx = np.random.randint(low=0, high=s_fold)
-        print("s_fold_idx randomly chosen:", s_fold_idx)
-
-    return read_data_sets(subject=subject, component=component, hr_component=hr_component,
-                          s_fold_idx=s_fold_idx, s_fold=s_fold,
-                          cond=cond, sba=sba, s_freq_eeg=s_freq_eeg,
-                          filetype=filetype, band_pass=band_pass, hilbert_power=hilbert_power,
-                          task=task, shuffle=shuffle,
-                          testmode=testmode)
-
 
 # # Testing
 # nevro_data = get_nevro_data(subject=36, component=5, s_fold_idx=9, s_fold=10, cond="NoMov",
