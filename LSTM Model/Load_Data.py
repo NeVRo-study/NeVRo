@@ -1000,7 +1000,6 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
     # return base.Datasets(train=train, validation=validation, test=test), s_fold_idx
     return {"train": train, "validation": validation, "test": test, "order": shuf_idx}
 
-
 # # Testing
 # nevro_data = get_nevro_data(subject=36, task="regression", cond="NoMov",
 #                             component=5, hr_component=True,
@@ -1009,6 +1008,7 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
 # print("Subject:", nevro_data["train"].subject,
 #       "\nEEG shape:", nevro_data["train"].eeg.shape,
 #       "\nCondition:", nevro_data["train"].condition)
+
 
 # TODO continue here: test
 nevro_data = get_nevro_data(subject=44, task="classification", cond="Mov",
