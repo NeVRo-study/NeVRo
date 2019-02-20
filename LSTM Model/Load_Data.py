@@ -24,7 +24,7 @@ Channel02: [x02_0, ..., x02_250], [x02_251, ..., x02_500], ... ]  ==> LSTM  \
 Channel30: [x30_0, ..., x30_250], [x30_251, ..., x30_500], ... ]  ==> LSTM /
 ..........................................................................................................
 
-Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2019
+Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017, 2019 (Update)
 """
 
 # import sys
@@ -113,16 +113,19 @@ def get_filename(subject, filetype, band_pass, cond="nomov", sba=True):
         band_pass = True  # 'SPOC' always band-pass filtered
 
     get_path += cond.lower() + "/"
-
     get_path += "SBA/" if sba else "SA/"
-
     get_path += "narrowband/" if band_pass else "broadband/"
 
-    # e.g. "NVR_S36_1_SSD_filt_cmp.csv"
+    # e.g. "NVR_S36_1_broad_SSD_cmp.csv"
+
     file_name = get_path + "NVR_S{}_{}_{}_{}_cmp.csv".format(str(subject).zfill(2),
                                                              1 if cond.lower() == "nomov" else 2,
-                                                             filetype.upper(),
-                                                             "filt" if band_pass else "nonfilt")
+                                                             "narrow" if band_pass else "broad",
+                                                             filetype.upper())
+
+    # Check existence of file
+    if not os.path.exists(file_name):
+        raise FileExistsError(file_name, "does not exisit")
 
     return file_name
 
