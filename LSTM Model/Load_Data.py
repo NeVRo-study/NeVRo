@@ -281,7 +281,7 @@ def load_rating_files(subjects, condition, samp_freq=1., sba=True, bins=False):
     # Load Table of Conditions
     table_of_condition = np.genfromtxt(path_data + "Table_of_Conditions.csv", delimiter=";",
                                        skip_header=True)
-    # remove first column (sub-nr, condition, gender (1=f, 2=m))
+    # remove first column (sub-nr, condition-order, gender (1=f, 2=m))
 
     # Create Rating-dictionary
     rating_dic_keys = list(map(str, subjects))  # == [str(i) for i in subjects]
@@ -294,8 +294,9 @@ def load_rating_files(subjects, condition, samp_freq=1., sba=True, bins=False):
 
     # For each subject fill condtition in
     for key in rating_dic_keys:
-        key_cond = int(str(table_of_condition[np.where(table_of_condition[:, 0] == int(key)), 1])[3])
-        rating_dic[key].update({"condition": key_cond})
+        key_cond = int(
+            str(table_of_condition[np.where(table_of_condition[:, 0] == int(key)), 1])[2:4])
+        rating_dic[key].update({"condition_order": key_cond})
 
         rating_dic[key].update({"SBA" if sba else "SA": dict.fromkeys(condition_keys, [])})
 
@@ -310,7 +311,12 @@ def load_rating_files(subjects, condition, samp_freq=1., sba=True, bins=False):
             else:  # Break
                 coast = "break"
 
-            runs = "1" if "NoMov" in coaster and rating_dic[str(subject)]["condition"] == 2 else "2"
+            if ("NoMov" in coaster and rating_dic[str(subject)]["condition_order"] == 21) or \
+                    ("_Mov" in coaster and rating_dic[str(subject)]["condition_order"] == 12):
+                runs = "1"
+            else:
+                runs = "2"
+
             coast_folder = "nomove" if "NoMov" in coaster else "move"
 
             rating_filename = path_rating + \
@@ -397,7 +403,7 @@ def load_ecg_files(subjects, condition, sba=True, interpolate=True):
     ecg_dic = {}
     ecg_dic.update((key, dict.fromkeys(roller_coasters(condition, sba), [])) for key in ecg_dic_keys)
 
-    condition_keys = [condition] # "NoMov", "Mov"
+    condition_keys = [condition]  # "NoMov", "Mov"
 
     for key in ecg_dic_keys:
         ecg_dic[key].update({"SBA" if sba else "SA": dict.fromkeys(condition_keys, [])})
@@ -1000,11 +1006,12 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
     # return base.Datasets(train=train, validation=validation, test=test), s_fold_idx
     return {"train": train, "validation": validation, "test": test, "order": shuf_idx}
 
+
 # # Testing
 # nevro_data = get_nevro_data(subject=36, task="regression", cond="NoMov",
 #                             component=5, hr_component=True,
 #                             filetype="SSD", hilbert_power=True, band_pass=True,
-#                             s_fold_idx=9, s_fold=10)
+#                             s_fold_idx=9, s_fold=10, sba=True)
 # print("Subject:", nevro_data["train"].subject,
 #       "\nEEG shape:", nevro_data["train"].eeg.shape,
 #       "\nCondition:", nevro_data["train"].condition)
@@ -1014,7 +1021,7 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
 nevro_data = get_nevro_data(subject=44, task="classification", cond="Mov",
                             component=4, hr_component=False,
                             filetype="SSD", hilbert_power=False, band_pass=False,
-                            s_fold_idx=9, s_fold=10)
+                            s_fold_idx=9, s_fold=10, sba=True)
 print("Subject:", nevro_data["validation"].subject,
       "\nEEG shape:", nevro_data["validation"].eeg.shape,
       "\nCondition:", nevro_data["validation"].condition)
