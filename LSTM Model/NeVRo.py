@@ -25,8 +25,7 @@ import subprocess
 from NEVROnet import NeVRoNet
 
 # TODO more components: 1) define size of input-matrix before,
-# TODO then 2) successively adding SSD components, hence adding more non-alpha related information (non-b-pass)
-# TODO Exchange zeroline with mean
+# TODO then 2) successively adding SSD components, adding more non-alpha related information (non-b-pass)
 # TODO test trained model on different subject dataset.
 # TODO Train model on various subjects
 

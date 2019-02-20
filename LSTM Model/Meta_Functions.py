@@ -310,3 +310,30 @@ def open_folder(path):
         subprocess.Popen(["open", path])
     else:  # for Linux
         subprocess.Popen(["xdg-open", path])
+
+
+class Bcolors:
+    """
+    Colours print-commands in Console
+    Usage:
+    print(Bcolors.HEADER + "Warning: No active frommets remain. Continue?" + Bcolors.ENDC)
+    print(Bcolors.OKBLUE + "Warning: No active frommets remain. Continue?" + Bcolors.ENDC)
+    """
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    # BOLD = '\033[1m'  # doesn't work
+    UNDERLINE = '\033[4m'
+    ENDC = '\033[0m'  # this is necessary in the end to reset to default print
+
+
+# print(Bcolors.HEADER + "Header: No active frommets remain. Continue?" + Bcolors.ENDC)
+# print(Bcolors.OKBLUE + "Ok Blue: No active frommets remain. Continue?" + Bcolors.ENDC)
+# print(Bcolors.OKGREEN + "Ok Green: No active frommets remain. Continue?" + Bcolors.ENDC)
+# print(Bcolors.WARNING + "Warning: No active frommets remain. Continue?" + Bcolors.ENDC)
+# print(Bcolors.FAIL + "Fail: No active frommets remain. Continue?" + Bcolors.ENDC)
+# print(Bcolors.ENDC + "Endc: No active frommets remain. Continue?" + Bcolors.ENDC)
+# # print(Bcolors.BOLD + "Bold: No active frommets remain. Continue?" + Bcolors.ENDC)
+# print(Bcolors.UNDERLINE + "Underline: No active frommets remain. Continue?" + Bcolors.ENDC)
