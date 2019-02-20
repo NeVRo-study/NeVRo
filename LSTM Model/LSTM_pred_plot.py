@@ -205,8 +205,8 @@ for info in acc_date:
     elif "mean(Accuracy):" in info:
         mean_acc = np.round(a=float(info.split(": ")[1]), decimals=3)
 
-    elif "zero_line_acc:" in info:
-        zero_line_acc = float(info.split(": ")[1])
+    elif "mean_line_acc:" in info:
+        mean_line_acc = float(info.split(": ")[1])
 
     elif "Validation-Class-Acc:" in info:
         val_class_acc = info.split(": ")[1].split(", ")  # Check (before "  ")
@@ -464,7 +464,7 @@ for fold in range(s_fold):
 
     plt.plot(train_acc_fold, color="steelblue", linewidth=lw/2, alpha=0.6, label="training set")
     plt.plot(where, vacc, color="aquamarine", linewidth=2*lw, alpha=0.9, label="validation set")
-    plt.hlines(y=zero_line_acc, xmin=0, xmax=train_acc_fold.shape[0], colors="red", linestyles="dashed", lw=2*lw,
+    plt.hlines(y=mean_line_acc, xmin=0, xmax=train_acc_fold.shape[0], colors="red", linestyles="dashed", lw=2*lw,
                label="zeroline accuracy")
 
     plt.title(s="{}-Fold | val-acc={}".format(fold + 1,
@@ -711,7 +711,7 @@ fig4.add_subplot(4, 1, 3)
 plt.plot(x_fold_mean_tacc, color="steelblue", linewidth=lw/2, alpha=0.6, label="mean training accuracy")
 plt.plot(where, x_fold_mean_vacc, color="aquamarine", linewidth=2*lw, alpha=0.9, label="mean validation accuracy")
 if task == "regression":
-    plt.hlines(y=zero_line_acc, xmin=0, xmax=train_acc_fold.shape[0], colors="red", linestyles="dashed", lw=2*lw,
+    plt.hlines(y=mean_line_acc, xmin=0, xmax=train_acc_fold.shape[0], colors="red", linestyles="dashed", lw=2*lw,
                label="zeroline accuracy")
 else:  # == "classification"
     plt.hlines(y=1.0, xmin=0, xmax=train_acc_fold.shape[0], colors="darkgrey", linestyles="dashed", lw=lw)

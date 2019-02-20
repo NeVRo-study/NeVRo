@@ -65,6 +65,7 @@ path_results_xcorr = "Results/x_corr/"
 if not os.path.exists(path_results_xcorr):  # depending on root-folder
     path_results_xcorr = prfx_path + path_results_xcorr
 
+
 # # # Initialize variables
 # subjects = [36]  # [36, 37]
 # subjects = range(1, 45+1)
@@ -81,10 +82,9 @@ def t_roller_coasters(sba=True):
 
 
 def roller_coasters(cond, sba=True):
-
     sfx = "_Mov" if cond.lower() == "mov" else "_NoMov"  # suffix
 
-    rl = np.array(['Space'+sfx, 'Break'+sfx, 'Ande'+sfx])
+    rl = np.array(['Space' + sfx, 'Break' + sfx, 'Ande' + sfx])
 
     return rl if sba else rl[[0, 2]]
 
@@ -211,16 +211,18 @@ def load_component(subjects, condition, f_type, band_pass, samp_freq=250., sba=T
     return comp_dic
 
 
-# TODO continue here
-def choose_component(subject, best=True):
+def choose_component(subject, condition, f_type, best, sba=True):
     """
     Choose the SSD-alpha-component, either randomly or the best
     :param subject: subject number
+    :param condition: nomov or mov
+    :param f_type: 'SSD' or 'SPOC'
     :param best: False: take random. If True: Choose w.r.t. x-corr with ratings from list for given subj.
+    :param sba: True (SBA) or False (SA)
     :return: component number
     """
 
-    if fresh_prep:
+    if fresh_prep and best:
         raise ImportError("Xcorr table needs to be updated")  # TODO table need to be updated
 
     # Load Table
@@ -239,8 +241,15 @@ def choose_component(subject, best=True):
         component = best_comp = x_corr_table.loc["S{}".format(str(subject).zfill(2))].values[0]
         # First, choose best for now
         # Then, choose another component that is not the best
+
+        file_name = get_filename(subject=subject, filetype=f_type.upper(),
+                                 band_pass=True,  # for False the same
+                                 cond=condition, sba=sba)
+
+        n_comp = len(np.genfromtxt(file_name, delimiter="\t")[:, 0])  # each row is a component
+
         while component == best_comp:
-            component = np.random.randint(low=1, high=5+1)  # TODO depends on number of available comps
+            component = np.random.randint(low=1, high=n_comp + 1)  # choose random component != best
 
         print("A random SSD component of S{} is chosen (which is not the best one): Component {}".format(
             subject, component))
@@ -249,14 +258,15 @@ def choose_component(subject, best=True):
 
 
 # @function_timed  # after executing following function this returns runtime
-def load_rating_files(subjects, samp_freq=1., sba=True, bins=False):
+def load_rating_files(subjects, condition, samp_freq=1., sba=True, bins=False):
     """
-    Loads (z-scored) Ratings files of each subject in subjects.
+    Loads rating files of each subject in subjects (and take z-score later)
     (ignore other files, due to fluctuating samp.freq.)
-    :param bins: whether to load ratings in forms of bins (low, medium, high arousal)
     :param subjects: list of subjects or single subject
+    :param condition: nomov or mov
     :param sba: if TRUE (default), process SBA files
     :param samp_freq: sampling frequency, either 1Hz [default], oder 50Hz
+    :param bins: whether to load ratings in forms of bins (low, medium, high arousal)
     :return:  Rating Dict
     """
 
@@ -269,31 +279,32 @@ def load_rating_files(subjects, samp_freq=1., sba=True, bins=False):
         raise ValueError("samp_freq must be either 1 or 50 Hz")
 
     # Load Table of Conditions
-    table_of_condition = np.genfromtxt(path_data + "Table_of_Conditions.csv", delimiter=";")
-    table_of_condition = table_of_condition[1:, ]
+    table_of_condition = np.genfromtxt(path_data + "Table_of_Conditions.csv", delimiter=";",
+                                       skip_header=True)
     # remove first column (sub-nr, condition, gender (1=f, 2=m))
 
     # Create Rating-dictionary
     rating_dic_keys = list(map(str, subjects))  # == [str(i) for i in subjects]
     rating_dic = {}
     # each subejct has a sub-dic for each roller coaster
-    rating_dic.update((key, dict.fromkeys(roller_coasters(sba), [])) for key in rating_dic_keys)
+    rating_dic.update((key, dict.fromkeys(roller_coasters(condition, sba),
+                                          [])) for key in rating_dic_keys)
 
-    condition_keys = [element.split("_")[1] for element in roller_coasters(sba)]  # "NoMov", "Mov"
-    condition_keys = list(set(condition_keys))
+    condition_keys = [condition]  # "NoMov", "Mov"
 
     # For each subject fill condtition in
     for key in rating_dic_keys:
         key_cond = int(str(table_of_condition[np.where(table_of_condition[:, 0] == int(key)), 1])[3])
         rating_dic[key].update({"condition": key_cond})
-        if sba:
-            rating_dic[key].update({"SBA": dict.fromkeys(condition_keys, [])})
+
+        rating_dic[key].update({"SBA" if sba else "SA": dict.fromkeys(condition_keys, [])})
 
     for subject in subjects:
-        for num, coaster in enumerate(roller_coasters(sba)):
-            # adapt file_name accordingly (run <=> condition,
+        for num, coaster in enumerate(roller_coasters(condition, sba=sba)):
+
+            # Adapt file_name accordingly (run <=> condition,
             if "Space" in coaster:
-                coast = "Space".lower()
+                coast = "space"
             elif "Ande" in coaster:
                 coast = "andes"
             else:  # Break
@@ -305,32 +316,33 @@ def load_rating_files(subjects, samp_freq=1., sba=True, bins=False):
             rating_filename = path_rating + \
                               "{}/{}/{}Hz/NVR_S{}_run_{}_{}_rat_z.txt".format(coast,
                                                                               coast_folder,
-                                                                              str(int(samp_freq)),
+                                                                              int(samp_freq),
                                                                               str(subject).zfill(2),
                                                                               runs,
                                                                               coast)
 
             if os.path.isfile(rating_filename):
-                # Load according file
+
+                # # Load according file
                 rating_file = np.genfromtxt(rating_filename, delimiter=',')[:, 1]
                 # only load column with ratings
+
                 # Fill in rating dictionary
                 rating_dic[str(subject)][coaster] = copy.copy(rating_file)
 
                 # Check times:
-                if not (np.round(t_roller_coasters(sba)[num], 1) == np.round(len(rating_file) / samp_freq, 1)):
+                if not (np.round(t_roller_coasters(sba)[num], 1) == np.round(len(rating_file) / samp_freq,
+                                                                             1)):
                     print("Should be all approx. the same:"
                           "\nTime of {}: {}"
-                          "\nLength of Rating / s_freq({}): {}".format(roller_coasters(sba)[num],
+                          "\nLength of Rating / s_freq({}): {}".format(roller_coasters(condition,
+                                                                                       sba)[num],
                                                                        t_roller_coasters(sba)[num],
                                                                        samp_freq,
                                                                        len(rating_file) / samp_freq))
 
             # just process SBA once per condition (NoMov, Mov):
-            if "Break" in coaster:
-                cond_key = coaster.split("_")[1]  # either "Mov" or "NoMov" (only needed for sba case)
-                assert cond_key in condition_keys, "Wrong Key"
-
+            if num == 0:
                 if bins:
                     sba_rating_filename = path_rating_bins + "{}/NVR_S{}_run_{}_alltog_epochs.txt".format(
                         coast_folder, str(subject).zfill(2), runs)
@@ -344,6 +356,7 @@ def load_rating_files(subjects, samp_freq=1., sba=True, bins=False):
                     # Load according file
                     sba_rating_file = np.genfromtxt(sba_rating_filename, delimiter=',')[:, 1]
                     # in case of bin-files delete 1.entry (header)
+
                     if np.isnan(sba_rating_file[0]) and len(sba_rating_file) == 271:
                         sba_rating_file = np.delete(sba_rating_file, 0) - 2
                         # substract 2 to adapt range to [-1,1]
@@ -351,7 +364,8 @@ def load_rating_files(subjects, samp_freq=1., sba=True, bins=False):
                         # print("Rating bins and count:", np.unique(sba_rating_file, return_counts=True))
 
                     # Fill in rating dictionary
-                    rating_dic[str(subject)]["SBA"][cond_key] = copy.copy(sba_rating_file)
+                    rating_dic[str(subject)]["SBA" if sba else "SA"][condition] = copy.copy(
+                        sba_rating_file)
 
                     # Check times:
                     if not (np.round(sum(t_roller_coasters(sba)), 1) == np.round(
@@ -359,16 +373,18 @@ def load_rating_files(subjects, samp_freq=1., sba=True, bins=False):
                         print("Should be all approx. the same:"
                               "\nTime of SBA: {}"
                               "\nLength of Rating/s_freq({}Hz): {}".format(
-                            sum(t_roller_coasters(sba)), int(samp_freq), len(sba_rating_file) / samp_freq))
+                            sum(t_roller_coasters(sba)), int(samp_freq),
+                            len(sba_rating_file) / samp_freq))
 
     return rating_dic
 
 
-def load_ecg_files(subjects, sba=True, interpolate=True):
+def load_ecg_files(subjects, condition, sba=True, interpolate=True):
     """
     Load 1Hz heart rate data (bmp -> z-scored).
     :param subjects: list of subjects
-    :param sba: Loading them in single phases or concatented into Space-Break-Andes (SBA)
+    :param condition: nomov or mov
+    :param sba: Loading them in single phases or concatented into Space-Break-Andes (SBA) or SA
     :param interpolate: whether to interpolate missing values
     :return: ECG data
     """
@@ -379,19 +395,18 @@ def load_ecg_files(subjects, sba=True, interpolate=True):
     # Create ECG Component Dictionary
     ecg_dic_keys = [str(i) for i in subjects]  # == list(map(str, subjects))  # these keys also work int
     ecg_dic = {}
-    ecg_dic.update((key, dict.fromkeys(roller_coasters(sba), [])) for key in ecg_dic_keys)
+    ecg_dic.update((key, dict.fromkeys(roller_coasters(condition, sba), [])) for key in ecg_dic_keys)
 
-    condition_keys = [element.split("_")[1] for element in roller_coasters(sba)]  # "NoMov", "Mov"
-    condition_keys = list(set(condition_keys))
+    condition_keys = [condition] # "NoMov", "Mov"
 
-
-    if sba:
-        for key in ecg_dic_keys:
-            ecg_dic[key].update({"SBA": dict.fromkeys(condition_keys, [])})
+    for key in ecg_dic_keys:
+        ecg_dic[key].update({"SBA" if sba else "SA": dict.fromkeys(condition_keys, [])})
 
     for subject in subjects:
-        for num, coaster in enumerate(roller_coasters(sba)):
+        for num, coaster in enumerate(roller_coasters(condition, sba)):
+
             folder = coaster.split("_")[1]  # either "Mov" or "NoMov" (only needed for sba case)
+
             if sba:
                 file_name = path_ecg_sba + "{}/NVR_S{}_SBA_{}.txt".format(folder, str(subject).zfill(2),
                                                                           folder)
@@ -411,33 +426,30 @@ def load_ecg_files(subjects, sba=True, interpolate=True):
                     hr_vector = interpolate_nan(arr_with_nan=hr_vector)
 
                 # Fill in ECG Dictionary: ecg_dic
-                if not sba:
-                    ecg_dic[str(subject)][coaster] = copy.copy(hr_vector)
 
-                else:  # if sba
-                    # Split SBA file in Space-Break-Andes
-                    if "Space" in coaster:
-                        sba_idx_start = 0
-                        sba_idx_end = int(t_roller_coasters(sba)[0])
-                    elif "Break" in coaster:
-                        sba_idx_start = int(t_roller_coasters(sba)[0])
-                        sba_idx_end = int(sum(t_roller_coasters(sba)[0:2]))
-                    else:  # "Ande" in coaster
-                        sba_idx_start = int(sum(t_roller_coasters(sba)[0:2]))
-                        sba_idx_end = int(sum(t_roller_coasters(sba)))
-                        # Test lengths
-                        if sba_idx_end < hr_vector.shape[0]:
-                            print("hr_vector of S{} has not expected size: Diff={} data points.".format(
-                                str(subject).zfill(2), hr_vector.shape[0] - sba_idx_end))
-                            assert (hr_vector.shape[0] - sba_idx_end) <= 3, \
-                                "Difference too big, check files"
+                # if sba
+                # Split SBA file in Space-Break-Andes
+                if "Space" in coaster:
+                    sba_idx_start = 0
+                    sba_idx_end = int(t_roller_coasters(sba)[0])
+                elif "Break" in coaster:
+                    sba_idx_start = int(t_roller_coasters(sba)[0])
+                    sba_idx_end = int(sum(t_roller_coasters(sba)[0:2]))
+                else:  # "Ande" in coaster
+                    sba_idx_start = int(sum(t_roller_coasters(sba)[0:2]))
+                    sba_idx_end = int(sum(t_roller_coasters(sba)))
+                    # Test lengths
+                    if sba_idx_end < hr_vector.shape[0]:
+                        print("hr_vector of S{} has not expected size: Diff={} data points.".format(
+                            str(subject).zfill(2), hr_vector.shape[0] - sba_idx_end))
+                        assert (hr_vector.shape[0] - sba_idx_end) <= 3, \
+                            "Difference too big, check files"
 
-                    ecg_dic[str(subject)][coaster] = copy.copy(hr_vector[sba_idx_start:sba_idx_end])
+                ecg_dic[str(subject)][coaster] = copy.copy(hr_vector[sba_idx_start:sba_idx_end])
 
-                    # process whole SBA only once per condition (NoMov, Mov)
-                    if "Break" in coaster:
-                        assert folder in condition_keys, "Wrong key"
-                        ecg_dic[str(subject)]["SBA"][folder] = copy.copy(hr_vector)
+                # process whole S(B)A only once per condition (NoMov, Mov)
+                if num == 0:
+                    ecg_dic[str(subject)]["SBA" if sba else "SA"][condition] = copy.copy(hr_vector)
 
                 # Check times:
                 if not sba:
@@ -455,22 +467,28 @@ def load_ecg_files(subjects, sba=True, interpolate=True):
     return ecg_dic
 
 
-def zero_line_prediction(subject):
+def mean_line_prediction(subject, condition, sba=True):
     """
-    Returns the accuracy if the all predictions would be zero
+    Returns the accuracy if the all prediction steps would output overall mean
     :param subject: Subject ID
-    :return: accuracy of zero-line prediction
+    :param condition: nomov or mov
+    :param sba: SBA or SA (False)
+    :return: accuracy of mean-line prediction
     """
-    rating = load_rating_files(subjects=subject)[str(subject)]["SBA"]["NoMov"]
+    rating = load_rating_files(subjects=subject,
+                               condition=condition,
+                               sba=sba)[str(subject)]["SBA" if sba else "SA"][condition]
+
     rating = normalization(array=rating, lower_bound=-1, upper_bound=1)
-    zero_line = np.zeros(shape=rating.shape)
+    mean_line = np.zeros(shape=rating.shape)
     max_diff = 1.0 - (np.abs(rating) * -1.0)  # chances depending on rating-level
-    correct = 1.0 - np.abs((zero_line - rating)) / max_diff
-    zero_line_accuracy = np.nanmean(correct)
+    correct = 1.0 - np.abs((mean_line - rating)) / max_diff
+    mean_line_accuracy = np.nanmean(correct)
 
-    return zero_line_accuracy
+    return mean_line_accuracy
 
 
+# TODO continue here
 class DataSet(object):
     """
     Utility class (http://wiki.c2.com/?UtilityClasses) to handle dataset structure
@@ -584,7 +602,7 @@ class DataSet(object):
 
                                 # Search around index if remaining_slides are not equally distributed
                                 while len(self.remaining_slices[:sel_arr_idx[0]]) % successive > 0:
-                                    if sel_arr_idx < len(self.remaining_slices)-1:
+                                    if sel_arr_idx < len(self.remaining_slices) - 1:
                                         if sel_arr_idx > 0:
                                             sel_arr_idx -= np.random.choice(a=[-1, 1], size=1)
                                         else:
@@ -601,9 +619,9 @@ class DataSet(object):
 
                             # Attach successive batches
                             selection_array_idx = np.append(selection_array_idx, sel_arr_idx).astype(int)
-                            for _ in range(successive-1):
+                            for _ in range(successive - 1):
                                 selection_array_idx = np.append(selection_array_idx,
-                                                                selection_array_idx[-1]+1)
+                                                                selection_array_idx[-1] + 1)
 
                             batch_counter -= successive
 
@@ -611,7 +629,8 @@ class DataSet(object):
 
                         while True:
                             sel_arr_idx = np.random.choice(a=range(len(self.remaining_slices)),
-                                                           size=int(batch_size/successive), replace=False)
+                                                           size=int(batch_size / successive),
+                                                           replace=False)
 
                             # Check whether distances big enough
                             counter = 0
@@ -620,7 +639,7 @@ class DataSet(object):
                                 diff = np.delete(diff, np.where(diff == 0))
                                 if not np.all(diff >= successive):
                                     counter += 1
-                            if counter == 0 and np.max(sel_arr_idx)+successive-1 < len(
+                            if counter == 0 and np.max(sel_arr_idx) + successive - 1 < len(
                                     self.remaining_slices):
                                 break
 
@@ -684,7 +703,7 @@ class DataSet(object):
 
                             # Search around index if remaining_slides are not equally distributed
                             while len(self.remaining_slices[:sel_arr_idx[0]]) % successive > 0:
-                                if sel_arr_idx < len(self.remaining_slices)-1:
+                                if sel_arr_idx < len(self.remaining_slices) - 1:
                                     if sel_arr_idx > 0:
                                         sel_arr_idx -= np.random.choice(a=[-1, 1], size=1)
                                     else:
@@ -699,16 +718,17 @@ class DataSet(object):
                             # Attach successive batches
                             additional_array_idx = np.append(
                                 additional_array_idx, sel_arr_idx).astype(int)
-                            for _ in range(successive-1):
+                            for _ in range(successive - 1):
                                 additional_array_idx = np.append(additional_array_idx,
-                                                                 additional_array_idx[-1]+1)
+                                                                 additional_array_idx[-1] + 1)
 
                             batch_counter -= successive
 
                     else:  # successive_mode == 2:
                         while True:
                             sel_arr_idx = np.random.choice(a=range(len(self.remaining_slices)),
-                                                           size=int(remaining_slices_to_draw/successive),
+                                                           size=int(
+                                                               remaining_slices_to_draw / successive),
                                                            replace=False)
 
                             # Check whether distances big enough
@@ -718,7 +738,7 @@ class DataSet(object):
                                 diff = np.delete(diff, np.where(diff == 0))
                                 if not np.all(diff >= successive):
                                     counter += 1
-                            if counter == 0 and np.max(sel_arr_idx)+successive-1 < len(
+                            if counter == 0 and np.max(sel_arr_idx) + successive - 1 < len(
                                     self.remaining_slices):
                                 break
 
@@ -821,7 +841,7 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
     for comp_idx, comp in enumerate(component):
         if filetype.upper() == "SSD":
             if band_pass:
-                assert comp in range(1, 5+1) or comp in range(91, 95+1), \
+                assert comp in range(1, 5 + 1) or comp in range(91, 95 + 1), \
                     "Components must be in range [1,2,3,4,5]"
             else:  # not band_pass
                 pass
@@ -829,8 +849,8 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
             assert comp in range(1, 9 + 1) or comp in range(91, 99 + 1), \
                 "Components must be in correct range"
         # Check demand for noise component
-        if comp in range(91, 95+1):
-            component[comp_idx] -= 90   # decode
+        if comp in range(91, 95 + 1):
+            component[comp_idx] -= 90  # decode
             noise_comp = True  # switch on noise-mode of given component
         else:
             try:
@@ -856,7 +876,7 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
     # 1) and choose specific components
     # eeg_sba = eeg_data[str(subject)]["SBA"][cond][:, 0:2]  # = first 2 components; or best, or other
 
-    eeg_sba = eeg_data[str(subject)]["SBA"][cond][:, [comp-1 for comp in component]]
+    eeg_sba = eeg_data[str(subject)]["SBA"][cond][:, [comp - 1 for comp in component]]
 
     # If Noise-Mode, shuffle component
     if noise_comp:

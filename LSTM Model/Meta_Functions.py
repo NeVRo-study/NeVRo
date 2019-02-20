@@ -244,10 +244,11 @@ def inverse_indexing(arr, idx):
     return inv_arr
 
 
-def interpolate_nan(arr_with_nan):
+def interpolate_nan(arr_with_nan, verbose=False):
     """
     Return array with linearly interpolated values.
     :param arr_with_nan: array with missing values
+    :param verbose: True: print number of interpolated values
     :return: updated array
     """
     missing_idx = np.where(np.isnan(arr_with_nan))[0]
@@ -262,7 +263,7 @@ def interpolate_nan(arr_with_nan):
                 arr_with_nan[midx] = np.nanmean(arr_with_nan[midx+1: midx+1+5])
             # Else Take the mean of the two adjacent values
             else:  # midx > 0
-                if np.isnan(arr_with_nan[midx]):  # Check whether still missing (see linspace filling below)
+                if np.isnan(arr_with_nan[midx]):  # Check if still missing (see linspace filling below)
                     if not np.isnan(arr_with_nan[midx+1]):  # we coming from below
                         arr_with_nan[midx] = np.mean([arr_with_nan[midx-1], arr_with_nan[midx+1]])
                     else:  # next value is also missing
@@ -279,8 +280,8 @@ def interpolate_nan(arr_with_nan):
                         assert len(fillvec) == 1 + count, "Implementation error at interpolation"
 
                         arr_with_nan[midx: midx+count+1] = fillvec
-
-        print("Interpolated {} values.".format(len(missing_idx)))
+        if verbose:
+            print("Interpolated {} values.".format(len(missing_idx)))
 
     updated_array = arr_with_nan
 

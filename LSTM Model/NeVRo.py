@@ -4,12 +4,12 @@ Main script
     • run model
     • script should be called via bash files (see parser)
 
-Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017
+Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017, 2019 (Update)
 """
 
 # Adaptations if code is run under Python2
 from __future__ import absolute_import
-from __future__ import division  # int/int can result in float now, e.g. 1/2 = 0.5 (in python2 1/2=0, 1/2.=0.5)
+from __future__ import division  # int/int can result in float now, 1/2 = 0.5 (in python2 1/2=0, 1/2.=0.5)
 from __future__ import print_function  # : Use print as a function as in Python 3: print()
 
 # import sys
@@ -30,24 +30,26 @@ from NEVROnet import NeVRoNet
 # TODO test trained model on different subject dataset.
 # TODO Train model on various subjects
 
-TASK_DEFAULT = 'regression'  # predict ratings via 'regression' (continious) or 'classification' (Low vs. High arousal)
+TASK_DEFAULT = 'regression'  # prediction via 'regression' (continious) or 'classification' (Low-High)
 LEARNING_RATE_DEFAULT = 1e-3  # 1e-4
 BATCH_SIZE_DEFAULT = 9  # or bigger, batch_size must be a multiple of 'successive batches'
 SUCCESSIVE_BATCHES_DEFAULT = 1  # (time-)length per sample is hyperparameter in form of successive batches
 SUCCESSIVE_MODE_DEFAULT = 1  # either 1 or 2
 S_FOLD_DEFAULT = 10
-REPETITION_SCALAR_DEFAULT = 30  # scaler for how many times it should run through set (can be also fraction)
+REPETITION_SCALAR_DEFAULT = 30  # scaler for how many times it runs through set (can be also fraction)
 OPTIMIZER_DEFAULT = 'ADAM'
 WEIGHT_REGULARIZER_DEFAULT = 'l2'
 WEIGHT_REGULARIZER_STRENGTH_DEFAULT = 0.18
 ACTIVATION_FCT_DEFAULT = 'elu'
 LOSS_DEFAULT = "normal"  # is not used yet
-LSTM_SIZE_DEFAULT = '100'  # number of hidden units per LSTM layer, e.g., '10,5' would create second lstm_layer
+LSTM_SIZE_DEFAULT = '100'  # N of hidden units per LSTM layer, e.g., '10,5' would create second lstm_layer
 FC_NUM_HIDDEN_UNITS = None  # if len(n_hidden_units)>0, create len(n_hidden_units) layers
 FILE_TYPE_DEFAULT = "SSD"  # Either 'SSD' or 'SPOC'
-COMPONENT_DEFAULT = "best"  # 'best', 'noise', 'random', 'all' or list of 1 or more comps (1-5), e.g. '1,3,5' or '4'
-# HR_COMPONENT_DEFAULT = False
+COMPONENT_DEFAULT = "best"
+# 'best', 'noise', 'random', 'all' or list of 1 or more comps (1-5), e.g. '1,3,5' or '4'
+
 SUBJECT_DEFAULT = 36
+CONDITION_DEFAULT = "nomov"
 
 PATH_SPECIFICITIES_DEFAULT = ""  # or fill like this: "special_folder/"
 
@@ -175,7 +177,7 @@ def train_lstm():
                     break
         elif FLAGS.component == "all":
             cfname = get_filename(subject=FLAGS.subject, filetype=FLAGS.filetype, band_pass=FLAGS.band_pass,
-                                  cond="NoMov", sba=True)
+                                  cond="NoMov", sba=FLAGS.sba)
             if os.path.isfile(cfname):
                 n_comp = len(np.genfromtxt(cfname, delimiter=";", dtype="str")[0].split("\t")[:-1])
                 # last=' '
@@ -197,7 +199,7 @@ def train_lstm():
                                 s_fold_idx=s_fold_idx_list[0],
                                 s_fold=FLAGS.s_fold,
                                 cond="NoMov",
-                                sba=True,
+                                sba=FLAGS.sba,
                                 filetype=FLAGS.filetype,
                                 band_pass=FLAGS.band_pass,
                                 hilbert_power=FLAGS.hilbert_power,
@@ -205,7 +207,7 @@ def train_lstm():
                                 shuffle=FLAGS.shuffle,
                                 testmode=FLAGS.testmodel)
 
-    zero_line_acc = zero_line_prediction(subject=FLAGS.subject)
+    mean_line_acc = mean_line_prediction(subject=FLAGS.subject, condition=FLAGS.condition, sba=FLAGS.sba)
 
     # Define graph using class NeVRoNet and its methods:
     ddims = list(nevro_data["train"].eeg.shape[1:])  # [250, n_comp]
@@ -266,7 +268,7 @@ def train_lstm():
                                                 s_fold_idx=s_fold_idx,
                                                 s_fold=FLAGS.s_fold,
                                                 cond="NoMov",
-                                                sba=True,
+                                                sba=FLAGS.sba,
                                                 filetype=FLAGS.filetype,
                                                 band_pass=FLAGS.band_pass,
                                                 hilbert_power=FLAGS.hilbert_power,
@@ -633,9 +635,9 @@ def train_lstm():
 
         # preparing export
         lists_export = [s_fold_idx_list, rnd_all_acc_val, np.round(np.mean(all_acc_val), 3),
-                        np.round(zero_line_acc, 3), np.sum(timer_fold_list)]
+                        np.round(mean_line_acc, 3), np.sum(timer_fold_list)]
         label_export = ["S-Fold(Round): ", "Validation-Acc: ", "mean(Accuracy): ",
-                        "zero_line_acc: ", "Train-Time: "]
+                        "mean_line_acc: ", "Train-Time: "]
 
         if FLAGS.task == "classification":
             lists_export.insert(len(lists_export) - 1, rnd_all_acc_val_binary)
@@ -663,7 +665,7 @@ def train_lstm():
             mcvacc_col = np.where(rs_table == "mean_class_val_acc")[1][0]
             # Write in table
             rs_table[trial_row, [mvacc_col, zlacc_col, mcvacc_col]] = np.array([np.round(np.mean(all_acc_val), 3),
-                                                                                np.round(zero_line_acc, 3),
+                                                                                np.round(mean_line_acc, 3),
                                                                                 np.round(np.nanmean(
                                                                                     rnd_all_acc_val_binary), 3) if
                                                                                 FLAGS.task == "classification" else
@@ -801,11 +803,14 @@ if __name__ == '__main__':
     # Command line arguments
     parser = argparse.ArgumentParser()
 
+    parser.add_argument('--sba', type=str2bool, default=True,
+                        help="True for SBA; False for SA")
     parser.add_argument('--task', type=str, default=TASK_DEFAULT,
                         help="Either 'classification' or 'regression'")
     # parser.add_argument('--shuffle', type=bool, default=False) # This does not work: 'type=bool' (!)
     parser.add_argument('--shuffle', type=str2bool, default=False,
-                        help="shuffle data (to have balance low/high arousal in all valsets of classification task)")
+                        help="shuffle data (to have balance low/high arousal in all valsets of "
+                             "classification task)")
     parser.add_argument('--learning_rate', type=float, default=LEARNING_RATE_DEFAULT,
                         help='Learning rate')
     parser.add_argument('--repet_scalar', type=int, default=REPETITION_SCALAR_DEFAULT,
@@ -829,11 +834,13 @@ if __name__ == '__main__':
     parser.add_argument('--weight_reg_strength', type=float, default=WEIGHT_REGULARIZER_STRENGTH_DEFAULT,
                         help='Regularizer strength for weights of fully-connected layers.')
     parser.add_argument('--activation_fct', type=str, default=ACTIVATION_FCT_DEFAULT,
-                        help='Type of activation function from lstm to fully-connected layers [elu, relu].')
+                        help='Type of activation function from LSTM to fully-connected layers: elu, relu')
     parser.add_argument('--loss', type=str, default=LOSS_DEFAULT,
                         help='Type of loss. For now only: "normal".')
     parser.add_argument('--subject', type=int, default=SUBJECT_DEFAULT,
                         help='Which subject data to process')
+    parser.add_argument('--condition', type=str, default=CONDITION_DEFAULT,
+                        help="Which condition: 'nomov' (no movement) or 'mov'")
     parser.add_argument('--lstm_size', type=str, default=LSTM_SIZE_DEFAULT,
                         help='Comma separated list of size of hidden states in each LSTM layer')
     parser.add_argument('--s_fold', type=int, default=S_FOLD_DEFAULT,
@@ -841,7 +848,8 @@ if __name__ == '__main__':
     parser.add_argument('--rand_batch', type=str, default=True,
                         help='Whether random batch (True), or cronologically drawn batches (False)')
     parser.add_argument('--hilbert_power', type=str2bool, default=True,
-                        help='Whether input is z-scored power extraction of SSD components (via Hilbert transform)')
+                        help='Whether input is z-scored power extraction of SSD components '
+                             '(via Hilbert transform)')
     parser.add_argument('--filetype', type=str, default=FILE_TYPE_DEFAULT,
                         help="Either 'SSD' or 'SPOC'")
     parser.add_argument('--band_pass', type=str2bool, default=True,
@@ -849,17 +857,19 @@ if __name__ == '__main__':
     parser.add_argument('--summaries', type=str2bool, default=False,
                         help='Whether to write verbose summaries of tf variables')
     parser.add_argument('--fc_n_hidden', type=str, default=FC_NUM_HIDDEN_UNITS,
-                        help="Comma separated list of number of hidden units in each fully connected (fc) layer")
+                        help="Comma separated list of N of hidden units in each FC layer")
     parser.add_argument('--plot', type=str2bool, default=True,
                         help="Whether to plot results and save them.")
     parser.add_argument('--dellog', type=str2bool, default=True,  # TODO rather False
                         help="Whether to delete log folders after plotting.")
     parser.add_argument('--component', type=str, default=COMPONENT_DEFAULT,
-                        help="Which component: 'best', 'noise', 'random', 'all', or comma separated list, e.g., 1,3,5")
+                        help="Which component: 'best', 'noise', 'random', 'all', "
+                             "or comma separated list, e.g., 1,3,5")
     parser.add_argument('--hrcomp', type=str2bool, default=False,
-                        help="Whether to attach the hear rate (HR) vector as component to neural components")
+                        help="Whether to attach the heart rate (HR) vector to neural components")
     parser.add_argument('--testmodel', type=str2bool, default=False,
-                        help="Whether to test the model's learning ability with inverse+stretch+noise ratings as input")
+                        help="Whether to test the model's learning ability with "
+                             "inverse+stretch+noise ratings as input")
 
     FLAGS, unparsed = parser.parse_known_args()
 
