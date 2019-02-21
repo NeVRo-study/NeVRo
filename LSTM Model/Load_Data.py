@@ -296,7 +296,7 @@ def load_rating_files(subjects, condition, samp_freq=1., sba=True, bins=False):
     for key in rating_dic_keys:
         key_cond = int(
             str(table_of_condition[np.where(table_of_condition[:, 0] == int(key)), 1])[2:4])
-        rating_dic[key].update({"condition_order": key_cond})
+        rating_dic[key].update({"condition_order": key_cond})  # 12: mov-nomov | 21: nomov-mov
 
         rating_dic[key].update({"SBA" if sba else "SA": dict.fromkeys(condition_keys, [])})
 
@@ -461,7 +461,7 @@ def load_ecg_files(subjects, condition, sba=True, interpolate=True):
                 if not sba:
                     if not (np.round(t_roller_coasters(sba)[num], 1) == hr_vector.shape[0]):
                         print("Should be all approx. the same:\nTime of {}: {}"
-                              "\nLength of hr_vector: {}".format(roller_coasters(sba)[num],
+                              "\nLength of hr_vector: {}".format(roller_coasters(condition, sba=sba)[num],
                                                                  t_roller_coasters(sba)[num],
                                                                  hr_vector.shape[0]))
                 else:  # if sba:
@@ -841,6 +841,8 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
     if not type(component) is list:
         component = [component]
 
+    noise_comp = False  # init
+
     for comp_idx, comp in enumerate(component):
         if filetype.upper() == "SSD":
             if band_pass:  # TODO adjust when model input matrix is always equal in size
@@ -871,6 +873,7 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
                                     bins=True if task == "classification" else False)
 
     # Load and prepare heart-rate data
+    ecg_data = None  # init
     if hr_component:
         ecg_data = load_ecg_files(subjects=subject, condition=cond, sba=sba)  # interpolation as default
 
@@ -888,8 +891,7 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
 
     rating_cnt = rating_data[str(subject)]["SBA"][cond]
 
-    if hr_component:
-        ecg_cnt = ecg_data[str(subject)]["SBA"][cond]
+    ecg_cnt = ecg_data[str(subject)]["SBA"][cond] if hr_component else None
 
     # Check whether EEG data too long
     if sba:
@@ -1017,14 +1019,14 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
 #       "\nCondition:", nevro_data["train"].condition)
 
 
-# TODO continue here: test
-nevro_data = get_nevro_data(subject=44, task="classification", cond="Mov",
-                            component=4, hr_component=False,
-                            filetype="SSD", hilbert_power=False, band_pass=False,
-                            s_fold_idx=9, s_fold=10, sba=True)
-print("Subject:", nevro_data["validation"].subject,
-      "\nEEG shape:", nevro_data["validation"].eeg.shape,
-      "\nCondition:", nevro_data["validation"].condition)
+# nevro_data = get_nevro_data(subject=44, task="classification", cond="NoMov",
+#                             # TODO data not there for "Mov" Binary classification (get via Felix)
+#                             component=4, hr_component=False,
+#                             filetype="SSD", hilbert_power=False, band_pass=False,
+#                             s_fold_idx=9, s_fold=10, sba=True)
+# print("Subject:", nevro_data["validation"].subject,
+#       "\nEEG shape:", nevro_data["validation"].eeg.shape,
+#       "\nCondition:", nevro_data["validation"].condition)
 
 # for _ in range(27):
 #     x = nevro_data["validation"].next_batch(batch_size=4, randomize=True)
