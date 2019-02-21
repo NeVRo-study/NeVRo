@@ -53,10 +53,11 @@ path_ssd = path_data + "EEG/10_SSD/"
 path_spoc = path_data + "EEG/11_SPOC/"
 # # SBA-pruned data (148:space, 30:break, 92:andes)
 
-# # Rating data
+# # Rating data TODO ADAPT to new file-structure
 # path_rating = path_data + "ratings/preprocessed/z_scored_alltog/"
-path_rating = path_data + "ratings/preprocessed/not_z_scored/"  # min-max scale later to [-1, +1]
-path_rating_bins = path_data + "ratings/preprocessed/classbin_ratings/"
+path_rating = path_data + "ratings/"
+path_rating_cont = path_rating + "continuous/not_z_scored/"  # min-max scale later to [-1, +1]
+path_rating_bins = path_rating + "class_bins/"
 # # ECG data
 path_ecg_crop = path_data + "Data EEG export/NeVRo_ECG_Cropped/"
 path_ecg_sba = path_data + "ECG/SBA/z_scored_alltog/"
@@ -311,6 +312,7 @@ def load_rating_files(subjects, condition, samp_freq=1., sba=True, bins=False):
             else:  # Break
                 coast = "break"
 
+            # TODO turn into def function:
             if ("NoMov" in coaster and rating_dic[str(subject)]["condition_order"] == 21) or \
                     ("_Mov" in coaster and rating_dic[str(subject)]["condition_order"] == 12):
                 runs = "1"
@@ -319,68 +321,83 @@ def load_rating_files(subjects, condition, samp_freq=1., sba=True, bins=False):
 
             coast_folder = "nomove" if "NoMov" in coaster else "move"
 
-            rating_filename = path_rating + \
-                              "{}/{}/{}Hz/NVR_S{}_run_{}_{}_rat_z.txt".format(coast,
-                                                                              coast_folder,
-                                                                              int(samp_freq),
-                                                                              str(subject).zfill(2),
-                                                                              runs,
-                                                                              coast)
+            rating_filename = path_rating_bins if bins else path_rating_cont
 
-            if os.path.isfile(rating_filename):
+            if not bins:
+                rating_filename = rating_filename + \
+                                  "{}/{}/{}Hz/NVR_S{}_run_{}_{}_rat_z.txt".format(coast, coast_folder,
+                                                                                  int(samp_freq),
+                                                                                  str(subject).zfill(2),
+                                                                                  runs, coast)
 
-                # # Load according file
-                rating_file = np.genfromtxt(rating_filename, delimiter=',')[:, 1]
-                # only load column with ratings
+                if os.path.isfile(rating_filename):
 
-                # Fill in rating dictionary
-                rating_dic[str(subject)][coaster] = copy.copy(rating_file)
-
-                # Check times:
-                if not (np.round(t_roller_coasters(sba)[num], 1) == np.round(len(rating_file) / samp_freq,
-                                                                             1)):
-                    print("Should be all approx. the same:"
-                          "\nTime of {}: {}"
-                          "\nLength of Rating / s_freq({}): {}".format(roller_coasters(condition,
-                                                                                       sba)[num],
-                                                                       t_roller_coasters(sba)[num],
-                                                                       samp_freq,
-                                                                       len(rating_file) / samp_freq))
-
-            # just process SBA once per condition (NoMov, Mov):
-            if num == 0:
-                if bins:
-                    sba_rating_filename = path_rating_bins + "{}/NVR_S{}_run_{}_alltog_epochs.txt".format(
-                        coast_folder, str(subject).zfill(2), runs)
-                else:
-                    sba_rating_filename = path_rating + \
-                                          "alltog/{}/{}Hz/NVR_S{}_run_{}_alltog_rat_z.txt".format(
-                                              coast_folder, str(int(samp_freq)), str(subject).zfill(2),
-                                              runs)
-
-                if os.path.isfile(sba_rating_filename):
-                    # Load according file
-                    sba_rating_file = np.genfromtxt(sba_rating_filename, delimiter=',')[:, 1]
-                    # in case of bin-files delete 1.entry (header)
-
-                    if np.isnan(sba_rating_file[0]) and len(sba_rating_file) == 271:
-                        sba_rating_file = np.delete(sba_rating_file, 0) - 2
-                        # substract 2 to adapt range to [-1,1]
-                        # -1: low, 0: mid, 1: high arousal
-                        # print("Rating bins and count:", np.unique(sba_rating_file, return_counts=True))
+                    # # Load according file
+                    rating_file = np.genfromtxt(rating_filename, delimiter=',')[:, 1]
+                    # only load column with ratings
 
                     # Fill in rating dictionary
-                    rating_dic[str(subject)]["SBA" if sba else "SA"][condition] = copy.copy(
-                        sba_rating_file)
+                    rating_dic[str(subject)][coaster] = copy.copy(rating_file)
 
                     # Check times:
-                    if not (np.round(sum(t_roller_coasters(sba)), 1) == np.round(
-                            len(sba_rating_file) / samp_freq, 1)):
+                    if not (np.round(t_roller_coasters(sba)[num],
+                                     1) == np.round(len(rating_file) / samp_freq, 1)):
                         print("Should be all approx. the same:"
-                              "\nTime of SBA: {}"
-                              "\nLength of Rating/s_freq({}Hz): {}".format(
-                            sum(t_roller_coasters(sba)), int(samp_freq),
-                            len(sba_rating_file) / samp_freq))
+                              "\nTime of {}: {}"
+                              "\nLength of Rating / s_freq({}): {}".format(roller_coasters(condition,
+                                                                                           sba)[num],
+                                                                           t_roller_coasters(sba)[num],
+                                                                           samp_freq,
+                                                                           len(rating_file) / samp_freq))
+            # else:
+            #     print("So far, no need for rating bins for different epochs (Space, Break, Andes).")
+
+        if sba:
+
+            if bins:
+                sba_rat_fname = path_rating_bins + "{}/{}/NVR_S{}_run_{}_alltog_epochs.txt" \
+                    .format(coast_folder[:-1], "SBA", str(subject).zfill(2), runs)
+
+            else:  # continuous
+                sba_rat_fname = path_rating_cont + \
+                                "alltog/{}/{}Hz/NVR_S{}_run_{}_alltog_rat_z.txt".format(
+                                    coast_folder, str(int(samp_freq)),
+                                    str(subject).zfill(2), runs)
+
+            if not os.path.isfile(sba_rat_fname):
+
+                print(Bcolors.FAIL + "No rating file found for S{}:".format(
+                    str(subject).zfill(2)))
+                print("\t", sba_rat_fname + Bcolors.ENDC)
+
+            else:
+                # Load according file
+                sba_rating_file = np.genfromtxt(sba_rat_fname, delimiter=',',
+                                                skip_header=True if bins else False)[:, 1]
+                # in case of bin-files delete 1.entry (header)
+
+                if bins:
+                    # substract 2 to adapt range to [-1,1]
+                    sba_rating_file -= 2
+                    # -1: low, 0: mid, 1: high arousal
+
+                    # print("Rating bins and count:", np.unique(sba_rating_file,
+                    #                                           return_counts=True))
+
+                # Fill in rating dictionary
+                rating_dic[str(subject)]["SBA"][condition] = copy.copy(sba_rating_file)
+
+                # Check times:
+                if not (np.round(sum(t_roller_coasters(sba)), 1) == np.round(
+                        len(sba_rating_file) / samp_freq, 1)):
+                    print("Should be all approx. the same:"
+                          "\nTime of SBA: {}"
+                          "\nLength of Rating/s_freq({}Hz): {}".format(
+                        sum(t_roller_coasters(sba)), int(samp_freq),
+                        len(sba_rating_file) / samp_freq))
+
+        else:  # if SA
+            raise NotImplementedError("SA case not implemented yet.")
 
     return rating_dic
 
@@ -1019,14 +1036,14 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
 #       "\nCondition:", nevro_data["train"].condition)
 
 
-# nevro_data = get_nevro_data(subject=44, task="classification", cond="NoMov",
-#                             # TODO data not there for "Mov" Binary classification (get via Felix)
-#                             component=4, hr_component=False,
-#                             filetype="SSD", hilbert_power=False, band_pass=False,
-#                             s_fold_idx=9, s_fold=10, sba=True)
-# print("Subject:", nevro_data["validation"].subject,
-#       "\nEEG shape:", nevro_data["validation"].eeg.shape,
-#       "\nCondition:", nevro_data["validation"].condition)
+nevro_data = get_nevro_data(subject=44, task="classification", cond="NoMov",
+                            # TODO data not there for "Mov" Binary classification (get via Felix)
+                            component=4, hr_component=False,
+                            filetype="SSD", hilbert_power=False, band_pass=False,
+                            s_fold_idx=9, s_fold=10, sba=True)
+print("Subject:", nevro_data["validation"].subject,
+      "\nEEG shape:", nevro_data["validation"].eeg.shape,
+      "\nCondition:", nevro_data["validation"].condition)
 
 # for _ in range(27):
 #     x = nevro_data["validation"].next_batch(batch_size=4, randomize=True)
