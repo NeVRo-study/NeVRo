@@ -51,8 +51,8 @@ path_data = "Data/"
 if not os.path.exists(path_data):  # depending on root-folder
     path_data = prfx_path + path_data
 
-path_ssd = path_data + "EEG/10_SSD/"
-path_spoc = path_data + "EEG/11_SPOC/"  # TODO not there yet
+path_ssd = path_data + "EEG/08_SSD/"
+path_spoc = path_data + "EEG/09_SPOC/"  # TODO not there yet
 # # SBA-pruned data (148:space, 30:break, 92:andes)
 
 # # Rating data
@@ -204,19 +204,20 @@ def get_num_components(subject, condition, filetype, sba=True):
 def load_component(subjects, condition, f_type, band_pass, samp_freq=250., sba=True):
     """
     Load components files (SSD, SPOC) and prepare them in dictionary
+
     :param subjects: list of subjects or single subject
     :param condition: 'nomov' or 'mov' condition
     :param f_type: either "SSD" or "SPOC"
     :param band_pass: Whether components are band-passed filter around alpha (SPOC normally is)
     :param samp_freq: sampling frequency of components
-    :param sba: if True (=Default), take SBA-z-scored components  # TODO check whether z-scored
+    :param sba: if True (=Default), take SBA-z-scored components
     Loads components of each subject in subjects
     :return: component files [sub_df] in form of dictionary
     """
+    # TODO check whether components are z-scored: shoudn't be (independece, etc)
 
     if not isinstance(subjects, list):
         subjects = [subjects]
-
     assert f_type.upper() in ["SSD", "SPOC"], "f_type must be 'SSD' or 'SPOC'"
 
     # Create Component Dictionary
