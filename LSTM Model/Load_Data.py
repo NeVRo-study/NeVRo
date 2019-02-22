@@ -40,6 +40,8 @@ import pandas as pd
 
 fresh_prep = True  # with refreshed preprocessed data is to be used
 
+n_sub = 45
+
 # # # Define data folder roots
 print("Current working dir:", os.getcwd())
 
@@ -50,7 +52,7 @@ if not os.path.exists(path_data):  # depending on root-folder
     path_data = prfx_path + path_data
 
 path_ssd = path_data + "EEG/10_SSD/"
-path_spoc = path_data + "EEG/11_SPOC/"
+path_spoc = path_data + "EEG/11_SPOC/"  # TODO not there yet
 # # SBA-pruned data (148:space, 30:break, 92:andes)
 
 # # Rating data
@@ -129,6 +131,31 @@ def get_filename(subject, filetype, band_pass, cond="nomov", sba=True):
         raise FileExistsError(file_name, "does not exisit")
 
     return file_name
+
+
+def get_num_components(subject, condition, filetype, sba=True):
+
+    assert filetype.upper() in ["SSD", "SPOC"], "filetype must be either 'SSD' or 'SPOC'"
+
+    conditions = ["mov", "nomov"]
+    assert condition.lower() in conditions, "condition must be either 'mov' or 'nomov'"
+    condition = condition.lower()
+
+    # Path to table of number of components
+    path_base = path_ssd if filetype.upper() == "SSD" else path_spoc
+    fname_tab_ncomp = path_base + "number_of_components_{}.csv".format("SBA" if sba else "SA")
+
+    # If table does not exist, create it
+    if not os.path.isfile(fname_tab_ncomp):
+        # Initialize table:
+        # columns: subject ID, mov and nomov (needs to be done for both conditions)
+        # rows: subjects
+        tab_ncopm = np.zeros((n_sub, 3), dtype=np.dtype((str, 3)))  # init table
+        tab_ncopm[:, 0] = np.array(["S"+str(sub).zfill(2) for sub in range(1, n_sub+1)])  # set names
+
+        for cond in condtions:
+            pass
+            #TODO conitnue here
 
 
 def load_component(subjects, condition, f_type, band_pass, samp_freq=250., sba=True):
