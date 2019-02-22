@@ -189,7 +189,7 @@ def get_num_components(subject, condition, filetype, sba=True):
         pd.DataFrame(tab_ncomp).to_csv(fname_tab_ncomp, header=None, index=False)
 
     else:  # Load table if exsits already
-        tab_ncomp = np.genfromtxt(fname_tab_ncomp, delimiter=";", dtype=str)
+        tab_ncomp = np.genfromtxt(fname_tab_ncomp, delimiter=",", dtype=str)
 
     # Get number of components in condition from table
     cix = 1 if condition == "mov" else 2
@@ -925,6 +925,7 @@ def splitter(array_to_split, n_splits):
 
 
 def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbert_power, band_pass,
+                   equal_comp_matrix=None,
                    s_fold_idx=None, s_fold=10,
                    sba=True, s_freq_eeg=250.,
                    shuffle=False, testmode=False):
@@ -940,6 +941,8 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
         filetype: Whether 'SSD' or 'SPOC'
         hilbert_power: hilbert-transform SSD-components, then extract z-scored power
         band_pass: Whether SSD components are band-passed filter for alpha
+        equal_comp_matrix: None: return matrix with given components;
+                           m(int): column-span m of matrix, fill columns with zeros where no component
         s_fold_idx: index which of the folds is taken as validation set
         s_fold: s-value of S-Fold Validation [default=10]
         sba: Whether to use SBA-data
@@ -952,39 +955,41 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
     # Adjust inputs
     cond = cond.lower()
     task = task.lower()
+    filetype = filetype.upper()
+    if not type(component) is list:  # If int, transform to list
+        component = [component]
+
     # Check inputs
     if s_fold_idx:
         assert s_fold_idx < s_fold, \
             "s_fold_idx (={}) must be in the range of the number of folds (={})".format(s_fold_idx,
                                                                                         s_fold)
     assert cond in ["nomov", "mov"], "cond must be either 'nomov' or 'mov'"
-    assert filetype.upper() in ["SSD", "SPOC"], "filetype must be either 'SSD' or 'SPOC'"
+    assert filetype in ["SSD", "SPOC"], "filetype must be either 'SSD' or 'SPOC'"
     assert task in ["regression", "classification"], "task must be 'regression' or 'classification'"
+    if equal_comp_matrix:
+        assert isinstance(equal_comp_matrix, int), "equal_comp_matrix must be None or integer."
+        assert equal_comp_matrix >= len(component), \
+            "List of given component(s) is too long (>equal_comp_matrix)"
 
     if s_fold_idx is None:
         s_fold_idx = np.random.randint(low=0, high=s_fold)
         print("s_fold_idx randomly chosen:", s_fold_idx)
 
-    # If int, transform to list
-    if not type(component) is list:
-        component = [component]
-
     noise_comp = False  # init
 
     for comp_idx, comp in enumerate(component):
-        if filetype.upper() == "SSD":
-            if band_pass:  # TODO adjust when model input matrix is always equal in size
-                assert comp in range(1, 5 + 1) or comp in range(91, 95 + 1), \
-                    "Components must be in range [1,2,3,4,5]"
-            else:  # not band_pass
-                pass
-        else:  # == 'SPOC'
-            assert comp in range(1, 9 + 1) or comp in range(91, 99 + 1), \
-                "Components must be in correct range"
+
+        max_comp = get_num_components(subject=subject, condition=cond, filetype=filetype, sba=sba)
+
+        assert comp in range(1, max_comp + 1) or comp in range(91, 90 + max_comp + 1), \
+            "Components must be in range (1, {}).".format(max_comp)
+
         # Check demand for noise component
-        if comp in range(91, 95 + 1):
+        if comp in range(91, 90 + max_comp + 1):
             component[comp_idx] -= 90  # decode
             noise_comp = True  # switch on noise-mode of given component
+
         else:
             try:
                 if noise_comp:
@@ -1017,49 +1022,63 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
     if noise_comp:
         np.random.shuffle(eeg_cnt)
 
+    # Load ratings
     rating_cnt = rating_data[str(subject)]["SBA"][cond]
+    # Normalize rating_cnt to [-1;1] due to tanh-output of NeVRoNet
+    rating_cnt = normalization(array=rating_cnt, lower_bound=-1, upper_bound=1)
 
+    # Load heart rate data (ECG) if applicable:
     ecg_cnt = ecg_data[str(subject)]["SBA"][cond] if hr_component else None
 
-    # Check whether EEG data too long
+    # Check whether EEG data too long. If yes: prune it
     if sba:
 
         len_test = eeg_cnt.shape[0] / s_freq_eeg - rating_cnt.shape[0]
 
         if len_test > 0.0:
-            to_delete = np.cumsum(t_roller_coasters(sba))  # [ 148.,  178.,  270.]
+
             # 3 intersections where values can be removed (instead of cutting only at the end/start)
+            to_delete = np.cumsum(t_roller_coasters(sba))  # [ 148.,  178.,  270.]
             to_delete *= s_freq_eeg
             to_cut = int(round(len_test * s_freq_eeg))
-            print("EEG data of S{} trimmed by {} data points".format(str(subject).zfill(2), to_cut))
+
+            print("EEG data of S{} gets trimmed by {} data points".format(str(subject).zfill(2), to_cut))
+
             del_counter = 2
             while len_test > 0.0:
                 if del_counter == -1:
                     del_counter = 2
+                # starts to delete in the end (Andes), then after Break, then after first part (Space)
                 eeg_cnt = np.delete(arr=eeg_cnt, obj=to_delete[del_counter], axis=0)
-                # starts to delete in the end
                 del_counter -= 1
+
                 len_test = eeg_cnt.shape[0] / s_freq_eeg - rating_cnt.shape[0]
+
         elif len_test < 0.0:
             raise OverflowError("eeg_cnt file is too short. Implement interpolation function.")
 
     else:
         raise NotImplementedError("'SA' case not implemented yet.")
 
-    # Normalize rating_cnt to [-1;1] due to tanh-output of NeVRoNet
-    rating_cnt = normalization(array=rating_cnt, lower_bound=-1, upper_bound=1)
-
-    # IF, then attach HR to neural components
-    if hr_component:
-        ecg_cnt_streched = np.reshape(np.repeat(a=ecg_cnt, repeats=int(s_freq_eeg)), newshape=[-1, 1])
-        # HR is in 1Hz
-        eeg_cnt = np.concatenate((eeg_cnt, ecg_cnt_streched), 1)
-
     if hilbert_power:
         # print("I load Hilbert transformed data (z-power)")
         # Perform Hilbert Transformation
         for comp in range(eeg_cnt.shape[1]):
             eeg_cnt[:, comp] = calc_hilbert_z_power(array=eeg_cnt[:, comp])
+
+    # IF, then attach HR to neural components
+    if hr_component:
+        # HR is in 1Hz: so stretch to length of eeg (250Hz)
+        ecg_cnt_streched = np.reshape(np.repeat(a=ecg_cnt, repeats=int(s_freq_eeg)), newshape=[-1, 1])
+        # Then attach to (neural) input matrix
+        eeg_cnt = np.concatenate((eeg_cnt, ecg_cnt_streched), 1)
+
+    # If the model input should always be equal in size, i.e. a matrix with the same shape (len(eeg), m):
+    if equal_comp_matrix:
+        m = equal_comp_matrix  # m:= column-dimension of input matrix (for readability)
+        if m > eeg_cnt.shape[1]:
+            # Attach m - (number of column of eeg_cnt) null-vector(s) to input matrix:
+            eeg_cnt = np.concatenate((eeg_cnt, np.zeros(shape=(eeg_cnt.shape[0], m-eeg_cnt.shape[1]))), 1)
 
     # If Testset, overwrite eeg_cnt data with artifical data (for model testing)
     if testmode:
@@ -1093,12 +1112,13 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
 
     # split EEG data w.r.t. to total sba-length
     eeg_cnt_split = splitter(eeg_cnt, n_splits=int(sum(t_roller_coasters(sba))))
-    # [sec, data-points, components)
+    # [sec, data-points per sec, components)
 
-    # If semi-balanced low-high-arousal values for valid. set is required (in binary classi.) then do:
-    shuf_idx = np.arange(len(rating_cnt))  # here still no change of data rating_cnt[shuf_idx]==rating_cnt
+    # If semi-balanced low-high-arousal values for validation set is required (in binary classi.)
+    # then do shuffle:
+    idx = np.arange(len(rating_cnt))  # init
     if shuffle:
-        np.random.shuffle(shuf_idx)
+        np.random.shuffle(idx)
         if task == "regression":
             print(Bcolors.WARNING + "Note: Shuffling data for regression task leads to more difficult "
                                     "interpretation of results/plots and makes successive batches "
@@ -1106,21 +1126,24 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
 
     # eeg_concat_split[0][0:] first to  250th value in time
     # eeg_concat_split[1][0:] 250...500th value in time
-    rating_split = splitter(array_to_split=rating_cnt[shuf_idx], n_splits=s_fold)
-    eeg_split = splitter(array_to_split=eeg_cnt_split[shuf_idx], n_splits=s_fold)
+    eeg_split = splitter(array_to_split=eeg_cnt_split[idx], n_splits=s_fold)
+    rating_split = splitter(array_to_split=rating_cnt[idx], n_splits=s_fold)
 
     # eeg_concat_split.shape    # (n_chunks[in 1sec], n_samples_per_chunk [250Hz], channels)
     # eeg_split.shape           # (s_fold, n_chunks_per_fold, n_samples_per_chunk, channels)
     # rating_split.shape        # (s_fold, n_samples_per_fold,)
 
-    # Assign variables accordingly:
+    # # Assign variables accordingly:
+    # Validation set:
     validation_eeg = eeg_split[s_fold_idx]
     validation_ratings = rating_split[s_fold_idx]
+
+    # Training  set:
     train_eeg = np.delete(arr=eeg_split, obj=s_fold_idx, axis=0)
     # removes the val-set from the data set (np.delete)
     train_ratings = np.delete(arr=rating_split, obj=s_fold_idx, axis=0)
     # Merge the training sets again (concatenate for 2D & vstack for >=3D)
-    # Cautious:Assumption that performance is partly independent of correct order ( done already with SBA)
+    # Cautious: Assumption that performance is partly independent of correct order (done already with SBA)
     train_eeg = np.vstack(train_eeg)  # == np.concatenate(train_eeg, axis=0)
     train_ratings = np.concatenate(train_ratings, axis=0)
 
@@ -1134,7 +1157,7 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
     test = None  # TODO implement
 
     # return base.Datasets(train=train, validation=validation, test=test), s_fold_idx
-    return {"train": train, "validation": validation, "test": test, "order": shuf_idx}
+    return {"train": train, "validation": validation, "test": test, "order": idx}
 
 
 # # Testing
