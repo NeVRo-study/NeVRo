@@ -43,7 +43,7 @@ fresh_prep = True  # with refreshed preprocessed data is to be used
 n_sub = 45
 
 # # # Define data folder roots
-print("Current working dir:", os.getcwd())
+print(Bcolors.OKBLUE + "Current working dir:{}\n".format(os.getcwd()) + Bcolors.ENDC)
 
 prfx_path = "../../"
 
@@ -135,6 +135,7 @@ def get_filename(subject, filetype, band_pass, cond="nomov", sba=True, check_exi
     return file_name
 
 
+# @function_timed  # after executing following function this returns runtime
 def get_num_components(subject, condition, filetype, sba=True):
     """
     Get number of components for subject in given condition. Information should be saved in corresponding
@@ -165,24 +166,27 @@ def get_num_components(subject, condition, filetype, sba=True):
         # rows: subjects
         tab_ncomp = np.zeros((n_sub+1, 3), dtype=np.dtype((str, 5)))  # init table
         tab_ncomp[0, :] = np.array(["ID", "mov", "nomov"]) # header
-        tab_ncomp[:, 0] = np.array(["S"+str(sub).zfill(2) for sub in range(1, n_sub+1)])  # set names
+        tab_ncomp[1:, 0] = np.array(["S"+str(sub).zfill(2) for sub in range(1, n_sub+1)])  # set names
 
         # Fill table
         for cidx, cond in enumerate(conditions):
-            for idx, sub in enumerate(tab_ncomp[:, 0]):
+            for idx, sub in enumerate(tab_ncomp[1:, 0]):
 
                 fname = get_filename(subject=int(sub[1:]), filetype=filetype, band_pass=True,
                                      cond=cond, sba=sba)
 
                 if os.path.exists(fname):
-                    n_comp = np.genfromtxt(fname, delimiter="\t").shape[0]
+                    if np.genfromtxt(fname, delimiter="\t").ndim > 1:
+                        n_comp = np.genfromtxt(fname, delimiter="\t").shape[0]
+                    else:
+                        n_comp = 1
                 else:
                     n_comp = np.nan
 
-                tab_ncomp[idx, cidx+1] = n_comp
+                tab_ncomp[idx+1, cidx+1] = n_comp
 
         # Write table
-        np.savetxt(fname=fname_tab_ncomp, X=tab_ncomp, delimiter=";", fmt='%s')
+        pd.DataFrame(tab_ncomp).to_csv(fname_tab_ncomp, header=None, index=False)
 
     else:  # Load table if exsits already
         tab_ncomp = np.genfromtxt(fname_tab_ncomp, delimiter=";", dtype=str)
@@ -193,6 +197,8 @@ def get_num_components(subject, condition, filetype, sba=True):
     ncomp = int(ncomp) if ncomp != "nan" else np.nan
 
     return ncomp
+
+# get_num_components(subject=24, condition="mov", filetype="SSD")
 
 
 def load_component(subjects, condition, f_type, band_pass, samp_freq=250., sba=True):
@@ -370,7 +376,7 @@ def get_run(subject, condition, group=None):
     return run
 
 
-# @function_timed  # after executing following function this returns runtime
+# @function_timed
 def load_rating_files(subjects, condition, sba=True, bins=False, samp_freq=1.):
     """
     Loads rating files of each subject in subjects (and take z-score later)
