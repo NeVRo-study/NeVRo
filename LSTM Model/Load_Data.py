@@ -92,7 +92,7 @@ def roller_coasters(cond, sba=True):
     return rl if sba else rl[[0, 2]]
 
 
-def get_filename(subject, filetype, band_pass, cond="nomov", sba=True):
+def get_filename(subject, filetype, band_pass, cond="nomov", sba=True, check_existence=False):
     """
     Receive the filename for specific setup.
     :param subject: subject number
@@ -100,6 +100,7 @@ def get_filename(subject, filetype, band_pass, cond="nomov", sba=True):
     :param band_pass: Data either band-pass filtered (True) or not. 'SPOC' always band-pass filtered
     :param cond: 'nomov' [Default] or 'mov'
     :param sba: SBA data
+    :param check_existence: True: raise Error if file does not exist
     :return: filename
     """
 
@@ -127,35 +128,71 @@ def get_filename(subject, filetype, band_pass, cond="nomov", sba=True):
                                                              filetype.upper())
 
     # Check existence of file
-    if not os.path.exists(file_name):
-        raise FileExistsError(file_name, "does not exisit")
+    if check_existence:
+        if not os.path.exists(file_name):
+            raise FileExistsError(file_name, "does not exisit")
 
     return file_name
 
 
 def get_num_components(subject, condition, filetype, sba=True):
+    """
+    Get number of components for subject in given condition. Information should be saved in corresponding
+    table. If not: Create this table for all subjects.
 
-    assert filetype.upper() in ["SSD", "SPOC"], "filetype must be either 'SSD' or 'SPOC'"
+    :param subject: subject number
+    :param condition: mov (1), or nomov(2)
+    :param filetype: 'SSD' or 'SPOC'
+    :param sba: True or False for 'SA'
+    :return: number of components or nan (if no information)
+    """
 
     conditions = ["mov", "nomov"]
-    assert condition.lower() in conditions, "condition must be either 'mov' or 'nomov'"
     condition = condition.lower()
+    filetype = filetype.upper()
+    assert condition in conditions, "condition must be either 'mov' or 'nomov'"
+    assert filetype.upper() in ["SSD", "SPOC"], "filetype must be either 'SSD' or 'SPOC'"
 
     # Path to table of number of components
     path_base = path_ssd if filetype.upper() == "SSD" else path_spoc
-    fname_tab_ncomp = path_base + "number_of_components_{}.csv".format("SBA" if sba else "SA")
+    fname_tab_ncomp = path_base + "number_of_components_{}_{}.csv".format(filetype,
+                                                                          "SBA" if sba else "SA")
 
     # If table does not exist, create it
     if not os.path.isfile(fname_tab_ncomp):
         # Initialize table:
         # columns: subject ID, mov and nomov (needs to be done for both conditions)
         # rows: subjects
-        tab_ncopm = np.zeros((n_sub, 3), dtype=np.dtype((str, 3)))  # init table
-        tab_ncopm[:, 0] = np.array(["S"+str(sub).zfill(2) for sub in range(1, n_sub+1)])  # set names
+        tab_ncomp = np.zeros((n_sub+1, 3), dtype=np.dtype((str, 5)))  # init table
+        tab_ncomp[0, :] = np.array(["ID", "mov", "nomov"]) # header
+        tab_ncomp[:, 0] = np.array(["S"+str(sub).zfill(2) for sub in range(1, n_sub+1)])  # set names
 
-        for cond in condtions:
-            pass
-            #TODO conitnue here
+        # Fill table
+        for cidx, cond in enumerate(conditions):
+            for idx, sub in enumerate(tab_ncomp[:, 0]):
+
+                fname = get_filename(subject=int(sub[1:]), filetype=filetype, band_pass=True,
+                                     cond=cond, sba=sba)
+
+                if os.path.exists(fname):
+                    n_comp = np.genfromtxt(fname, delimiter="\t").shape[0]
+                else:
+                    n_comp = np.nan
+
+                tab_ncomp[idx, cidx+1] = n_comp
+
+        # Write table
+        np.savetxt(fname=fname_tab_ncomp, X=tab_ncomp, delimiter=";", fmt='%s')
+
+    else:  # Load table if exsits already
+        tab_ncomp = np.genfromtxt(fname_tab_ncomp, delimiter=";", dtype=str)
+
+    # Get number of components in condition from table
+    cix = 1 if condition == "mov" else 2
+    ncomp = str(tab_ncomp[np.where(tab_ncomp[:, 0] == "S" + str(subject).zfill(2))][:, cix][0])
+    ncomp = int(ncomp) if ncomp != "nan" else np.nan
+
+    return ncomp
 
 
 def load_component(subjects, condition, f_type, band_pass, samp_freq=250., sba=True):
@@ -190,7 +227,7 @@ def load_component(subjects, condition, f_type, band_pass, samp_freq=250., sba=T
     for subject in subjects:
 
         file_name = get_filename(subject=subject, filetype=f_type.upper(), band_pass=band_pass,
-                                 cond=condition, sba=sba)
+                                 cond=condition, sba=sba, check_existence=True)
         # "NVR_S36_1_SSD_nonfilt_cmp.csv"
 
         if os.path.isfile(file_name):
@@ -272,7 +309,7 @@ def choose_component(subject, condition, f_type, best, sba=True):
 
         file_name = get_filename(subject=subject, filetype=f_type.upper(),
                                  band_pass=True,  # for False the same
-                                 cond=condition, sba=sba)
+                                 cond=condition, sba=sba, check_existence=True)
 
         n_comp = len(np.genfromtxt(file_name, delimiter="\t")[:, 0])  # each row is a component
 
