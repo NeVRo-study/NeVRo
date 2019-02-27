@@ -324,10 +324,12 @@ class Bcolors:
     OKGREEN = '\033[92m'
     WARNING = '\033[93m'
     FAIL = '\033[91m'
-    # BOLD = '\033[1m'  # doesn't work
     UNDERLINE = '\033[4m'
+    BOLD = '\033[1m'
     ENDC = '\033[0m'  # this is necessary in the end to reset to default print
 
+    DICT = {'p': HEADER, 'b': OKBLUE, 'g': OKGREEN, 'y': WARNING, 'r': FAIL,
+            'ul': UNDERLINE, 'bo': BOLD}
 
 # print(Bcolors.HEADER + "Header: No active frommets remain. Continue?" + Bcolors.ENDC)
 # print(Bcolors.OKBLUE + "Ok Blue: No active frommets remain. Continue?" + Bcolors.ENDC)
@@ -335,5 +337,25 @@ class Bcolors:
 # print(Bcolors.WARNING + "Warning: No active frommets remain. Continue?" + Bcolors.ENDC)
 # print(Bcolors.FAIL + "Fail: No active frommets remain. Continue?" + Bcolors.ENDC)
 # print(Bcolors.ENDC + "Endc: No active frommets remain. Continue?" + Bcolors.ENDC)
-# # print(Bcolors.BOLD + "Bold: No active frommets remain. Continue?" + Bcolors.ENDC)
+# print(Bcolors.BOLD + "Bold: No active frommets remain. Continue?" + Bcolors.ENDC)
 # print(Bcolors.UNDERLINE + "Underline: No active frommets remain. Continue?" + Bcolors.ENDC)
+# print(Bcolors.UNDERLINE + Bcolors.BOLD + Bcolors.WARNING +
+#       "Underline: No active frommets remain. Continue?" + Bcolors.ENDC)
+
+
+def cprint(string, col=None, fm=None):
+    """Format given string"""
+    if col:
+        col = col[0].lower()
+        assert col in ['p', 'b', 'g', 'y', 'r'], \
+            "col must be 'p'(ink), 'b'(lue), 'g'(reen), 'y'(ellow), 'r'(ed)"
+        col = Bcolors.DICT[col]
+
+    if fm:
+        fm = fm[0:2].lower()
+        assert fm in ['ul', 'bo'], "fm must be 'ul'(:underline), 'bo'(:bold)"
+        fm = Bcolors.DICT[fm]
+
+    # print given string with formatting
+    print("{}{}".format(col if col else "",
+                        fm if fm else "") + string + Bcolors.ENDC)

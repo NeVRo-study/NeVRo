@@ -43,7 +43,7 @@ fresh_prep = True  # with refreshed preprocessed data is to be used
 n_sub = 45
 
 # # # Define data folder roots
-print(Bcolors.OKBLUE + "Current working dir:{}\n".format(os.getcwd()) + Bcolors.ENDC)
+cprint("Current working dir:{}\n".format(os.getcwd()), "b")
 
 prfx_path = "../../"
 
@@ -79,17 +79,29 @@ if not os.path.exists(path_results_xcorr):  # depending on root-folder
 
 def t_roller_coasters(sba=True):
     """
-    :return: array with lengths of phases for sba or sa
+    :return: array with lengths of phases for SBA or SA
     """
     return np.array([148., 30., 92]) if sba else np.array([148., 92])
 
 
 def roller_coasters(cond, sba=True):
+    """
+    :return: list of VR roller coaster names:
+                if SBA:
+                    ['Space_Mov', 'Break_Mov', 'Ande_Mov']
+                else SA:
+                    ['Space_Mov', 'Ande_Mov']
+    """
     sfx = "_Mov" if cond.lower() == "mov" else "_NoMov"  # suffix
 
     rl = np.array(['Space' + sfx, 'Break' + sfx, 'Ande' + sfx])
 
     return rl if sba else rl[[0, 2]]
+
+
+def check_condition(cond):
+    assert cond.lower() in ["nomov", "mov"], "cond must be either 'nomov' or 'mov'"
+    return cond.lower()
 
 
 def get_filename(subject, filetype, band_pass, cond="nomov", sba=True, check_existence=False):
@@ -104,7 +116,7 @@ def get_filename(subject, filetype, band_pass, cond="nomov", sba=True, check_exi
     :return: filename
     """
 
-    assert cond in ["nomov", "mov"], "cond must be either 'nomov' or 'mov'"
+    cond = check_condition(cond=cond)
 
     assert filetype.upper() in ["SSD", "SPOC"], "filetype must be either 'SSD' or 'SPOC'"
 
@@ -123,7 +135,7 @@ def get_filename(subject, filetype, band_pass, cond="nomov", sba=True, check_exi
     # e.g. "NVR_S36_1_broad_SSD_cmp.csv"
 
     file_name = get_path + "NVR_S{}_{}_{}_{}_cmp.csv".format(str(subject).zfill(2),
-                                                             1 if cond.lower() == "nomov" else 2,
+                                                             cond,
                                                              "narrow" if band_pass else "broad",
                                                              filetype.upper())
 
@@ -149,9 +161,8 @@ def get_num_components(subject, condition, filetype, sba=True):
     """
 
     conditions = ["mov", "nomov"]
-    condition = condition.lower()
+    condition = check_condition(cond=condition)
     filetype = filetype.upper()
-    assert condition in conditions, "condition must be either 'mov' or 'nomov'"
     assert filetype.upper() in ["SSD", "SPOC"], "filetype must be either 'SSD' or 'SPOC'"
 
     # Path to table of number of components
@@ -211,10 +222,10 @@ def load_component(subjects, condition, f_type, band_pass, samp_freq=250., sba=T
     :param band_pass: Whether components are band-passed filter around alpha (SPOC normally is)
     :param samp_freq: sampling frequency of components
     :param sba: if True (=Default), take SBA-z-scored components
-    Loads components of each subject in subjects
+    Loads components of each subject in subjects.
+    Note: Components are centred around zero
     :return: component files [sub_df] in form of dictionary
     """
-    # TODO check whether components are z-scored: shoudn't be (independece, etc)
 
     if not isinstance(subjects, list):
         subjects = [subjects]
@@ -226,7 +237,7 @@ def load_component(subjects, condition, f_type, band_pass, samp_freq=250., sba=T
     comp_dic = {}
     comp_dic.update((key, dict.fromkeys(roller_coasters(condition, sba), [])) for key in comp_dic_keys)
 
-    condition_keys = [condition]  # "NoMov", "Mov"
+    condition_keys = [condition]  # nomov", "mov"
 
     for key in comp_dic_keys:
         comp_dic[key].update({"SBA" if sba else "SA": dict.fromkeys(condition_keys, [])})
@@ -244,7 +255,8 @@ def load_component(subjects, condition, f_type, band_pass, samp_freq=250., sba=T
             #   SPOC: from 1-N according to comodulation between component and target
 
             # rows = components, columns value per timestep
-            sub_df = np.genfromtxt(file_name, delimiter="\t")[:, 1:-1].transpose()  # last column is empty
+            # first column: Nr. of component, last column is empty
+            sub_df = np.genfromtxt(file_name, delimiter="\t")[:, 1:-1].transpose()
             # sub_df.shape=(67503, 6=N-comps)  # for S36 with samp_freq=250: 67503/250. = 270.012 sec
 
             # Save whole SBA/SA under condition (nomov, mov)
@@ -399,8 +411,7 @@ def load_rating_files(subjects, condition, sba=True, bins=False, samp_freq=1.):
         raise ValueError("samp_freq must be either 1 or 50 Hz")
 
     if samp_freq == 50.:
-        print(Bcolors.WARNING + "Implementation Warning: No loading of 50Hz Ratings possible yet."
-              + Bcolors.ENDC)
+        cprint("Implementation Warning: No loading of 50Hz Ratings possible yet.", "y")
 
     # Create Rating-dictionary
     rating_dic_keys = list(map(str, subjects))  # == [str(i) for i in subjects]
@@ -478,10 +489,7 @@ def load_rating_files(subjects, condition, sba=True, bins=False, samp_freq=1.):
                                 str(subject).zfill(2), runs)
 
         if not os.path.isfile(rat_fname):
-
-            print(Bcolors.FAIL + "No rating file found for S{}:".format(
-                str(subject).zfill(2)))
-            print("\t", rat_fname + Bcolors.ENDC)
+            cprint("No rating file found for S{}:\t{}".format(str(subject).zfill(2), rat_fname), col="r")
 
         else:
             # Load according file
@@ -954,7 +962,7 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
         Train, Validation Datasets
     """
     # Adjust inputs
-    cond = cond.lower()
+    cond = check_condition(cond=cond)
     task = task.lower()
     filetype = filetype.upper()
     if not type(component) is list:  # If int, transform to list
@@ -965,7 +973,6 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
         assert s_fold_idx < s_fold, \
             "s_fold_idx (={}) must be in the range of the number of folds (={})".format(s_fold_idx,
                                                                                         s_fold)
-    assert cond in ["nomov", "mov"], "cond must be either 'nomov' or 'mov'"
     assert filetype in ["SSD", "SPOC"], "filetype must be either 'SSD' or 'SPOC'"
     assert task in ["regression", "classification"], "task must be 'regression' or 'classification'"
     if equal_comp_matrix:
@@ -1121,9 +1128,8 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
     if shuffle:
         np.random.shuffle(idx)
         if task == "regression":
-            print(Bcolors.WARNING + "Note: Shuffling data for regression task leads to more difficult "
-                                    "interpretation of results/plots and makes successive batches "
-                                    "redundant (if applied)." + Bcolors.ENDC)
+            cprint("Note: Shuffling data for regression task leads to more difficult interpretation of "
+                   "results/plots and makes successive batches redundant (if applied).", col='y')
 
     # eeg_concat_split[0][0:] first to  250th value in time
     # eeg_concat_split[1][0:] 250...500th value in time
