@@ -34,7 +34,8 @@ class NeVRoNet:
         self.weight_regularizer = weight_regularizer
         self.activation_function = activation_function
         self.lstm_size = lstm_size  # = [n_hidden], list
-        self.fc_hidden_units = fc_hidden_unites  # number of hidden units in fc layers (if n-layers > 1), list
+        self.fc_hidden_units = fc_hidden_unites
+        # number of hidden units in fc layers (if n-layers > 1), list
         self.n_steps = n_steps  # sampling freq. = 250
         self.batch_size = batch_size
         self.final_state = None
