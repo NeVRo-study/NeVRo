@@ -2,7 +2,7 @@
 """
 Some meta functions
 
-Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017
+Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017, 2019 (Update)
 """
 
 import datetime
@@ -13,6 +13,46 @@ import sys
 import subprocess
 import platform
 import os
+
+
+def setwd(new_dir):
+
+    # Remove '/' if new_dir == 'folder/' OR '/folder'
+    new_dir = new_dir[:-1] if new_dir[-1] == "/" else new_dir
+    new_dir = new_dir[1:] if new_dir[0] == "/" else new_dir
+
+    cprint("Current working dir:\t{}".format(os.getcwd()), "b")
+
+    found = False if new_dir != os.getcwd().split("/")[-1] else True
+
+    # First look down the tree
+    if not found:
+        for path, j, files in os.walk('.'):
+            if new_dir in path:
+                os.chdir(path)
+                found = True
+                break
+
+        # Else look up the tree
+        if not found:
+            if new_dir in os.getcwd():
+
+                path = os.getcwd().split("/")
+
+                while new_dir != path[-1]:
+                    path.pop()
+
+                path = "/".join(path)
+                os.chdir(path)
+                found = True
+
+        if found:
+            cprint("New working dir:\t\t{}\n".format(os.getcwd()), "y")
+        else:
+            cprint("Given folder not found. Working dir remains:\t{}\n".format(os.getcwd()), "r")
+
+    # else:
+    #     print("Already in correct working dir")
 
 
 # Timer

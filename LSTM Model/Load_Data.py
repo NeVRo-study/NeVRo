@@ -29,7 +29,6 @@ Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017, 2019 (U
 
 # import sys
 # sys.path.insert(0, './LSTM Model')  # or set the folder as source root
-import os.path
 import copy
 from Meta_Functions import *
 import pandas as pd
@@ -42,14 +41,11 @@ fresh_prep = True  # with refreshed preprocessed data is to be used
 
 n_sub = 45
 
-# # # Define data folder roots
-cprint("Current working dir:{}\n".format(os.getcwd()), "b")
+# # # Define root abd data folders
 
-prfx_path = "../../"
+setwd("LSTM Model")
 
-path_data = "Data/"
-if not os.path.exists(path_data):  # depending on root-folder
-    path_data = prfx_path + path_data
+path_data = "../../Data/"
 
 path_ssd = path_data + "EEG/08_SSD/"
 path_spoc = path_data + "EEG/09_SPOC/"  # TODO not there yet
@@ -64,10 +60,7 @@ path_rating_bins = path_rating + "class_bins/"
 path_ecg_crop = path_data + "Data EEG export/NeVRo_ECG_Cropped/"
 path_ecg_sba = path_data + "ECG/SBA/z_scored_alltog/"
 
-path_results_xcorr = "Results/x_corr/"
-if not os.path.exists(path_results_xcorr):  # depending on root-folder
-    path_results_xcorr = prfx_path + path_results_xcorr
-
+path_results_xcorr = "../../Results/x_corr/"
 
 # # # Initialize variables
 # subjects = [36]  # [36, 37]
