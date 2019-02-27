@@ -176,7 +176,7 @@ def get_num_components(subject, condition, filetype, sba=True):
         # columns: subject ID, mov and nomov (needs to be done for both conditions)
         # rows: subjects
         tab_ncomp = np.zeros((n_sub+1, 3), dtype=np.dtype((str, 5)))  # init table
-        tab_ncomp[0, :] = np.array(["ID", "mov", "nomov"]) # header
+        tab_ncomp[0, :] = np.array(["ID", "mov", "nomov"])  # header
         tab_ncomp[1:, 0] = np.array(["S"+str(sub).zfill(2) for sub in range(1, n_sub+1)])  # set names
 
         # Fill table
@@ -519,10 +519,10 @@ def load_rating_files(subjects, condition, sba=True, bins=False, samp_freq=1.):
                     len(curr_rating_file) / samp_freq, 1)):
                 print("Should be all approx. the same:"
                       "\nTime of {}: {}"
-                      "\nLength of Rating/s_freq({}Hz): {}".format(
-                    "SBA" if sba else "SA",
-                    sum(t_roller_coasters(sba)), int(samp_freq),
-                    len(curr_rating_file) / samp_freq))
+                      "\nLength of Rating/s_freq({}Hz): {}".format("SBA" if sba else "SA",
+                                                                   sum(t_roller_coasters(sba)),
+                                                                   int(samp_freq),
+                                                                   len(curr_rating_file) / samp_freq))
 
     return rating_dic
 
