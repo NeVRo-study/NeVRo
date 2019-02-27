@@ -2,10 +2,10 @@
 """
 Build LSTM architecture
 
-Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017
+Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017, 2019 (Update)
 """
 
-import tensorflow as tf  # implemented with TensorFlow 1.12.0
+import tensorflow as tf  # implemented with TensorFlow 1.13.1
 # import numpy as np
 
 
@@ -85,7 +85,7 @@ class NeVRoNet:
             # post_lstm = tf.Print(input_=post_lstm, data=[post_lstm.get_shape()], message="post_lstm")
 
             fc_layer_input = self.lstm_post_activation[-1]  # [batch_size, lstm_size[-1]]
-            # This works due to lstm_output[-1], which takes only the last and ignores the last 249 outputs of lstm
+            # This works due to lstm_output[-1]: takes only last and ignores the last 249 outputs of lstm
 
             # Define first fc-layer shape
             assert isinstance(self.fc_hidden_units, list), "fc_hidden_units must be a list"
@@ -133,16 +133,17 @@ class NeVRoNet:
         'Unrolled' version of the network contains a fixed number (num_steps) of LSTM inputs and outputs.
 
         lstm(num_units)
-        The number of units (num_units) is a parameter in the LSTM, referring to the dimensionality of the hidden
-        state and dimensionality of the output state (they must be equal)
+        The number of units (num_units) is a parameter in the LSTM, referring to the dimensionality of the
+        hidden state and dimensionality of the output state (they must be equal)
         (see: https://www.quora.com/What-is-the-meaning-of-“The-number-of-units-in-the-LSTM-cell)
-        => num_units = n_hidden = e.g., 128 << hidden layer num of features, equals also to the number of outputs
+        => num_units = n_hidden = e.g., 128 << hidden layer num of features, equals also to the number of
+        outputs
         (see: https://github.com/aymericdamien/TensorFlow-Examples/blob/master/examples/
         3_NeuralNetworks/recurrent_network.py)
 
         'The definition of cell in this package differs from the definition used in the literature.
-        In the literature, cell refers to an object with a single scalar output. The definition in this package refers
-        to a horizontal array of such units.'
+        In the literature, cell refers to an object with a single scalar output. The definition in this
+        package refers to a horizontal array of such units.'
 
         :param x: Input to layer
         :param layer_name: Name of Layer
@@ -156,7 +157,8 @@ class NeVRoNet:
             # Now: x is list of [250 x (batch_size, 1)]
 
             # Define LSTM cell (Zaremba et al., 2015)
-            lstm_cell = tf.nn.rnn_cell.BasicLSTMCell(num_units=lstm_size)  # == tf.contrib.rnn.BasicLSTMCell(lstm_size)
+            lstm_cell = tf.nn.rnn_cell.BasicLSTMCell(num_units=lstm_size)
+            # == tf.contrib.rnn.BasicLSTMCell(lstm_size)
             # lstm_cell.state_size
 
             # Initial state of the LSTM memory
@@ -164,12 +166,10 @@ class NeVRoNet:
             # init_state = lstm_cell.zero_state(batch_size=self.batch_size, dtype=tf.float32)
 
             # Run LSTM cell
-            self.lstm_output, self.final_state = tf.contrib.rnn.static_rnn(cell=lstm_cell,
-                                                                           inputs=x,
-                                                                           # initial_state=init_state,  # (optional)
-                                                                           # sequence_length=num_steps,
-                                                                           dtype=tf.float32,
-                                                                           scope=None)
+            self.lstm_output, self.final_state = tf.contrib.rnn.static_rnn(
+                cell=lstm_cell, inputs=x, dtype=tf.float32,  # sequence_length=num_steps,
+                scope=None)  # initial_state=init_state,  # (optional)
+
             # lstm_output: len(lstm_output) == len(x) == 250
             # state (final_state):
             # LSTMStateTuple(c=array([[ ...]], dtype=float32),  # C-State
@@ -195,11 +195,13 @@ class NeVRoNet:
             # Push through activation function
             with tf.name_scope(layer_name + "_elu"):  # or relu
                 # post_activation = tf.nn.relu(lstm_output, name="post_activation")
-                # lstm_output.shape = (250, batch_size, lstm_size) | lstm_output[-1].shape = (batch_size, lstm_size)
+                # lstm_output.shape = (250, batch_size, lstm_size) | lstm_output[-1].shape = (batch_size,
+                #                                                                             lstm_size)
                 # Only do '[-1]' if last lstm-layer
                 pre_activation = self.lstm_output[-1] if last_layer else self.lstm_output
 
-                post_activation = self.activation_function(features=pre_activation, name="post_activation")
+                post_activation = self.activation_function(features=pre_activation,
+                                                           name="post_activation")
 
                 # Write Summaries
                 self._var_summaries(name=layer_name + "_elu" + "/post_activation", var=post_activation)
@@ -241,7 +243,8 @@ class NeVRoNet:
             if not last_layer:
                 # Push through activation function, if not last layer
                 with tf.name_scope(layer_name + "_elu"):  # or relu
-                    post_activation = self.activation_function(features=pre_activation, name="post_activation")
+                    post_activation = self.activation_function(features=pre_activation,
+                                                               name="post_activation")
 
                 return post_activation
 
@@ -283,8 +286,10 @@ class NeVRoNet:
 
                 # 1 - abs(infer-rating)/max_diff, max_diff
                 # max_diff = 2.0  # since ratings in [-1, 1]
-                max_diff = tf.subtract(1.0, tf.multiply(tf.abs(ratings), -1.0))  # chances depending on rating-level
-                correct = tf.subtract(1.0, tf.abs(tf.divide(tf.subtract(infer, ratings), max_diff)), name="correct")
+                max_diff = tf.subtract(1.0, tf.multiply(tf.abs(ratings), -1.0))
+                # chances depending on rating-level
+                correct = tf.subtract(1.0, tf.abs(tf.divide(tf.subtract(infer, ratings), max_diff)),
+                                      name="correct")
 
             with tf.name_scope("accuracy"):
                 # Return the number of true entries.
@@ -317,7 +322,8 @@ class NeVRoNet:
         with tf.name_scope("mean_squared_error"):
 
             # TODO adaptations as in accuracy depending on given rating?
-            diff = tf.losses.mean_squared_error(labels=ratings, predictions=infer, scope="mean_squared_error")
+            diff = tf.losses.mean_squared_error(labels=ratings, predictions=infer,
+                                                scope="mean_squared_error")
             #                                   , loss_collection=reg_losses)
 
             with tf.name_scope("total"):

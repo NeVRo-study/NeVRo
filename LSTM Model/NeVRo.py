@@ -291,12 +291,11 @@ def train_lstm():
                     y = tf.placeholder(dtype=tf.float32, shape=[None, 1], name="y-input")
 
                 # Model
-                lstm_model = NeVRoNet(lstm_size=lstm_hidden_states,
-                                      fc_hidden_unites=n_hidden_units,
-                                      activation_function=ACTIVATION_FCT_DICT.get(FLAGS.activation_fct),
+                lstm_model = NeVRoNet(activation_function=ACTIVATION_FCT_DICT.get(FLAGS.activation_fct),
                                       weight_regularizer=WEIGHT_REGULARIZER_DICT.get(FLAGS.weight_reg)(
                                           scale=FLAGS.weight_reg_strength),
-                                      n_steps=ddims[0], batch_size=FLAGS.batch_size,
+                                      lstm_size=lstm_hidden_states, fc_hidden_unites=n_hidden_units,
+                                      n_steps=ddims[0],batch_size=FLAGS.batch_size,
                                       summaries=FLAGS.summaries)  # n_step = 250
 
                 # Prediction
