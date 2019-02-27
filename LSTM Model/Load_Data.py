@@ -33,6 +33,7 @@ import os.path
 import copy
 from Meta_Functions import *
 import pandas as pd
+import inspect
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
@@ -163,10 +164,10 @@ def get_num_components(subject, condition, filetype, sba=True):
     conditions = ["mov", "nomov"]
     condition = check_condition(cond=condition)
     filetype = filetype.upper()
-    assert filetype.upper() in ["SSD", "SPOC"], "filetype must be either 'SSD' or 'SPOC'"
+    assert filetype in ["SSD", "SPOC"], "filetype must be either 'SSD' or 'SPOC'"
 
     # Path to table of number of components
-    path_base = path_ssd if filetype.upper() == "SSD" else path_spoc
+    path_base = path_ssd if filetype == "SSD" else path_spoc
     fname_tab_ncomp = path_base + "number_of_components_{}_{}.csv".format(filetype,
                                                                           "SBA" if sba else "SA")
 
@@ -229,7 +230,8 @@ def load_component(subjects, condition, f_type, band_pass, samp_freq=250., sba=T
 
     if not isinstance(subjects, list):
         subjects = [subjects]
-    assert f_type.upper() in ["SSD", "SPOC"], "f_type must be 'SSD' or 'SPOC'"
+    f_type = f_type.upper()
+    assert f_type in ["SSD", "SPOC"], "f_type must be 'SSD' or 'SPOC'"
 
     # Create Component Dictionary
     comp_dic_keys = [str(i) for i in subjects]
@@ -244,7 +246,7 @@ def load_component(subjects, condition, f_type, band_pass, samp_freq=250., sba=T
 
     for subject in subjects:
 
-        file_name = get_filename(subject=subject, filetype=f_type.upper(), band_pass=band_pass,
+        file_name = get_filename(subject=subject, filetype=f_type, band_pass=band_pass,
                                  cond=condition, sba=sba, check_existence=True)
         # "NVR_S36_1_SSD_nonfilt_cmp.csv"
 
@@ -295,7 +297,7 @@ def load_component(subjects, condition, f_type, band_pass, samp_freq=250., sba=T
     return comp_dic
 
 
-def choose_component(subject, condition, f_type, best, sba=True):
+def best_or_random_component(subject, condition, f_type, best, sba=True):
     """
     Choose the SSD-alpha-component, either randomly or the best
     :param subject: subject number
@@ -306,27 +308,31 @@ def choose_component(subject, condition, f_type, best, sba=True):
     :return: component number
     """
 
-    if fresh_prep and best:
-        raise ImportError("Xcorr table needs to be updated")  # TODO table need to be updated
+    f_type = f_type.upper()
+
+    # TODO table need to be updated
+    if fresh_prep and best and f_type == "SSD":
+        raise ImportError("Xcorr table needs to be updated")
+    if condition == "mov" and f_type == "SSD":
+        raise ImportError("Xcorr table has no entries for mov-condition")
 
     # Load Table
-    x_corr_table = pd.read_csv(path_results_xcorr + "CC_AllSubj_Alpha_Ratings_smooth.csv", index_col=0)
-
+    x_corr_table = pd.read_csv(path_results_xcorr + "CC_AllSubj_Alpha_Ratings_smooth.csv",
+                               index_col=0) if f_type == "SSD" else None
     # Drop non-used columns
-    x_corr_table = x_corr_table.drop(x_corr_table.columns[0:3], axis=1)  # first col is idx
+    if x_corr_table is not None:
+        x_corr_table = x_corr_table.drop(x_corr_table.columns[0:3], axis=1)  # first col is idx
+    # Find component (choose best for now)
+    component = best_comp = x_corr_table.loc["S{}".format(str(subject).zfill(2))].values[0] \
+        if f_type == "SSD" else 1
 
     if best:
-        component = x_corr_table.loc["S{}".format(str(subject).zfill(2))].values[0]
-
-        print("The best correlating SSD component of Subject {} is Component Number {}".format(subject,
-                                                                                               component))
-
+        print("Best correlating {} component of S{} is Component number: {}".format(f_type,
+                                                                                    str(subject).zfill(2),
+                                                                                    component))
     else:
-        component = best_comp = x_corr_table.loc["S{}".format(str(subject).zfill(2))].values[0]
-        # First, choose best for now
-        # Then, choose another component that is not the best
-
-        file_name = get_filename(subject=subject, filetype=f_type.upper(),
+        # If not best: choose another component that is not the best
+        file_name = get_filename(subject=subject, filetype=f_type,
                                  band_pass=True,  # for False the same
                                  cond=condition, sba=sba, check_existence=True)
 
@@ -335,8 +341,8 @@ def choose_component(subject, condition, f_type, best, sba=True):
         while component == best_comp:
             component = np.random.randint(low=1, high=n_comp + 1)  # choose random component != best
 
-        print("A random SSD component of S{} is chosen (which is not the best one): Component {}".format(
-            subject, component))
+        print("A random {} component of S{} is chosen (which is not the best one): Component {}".format(
+            f_type, str(subject).zfill(2), component))
 
     return component
 
@@ -977,7 +983,7 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
     assert task in ["regression", "classification"], "task must be 'regression' or 'classification'"
     if equal_comp_matrix:
         assert isinstance(equal_comp_matrix, int), "equal_comp_matrix must be None or integer."
-        assert equal_comp_matrix >= len(component), \
+        assert equal_comp_matrix >= len(component) + 1 if hr_component else 0, \
             "List of given component(s) is too long (>equal_comp_matrix)"
 
     if s_fold_idx is None:
@@ -1006,7 +1012,7 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
                 noise_comp = False
 
     # Load and prepare EEG components
-    eeg_data = load_component(subjects=subject, condition=cond, f_type=filetype.upper(),
+    eeg_data = load_component(subjects=subject, condition=cond, f_type=filetype,
                               band_pass=band_pass, sba=sba)
 
     # Load and prepare Rating targets
@@ -1183,6 +1189,25 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
 #                             s_fold_idx=9, s_fold=10, sba=True)
 # print("Subject:", nevro_data["validation"].subject,
 #       "\nEEG shape:", nevro_data["validation"].eeg.shape,
+#       "\nRating shape:", nevro_data["validation"].ratings.shape,
+#       "\nCondition:", nevro_data["validation"].condition)
+#
+# # Test equal_comp_matrix
+# nevro_data = get_nevro_data(subject=44, task="classification", cond="NoMov",
+#                             component=[1, 2, 4], hr_component=True, equal_comp_matrix=None,
+#                             filetype="SSD", hilbert_power=False, band_pass=False,
+#                             s_fold_idx=9, s_fold=10, sba=True)
+# print("Subject:", nevro_data["validation"].subject,
+#       "\nEEG shape:", nevro_data["validation"].eeg.shape,
+#       "\nRating shape:", nevro_data["validation"].ratings.shape,
+#       "\nCondition:", nevro_data["validation"].condition)
+#
+# nevro_data = get_nevro_data(subject=44, task="classification", cond="NoMov",
+#                             component=[1, 2, 4], hr_component=True, equal_comp_matrix=6,
+#                             filetype="SSD", hilbert_power=False, band_pass=False,
+#                             s_fold_idx=9, s_fold=10, sba=True)
+# print("Subject:", nevro_data["validation"].subject,
+#       "\nEEG shape:", nevro_data["validation"].eeg.shape,  # (27, 250, 6=columns)
 #       "\nRating shape:", nevro_data["validation"].ratings.shape,
 #       "\nCondition:", nevro_data["validation"].condition)
 

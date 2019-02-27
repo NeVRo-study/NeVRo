@@ -15,8 +15,9 @@ from __future__ import print_function  # : Use print as a function as in Python 
 # import sys
 # sys.path.insert(0, './LSTM Model')  # or set the folder as source root
 from Load_Data import *
+
 import numpy as np
-import tensorflow as tf  # implemented with TensorFlow 1.12.0
+import tensorflow as tf  # implemented with TensorFlow 1.13.1
 import argparse
 import time
 import copy
@@ -108,13 +109,15 @@ def train_lstm():
     [https://www.tensorflow.org/versions/r0.11/how_tos/variables/index.html]
     """
 
-    # Parameters
-    max_steps = FLAGS.repet_scalar * (270 - 270 / FLAGS.s_fold) / FLAGS.batch_size  # runs x-times through set
+    # # Parameters
+    # runs max_steps-times through set
+    max_steps = FLAGS.repet_scalar * (270 - 270 / FLAGS.s_fold) / FLAGS.batch_size
     assert float(max_steps).is_integer(), "max steps must be integer"
     eval_freq = int(((270 - 270 / FLAGS.s_fold) / FLAGS.batch_size) / 2)  # approx. 2 times per epoch
     checkpoint_freq = int(max_steps)  # int(max_steps)/2 for chechpoint after half the training
     print_freq = int(max_steps / 8)  # if too low, uses much memory
-    assert FLAGS.batch_size % FLAGS.successive == 0, "batch_size must be a multiple of successive (batches)."
+    assert FLAGS.batch_size % FLAGS.successive == 0, \
+        "batch_size must be a multiple of successive (batches)."
     assert FLAGS.task.upper() in ['REGRESSION', 'CLASSIFICATION'], "Prediction task is undefined."
 
     # Set the random seeds on True for reproducibility.
@@ -153,56 +156,56 @@ def train_lstm():
     # Create to save the performance for each validation set
     all_acc_val = np.zeros(FLAGS.s_fold)
 
-    # Choose component: Given by list e.g., '1,3,5' or as label, e.g., 'best'
-    if FLAGS.filetype.upper() == "SSD":
-        best_comp = choose_component(subject=FLAGS.subject, best=True)  # First find best component
-    elif FLAGS.filetype.upper() == "SPOC":
-        print("The best correlating SPOC component of Subject {} is Component Number 1".format(
-            FLAGS.subject))
-        best_comp = 1
+    # # Choose component: Given by list e.g., '1,3,5' or as label, e.g., 'best'
+    input_component = None  # initialize
+
+    # First find best component
+    # choose_component(subject, condition, f_type, best, sba=True)
+    best_comp = best_or_random_component(subject=FLAGS.subject, condition=FLAGS.condition,
+                                         f_type=FLAGS.filetype.upper(),
+                                         best=True,
+                                         sba=FLAGS.sba)
 
     if not FLAGS.component.split(",")[0].isnumeric():
+
         assert FLAGS.component in ["best", "noise", "random", "all"], \
             "Component must be either 'best', 'noise', 'random', or 'all'"
+
         if FLAGS.component == "best":
             input_component = best_comp
         elif FLAGS.component == "noise":
             input_component = 90 + best_comp  # coding for noise component
         elif FLAGS.component == "random":
-            while True:
-                input_component = np.random.randint(1, 5 + 1)
-                # ! If 'SPOC' some subjects might have less than 5 comps!
-                if input_component != best_comp:
-                    break
+            input_component = best_or_random_component(subject=FLAGS.subject,
+                                                       condition=FLAGS.condition,
+                                                       f_type=FLAGS.filetype.upper(),
+                                                       best=False,  # Finds random component != best
+                                                       sba=FLAGS.sba)
         elif FLAGS.component == "all":
-            cfname = get_filename(subject=FLAGS.subject, filetype=FLAGS.filetype, band_pass=FLAGS.band_pass,
-                                  cond="NoMov", sba=FLAGS.sba)
-            if os.path.isfile(cfname):
-                n_comp = len(np.genfromtxt(cfname, delimiter=";", dtype="str")[0].split("\t")[:-1])
-                # last=' '
-                input_component = list(range(1, n_comp + 1))
-            else:
-                raise FileNotFoundError(cfname)
+            n_comp = get_num_components(subject=FLAGS.subject, condition=FLAGS.condition,
+                                        filetype=FLAGS.filetype, sba=FLAGS.sba)
+            input_component = list(range(1, n_comp + 1))
 
     else:  # given components are in form of list
         assert np.all([comp.isnumeric() for comp in FLAGS.component.split(",")]), \
             "All given components must be numeric"
         input_component = [int(comp) for comp in FLAGS.component.split(",")]
 
-    print("LSTM model get trained on input_component:", input_component)
+    print("LSTM model get trained on input_component(s):", input_component)
 
     # Load first data-set for preparation
     nevro_data = get_nevro_data(subject=FLAGS.subject,
+                                task=FLAGS.task,
+                                cond=FLAGS.condition,
                                 component=input_component,
                                 hr_component=FLAGS.hrcomp,
+                                filetype=FLAGS.filetype,
+                                hilbert_power=FLAGS.hilbert_power,
+                                band_pass=FLAGS.band_pass,
+                                equal_comp_matrix=FLAGS.eqcompmat,
                                 s_fold_idx=s_fold_idx_list[0],
                                 s_fold=FLAGS.s_fold,
-                                cond="NoMov",
                                 sba=FLAGS.sba,
-                                filetype=FLAGS.filetype,
-                                band_pass=FLAGS.band_pass,
-                                hilbert_power=FLAGS.hilbert_power,
-                                task=FLAGS.task,
                                 shuffle=FLAGS.shuffle,
                                 testmode=FLAGS.testmodel)
 
@@ -866,6 +869,9 @@ if __name__ == '__main__':
                              "or comma separated list, e.g., 1,3,5")
     parser.add_argument('--hrcomp', type=str2bool, default=False,
                         help="Whether to attach the heart rate (HR) vector to neural components")
+    parser.add_argument('--eqcompmat', type=int, default=None,
+                        help="Provide dimensions (int) of the input matrix which should be equal in size "
+                             "across all tested conditions")
     parser.add_argument('--testmodel', type=str2bool, default=False,
                         help="Whether to test the model's learning ability with "
                              "inverse+stretch+noise ratings as input")

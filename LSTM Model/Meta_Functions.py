@@ -288,16 +288,18 @@ def interpolate_nan(arr_with_nan, verbose=False):
     return updated_array
 
 
-def clear():
-    print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
+def cln(factor=1):
+    """Clean the console"""
+    for ln in range(factor):
+        print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
 
 
 def true_false_request(func):
     def func_wrapper():
         func()
-        tof = input("(T)rue or (F)alse: ")
-        assert tof.lower() in "true" or tof.lower() in "false", "Must be 'T', 't' or 'T/true', or 'F', 'f', 'F/false'"
-        output = True if tof.lower() in "true" else False
+        tof = input("(T)rue or (F)alse: ").lower()
+        assert tof in ["true", "false"], "Must be 'T', 't' or 'T/true', or 'F', 'f', 'F/false'"
+        output = True if tof in "true" else False
         return output
     return func_wrapper
 
