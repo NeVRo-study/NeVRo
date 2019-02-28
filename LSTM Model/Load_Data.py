@@ -45,7 +45,7 @@ n_sub = 45
 
 setwd("LSTM Model")
 
-path_data = "../../Data/"
+path_data = "../../../Data/"
 
 path_ssd = path_data + "EEG/08_SSD/"
 path_spoc = path_data + "EEG/09_SPOC/"  # TODO not there yet
@@ -60,7 +60,7 @@ path_rating_bins = path_rating + "class_bins/"
 path_ecg_crop = path_data + "Data EEG export/NeVRo_ECG_Cropped/"
 path_ecg_sba = path_data + "ECG/SBA/z_scored_alltog/"
 
-path_results_xcorr = "../../Results/x_corr/"
+path_results_xcorr = "../../../Results/x_corr/"
 
 # # # Initialize variables
 # subjects = [36]  # [36, 37]
@@ -352,11 +352,11 @@ def get_group_affiliation(subject):
 
     # Load Table of Conditions
     table_of_condition = np.genfromtxt(path_data + "Table_of_Conditions.csv", delimiter=";",
-                                       skip_header=True)
+                                       skip_header=True, dtype=float)
     # remove first column (sub-nr, condition-order, gender (1=f, 2=m))
 
     # Get group affiliation of subject
-    group = int(str(table_of_condition[np.where(table_of_condition[:, 0] == subject), 1])[2:4])
+    group = int(table_of_condition[np.where(table_of_condition[:, 0] == subject), 1].item())
 
     return group
 
@@ -376,7 +376,7 @@ def get_run(subject, condition, group=None):
     if group is None:
         group = get_group_affiliation(subject=subject)
     else:
-        assert group in [12, 21], "group must be either 12 or 21 (int)."
+        assert group in [12, 21], "Group must be either 12 or 21 (int), not {}".format(group)
 
     # Get run of subject in given condition
     if (condition == "mov" and group == 12) or (condition == "nomov" and group == 21):

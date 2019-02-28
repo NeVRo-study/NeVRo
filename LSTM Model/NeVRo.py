@@ -161,10 +161,11 @@ def train_lstm():
 
     # First find best component
     # choose_component(subject, condition, f_type, best, sba=True)
-    best_comp = best_or_random_component(subject=FLAGS.subject, condition=FLAGS.condition,
-                                         f_type=FLAGS.filetype.upper(),
-                                         best=True,
-                                         sba=FLAGS.sba)
+    if FLAGS.component in ['best', 'noise']:
+        best_comp = best_or_random_component(subject=FLAGS.subject, condition=FLAGS.condition,
+                                             f_type=FLAGS.filetype.upper(),
+                                             best=True,
+                                             sba=FLAGS.sba)
 
     if not FLAGS.component.split(",")[0].isnumeric():
 
@@ -238,10 +239,10 @@ def train_lstm():
 
     # Run through S-Fold-Cross-Validation (take the mean-performance across all validation sets)
     for rnd, s_fold_idx in enumerate(s_fold_idx_list):
-        print("Train now on Fold-Nr.{} (fold {}/{}) | {} | S{}".format(s_fold_idx, rnd+1,
-                                                                       len(s_fold_idx_list),
-                                                                       FLAGS.path_specificities[:-1],
-                                                                       str(FLAGS.subject).zfill(2)))
+        print("\nTrain now on Fold-Nr.{} (fold {}/{}) | {} | S{}".format(s_fold_idx, rnd+1,
+                                                                         len(s_fold_idx_list),
+                                                                         FLAGS.path_specificities[:-1],
+                                                                         str(FLAGS.subject).zfill(2)))
         start_timer_fold = datetime.datetime.now().replace(microsecond=0)
 
         # For each fold define new graph to finally compare the validation accuracies of each fold
@@ -260,7 +261,7 @@ def train_lstm():
                     rest_duration_fold = average_time(timer_fold_list,
                                                       in_timedelta=True) * (FLAGS.s_fold - rnd)
                     rest_duration_fold = chop_microseconds(delta=rest_duration_fold)
-                    print("Estimated time to train rest {} fold(s): {} [h:m:s] | {} | S{}".format(
+                    print("Estimated time to train rest {} fold(s): {} [h:m:s] | {} | S{}\n".format(
                         FLAGS.s_fold - rnd, rest_duration_fold, FLAGS.path_specificities[:-1],
                         str(FLAGS.subject).zfill(2)))
 
@@ -295,7 +296,7 @@ def train_lstm():
                                       weight_regularizer=WEIGHT_REGULARIZER_DICT.get(FLAGS.weight_reg)(
                                           scale=FLAGS.weight_reg_strength),
                                       lstm_size=lstm_hidden_states, fc_hidden_unites=n_hidden_units,
-                                      n_steps=ddims[0],batch_size=FLAGS.batch_size,
+                                      n_steps=ddims[0], batch_size=FLAGS.batch_size,
                                       summaries=FLAGS.summaries)  # n_step = 250
 
                 # Prediction
@@ -396,7 +397,7 @@ def train_lstm():
                         train_writer.add_run_metadata(run_metadata, "step{}".format(str(step).zfill(4)))
                         train_writer.add_summary(summary=summary, global_step=step)
 
-                        print("\nTrain-Loss: {:.3f} at step:{} | {} | S{}".format(
+                        print("\nTrain-Loss: \t{:.3f} at step:{} | {} | S{}".format(
                             np.round(train_loss, 3), step + 1, FLAGS.path_specificities[:-1],
                             str(FLAGS.subject).zfill(2)))
                         print("Train-Accuracy: {:.3f} at step:{} | {} | S{}\n".format(
@@ -470,7 +471,7 @@ def train_lstm():
                             test_writer.add_summary(summary=summary, global_step=step)
 
                             if val_step % 5 == 0:
-                                print("Validation-Loss: {:.3f} of Fold Nr.{} ({}/{}) | {} | S{}".format(
+                                print("Validation-Loss: \t{:.3f} of Fold Nr.{} ({}/{}) | {} | S{}".format(
                                     np.round(val_loss, 3), s_fold_idx, rnd + 1, len(s_fold_idx_list),
                                     FLAGS.path_specificities[:-1], str(FLAGS.subject).zfill(2)))
 
@@ -502,7 +503,7 @@ def train_lstm():
 
                         save_path = saver.save(sess=sess,
                                                save_path=checkpoint_dir + "lstmnet_rnd{}.ckpt".format(
-                            str(rnd).zfill(2)), global_step=step)
+                                                   str(rnd).zfill(2)), global_step=step)
                         print("Model saved in file: %s" % save_path)
 
                     # End Timer
@@ -773,10 +774,7 @@ def main(_):
 
     # if eval(FLAGS.is_train):
     if FLAGS.is_train:
-        if FLAGS.train_model == 'lstm':
-            train_lstm()
-        else:
-            raise ValueError("--train_model argument can be 'lstm'")
+        train_lstm()
     else:
         pass
         # print("I run now feature_extraction()")
@@ -826,8 +824,6 @@ if __name__ == '__main__':
                         help='Training or feature extraction')
     parser.add_argument('--seed', type=str2bool, default=False,
                         help='Random seed(42) either off or on')
-    parser.add_argument('--train_model', type=str, default='lstm',
-                        help='Type of model. Possible option(s): lstm')
     parser.add_argument('--weight_reg', type=str, default=WEIGHT_REGULARIZER_DEFAULT,
                         help='Regularizer type for weights of fully-connected layers [none, l1, l2].')
     parser.add_argument('--weight_reg_strength', type=float, default=WEIGHT_REGULARIZER_STRENGTH_DEFAULT,
