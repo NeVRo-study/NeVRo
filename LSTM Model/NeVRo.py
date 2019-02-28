@@ -610,15 +610,15 @@ def train_lstm():
                                                                        FLAGS.s_fold,
                                                                        FLAGS.path_specificities[:-1]),
               "w") as file:
-        file.write("Subject {}\nTask: {}\nShuffle_data: {}\ndatatype: {}\nband_pass: {}"
-                   "\nHilbert_z-Power: {}"
+        file.write("Subject {}\nCondition: {}\nSBA: {}\nTask: {}\nShuffle_data: {}\ndatatype: {}"
+                   "\nband_pass: {}\nHilbert_z-Power: {}"
                    "\ns-Fold: {}\nmax_step: {}\nrepetition_set: {}\nlearning_rate: {}\nbatch_size: {}"
                    "\nbatch_random: {}"
                    "\nsuccessive_batches: {}(mode {})\nweight_reg: {}({})\nact_fct: {}\nlstm_h_size: {}"
                    "\nn_hidden_units: {}"
-                   "\ncomponent: {}({}){}\n".format(FLAGS.subject, FLAGS.task, FLAGS.shuffle,
-                                                    FLAGS.filetype, FLAGS.band_pass,
-                                                    FLAGS.hilbert_power,
+                   "\ncomponent: {}({}){}\n".format(FLAGS.subject, FLAGS.condition, FLAGS.sba,
+                                                    FLAGS.task, FLAGS.shuffle, FLAGS.filetype,
+                                                    FLAGS.band_pass, FLAGS.hilbert_power,
                                                     FLAGS.s_fold, int(max_steps), FLAGS.repet_scalar,
                                                     FLAGS.learning_rate, FLAGS.batch_size,
                                                     FLAGS.rand_batch,

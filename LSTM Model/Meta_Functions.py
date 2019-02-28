@@ -338,7 +338,7 @@ def true_false_request(func):
     def func_wrapper():
         func()
         tof = input("(T)rue or (F)alse: ").lower()
-        assert tof in ["true", "false"], "Must be 'T', 't' or 'T/true', or 'F', 'f', 'F/false'"
+        assert tof in ["true", "false", "t", "f"], "Must be 'T', 't' or 'T/true', or 'F', 'f', 'F/false'"
         output = True if tof in "true" else False
         return output
     return func_wrapper
