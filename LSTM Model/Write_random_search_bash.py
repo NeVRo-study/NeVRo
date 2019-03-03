@@ -5,19 +5,15 @@ Write a random search bash file.
 Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017, 2019 (Update)
 """
 
+from Meta_Functions import setwd
 import numpy as np
 import os.path
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 # Set paths to bashfile dir
-low_root = False
-if os.getcwd().split("/")[-1] == 'NeVRo':
-    p2_bash = './Analysis/NeVRo/LSTM Model/bashfiles/'
-    low_root = True
-elif os.getcwd().split("/")[-1] == 'LSTM Model':
-    p2_bash = "./bashfiles/"
-else:
-    p2_bash = None
+setwd("LSTM Model")
+
+p2_bash = './bashfiles/'
 
 # If no bashfile dir: create
 if not os.path.exists(p2_bash):
@@ -30,15 +26,14 @@ n_sub = 45
 # all_subjects = np.linspace(start=1, stop=n_sub, num=n_sub, dtype=int)  # np.arange(1, n_sub+1)
 # dropouts = np.array([1, 12, 32, 33, 38, 40, 45])
 
-subjects = [2, 36]  # Done
-# subjects = [22, 44]  # Done
-# subjects = [28, 5, 6, 14, 17, 9]  # Done
+subjects = [2, 36]  # Test
+# already_proc = [2, 36]  # already processed subjects
 
 # # These are all subjects without dropouts
 # subjects = np.setdiff1d(all_subjects, dropouts)
 
 # # Without already computed subjects
-# subjects = np.setdiff1d(subjects, [2, 36]+[22, 44]+[28, 5, 6, 14, 17, 9])
+# subjects = np.setdiff1d(subjects, already_proc)
 
 del_log_folders = True
 
@@ -53,6 +48,7 @@ def write_search_bash_files(subs):
         "How many combinations to test (given value will be multpied with n_subjects)): "))
     assert n_combinations % 4 == 0, "Number of combinations must be a multiple of 4"
 
+    # Following need to be set manually
     seed = True  # TODO revisit
     tasks = ["regression", "classification"]
     task_request = input(
@@ -60,6 +56,7 @@ def write_search_bash_files(subs):
     assert task_request.lower() in tasks[0] or task_request.lower() in tasks[1], \
         "Input must be eitehr 'r' or 'c'"
     task = tasks[0] if task_request.lower() in tasks[0] else tasks[1]
+    filetype = 'SSD'  # filetype (alternatively: np.random.choice(a=['SSD', 'SPOC']))
     shuffle = True if task == "classification" else False
     repet_scalar = 30
     s_fold = 10
@@ -76,7 +73,7 @@ def write_search_bash_files(subs):
             bashfile.write("#!/usr/bin/env bash\n\n" + "# Random Search Bashfile: {}".format(task))
 
         for sub_bash in ["_local.sh", "_1.sh", "_2.sh", "_3.sh"]:
-            sub_bash_file_name = bash_file_name.split(".")[0] + sub_bash
+            sub_bash_file_name = "." + bash_file_name.split(".")[1] + sub_bash
             with open(sub_bash_file_name, "w") as bashfile:  # 'a' for append
                 bashfile.write("#!/usr/bin/env bash\n\n"+"# Random Search Bashfile{}: {}".format(
                     sub_bash.split(".")[0], task))
@@ -129,10 +126,6 @@ def write_search_bash_files(subs):
         # activation_fct
         activation_fct = np.random.choice(a=['elu', 'relu'])
 
-        # filetype
-        # filetype = np.random.choice(a=['SSD', 'SPOC'])
-        filetype = 'SSD'  # TODO revisit
-
         # hilbert_power
         hilbert_power = np.random.choice(a=[True, False])
 
@@ -149,7 +142,7 @@ def write_search_bash_files(subs):
         component_modes = np.random.choice(a=["best", "random_set", "one_up"])
 
         # From here on it is subject-dependent
-        max_n_comp = 99
+        max_n_comp = 99  # TODO revisit
         for subject in subs:
             if component_modes == "best":
                 if filetype == "SPOC":
@@ -161,14 +154,14 @@ def write_search_bash_files(subs):
             else:  # component_modes == 'random_set' or == 'one_up'
                 if filetype == "SSD":
                     wdic = "{}/Data/EEG/08_SSD/nomov/SBA/{}/".format(
-                        "." if low_root else "../..", "narrowband" if band_pass else "broadband")
+                        "../../..", "narrowband" if band_pass else "broadband")
 
                     filename = wdic + "NVR_S{}_nomov_{}_SSD_cmp.csv".format(
                         str(subject).zfill(2), "narrow" if band_pass else "broad")
 
                 else:  # filetype == "SPOC" TODO adapt as soon SPOC is there
                     wdic = "{}/Data/EEG/09_SPOC/nomov/SBA/{}/".format(
-                        "." if low_root else "../..", "narrowband" if band_pass else "broadband")
+                        "../../..", "narrowband" if band_pass else "broadband")
                     filename = wdic + "NVR_S{}_nomov_{}_SPOC_cmp.csv".format(
                         str(subject).zfill(2), "narrow" if band_pass else "broad")
 
@@ -192,6 +185,8 @@ def write_search_bash_files(subs):
 
                 component = ','.join([str(i) for i in component])
 
+        # TODO integrate: eqcompmat
+
         # path_specificities
         path_specificities = "{}RndHPS_lstm-{}_fc-{}_lr-{}_wreg-{}-{:.2f}_actfunc-{}_ftype-{}_" \
                              "hilb-{}_bpass-{}_comp-{}_" \
@@ -201,6 +196,8 @@ def write_search_bash_files(subs):
             activation_fct, filetype, "T" if hilbert_power else "F", "T" if band_pass else "F",
             "-".join(str(component).split(",")), "T" if hrcomp else "F")
 
+        # TODO integrate one line in the end where the file moves itself to bashfile_done folder
+        # TODO Hash those lines which are processed.
         # Write line for bashfile
         for subject in subs:
             bash_line = "python3 NeVRo.py " \
