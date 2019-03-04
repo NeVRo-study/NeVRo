@@ -7,7 +7,7 @@ Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017, 2019 (U
 
 # import sys
 # sys.path.insert(0, './LSTM Model')  # or set the folder as source root
-from Load_Data import *
+from load_data import *
 from tensorflow import gfile
 import string
 import shutil
