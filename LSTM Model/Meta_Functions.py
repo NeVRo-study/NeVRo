@@ -112,6 +112,14 @@ def average_time(list_of_timestamps, in_timedelta=True):
     return mean_time
 
 
+def s(subject):
+    """
+    :param subject: take subject ID in form of integer
+    :return: string form, e.g. S36 or S02
+    """
+    return 'S' + str(subject).zfill(2)
+
+
 def normalization(array, lower_bound, upper_bound):
     """
     Min-Max-Scaling: Normalizes Input Array to lower and upper bound

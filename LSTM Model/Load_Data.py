@@ -315,12 +315,11 @@ def best_or_random_component(subject, condition, f_type, best, sba=True):
     if x_corr_table is not None:
         x_corr_table = x_corr_table.drop(x_corr_table.columns[0:3], axis=1)  # first col is idx
     # Find component (choose best for now)
-    component = best_comp = x_corr_table.loc["S{}".format(str(subject).zfill(2))].values[0] \
-        if f_type == "SSD" else 1
+    component = best_comp = x_corr_table.loc["S{}".format(s(subject))].values[0] if f_type == "SSD" else 1
 
     if best:
         print("Best correlating {} component of S{} is Component number: {}".format(f_type,
-                                                                                    str(subject).zfill(2),
+                                                                                    s(subject),
                                                                                     component))
     else:
         # If not best: choose another component that is not the best

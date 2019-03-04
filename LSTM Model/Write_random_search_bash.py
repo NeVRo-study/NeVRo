@@ -5,12 +5,10 @@ Write a random search bash file.
 Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017, 2019 (Update)
 """
 
-from meta_functions import *
+from load_data import *
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 # Set paths to bashfile dir
-setwd("LSTM Model")
-
 p2_bash = './bashfiles/'
 
 # If no bashfile dir: create
@@ -33,14 +31,13 @@ subjects = [2, 36]  # Test
 # # Without already computed subjects
 # subjects = np.setdiff1d(subjects, already_proc)
 
-del_log_folders = True
-
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
 # # Following need to be set manually (Default)
 seed = True  # TODO revisit
 repet_scalar = 30
 s_fold = 10
+sba = True
 batch_size = 9
 successive_mode = 1
 rand_batch = True
@@ -49,12 +46,18 @@ plot = True
 # that are kept in succession. Representing subjective experience, this could be 2-3 sec in order to
 # capture responses to the stimulus environment.
 successive_default = 3
+del_log_folders = True
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
 
 # TODO adapt
 def write_search_bash_files(subs, filetype, condition):
+
+    if not type(subs) is list:
+        subs = [subs]
+
+    strsubs = [s(strsub) for strsub in subs]  # create form such as: ['S02', 'S36']
 
     filetype = filetype.upper()  # filetype (alternatively: np.random.choice(a=['SSD', 'SPOC']))
     assert filetype in ['SSD', 'SPOC'], "filetype must be either 'SSD' or 'SPOC'"
@@ -158,24 +161,25 @@ def write_search_bash_files(subs, filetype, condition):
 
         # TODO continue here
         # From here on it is subject-dependent
+        ncomp = [get_num_components(sub, cond, filetype, sba) for sub in subs]  # TODO SPOC not there yet
         max_n_comp = 99  # init
-        for subject in subs:
-            if component_modes == "best":
-                if filetype == "SPOC":
-                    # SPOC orders comps w.r.t. correlation to target variable, hence 'best' is 1st comp
-                    component = '1'
-                else:
-                    component = "best"
 
-            else:  # component_modes == 'random_set' or == 'one_up'
+        if component_modes == "best":
+            component = "best"
+
+        for subject in subs:
+            # component_modes == 'random_set' or == 'one_up'
+
                 if filetype == "SSD":
+
                     wdic = "../../../Data/EEG/08_SSD/{}/SBA/{}/".format(
                         cond, "narrowband" if band_pass else "broadband")
 
                     filename = wdic + "NVR_S{}_{}_{}_SSD_cmp.csv".format(
                         str(subject).zfill(2), cond, "narrow" if band_pass else "broad")
 
-                else:  # filetype == "SPOC" TODO adapt as soon SPOC is there
+                else:  # filetype == "SPOC"
+
                     wdic = "../../../Data/EEG/09_SPOC/{}/SBA/{}/".format(
                         cond, "narrowband" if band_pass else "broadband")
                     filename = wdic + "NVR_S{}_{}_{}_SPOC_cmp.csv".format(
@@ -209,11 +213,14 @@ def write_search_bash_files(subs, filetype, condition):
         # path_specificities
         path_specificities = "{}RndHPS_lstm-{}_fc-{}_lr-{}_wreg-{}-{:.2f}_actfunc-{}_ftype-{}_" \
                              "hilb-{}_bpass-{}_comp-{}_" \
-                             "hrcomp-{}_ncol-{}/".format(
-            'BiCl_' if "c" in task else "Reg_", "-".join(str(lstm_size).split(",")), "-".join(
+                             "hrcomp-{}_ncol-{}/".format('BiCl_' if "c" in task else "Reg_",
+                                                         "-".join(str(lstm_size).split(",")), "-".join(
                 str(fc_n_hidden).split(",")), learning_rate, weight_reg, weight_reg_strength,
-            activation_fct, filetype, "T" if hilbert_power else "F", "T" if band_pass else "F",
-            "-".join(str(component).split(",")), "T" if hrcomp else "F", eqcompmat)
+                                                         activation_fct,
+                                                         filetype, "T" if hilbert_power else "F",
+                                                         "T" if band_pass else "F",
+                                                         "-".join(str(component).split(",")),
+                                                         "T" if hrcomp else "F", eqcompmat)
 
         # TODO integrate one line in the end where the file moves itself to bashfile_done folder
         # TODO Hash those lines which are processed.
@@ -348,7 +355,7 @@ def write_bash_from_table(subs, table_path):
     for line in new_hp_table[1:, 1:-3]:
 
         subject, cond, seed, task, shuffle, \
-            repet_scalar, s_fold, batch_size,\
+            repet_scalar, s_fold, batch_size, \
             successive, successive_mode, rand_batch, \
             plot, \
             lstm_size, fc_n_hidden, learning_rate, \
