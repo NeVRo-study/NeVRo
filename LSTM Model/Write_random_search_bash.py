@@ -11,7 +11,7 @@ from load_data import *
 # Set paths to bashfile dir
 p2_bash = './bashfiles/'
 
-# If no bashfile dir: create
+# If no bashfile dir: create it
 if not os.path.exists(p2_bash):
     os.mkdir(p2_bash)
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
