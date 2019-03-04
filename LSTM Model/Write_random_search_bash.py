@@ -5,9 +5,7 @@ Write a random search bash file.
 Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017, 2019 (Update)
 """
 
-from Meta_Functions import setwd
-import numpy as np
-import os.path
+from meta_functions import *
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 # Set paths to bashfile dir
@@ -39,32 +37,49 @@ del_log_folders = True
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
+# # Following need to be set manually (Default)
+seed = True  # TODO revisit
+repet_scalar = 30
+s_fold = 10
+batch_size = 9
+successive_mode = 1
+rand_batch = True
+plot = True
+# How many of the random batches shall remain in successive order. That is, the time-slices (1-sec each)
+# that are kept in succession. Representing subjective experience, this could be 2-3 sec in order to
+# capture responses to the stimulus environment.
+successive_default = 3
+
+# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+
 
 # TODO adapt
-def write_search_bash_files(subs):
+def write_search_bash_files(subs, filetype, condition):
+
+    filetype = filetype.upper()  # filetype (alternatively: np.random.choice(a=['SSD', 'SPOC']))
+    assert filetype in ['SSD', 'SPOC'], "filetype must be either 'SSD' or 'SPOC'"
+    cond = condition.lower()
+    assert cond in ['mov', 'nomov'], "condition must be either 'mov' or 'nomov'"
 
     # Request
     n_combinations = int(input(
         "How many combinations to test (given value will be multpied with n_subjects)): "))
     assert n_combinations % 4 == 0, "Number of combinations must be a multiple of 4"
 
-    # Following need to be set manually
-    seed = True  # TODO revisit
     tasks = ["regression", "classification"]
     task_request = input(
         "For which task is the random search bash? ['r' for'regression', 'c' for 'classification']: ")
     assert task_request.lower() in tasks[0] or task_request.lower() in tasks[1], \
         "Input must be eitehr 'r' or 'c'"
     task = tasks[0] if task_request.lower() in tasks[0] else tasks[1]
-    filetype = 'SSD'  # filetype (alternatively: np.random.choice(a=['SSD', 'SPOC']))
     shuffle = True if task == "classification" else False
-    repet_scalar = 30
-    s_fold = 10
-    batch_size = 9
-    successive = 1 if task == "classification" else 3
-    successive_mode = 1
-    rand_batch = True
-    plot = True
+    successive = 1 if task == "classification" else successive_default
+
+    eqcompmat = ask_true_false(question="Shall the model input matrix always be the same in size?")
+    if eqcompmat:
+        eqcompmat = int(input("What should be the number (int) of columns (i.e. components)?"))
+    else:
+        eqcompmat = None
 
     # Create bashfile if not there already:
     bash_file_name = p2_bash + "bashfile_randomsearch_{}.sh".format('BiCl' if "c" in task else "Reg")
@@ -141,8 +156,9 @@ def write_search_bash_files(subs):
         # component
         component_modes = np.random.choice(a=["best", "random_set", "one_up"])
 
+        # TODO continue here
         # From here on it is subject-dependent
-        max_n_comp = 99  # TODO revisit
+        max_n_comp = 99  # init
         for subject in subs:
             if component_modes == "best":
                 if filetype == "SPOC":
@@ -153,20 +169,21 @@ def write_search_bash_files(subs):
 
             else:  # component_modes == 'random_set' or == 'one_up'
                 if filetype == "SSD":
-                    wdic = "{}/Data/EEG/08_SSD/nomov/SBA/{}/".format(
-                        "../../..", "narrowband" if band_pass else "broadband")
+                    wdic = "../../../Data/EEG/08_SSD/{}/SBA/{}/".format(
+                        cond, "narrowband" if band_pass else "broadband")
 
-                    filename = wdic + "NVR_S{}_nomov_{}_SSD_cmp.csv".format(
-                        str(subject).zfill(2), "narrow" if band_pass else "broad")
+                    filename = wdic + "NVR_S{}_{}_{}_SSD_cmp.csv".format(
+                        str(subject).zfill(2), cond, "narrow" if band_pass else "broad")
 
                 else:  # filetype == "SPOC" TODO adapt as soon SPOC is there
-                    wdic = "{}/Data/EEG/09_SPOC/nomov/SBA/{}/".format(
-                        "../../..", "narrowband" if band_pass else "broadband")
-                    filename = wdic + "NVR_S{}_nomov_{}_SPOC_cmp.csv".format(
-                        str(subject).zfill(2), "narrow" if band_pass else "broad")
+                    wdic = "../../../Data/EEG/09_SPOC/{}/SBA/{}/".format(
+                        cond, "narrowband" if band_pass else "broadband")
+                    filename = wdic + "NVR_S{}_{}_{}_SPOC_cmp.csv".format(
+                        str(subject).zfill(2), cond, "narrow" if band_pass else "broad")
 
-                max_n_comp = max_n_comp if max_n_comp < len(np.genfromtxt(filename)[0]) \
-                    else len(np.genfromtxt(filename)[0])
+                # Find max number of columns in file
+                max_n_comp = max_n_comp if max_n_comp < int(np.genfromtxt(filename)[-1, 0]) \
+                    else int(np.genfromtxt(filename)[-1, 0])
 
                 # Randomly choice number of feed-components
                 while True:
@@ -185,23 +202,25 @@ def write_search_bash_files(subs):
 
                 component = ','.join([str(i) for i in component])
 
-        # TODO integrate: eqcompmat
+        # TODO Adapt eqcompmat
+        if eqcompmat is not None:
+            pass
 
         # path_specificities
         path_specificities = "{}RndHPS_lstm-{}_fc-{}_lr-{}_wreg-{}-{:.2f}_actfunc-{}_ftype-{}_" \
                              "hilb-{}_bpass-{}_comp-{}_" \
-                             "hrcomp-{}/".format(
+                             "hrcomp-{}_ncol-{}/".format(
             'BiCl_' if "c" in task else "Reg_", "-".join(str(lstm_size).split(",")), "-".join(
                 str(fc_n_hidden).split(",")), learning_rate, weight_reg, weight_reg_strength,
             activation_fct, filetype, "T" if hilbert_power else "F", "T" if band_pass else "F",
-            "-".join(str(component).split(",")), "T" if hrcomp else "F")
+            "-".join(str(component).split(",")), "T" if hrcomp else "F", eqcompmat)
 
         # TODO integrate one line in the end where the file moves itself to bashfile_done folder
         # TODO Hash those lines which are processed.
         # Write line for bashfile
         for subject in subs:
             bash_line = "python3 NeVRo.py " \
-                        "--subject {} --seed {} --task {} --shuffle {} " \
+                        "--subject {} --condition {} --seed {} --task {} --shuffle {} " \
                         "--repet_scalar {} --s_fold {} --batch_size {} " \
                         "--successive {} --successive_mode {} --rand_batch {} " \
                         "--plot {} --dellog {} " \
@@ -210,7 +229,7 @@ def write_search_bash_files(subs):
                         "--activation_fct {} " \
                         "--filetype {} --hilbert_power {} --band_pass {} " \
                         "--component {} --hrcomp {} " \
-                        "--path_specificities {}".format(subject, seed, task, shuffle,
+                        "--path_specificities {}".format(subject, cond, seed, task, shuffle,
                                                          repet_scalar, s_fold, batch_size,
                                                          successive, successive_mode, rand_batch,
                                                          plot, del_log_folders,
@@ -235,7 +254,8 @@ def write_search_bash_files(subs):
             table_name = "./LSTM/Random_Search_Table_{}.csv".format('BiCl' if "c" in task else "Reg")
 
             if not os.path.exists(table_name):
-                rs_table = np.array(['round', 'subject', 'seed', 'task', 'shuffle', 'repet_scalar',
+                rs_table = np.array(['round', 'subject', 'cond', 'seed', 'task', 'shuffle',
+                                     'repet_scalar',
                                      's_fold', 'batch_size', 'successive', 'successive_mode',
                                      'rand_batch', 'plot', 'lstm_size', 'fc_n_hidden', 'learning_rate',
                                      'weight_reg', 'weight_reg_strength', 'activation_fct', 'filetype',
@@ -250,7 +270,7 @@ def write_search_bash_files(subs):
 
             rnd = int(rs_table[-1, 0]) + 1 if rs_table[-1, 0].isnumeric() else 0
 
-            exp_data = [rnd, subject, seed, task,
+            exp_data = [rnd, subject, cond, seed, task,
                         shuffle, repet_scalar, s_fold, batch_size, successive, successive_mode,
                         rand_batch, plot, lstm_size, fc_n_hidden, learning_rate, weight_reg,
                         weight_reg_strength,
@@ -267,7 +287,7 @@ def write_search_bash_files(subs):
             # Set Counter
             combi_count = combi_count+1 if combi_count < 3 else 0
 
-    print("\nBashfiles and Table completed.")
+    print("\nBashfiles and table completed.")
 
 # write_search_bash_files(subs=subjects)
 
@@ -327,7 +347,7 @@ def write_bash_from_table(subs, table_path):
     combi_count = 0
     for line in new_hp_table[1:, 1:-3]:
 
-        subject, seed, task, shuffle, \
+        subject, cond, seed, task, shuffle, \
             repet_scalar, s_fold, batch_size,\
             successive, successive_mode, rand_batch, \
             plot, \
@@ -341,7 +361,7 @@ def write_bash_from_table(subs, table_path):
         # Write line for bashfile (Important: [Space] after each entry)
 
         bash_line = "python3 NeVRo.py " \
-                    "--subject {} --seed {} --task {} --shuffle {} " \
+                    "--subject {} --condition {} --seed {} --task {} --shuffle {} " \
                     "--repet_scalar {} --s_fold {} --batch_size {} " \
                     "--successive {} --successive_mode {} --rand_batch {} " \
                     "--plot {} --dellog {} " \
@@ -350,7 +370,7 @@ def write_bash_from_table(subs, table_path):
                     "--activation_fct {} " \
                     "--filetype {} --hilbert_power {} --band_pass {} " \
                     "--component {} --hrcomp {} " \
-                    "--path_specificities {}".format(subject, seed, task, shuffle,
+                    "--path_specificities {}".format(subject, cond, seed, task, shuffle,
                                                      repet_scalar, s_fold, batch_size,
                                                      successive, successive_mode, rand_batch,
                                                      plot, del_log_folders,

@@ -30,7 +30,7 @@ Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017, 2019 (U
 # import sys
 # sys.path.insert(0, './LSTM Model')  # or set the folder as source root
 import copy
-from Meta_Functions import *
+from meta_functions import *
 import pandas as pd
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
@@ -701,28 +701,31 @@ class DataSet(object):
     def new_epoch(self):
         self._epochs_completed += 1
 
-    def next_batch(self, batch_size=1, randomize=True, successive=1, successive_mode=1):
+    def next_batch(self, batch_size=1, successive=1, successive_mode=1, randomize=True):
         """
         Return the next 'batch_size' examples from this data set
-        For MODEL 1: the batch size = 1, i.e. input 1sec=250 data points, gives 1 output (rating),
-        aka. many-to-one
-        :param successive: how many of the random batches shall remain in successive order
+
+        :param successive: How many of the random batches shall remain in successive order. That is, the
+                           time-slices (1-sec each) that are kept in succession. Representing subjective
+                           experience, this could be 2-3 sec in order to capture responses to the
+                           stimulus environment.
         :param successive_mode: Mode 1) batches start always at the same spot (-): perfect line-up (+)
                                 Mode 2) batches can start at random spots, no perfect line-up guaranteed
         :param batch_size: Batch size
-        :param randomize: Whether to randomize the order in data
+        :param randomize: Randomize order in data. To avoid learning of only the autocorrelation in data
+                          the Default is set to True
         :return: Next batch
         """
 
         # if batch_size > 1:
-        #     raise ValueError("A batch_size of > 1 is not recommanded at this point")
+        #     raise ValueError("A batch_size of > 1 is not recommended at this point")
 
         assert batch_size % successive == 0, "batch_size must be a multiple of successive"
         assert successive_mode in [1, 2], "successive_mode must be either 1 or 2"
 
         if len(self.remaining_slices) >= batch_size:
 
-            # Select slize according to number of batches
+            # Select slice according to number of batches
             if randomize:
                 if successive == 1:
                     selection_array_idx = np.random.choice(a=range(len(self.remaining_slices)),
@@ -755,7 +758,7 @@ class DataSet(object):
 
                             # Check whether right number of remaining batches
                             assert len(self.remaining_slices[sel_arr_idx[0]:]) % successive == 0, \
-                                "successive must devide length of dataset equally"
+                                "successive must divide length of dataset equally"
 
                             # Attach successive batches
                             selection_array_idx = np.append(selection_array_idx, sel_arr_idx).astype(int)

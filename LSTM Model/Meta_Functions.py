@@ -335,13 +335,28 @@ def cln(factor=1):
 
 
 def true_false_request(func):
-    def func_wrapper():
-        func()
+
+    @wraps(func)
+    def wrapper(*args, **kwds):
+        func(*args, **kwds)  # should be only a print command
+
         tof = input("(T)rue or (F)alse: ").lower()
         assert tof in ["true", "false", "t", "f"], "Must be 'T', 't' or 'T/true', or 'F', 'f', 'F/false'"
         output = True if tof in "true" else False
+
         return output
-    return func_wrapper
+
+    return wrapper
+
+
+@true_false_request
+def ask_true_false(question):
+    """
+    Ask user for input for given True-or-False question
+    :param question: str
+    :return: answer
+    """
+    cprint(question, "b")
 
 
 def open_folder(path):
