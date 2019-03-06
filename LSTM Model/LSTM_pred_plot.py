@@ -2,7 +2,7 @@
 """
 Plot predictions made by the LSTM model
 
-Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017
+Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017, 2019 (Update)
 """
 
 # import sys
@@ -36,10 +36,10 @@ def logfolder_delete_request():
 try:
     plots = sys.argv[1]
     try:
-        int(plots)
+        assert plots in ["--mode=client"]
         plots = save_request()
         script_external_exe = False
-    except ValueError:
+    except AssertionError:
         plots = True if "True" in plots else False
         script_external_exe = True
 except IndexError:
@@ -62,7 +62,8 @@ if script_external_exe:
 else:
     path_specificity = input("Provide specific subfolder (if any), in form 'subfolder/': ")
 
-assert path_specificity == "" or path_specificity[-1] == "/", "path_specificity must be either empty or end with '/'"
+assert path_specificity == "" or path_specificity[-1] == "/", \
+    "path_specificity must be either empty or end with '/'"
 
 
 # Ask whether to delete log (large files) and checkpoint folders after plotting and saving plots:
@@ -84,7 +85,7 @@ else:  # If plots are not saved, do not delete log folders
 
 
 wdic = "./LSTM"
-wdic_plot = "../../Results/Plots/LSTM/"
+wdic_plot = "../../../Results/Plots/LSTM/"
 wdic_lists = wdic + "/logs"
 wdic_checkpoint = wdic + "/checkpoints"
 lw = 0.5  # linewidth
@@ -149,7 +150,14 @@ acc_date = np.loadtxt(wdic_sub + acc_filename, dtype=str, delimiter=";")  # Chec
 task = "regression"  # default
 for info in acc_date:
 
-    if "Task:" in info:
+    if "Condition:" in info:
+        cond = info.split(": ")[1]
+
+    elif "SBA:" in info:
+        sba = info.split(": ")[1]
+        sba = "SBA" if "True" in sba else "SA"
+
+    elif "Task:" in info:
         task = info.split(": ")[1]
 
     elif "Shuffle_data:" in info:
@@ -225,7 +233,8 @@ for info in acc_date:
     #     mean_class_acc = np.round(a=float(info.split(": ")[1]), decimals=3)
 
 # Load full rating vector
-whole_rating = load_rating_files(subject, bins=False if task == "regression" else True)[str(subject)]["SBA"]["NoMov"]
+whole_rating = load_rating_files(subjects=subject, condition=cond,
+                                 bins=False if task == "regression" else True)[str(subject)][sba][cond]
 
 if task == "classification":
     whole_rating[np.where(whole_rating == 0)] = np.nan
@@ -250,8 +259,10 @@ else:
 
 # Load Neural/HR Data
 if plt_input_data:
-    data = get_nevro_data(subject=subject, component=components, hr_component=hr_comp, s_fold_idx=s_fold-1,
-                          s_fold=s_fold, filetype=file_type, band_pass=bpass, hilbert_power=hilb, task=task)
+    data = get_nevro_data(subject=subject, task=task, cond=cond,
+                          component=components, hr_component=hr_comp,
+                          filetype=file_type, hilbert_power=hilb, band_pass=bpass,
+                          s_fold_idx=s_fold-1, s_fold=s_fold)
 
     eeg_data = np.concatenate((data["train"].eeg, data["validation"].eeg))
     assert eeg_data.shape[0] == pred_matrix.shape[1], "Shapes differ!"
@@ -569,19 +580,22 @@ fig4 = plt.figure("{}-Folds mean(train)_&_concat(val)_| S{} | {} | mean(val_acc)
     s_fold, str(subject).zfill(2), task, mean_acc), figsize=(10, 12))
 
 # delete ratings out of pred_matrix first and then average across rows
-average_train_pred = np.nanmean(a=np.delete(arr=pred_matrix, obj=np.arange(1, 2*s_fold, 2), axis=0), axis=0)
-concat_val_pred = np.nanmean(a=np.delete(arr=val_pred_matrix, obj=np.arange(1, 2*s_fold, 2), axis=0), axis=0)
+average_train_pred = np.nanmean(a=np.delete(arr=pred_matrix, obj=np.arange(1, 2*s_fold, 2), axis=0),
+                                axis=0)
+concat_val_pred = np.nanmean(a=np.delete(arr=val_pred_matrix, obj=np.arange(1, 2*s_fold, 2), axis=0),
+                             axis=0)
 # whole_rating = np.nanmean(a=np.delete(arr=pred_matrix, obj=np.arange(0, 2*s_fold-1, 2), axis=0), axis=0)
 
 # Plot average train prediction
 fig4.add_subplot(4, 1, 1)
 if task == "regression":
     # Predictions
-    plt.plot(average_train_pred, color="steelblue", linewidth=2*lw, label="mean train-prediction")  # , style='r-'
+    plt.plot(average_train_pred, color="steelblue", linewidth=2*lw, label="mean train-prediction")
+    # , style='r-'
     # Ratings
     plt.plot(whole_rating, ls="dotted", color="black", label="rating")
-    plt.fill_between(x=np.arange(0, pred_matrix.shape[1], 1), y1=whole_rating, y2=average_train_pred, color="steelblue",
-                     alpha='0.2')
+    plt.fill_between(x=np.arange(0, pred_matrix.shape[1], 1), y1=whole_rating, y2=average_train_pred,
+                     color="steelblue", alpha='0.2')
     plt.title(s="Average train prediction | {}-Folds".format(s_fold))
 
     plt.hlines(y=0, xmin=0, xmax=pred_matrix.shape[1], colors="darkgrey", lw=lw, alpha=.8)  # midline
@@ -591,8 +605,8 @@ if task == "regression":
                colors="black", lw=lw, alpha=.8)  # mean ratings
 else:  # if task == "classification":
     # Predictions
-    plt.plot(average_train_pred, color="steelblue", marker="o", markerfacecolor="None", ms=2, linewidth=2*lw,
-             label="mean_train_prediction")
+    plt.plot(average_train_pred, color="steelblue", marker="o", markerfacecolor="None", ms=2,
+             linewidth=2*lw, label="mean_train_prediction")
     # Ratings
     plt.plot(real_rating, color="darkgrey", alpha=.5)
     plt.plot(only_entries_rating, color="teal", alpha=.3, label="ground-truth rating")
@@ -600,22 +614,18 @@ else:  # if task == "classification":
              label="arousal classes: low=-1 | high=1")
     # midline and tertile borders
     plt.hlines(y=0, xmin=0, xmax=pred_matrix.shape[1], colors="darkgrey", lw=lw, alpha=.8)
-    plt.hlines(y=lower_tert_bound, xmin=0, xmax=pred_matrix.shape[1], linestyle="dashed", colors="darkgrey", lw=lw,
-               alpha=.8)
-    plt.hlines(y=upper_tert_bound, xmin=0, xmax=pred_matrix.shape[1], linestyle="dashed", colors="darkgrey", lw=lw,
-               alpha=.8)
+    plt.hlines(y=lower_tert_bound, xmin=0, xmax=pred_matrix.shape[1], linestyle="dashed",
+               colors="darkgrey", lw=lw, alpha=.8)
+    plt.hlines(y=upper_tert_bound, xmin=0, xmax=pred_matrix.shape[1], linestyle="dashed",
+               colors="darkgrey", lw=lw, alpha=.8)
     # Correct classified
     correct_class_train = np.sign(average_train_pred * whole_rating)
 
-    plt.fill_between(x=np.arange(0, correct_class_train.shape[0], 1), y1=average_train_pred, y2=real_rating,
-                     where=correct_class_train == 1,
-                     color="green",
-                     alpha='0.2')
+    plt.fill_between(x=np.arange(0, correct_class_train.shape[0], 1), y1=average_train_pred,
+                     y2=real_rating, where=correct_class_train == 1, color="green", alpha='0.2')
 
-    plt.fill_between(x=np.arange(0, correct_class_train.shape[0], 1), y1=average_train_pred, y2=real_rating,
-                     where=correct_class_train == -1,
-                     color="red",
-                     alpha='0.2')
+    plt.fill_between(x=np.arange(0, correct_class_train.shape[0], 1), y1=average_train_pred,
+                     y2=real_rating, where=correct_class_train == -1, color="red", alpha='0.2')
 
     for i in range(correct_class_train.shape[0]):
         corr_col = "green" if correct_class_train[i] == 1 else "red"
@@ -630,8 +640,8 @@ else:  # if task == "classification":
     correct_class_train = np.delete(correct_class_train, np.where(np.isnan(correct_class_train)))
     mean_train_acc = sum(correct_class_train[correct_class_train == 1])/len(correct_class_train)
     plt.xlabel("time(s)")
-    plt.title(s="Average train prediction | {}-Folds| {} | mean training accuracy={:.3f}".format(s_fold, task,
-                                                                                                 mean_train_acc))
+    plt.title(s="Average train prediction | {}-Folds| {} | mean training accuracy={:.3f}".format(
+        s_fold, task, mean_train_acc))
 
 # adjust size, add legend
 plt.xlim(0, len(whole_rating))

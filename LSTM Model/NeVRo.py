@@ -610,24 +610,28 @@ def train_lstm():
                                                                        FLAGS.s_fold,
                                                                        FLAGS.path_specificities[:-1]),
               "w") as file:
-        file.write("Subject {}\nTask: {}\nShuffle_data: {}\ndatatype: {}\nband_pass: {}"
-                   "\nHilbert_z-Power: {}"
+        file.write("Subject {}\nCondition: {}\nSBA: {}\nTask: {}\nShuffle_data: {}\ndatatype: {}"
+                   "\nband_pass: {}\nHilbert_z-Power: {}"
                    "\ns-Fold: {}\nmax_step: {}\nrepetition_set: {}\nlearning_rate: {}\nbatch_size: {}"
                    "\nbatch_random: {}"
                    "\nsuccessive_batches: {}(mode {})\nweight_reg: {}({})\nact_fct: {}\nlstm_h_size: {}"
                    "\nn_hidden_units: {}"
-                   "\ncomponent: {}({}){}\n".format(FLAGS.subject, FLAGS.task, FLAGS.shuffle,
-                                                    FLAGS.filetype, FLAGS.band_pass,
-                                                    FLAGS.hilbert_power,
-                                                    FLAGS.s_fold, int(max_steps), FLAGS.repet_scalar,
-                                                    FLAGS.learning_rate, FLAGS.batch_size,
-                                                    FLAGS.rand_batch,
-                                                    FLAGS.successive, FLAGS.successive_mode,
-                                                    FLAGS.weight_reg, FLAGS.weight_reg_strength,
-                                                    FLAGS.activation_fct,
-                                                    FLAGS.lstm_size, str(n_hidden_units),
-                                                    FLAGS.component, input_component,
-                                                    " + HRcomp" if FLAGS.hrcomp else ""))
+                   "\ncomponent: {}({}){}"
+                   "\ninput_matrix_size: {}"
+                   "\npath_specificities: {}\n".format(FLAGS.subject, FLAGS.condition, FLAGS.sba,
+                                                       FLAGS.task, FLAGS.shuffle, FLAGS.filetype,
+                                                       FLAGS.band_pass, FLAGS.hilbert_power,
+                                                       FLAGS.s_fold, int(max_steps), FLAGS.repet_scalar,
+                                                       FLAGS.learning_rate, FLAGS.batch_size,
+                                                       FLAGS.rand_batch,
+                                                       FLAGS.successive, FLAGS.successive_mode,
+                                                       FLAGS.weight_reg, FLAGS.weight_reg_strength,
+                                                       FLAGS.activation_fct,
+                                                       FLAGS.lstm_size, str(n_hidden_units),
+                                                       FLAGS.component, input_component,
+                                                       " + HRcomp" if FLAGS.hrcomp else "",
+                                                       FLAGS.eqcompmat,
+                                                       FLAGS.path_specificities))
 
         # rounding for the export
         rnd_all_acc_val = ["{:.3f}".format(np.round(acc, 3)) for acc in all_acc_val]
@@ -799,7 +803,10 @@ def str2bool(v):
 if __name__ == '__main__':
     # Command line arguments
     parser = argparse.ArgumentParser()
-
+    parser.add_argument('--is_train', type=str2bool, default=True,
+                        help='Training or feature extraction')
+    parser.add_argument('--seed', type=str2bool, default=False,
+                        help='Random seed(42) either off or on')
     parser.add_argument('--sba', type=str2bool, default=True,
                         help="True for SBA; False for SA")
     parser.add_argument('--task', type=str, default=TASK_DEFAULT,
@@ -820,10 +827,6 @@ if __name__ == '__main__':
                         help='Mode of successive batching, 1 or 2.')
     parser.add_argument('--path_specificities', type=str, default=PATH_SPECIFICITIES_DEFAULT,
                         help='Specificities for the paths (depending on model-setups)')
-    parser.add_argument('--is_train', type=str2bool, default=True,
-                        help='Training or feature extraction')
-    parser.add_argument('--seed', type=str2bool, default=False,
-                        help='Random seed(42) either off or on')
     parser.add_argument('--weight_reg', type=str, default=WEIGHT_REGULARIZER_DEFAULT,
                         help='Regularizer type for weights of fully-connected layers [none, l1, l2].')
     parser.add_argument('--weight_reg_strength', type=float, default=WEIGHT_REGULARIZER_STRENGTH_DEFAULT,
@@ -863,7 +866,7 @@ if __name__ == '__main__':
     parser.add_argument('--hrcomp', type=str2bool, default=False,
                         help="Whether to attach the heart rate (HR) vector to neural components")
     parser.add_argument('--eqcompmat', type=int, default=None,
-                        help="Provide dimensions (int) of the input matrix which should be equal in size "
+                        help="Provide N (int) of columns of input matrix which should be equal in size "
                              "across all tested conditions")
     parser.add_argument('--testmodel', type=str2bool, default=False,
                         help="Whether to test the model's learning ability with "

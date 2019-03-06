@@ -13,8 +13,8 @@ Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017
 
 # import sys
 # sys.path.insert(0, './LSTM Model')  # or set the folder as source root
-from Meta_Functions import *
-from Load_Data import load_component, t_roller_coasters
+from meta_functions import *
+from load_data import load_component, t_roller_coasters
 import os.path
 import copy
 # import matplotlib
