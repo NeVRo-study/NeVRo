@@ -14,7 +14,7 @@ from __future__ import print_function  # : Use print as a function as in Python 
 
 # import sys
 # sys.path.insert(0, './LSTM Model')  # or set the folder as source root
-from Load_Data import *
+from load_data import *
 
 import numpy as np
 import tensorflow as tf  # implemented with TensorFlow 1.13.1
@@ -23,7 +23,7 @@ import time
 import copy
 import subprocess
 
-from NEVROnet import NeVRoNet
+from NeVRoNet import NeVRoNet
 
 # TODO more components: 1) define size of input-matrix before,
 # TODO then 2) successively adding SSD components, adding more non-alpha related information (non-b-pass)

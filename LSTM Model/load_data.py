@@ -30,7 +30,7 @@ Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017, 2019 (U
 # import sys
 # sys.path.insert(0, './LSTM Model')  # or set the folder as source root
 import copy
-from Meta_Functions import *
+from meta_functions import *
 import pandas as pd
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
