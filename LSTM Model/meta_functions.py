@@ -357,16 +357,6 @@ def true_false_request(func):
     return wrapper
 
 
-@true_false_request
-def ask_true_false(question):
-    """
-    Ask user for input for given True-or-False question
-    :param question: str
-    :return: answer
-    """
-    cprint(question, "b")
-
-
 def open_folder(path):
     """Open specific folder in Finder. Can also be a file"""
     if platform.system() == "Windows":  # for Windows
@@ -424,3 +414,25 @@ def cprint(string, col=None, fm=None):
     # print given string with formatting
     print("{}{}".format(col if col else "",
                         fm if fm else "") + string + Bcolors.ENDC)
+
+
+def cinput(string, col=None):
+
+    if col:
+        col = col[0].lower()
+        assert col in ['p', 'b', 'g', 'y', 'r'], \
+            "col must be 'p'(ink), 'b'(lue), 'g'(reen), 'y'(ellow), 'r'(ed)"
+        col = Bcolors.DICT[col]
+
+    # input(given string) with formatting
+    return input("{}".format(col if col else "") + string + Bcolors.ENDC)
+
+
+@true_false_request
+def ask_true_false(question):
+    """
+    Ask user for input for given True-or-False question
+    :param question: str
+    :return: answer
+    """
+    cprint(question, "b")

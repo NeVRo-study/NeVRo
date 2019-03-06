@@ -57,7 +57,7 @@ def write_search_bash_files(subs, filetype, condition):
     if not type(subs) is list:
         subs = [subs]
 
-    strsubs = [s(strsub) for strsub in subs]  # create form such as: ['S02', 'S36']
+    # strsubs = [s(strsub) for strsub in subs]  # create form such as: ['S02', 'S36']
 
     filetype = filetype.upper()  # filetype (alternatively: np.random.choice(a=['SSD', 'SPOC']))
     assert filetype in ['SSD', 'SPOC'], "filetype must be either 'SSD' or 'SPOC'"
@@ -65,13 +65,14 @@ def write_search_bash_files(subs, filetype, condition):
     assert cond in ['mov', 'nomov'], "condition must be either 'mov' or 'nomov'"
 
     # Request
-    n_combinations = int(input(
-        "How many combinations to test (given value will be multpied with n_subjects)): "))
+    n_combinations = int(cinput(
+        "How many combinations to test (given value will be multpied with n_subjects)): ", "b"))
     assert n_combinations % 4 == 0, "Number of combinations must be a multiple of 4"
 
     tasks = ["regression", "classification"]
-    task_request = input(
-        "For which task is the random search bash? ['r' for'regression', 'c' for 'classification']: ")
+    task_request = cinput(
+        "For which task is the random search bash? ['r' for'regression', 'c' for 'classification']: ",
+        "b")
     assert task_request.lower() in tasks[0] or task_request.lower() in tasks[1], \
         "Input must be eitehr 'r' or 'c'"
     task = tasks[0] if task_request.lower() in tasks[0] else tasks[1]
@@ -80,7 +81,7 @@ def write_search_bash_files(subs, filetype, condition):
 
     eqcompmat = ask_true_false(question="Shall the model input matrix always be the same in size?")
     if eqcompmat:
-        eqcompmat = int(input("What should be the number (int) of columns (i.e. components)?"))
+        eqcompmat = int(cinput("What should be the number (int) of columns (i.e. components)?", "b"))
     else:
         eqcompmat = None
 
@@ -159,73 +160,72 @@ def write_search_bash_files(subs, filetype, condition):
         # component
         component_modes = np.random.choice(a=["best", "random_set", "one_up"])
 
-        # TODO continue here
         # From here on it is subject-dependent
         ncomp = [get_num_components(sub, cond, filetype, sba) for sub in subs]  # TODO SPOC not there yet
-        max_n_comp = 99  # init
+        max_n_comp = max(ncomp)  # init
+        sub_dep = False  # init
 
         if component_modes == "best":
             component = "best"
 
-        for subject in subs:
-            # component_modes == 'random_set' or == 'one_up'
+        else:  # component_modes == 'random_set' or == 'one_up'
+            # Randomly choice number of feed-components
 
-                if filetype == "SSD":
+            while True:
+                choose_n_comp = np.random.randint(1, max_n_comp+1)  # x
+                if choose_n_comp <= 10:  # don't feed more than 10 components
+                    break
 
-                    wdic = "../../../Data/EEG/08_SSD/{}/SBA/{}/".format(
-                        cond, "narrowband" if band_pass else "broadband")
+            if component_modes == "one_up":
+                # Choose from component 1 to n_choose (see: SPOC(comp_order) & SSD(alpha-hypotheses)):
+                component = np.arange(start=1, stop=choose_n_comp + 1)  # range [1, n_choose]
 
-                    filename = wdic + "NVR_S{}_{}_{}_SSD_cmp.csv".format(
-                        str(subject).zfill(2), cond, "narrow" if band_pass else "broad")
+            else:  # component_modes == "random_set"
+                # Choose x random components, where x == choose_n_comp
+                component = np.sort(np.random.choice(a=range(1, max_n_comp + 1), size=choose_n_comp,
+                                                     replace=False))
 
-                else:  # filetype == "SPOC"
+            # Does this needs to be adapted per subject?
+            if not all([choose_n_comp <= maxcomp for maxcomp in ncomp]):
+                sub_dep = True
 
-                    wdic = "../../../Data/EEG/09_SPOC/{}/SBA/{}/".format(
-                        cond, "narrowband" if band_pass else "broadband")
-                    filename = wdic + "NVR_S{}_{}_{}_SPOC_cmp.csv".format(
-                        str(subject).zfill(2), cond, "narrow" if band_pass else "broad")
-
-                # Find max number of columns in file
-                max_n_comp = max_n_comp if max_n_comp < int(np.genfromtxt(filename)[-1, 0]) \
-                    else int(np.genfromtxt(filename)[-1, 0])
-
-                # Randomly choice number of feed-components
-                while True:
-                    choose_n_comp = np.random.randint(1, max_n_comp+1)  # x
-                    if choose_n_comp <= 10:  # don't feed more than 10 components
-                        break
-
-                if component_modes == "one_up":
-                    # Choose from component 1 to n_choose (see: SPOC(comp_order) & SSD(alpha-hypotheses)):
-                    component = np.arange(start=1, stop=choose_n_comp+1)  # range [1, n_choose]
-
-                else:  # component_modes == "random_set"
-                    # Choose x random components, where x == choose_n_comp
-                    component = np.sort(np.random.choice(a=range(1, max_n_comp+1), size=choose_n_comp,
-                                                         replace=False))
-
-                component = ','.join([str(i) for i in component])
-
-        # TODO Adapt eqcompmat
+        # eqcompmat
         if eqcompmat is not None:
-            pass
+            eqcompmat = max_n_comp if max_n_comp > eqcompmat else eqcompmat
 
-        # path_specificities
-        path_specificities = "{}RndHPS_lstm-{}_fc-{}_lr-{}_wreg-{}-{:.2f}_actfunc-{}_ftype-{}_" \
-                             "hilb-{}_bpass-{}_comp-{}_" \
-                             "hrcomp-{}_ncol-{}/".format('BiCl_' if "c" in task else "Reg_",
-                                                         "-".join(str(lstm_size).split(",")), "-".join(
-                str(fc_n_hidden).split(",")), learning_rate, weight_reg, weight_reg_strength,
-                                                         activation_fct,
-                                                         filetype, "T" if hilbert_power else "F",
-                                                         "T" if band_pass else "F",
-                                                         "-".join(str(component).split(",")),
-                                                         "T" if hrcomp else "F", eqcompmat)
+        # Prepare to write line in bash file per subject
+        for sidx, sub in enumerate(subs):
 
-        # TODO integrate one line in the end where the file moves itself to bashfile_done folder
-        # TODO Hash those lines which are processed.
-        # Write line for bashfile
-        for subject in subs:
+            sub_component = component
+
+            if component_modes != "best":
+                # Shorten component list for subject, if necessary
+                if sub_dep:
+                    while len(sub_component) > ncomp[sidx]:
+                        # Delete highest component number
+                        # Works for component_modes: "random_set" AND "one_up"
+                        sub_component = np.delete(sub_component,
+                                                  np.where(sub_component == max(sub_component)))
+
+                sub_component = ','.join([str(i) for i in sub_component])
+
+            # path_specificities
+            path_specificities = "{}RndHPS_lstm-{}_fc-{}_lr-{}_wreg-{}-{:.2f}_actfunc-{}_ftype-{}_" \
+                                 "hilb-{}_bpass-{}_comp-{}_" \
+                                 "hrcomp-{}_ncol-{}/".format('BiCl_' if "c" in task else "Reg_",
+                                                             "-".join(str(lstm_size).split(",")),
+                                                             "-".join(str(fc_n_hidden).split(",")),
+                                                             learning_rate,
+                                                             weight_reg, weight_reg_strength,
+                                                             activation_fct,
+                                                             filetype, "T" if hilbert_power else "F",
+                                                             "T" if band_pass else "F",
+                                                             "-".join(str(sub_component).split(",")),
+                                                             "T" if hrcomp else "F", eqcompmat)
+
+            # TODO integrate one line in the end where the file moves itself to bashfile_done folder
+            # TODO Hash those lines which are processed.
+            # Write line for bashfile
             bash_line = "python3 NeVRo.py " \
                         "--subject {} --condition {} --seed {} --task {} --shuffle {} " \
                         "--repet_scalar {} --s_fold {} --batch_size {} " \
@@ -236,7 +236,7 @@ def write_search_bash_files(subs, filetype, condition):
                         "--activation_fct {} " \
                         "--filetype {} --hilbert_power {} --band_pass {} " \
                         "--component {} --hrcomp {} " \
-                        "--path_specificities {}".format(subject, cond, seed, task, shuffle,
+                        "--path_specificities {}".format(sub, cond, seed, task, shuffle,
                                                          repet_scalar, s_fold, batch_size,
                                                          successive, successive_mode, rand_batch,
                                                          plot, del_log_folders,
@@ -244,9 +244,12 @@ def write_search_bash_files(subs, filetype, condition):
                                                          weight_reg, weight_reg_strength,
                                                          activation_fct,
                                                          filetype, hilbert_power, band_pass,
-                                                         component, hrcomp,
+                                                         sub_component, hrcomp,
                                                          path_specificities)
 
+            print("bash_line:\n", bash_line)  # TODO rm after testing
+
+            # TODO continue here
             # Write in bashfile
             with open(bash_file_name, "a") as bashfile:  # 'a' for append
                 bashfile.write("\n"+bash_line)
@@ -277,11 +280,11 @@ def write_search_bash_files(subs, filetype, condition):
 
             rnd = int(rs_table[-1, 0]) + 1 if rs_table[-1, 0].isnumeric() else 0
 
-            exp_data = [rnd, subject, cond, seed, task,
+            exp_data = [rnd, sub, cond, seed, task,
                         shuffle, repet_scalar, s_fold, batch_size, successive, successive_mode,
                         rand_batch, plot, lstm_size, fc_n_hidden, learning_rate, weight_reg,
                         weight_reg_strength,
-                        activation_fct, filetype, hilbert_power, band_pass, component, hrcomp,
+                        activation_fct, filetype, hilbert_power, band_pass, sub_component, hrcomp,
                         path_specificities]
 
             fill_vec = np.repeat(a="nan", repeats=rs_table.shape[1])
@@ -296,7 +299,7 @@ def write_search_bash_files(subs, filetype, condition):
 
     print("\nBashfiles and table completed.")
 
-# write_search_bash_files(subs=subjects)
+# write_search_bash_files(subs=subjects, filetype="SSD", condition="nomov")
 
 
 def write_bash_from_table(subs, table_path):
