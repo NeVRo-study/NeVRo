@@ -368,7 +368,7 @@ def open_folder(path):
 
 
 def check_computer():
-    print("Current computer is: {}{}{}".format(Bcolors.OKBLUE, platform.node(), Bcolors.ENDC))
+    print("Current computer is: \t{}{}{}".format(Bcolors.OKBLUE, platform.node(), Bcolors.ENDC))
     return platform.node()
 
 
@@ -381,13 +381,14 @@ def set_path2data():
     if os.path.isfile(cinfo):
         cinfo = np.genfromtxt(path_data + 'compute_server', str)
         mpi_gpu_server = cinfo[cinfo[:, 0] == "server:", 1][0]
+        print("MPI GPU computer is: \t{}{}{}".format(Bcolors.OKBLUE, mpi_gpu_server, Bcolors.ENDC))
 
         if check_computer() == mpi_gpu_server:
             gpu_server_hd = cinfo[cinfo[:, 0] == "disk1:", 1][0]  # /...2/ and /...3/
             path_data = "../../../../../../../../{}/NeVRo/Data/".format(gpu_server_hd)
     # MPI-specific >>>>>>>>
 
-    cprint("Current data dir: {}".format(path_data), "b")
+    cprint("Data dir: \t\t\t\t{}".format(path_data), "y")
 
     return path_data
 
