@@ -9,7 +9,6 @@ import datetime
 from functools import wraps
 import numpy as np
 from scipy.signal import hilbert
-import sys
 import subprocess
 import platform
 import os
@@ -182,7 +181,8 @@ def smooth(array_to_smooth, w_size, sliding_mode="ontop"):
 
 def downsampling(array_to_ds, target_hertz=1, given_hertz=250):
     ds_ratio = given_hertz/target_hertz
-    assert float(ds_ratio).is_integer(), "Ratio between given frequency and target frequency must be an integer."
+    assert float(ds_ratio).is_integer(), \
+        "Ratio between given frequency and target frequency must be an integer."
 
     output_shape = None
     if float(len(array_to_ds)/ds_ratio).is_integer():
@@ -214,7 +214,7 @@ def calc_hilbert_z_power(array):
     return hilbert_z_power
 
 
-def create_s_fold_idx(s_folds, list_prev_indices=[]):
+def create_s_fold_idx(s_folds, list_prev_indices=None):
 
     if not list_prev_indices:  # list_prev_indices == []
         s_fold_idx = np.random.randint(0, s_folds)
@@ -388,7 +388,7 @@ def set_path2data():
             path_data = "../../../../../../../../{}/NeVRo/Data/".format(gpu_server_hd)
     # MPI-specific >>>>>>>>
 
-    cprint("Data dir: \t\t\t\t{}".format(path_data), "y")
+    cprint("Data dir: \t\t{}".format(path_data), "y")
 
     return path_data
 

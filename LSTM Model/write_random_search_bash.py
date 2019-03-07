@@ -34,7 +34,6 @@ subjects = [2, 36]  # Test
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
 
-# TODO adapt
 def write_search_bash_files(subs, filetype, condition):
 
     # # Following need to be set manually (Default)
