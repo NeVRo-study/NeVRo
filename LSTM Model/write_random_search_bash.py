@@ -33,30 +33,28 @@ subjects = [2, 36]  # Test
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
-# # Following need to be set manually (Default)
-seed = True  # TODO revisit
-repet_scalar = 30
-s_fold = 10
-sba = True
-batch_size = 9
-successive_mode = 1
-rand_batch = True
-plot = True
-# How many of the random batches shall remain in successive order. That is, the time-slices (1-sec each)
-# that are kept in succession. Representing subjective experience, this could be 2-3 sec in order to
-# capture responses to the stimulus environment.
-successive_default = 3
-del_log_folders = True
-
-# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
-
 
 # TODO adapt
 def write_search_bash_files(subs, filetype, condition):
 
+    # # Following need to be set manually (Default)
+    seed = True  # TODO revisit
+    repet_scalar = 30
+    s_fold = 10
+    sba = True
+    batch_size = 9
+    successive_mode = 1
+    rand_batch = True
+    plot = True
+    # How many of random batches shall remain in successive order. That is, the time-slices (1-sec each)
+    # that are kept in succession. Representing subjective experience, this could be 2-3 sec in order to
+    # capture responses to the stimulus environment.
+    successive_default = 3
+    del_log_folders = True
+
+    # Adjust input variable
     if not type(subs) is list:
         subs = [subs]
-
     # strsubs = [s(strsub) for strsub in subs]  # create form such as: ['S02', 'S36']
 
     filetype = filetype.upper()  # filetype (alternatively: np.random.choice(a=['SSD', 'SPOC']))
@@ -66,8 +64,10 @@ def write_search_bash_files(subs, filetype, condition):
 
     # Request
     n_combinations = int(cinput(
-        "How many combinations to test (given value will be multpied with n_subjects)): ", "b"))
+        "How many combinations (multiple of 4) to test (given value will be multpied with n_subjects)): ",
+        "b"))
     assert n_combinations % 4 == 0, "Number of combinations must be a multiple of 4"
+    # TODO why multiple of 4: ? due to 4 bashscripts? ["_local.sh", "_1.sh", "_2.sh", "_3.sh"] ?
 
     tasks = ["regression", "classification"]
     task_request = cinput(
@@ -87,15 +87,18 @@ def write_search_bash_files(subs, filetype, condition):
 
     # Create bashfile if not there already:
     bash_file_name = p2_bash + "bashfile_randomsearch_{}.sh".format('BiCl' if "c" in task else "Reg")
+    sub_bash_file_names = []
+    for sub_bash in ["_local.sh", "_1.sh", "_2.sh", "_3.sh"]:
+        sub_bash_file_name = "." + bash_file_name.split(".")[1] + sub_bash
+        sub_bash_file_names.append(sub_bash_file_name)
+
     if not os.path.exists(bash_file_name):
         with open(bash_file_name, "w") as bashfile:  # 'a' for append
             bashfile.write("#!/usr/bin/env bash\n\n" + "# Random Search Bashfile: {}".format(task))
-
-        for sub_bash in ["_local.sh", "_1.sh", "_2.sh", "_3.sh"]:
-            sub_bash_file_name = "." + bash_file_name.split(".")[1] + sub_bash
-            with open(sub_bash_file_name, "w") as bashfile:  # 'a' for append
-                bashfile.write("#!/usr/bin/env bash\n\n"+"# Random Search Bashfile{}: {}".format(
-                    sub_bash.split(".")[0], task))
+        for subash_fname in sub_bash_file_names:
+            with open(subash_fname, "w") as bashfile:  # 'a' for append
+                bashfile.write("#!/usr/bin/env bash\n\n"+"# Random Search Bashfile_{}: {}".format(
+                    subash_fname.split("_")[-1].split(".")[0], task))
 
     # # Randomly Draw
     combi_count = 0
@@ -158,7 +161,8 @@ def write_search_bash_files(subs, filetype, condition):
         hrcomp = np.random.choice(a=[True, False])
 
         # component
-        component_modes = np.random.choice(a=["best", "random_set", "one_up"])
+        # component_modes = np.random.choice(a=["best", "random_set", "one_up"])
+        component_modes = np.random.choice(a=["random_set", "one_up"])  # TODO new Xcorr table required
 
         # From here on it is subject-dependent
         ncomp = [get_num_components(sub, cond, filetype, sba) for sub in subs]  # TODO SPOC not there yet
@@ -247,16 +251,16 @@ def write_search_bash_files(subs, filetype, condition):
                                                          sub_component, hrcomp,
                                                          path_specificities)
 
-            print("bash_line:\n", bash_line)  # TODO rm after testing
-
-            # TODO continue here
             # Write in bashfile
+            if not os.path.exists("./LSTM/"):
+                os.mkdir("./LSTM/")
+
             with open(bash_file_name, "a") as bashfile:  # 'a' for append
                 bashfile.write("\n"+bash_line)
 
             # and in subbashfile
-            sub_bash = ["_local.sh", "_1.sh", "_2.sh", "_3.sh"][combi_count]
-            sub_bash_file_name = bash_file_name.split(".")[0] + sub_bash
+            sub_bash_file_name = sub_bash_file_names[combi_count]
+
             with open(sub_bash_file_name, "a") as sub_bashfile:  # 'a' for append
                 sub_bashfile.write("\n"+bash_line)
 
@@ -264,27 +268,31 @@ def write_search_bash_files(subs, filetype, condition):
             table_name = "./LSTM/Random_Search_Table_{}.csv".format('BiCl' if "c" in task else "Reg")
 
             if not os.path.exists(table_name):
-                rs_table = np.array(['round', 'subject', 'cond', 'seed', 'task', 'shuffle',
-                                     'repet_scalar',
-                                     's_fold', 'batch_size', 'successive', 'successive_mode',
-                                     'rand_batch', 'plot', 'lstm_size', 'fc_n_hidden', 'learning_rate',
-                                     'weight_reg', 'weight_reg_strength', 'activation_fct', 'filetype',
-                                     'hilbert_power', 'band_pass', 'component', 'hrcomp',
-                                     'path_specificities', 'mean_val_acc', 'zeroline_acc',
-                                     'mean_class_val_acc'], dtype='<U113')
+                rs_table = np.array(['round', 'subject', 'cond', 'seed', 'task',
+                                     'shuffle', 'repet_scalar', 's_fold', 'batch_size',
+                                     'successive', 'successive_mode', 'rand_batch', 'plot',
+                                     'lstm_size', 'fc_n_hidden', 'learning_rate',
+                                     'weight_reg', 'weight_reg_strength',
+                                     'activation_fct', 'filetype', 'hilbert_power', 'band_pass',
+                                     'component', 'hrcomp',
+                                     'path_specificities',
+                                     'mean_val_acc', 'zeroline_acc', 'mean_class_val_acc'],
+                                    dtype='<U113')
                 # Could write del_log_folders in table
             else:
                 rs_table = np.genfromtxt(table_name, delimiter=";", dtype=str)
 
-            rs_table = np.reshape(rs_table, newshape=(-1, 27))
+            rs_table = np.reshape(rs_table, newshape=(-1, 28))
 
             rnd = int(rs_table[-1, 0]) + 1 if rs_table[-1, 0].isnumeric() else 0
 
             exp_data = [rnd, sub, cond, seed, task,
-                        shuffle, repet_scalar, s_fold, batch_size, successive, successive_mode,
-                        rand_batch, plot, lstm_size, fc_n_hidden, learning_rate, weight_reg,
-                        weight_reg_strength,
-                        activation_fct, filetype, hilbert_power, band_pass, sub_component, hrcomp,
+                        shuffle, repet_scalar, s_fold, batch_size,
+                        successive, successive_mode, rand_batch, plot,
+                        lstm_size, fc_n_hidden, learning_rate,
+                        weight_reg, weight_reg_strength,
+                        activation_fct, filetype, hilbert_power, band_pass,
+                        sub_component, hrcomp,
                         path_specificities]
 
             fill_vec = np.repeat(a="nan", repeats=rs_table.shape[1])
@@ -302,7 +310,11 @@ def write_search_bash_files(subs, filetype, condition):
 # write_search_bash_files(subs=subjects, filetype="SSD", condition="nomov")
 
 
+# TODO continue here
 def write_bash_from_table(subs, table_path):
+
+    # # Following need to be set manually (Default)
+    del_log_folders = True
 
     wd_tables = "./LSTM/Random Search Tables/"
     table_path = wd_tables + table_path
