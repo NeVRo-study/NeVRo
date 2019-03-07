@@ -45,7 +45,7 @@ n_sub = 45
 
 setwd("LSTM Model")
 
-path_data = "../../../Data/"
+path_data = set_path2data()
 
 path_ssd = path_data + "EEG/08_SSD/"
 path_spoc = path_data + "EEG/09_SPOC/"  # TODO not there yet

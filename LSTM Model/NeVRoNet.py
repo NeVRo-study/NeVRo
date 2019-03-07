@@ -151,37 +151,43 @@ class NeVRoNet:
         :return: Layer Output
         """
         with tf.variable_scope(layer_name):
-            # Unstack to get a list of 'n_steps' tensors of shape (batch_size, n_input)
-            # x.shape [batch_size, samples-per-second(250), components(1))
+            # # Unstack to get a list of 'n_steps' tensors of shape (batch_size, n_input)
+            # # x.shape [batch_size, samples-per-second(250), components(1))
             x = tf.unstack(value=x, num=self.n_steps, axis=1, name="unstack")  # does not work like that
             # Now: x is list of [250 x (batch_size, 1)]
 
-            # Define LSTM cell (Zaremba et al., 2015)
-            lstm_cell = tf.nn.rnn_cell.BasicLSTMCell(num_units=lstm_size)
+            # # Define LSTM cell (Zaremba et al., 2015)
+            lstm_cell = tf.keras.layers.LSTMCell(units=lstm_size)  # units: int+, dimens. of output space
+            # == tf.nn.rnn_cell.LSTMCell(num_units=lstm_size)
+            # == tf.nn.rnn_cell.BasicLSTMCell(num_units=lstm_size)
             # == tf.contrib.rnn.BasicLSTMCell(lstm_size)
             # lstm_cell.state_size
 
-            # Initial state of the LSTM memory
-            # (previous state is not taken over in next batch, regardless of zero-state implementation)
+            # # Initial state of the LSTM memory
+            # # (previous state is not taken over in next batch, regardless of zero-state implementation)
             # init_state = lstm_cell.zero_state(batch_size=self.batch_size, dtype=tf.float32)
 
-            # Run LSTM cell
+            # # Run LSTM cell
             self.lstm_output, self.final_state = tf.contrib.rnn.static_rnn(
                 cell=lstm_cell, inputs=x, dtype=tf.float32,  # sequence_length=num_steps,
                 scope=None)  # initial_state=init_state,  # (optional)
+            # TODO new keras implementation (not operational yet)
+            # lstm_layer = tf.keras.layers.RNN(
+            #     cell=lstm_cell, dtype=tf.float32)
+            # self.lstm_output, self.final_state = lstm_layer(inputs=x)
 
-            # lstm_output: len(lstm_output) == len(x) == 250
-            # state (final_state):
-            # LSTMStateTuple(c=array([[ ...]], dtype=float32),  # C-State
-            #                h=array([[ ...]], dtype=float32))  # H-State
-            # state shape: [2, 1, lstm_size]
+            # # lstm_output: len(lstm_output) == len(x) == 250
+            # # state (final_state):
+            # # LSTMStateTuple(c=array([[ ...]], dtype=float32),  # C-State
+            # #                h=array([[ ...]], dtype=float32))  # H-State
+            # # state shape: [2, 1, lstm_size]
 
-            #  rnn.static_rnn calculates basically this:
-            # outputs = []
-            # for input_ in x:
-            #     output, state = lstm_cell(input_, state)
-            #     outputs.append(output)
-            # Check: https://www.tensorflow.org/versions/r1.1/api_docs/python/tf/contrib/rnn/static_rnn
+            # # rnn.static_rnn calculates basically this:
+            # # outputs = []
+            # # for input_ in x:
+            # #     output, state = lstm_cell(input_, state)
+            # #     outputs.append(output)
+            # # Check: https://www.tensorflow.org/versions/r1.1/api_docs/python/tf/contrib/rnn/static_rnn
 
             # # How to define output:
             # Different options: 1) last lstm output 2) average over all outputs

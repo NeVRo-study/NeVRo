@@ -25,6 +25,8 @@ import subprocess
 
 from NeVRoNet import NeVRoNet
 
+# TODO set path for MPI gpu server
+
 # TODO more components: 1) define size of input-matrix before,
 # TODO then 2) successively adding SSD components, adding more non-alpha related information (non-b-pass)
 # TODO test trained model on different subject dataset.
@@ -55,9 +57,9 @@ PATH_SPECIFICITIES_DEFAULT = ""  # or fill like this: "special_folder/"
 
 WEIGHT_REGULARIZER_DICT = {'none': lambda x: None,  # No regularization
                            # L1 regularization
-                           'l1': tf.contrib.layers.l1_regularizer,
+                           'l1': tf.keras.regularizers.l1,  # tf.contrib.layers.l1_regularizer,
                            # L2 regularization
-                           'l2': tf.contrib.layers.l2_regularizer}
+                           'l2': tf.keras.regularizers.l2}   # tf.contrib.layers.l2_regularizer
 
 ACTIVATION_FCT_DICT = {'elu': tf.nn.elu,
                        'relu': tf.nn.relu}
@@ -294,7 +296,7 @@ def train_lstm():
                 # Model
                 lstm_model = NeVRoNet(activation_function=ACTIVATION_FCT_DICT.get(FLAGS.activation_fct),
                                       weight_regularizer=WEIGHT_REGULARIZER_DICT.get(FLAGS.weight_reg)(
-                                          scale=FLAGS.weight_reg_strength),
+                                          FLAGS.weight_reg_strength),
                                       lstm_size=lstm_hidden_states, fc_hidden_unites=n_hidden_units,
                                       n_steps=ddims[0], batch_size=FLAGS.batch_size,
                                       summaries=FLAGS.summaries)  # n_step = 250

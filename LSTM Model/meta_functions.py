@@ -367,6 +367,31 @@ def open_folder(path):
         subprocess.Popen(["xdg-open", path])
 
 
+def check_computer():
+    print("Current computer is: {}{}{}".format(Bcolors.OKBLUE, platform.node(), Bcolors.ENDC))
+    return platform.node()
+
+
+def set_path2data():
+
+    path_data = "../../../Data/"
+
+    # <<<<<< MPI-specific
+    cinfo = path_data + 'compute_server'  # contains information about gpu compute server
+    if os.path.isfile(cinfo):
+        cinfo = np.genfromtxt(path_data + 'compute_server', str)
+        mpi_gpu_server = cinfo[cinfo[:, 0] == "server:", 1][0]
+
+        if check_computer() == mpi_gpu_server:
+            gpu_server_hd = cinfo[cinfo[:, 0] == "disk1:", 1][0]  # /...2/ and /...3/
+            path_data = "../../../../../../../../{}/NeVRo/Data/".format(gpu_server_hd)
+    # MPI-specific >>>>>>>>
+
+    cprint("Current data dir: {}".format(path_data), "b")
+
+    return path_data
+
+
 class Bcolors:
     """
     Colours print-commands in Console
