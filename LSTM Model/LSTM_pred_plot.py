@@ -818,6 +818,7 @@ if plots:
     # delete log + checkpoint folders and subfolders
     if delete_log_folder:
 
+        # TODO exception, when copmuted here!
         if check_mpi_gpu():
             p2_hd = path2_mpi_gpu_hd(disk=2)
             print("Save log files and checkpoints for further inspection in:\n\t{}".format(p2_hd))
