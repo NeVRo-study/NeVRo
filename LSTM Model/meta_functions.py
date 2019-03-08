@@ -408,7 +408,11 @@ def path2_mpi_gpu_hd(disk):
     cinfo = np.genfromtxt(path_data + 'compute_server', str)
     gpu_server_hd = cinfo[cinfo[:, 0] == "disk{}:".format(disk), 1][0]  # 1:=/...2/ and 2:=/...3/
 
-    path_2_mpi_gpu_hd = "../../../../../../../../{}/NeVRo/Data/".format(gpu_server_hd)
+    if gpu_server_hd not in os.getcwd():
+        path_2_mpi_gpu_hd = "../../../../../../../../{}/ResearchProjects/NeVRo/Data/".format(
+            gpu_server_hd)
+    else:
+        path_2_mpi_gpu_hd = path_data
 
     return path_2_mpi_gpu_hd
 

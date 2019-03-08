@@ -92,12 +92,15 @@ wdic_lists = wdic + "/logs"
 wdic_checkpoint = wdic + "/checkpoints"
 lw = 0.5  # linewidth
 
-wdic_sub = wdic + "/S{}/{}".format(str(subject).zfill(2), path_specificity)
-wdic_lists_sub = wdic_lists + "/S{}/{}".format(str(subject).zfill(2), path_specificity)
-wdic_checkpoint_sub = wdic_checkpoint + "/S{}/{}".format(str(subject).zfill(2), path_specificity)
+wdic_sub = wdic + "/S{}/{}".format(s(subject), path_specificity)
+wdic_lists_sub = wdic_lists + "/S{}/{}".format(s(subject), path_specificity)
+wdic_checkpoint_sub = wdic_checkpoint + "/S{}/{}".format(s(subject), path_specificity)
 
 # Find correct files (csv-tables)
 shuff_filename = "None"
+file_name = ''  # init
+acc_filename = ''  # init
+val_filename = ''  # init
 for file in os.listdir(wdic_sub):
     if ".csv" in file:
         if "val_" in file:
@@ -112,13 +115,13 @@ for file in os.listdir(wdic_sub):
         shuff_filename = file
 
 # Intermediate step: check whether filenames alreay exist in already_plotted_dic
+abc = ''  # init
 if plots:
-    already_plotted_dic = wdic + "/S{}/already_plotted/".format(str(subject).zfill(2))
+    already_plotted_dic = wdic + "/S{}/already_plotted/".format(s(subject))
     if not gfile.Exists(already_plotted_dic):
         gfile.MakeDirs(already_plotted_dic)
 
     # add subfix if filename already exists
-    abc = ''
     abc_counter = 0
     new_file_name = acc_filename  # could be also 'file_name' or 'val_filename'
     while os.path.exists(already_plotted_dic + new_file_name):
@@ -149,7 +152,23 @@ s_fold = int(len(pred_matrix[:, 0])/2)
 
 # Import accuracies
 acc_date = np.loadtxt(wdic_sub + acc_filename, dtype=str, delimiter=";")  # Check (before ",")
-task = "regression"  # default
+
+# First initialize variables
+task = ''  # init
+cond = None  # init
+sba = ''  # init
+mean_acc = None  # init
+val_acc = None  # init
+components = None  # init
+hr_comp = None  # init
+file_type = None  # init
+hilb = None  # init
+bpass = None  # init
+s_rounds = None  # init
+reps = None  # init
+rnd_batch = None  # init
+batch_size = None  # init
+
 for info in acc_date:
 
     if "Condition:" in info:
@@ -238,10 +257,16 @@ for info in acc_date:
 whole_rating = load_rating_files(subjects=subject, condition=cond,
                                  bins=False if task == "regression" else True)[str(subject)][sba][cond]
 
+real_rating = None  # init
+only_entries_rating = None  # init
+lower_tert_bound = None  # init
+upper_tert_bound = None  # init
 if task == "classification":
     whole_rating[np.where(whole_rating == 0)] = np.nan
     real_rating = normalization(array=load_rating_files(subjects=subject,
-                                                        bins=False)[str(subject)]["SBA"]["NoMov"],
+                                                        condition=cond,
+                                                        sba=sba,
+                                                        bins=False)[str(subject)][sba][cond],
                                 lower_bound=-1, upper_bound=1)  # range [-1, 1]
 
     tertile = int(len(real_rating)/3)
@@ -262,6 +287,7 @@ else:
 
 
 # Load Neural/HR Data
+mpsec_eeg_data = []  # init
 if plt_input_data:
     data = get_nevro_data(subject=subject, task=task, cond=cond,
                           component=components, hr_component=hr_comp,
@@ -459,9 +485,8 @@ for fold in range(s_fold):
     # Load Data
     train_acc_fold = np.loadtxt(wdic_lists_sub + "{}/train_acc_list.txt".format(fold), delimiter=",")
     val_acc_fold = np.loadtxt(wdic_lists_sub + "{}/val_acc_list.txt".format(fold), delimiter=",")
-    val_acc_training_fold = [eval(line.split("\n")[0])
-                             for line in open(wdic_lists_sub + "{}/val_acc_training_list.txt".format(
-            fold))]
+    val_acc_training_fold = [eval(line.split("\n")[0]) for line in open(
+        wdic_lists_sub + "{}/val_acc_training_list.txt".format(fold))]
 
     # Attach also last val_acc to list
     last_acc = (np.nanmean(val_acc_fold), len(train_acc_fold)-1)
@@ -816,12 +841,8 @@ if plots:
     open_folder(wdic_plot)
 
     # delete log + checkpoint folders and subfolders
-    if delete_log_folder:
-
-        # TODO exception, when copmuted here!
-        if check_mpi_gpu():
-            p2_hd = path2_mpi_gpu_hd(disk=2)
-            print("Save log files and checkpoints for further inspection in:\n\t{}".format(p2_hd))
-
+    if delete_log_folder and not (check_mpi_gpu() and path_data == '../../../Data/'):
         shutil.rmtree(wdic_lists_sub)
         shutil.rmtree(wdic_checkpoint_sub)
+    else:  # In case files are saved on MPI GPU server, delete manually:
+        cprint("Delete log and checkpoint files manually, if no use.", "y")

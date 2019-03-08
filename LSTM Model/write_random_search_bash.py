@@ -22,7 +22,8 @@ n_sub = 45
 # all_subjects = np.linspace(start=1, stop=n_sub, num=n_sub, dtype=int)  # np.arange(1, n_sub+1)
 # dropouts = np.array([1, 12, 32, 33, 38, 40, 45])
 
-subjects = [2, 36]  # Test
+subjects = [21, 37]  # Test
+# subjects = [2, 36]  # Test2
 # already_proc = [2, 36]  # already processed subjects
 
 # # These are all subjects without dropouts

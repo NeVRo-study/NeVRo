@@ -173,7 +173,7 @@ class NeVRoNet:
                 scope=None)  # initial_state=init_state,  # (optional)
             # TODO new keras implementation (not operational yet)
             # lstm_layer = tf.keras.layers.RNN(
-            #     cell=lstm_cell, dtype=tf.float32)
+            #     cell=lstm_cell, dtype=tf.float32, unroll=True)
             # self.lstm_output, self.final_state = lstm_layer(inputs=x)
 
             # # lstm_output: len(lstm_output) == len(x) == 250
