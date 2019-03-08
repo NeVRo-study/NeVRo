@@ -136,6 +136,7 @@ def train_lstm():
     else:
         lstm_hidden_states = []
 
+    # For fully connected layers
     if FLAGS.fc_n_hidden and len(FLAGS.fc_n_hidden) > 0 and FLAGS.fc_n_hidden not in "0":
         n_hidden_units = FLAGS.fc_n_hidden.split(",")
         n_hidden_units = [int(hidden_unites_) for hidden_unites_ in n_hidden_units]
@@ -224,7 +225,6 @@ def train_lstm():
     # ...   ...   ...   ...   ...   ...
     # S Fold predic [0.397, ..., -0.134]
     # S Fold rating [0.412, ..., -0.983]
-
     pred_matrix = np.zeros(shape=(FLAGS.s_fold*2, full_length), dtype=np.float32)
     pred_matrix[np.where(pred_matrix == 0)] = np.nan  # set to NaN values
     # We create a separate matrix for the validation (which can be merged with the 1. pred_matrix later)
@@ -241,10 +241,10 @@ def train_lstm():
 
     # Run through S-Fold-Cross-Validation (take the mean-performance across all validation sets)
     for rnd, s_fold_idx in enumerate(s_fold_idx_list):
-        cprint("\nTrain now on Fold-Nr.{} (fold {}/{}) | {} | S{}".format(s_fold_idx, rnd+1,
-                                                                          len(s_fold_idx_list),
-                                                                          FLAGS.path_specificities[:-1],
-                                                                          str(FLAGS.subject).zfill(2)),
+        cprint("\nTrain now on Fold-Nr.{} (fold {}/{}) | {} | {}".format(s_fold_idx, rnd+1,
+                                                                         len(s_fold_idx_list),
+                                                                         FLAGS.path_specificities[:-1],
+                                                                         s(FLAGS.subject)),
                "b")
         start_timer_fold = datetime.datetime.now().replace(microsecond=0)
 
@@ -257,23 +257,23 @@ def train_lstm():
                 # Load Data:
                 if rnd > 0:
                     # Show time passed per fold and estimation of rest time
-                    cprint("Duration of previous fold {} [h:m:s] | {} | S{}".format(
-                         duration_fold, FLAGS.path_specificities[:-1], str(FLAGS.subject).zfill(2)), "y")
+                    cprint("Duration of previous fold {} [h:m:s] | {} | {}".format(
+                         duration_fold, FLAGS.path_specificities[:-1], s(FLAGS.subject)), "y")
                     timer_fold_list.append(duration_fold)
                     # average over previous folds (np.mean(timer_fold_list) not possible in python2)
                     rest_duration_fold = average_time(timer_fold_list,
                                                       in_timedelta=True) * (FLAGS.s_fold - rnd)
                     rest_duration_fold = chop_microseconds(delta=rest_duration_fold)
-                    cprint("Estimated time to train rest {} fold(s): {} [h:m:s] | {} | S{}\n".format(
+                    cprint("Estimated time to train rest {} fold(s): {} [h:m:s] | {} | {}\n".format(
                          FLAGS.s_fold - rnd, rest_duration_fold, FLAGS.path_specificities[:-1],
-                         str(FLAGS.subject).zfill(2)), "y")
+                         s(FLAGS.subject)), "y")
 
                     nevro_data = get_nevro_data(subject=FLAGS.subject,
                                                 component=input_component,
                                                 hr_component=FLAGS.hrcomp,
                                                 s_fold_idx=s_fold_idx,
                                                 s_fold=FLAGS.s_fold,
-                                                cond="NoMov",
+                                                cond=FLAGS.condition,
                                                 sba=FLAGS.sba,
                                                 filetype=FLAGS.filetype,
                                                 band_pass=FLAGS.band_pass,
@@ -319,8 +319,8 @@ def train_lstm():
                 merged = tf.summary.merge_all()
 
                 # Define logdir
-                logdir = './LSTM/logs/S{}/{}'.format(str(FLAGS.subject).zfill(2),
-                                                     FLAGS.path_specificities)
+                logdir = './LSTM/logs/{}/{}'.format(s(FLAGS.subject),
+                                                    FLAGS.path_specificities)
 
                 if not tf.gfile.Exists(logdir):
                     tf.gfile.MakeDirs(logdir)
@@ -377,15 +377,17 @@ def train_lstm():
 
                 for step in range(int(max_steps)):
 
+                    cprint("Step {} in fold {}".format(step, rnd), "r")  # TODO for testing
+
                     # Timer for every timer_freq=100 steps
                     if step == 0:
                         # Set Start Timer
                         start_timer = datetime.datetime.now().replace(microsecond=0)
 
                     if step % (timer_freq/2) == 0.:
-                        cprint("Step {}/{} in Fold Nr.{} ({}/{}) | {} | S{}".format(
-                             step, int(max_steps), s_fold_idx, rnd+1, len(s_fold_idx_list),
-                             FLAGS.path_specificities[:-1], str(FLAGS.subject).zfill(2)), "b")
+                        cprint("Step {}/{} in Fold Nr.{} ({}/{}) | {} | {}".format(
+                            step, int(max_steps), s_fold_idx, rnd + 1, len(s_fold_idx_list),
+                            FLAGS.path_specificities[:-1], s(FLAGS.subject)), "b")
 
                     # Evaluate on training set every print_freq (=10) iterations
                     if (step + 1) % print_freq == 0:
@@ -400,12 +402,12 @@ def train_lstm():
                         train_writer.add_run_metadata(run_metadata, "step{}".format(str(step).zfill(4)))
                         train_writer.add_summary(summary=summary, global_step=step)
 
-                        print("\nTrain-Loss: \t{:.3f} at step:{} | {} | S{}".format(
+                        print("\nTrain-Loss: \t{:.3f} at step:{} | {} | {}".format(
                             np.round(train_loss, 3), step + 1, FLAGS.path_specificities[:-1],
-                            str(FLAGS.subject).zfill(2)))
-                        print("Train-Accuracy: {:.3f} at step:{} | {} | S{}\n".format(
+                            s(FLAGS.subject)))
+                        print("Train-Accuracy: {:.3f} at step:{} | {} | {}\n".format(
                             np.round(train_acc, 3), step + 1, FLAGS.path_specificities[:-1],
-                            str(FLAGS.subject).zfill(2)))
+                            s(FLAGS.subject)))
 
                         # Update Lists
                         train_acc_list.append(train_acc)
@@ -421,12 +423,12 @@ def train_lstm():
                             [optimization, loss, accuracy, infer, y], feed_dict=_feed_dict(training=True))
 
                         if step % 25 == 0:
-                            print("\nTrain-Loss: {:.3f} at step:{} | {} | S{}".format(
+                            print("\nTrain-Loss: {:.3f} at step:{} | {} | {}".format(
                                 np.round(train_loss, 3), step + 1, FLAGS.path_specificities[:-1],
-                                str(FLAGS.subject).zfill(2)))
-                            print("Train-Accuracy: {:.3f} at step:{} | {} | S{}\n".format(
+                                s(FLAGS.subject)))
+                            print("Train-Accuracy: {:.3f} at step:{} | {} | {}\n".format(
                                 np.round(train_acc, 3), step + 1, FLAGS.path_specificities[:-1],
-                                str(FLAGS.subject).zfill(2)))
+                                s(FLAGS.subject)))
 
                         # Update Lists
                         train_acc_list.append(train_acc)
@@ -454,13 +456,14 @@ def train_lstm():
                             va_ls_loss.append(val_train_loss)
 
                         if step % 25 == 0:
-                            print("Val-Loss: {:.3f} at step: {} | {} | S{}".format(
+                            print("Val-Loss: {:.3f} at step: {} | {} | {}".format(
                                 np.round(np.mean(va_ls_loss), 3), step + 1, FLAGS.path_specificities[:-1],
-                                str(FLAGS.subject).zfill(2)))
-                            print("Val-Accuracy: {:.3f} at step: {} | {} | S{}".format(
+                                s(FLAGS.subject)))
+                            print("Val-Accuracy: {:.3f} at step: {} | {} | {}".format(
                                 np.round(np.mean(va_ls_acc), 3), step + 1, FLAGS.path_specificities[:-1],
-                                str(FLAGS.subject).zfill(2)))
+                                s(FLAGS.subject)))
 
+                        # Update Lists
                         val_acc_training_list.append((np.mean(va_ls_acc), step))  # tuple: val_acc & step
                         val_loss_training_list.append((np.mean(va_ls_loss), step))
 
@@ -474,14 +477,14 @@ def train_lstm():
                             test_writer.add_summary(summary=summary, global_step=step)
 
                             if val_step % 5 == 0:
-                                print("Validation-Loss: \t{:.3f} of Fold Nr.{} ({}/{}) | {} | S{}".format(
+                                print("Validation-Loss: \t{:.3f} of Fold Nr.{} ({}/{}) | {} | {}".format(
                                     np.round(val_loss, 3), s_fold_idx, rnd + 1, len(s_fold_idx_list),
-                                    FLAGS.path_specificities[:-1], str(FLAGS.subject).zfill(2)))
+                                    FLAGS.path_specificities[:-1], s(FLAGS.subject)))
 
                                 print("Validation-Accuracy: {:.3f} of Fold Nr.{} ({}/{}) | {} | "
-                                      "S{}".format(np.round(val_acc, 3), s_fold_idx, rnd+1,
-                                                   len(s_fold_idx_list), FLAGS.path_specificities[:-1],
-                                                   str(FLAGS.subject).zfill(2)))
+                                      "{}".format(np.round(val_acc, 3), s_fold_idx, rnd+1,
+                                                  len(s_fold_idx_list), FLAGS.path_specificities[:-1],
+                                                  s(FLAGS.subject)))
 
                             # Update Lists
                             val_acc_list.append(val_acc)
@@ -499,8 +502,8 @@ def train_lstm():
                     if (step + 1) % checkpoint_freq == 0:
 
                         # Define checkpoint_dir
-                        checkpoint_dir = './LSTM/checkpoints/S{}/{}'.format(str(FLAGS.subject).zfill(2),
-                                                                            FLAGS.path_specificities)
+                        checkpoint_dir = './LSTM/checkpoints/{}/{}'.format(s(FLAGS.subject),
+                                                                           FLAGS.path_specificities)
                         if not tf.gfile.Exists(checkpoint_dir):
                             tf.gfile.MakeDirs(checkpoint_dir)
 
@@ -516,6 +519,7 @@ def train_lstm():
                         # Calculate Duration and Estimations
                         duration = end_timer - start_timer
                         timer_list.append(duration)  # mean(timer_list) = average time per 100steps
+
                         # For this fold
                         # Can not take mean(daytime) in python2
                         # estim_t_per_step = np.mean(timer_list) / timer_freq  # only python3
@@ -523,6 +527,7 @@ def train_lstm():
                         estim_t_per_step = mean_timer_list/timer_freq
                         remaining_steps_in_fold = (max_steps - (step + 2))
                         rest_duration = remaining_steps_in_fold * estim_t_per_step
+
                         # For whole training
                         remaining_folds = len(s_fold_idx_list) - (rnd + 1)
                         if rnd == 0:
@@ -540,18 +545,18 @@ def train_lstm():
                         rest_duration_all_folds = chop_microseconds(delta=rest_duration_all_folds)
 
                         cprint("Time passed to train {} steps: "
-                               "{} [h:m:s] | {} | S{}".format(timer_freq, duration,
-                                                              FLAGS.path_specificities[:-1],
-                                                              str(FLAGS.subject).zfill(2)), "y")
+                               "{} [h:m:s] | {} | {}".format(timer_freq, duration,
+                                                             FLAGS.path_specificities[:-1],
+                                                             s(FLAGS.subject)), "y")
                         cprint("Estimated time to train the rest {} steps in current Fold-Nr.{}: "
-                               "{} [h:m:s] | {} | S{}".format(int(max_steps - (step + 1)), s_fold_idx,
-                                                              rest_duration,
-                                                              FLAGS.path_specificities[:-1],
-                                                              str(FLAGS.subject).zfill(2)), "y")
+                               "{} [h:m:s] | {} | {}".format(int(max_steps - (step + 1)), s_fold_idx,
+                                                             rest_duration,
+                                                             FLAGS.path_specificities[:-1],
+                                                             s(FLAGS.subject)), "y")
                         cprint("Estimated time to train the rest steps and {} {}: {} [h:m:s] | {} | "
-                               "S{}".format(remaining_folds, "folds" if remaining_folds > 1 else "fold",
-                                            rest_duration_all_folds, FLAGS.path_specificities[:-1],
-                                            str(FLAGS.subject).zfill(2)), "y")
+                               "{}".format(remaining_folds, "folds" if remaining_folds > 1 else "fold",
+                                           rest_duration_all_folds, FLAGS.path_specificities[:-1],
+                                           s(FLAGS.subject)), "y")
 
                         # Set Start Timer
                         start_timer = datetime.datetime.now().replace(microsecond=0)
@@ -563,8 +568,6 @@ def train_lstm():
                 # Save last val_acc in all_acc_val-vector
                 # since we validate in the end of train average across all:
                 all_acc_val[rnd] = np.nanmean(val_acc_list)
-                # all_acc_val[rnd] = val_acc  # Save last val_acc in all_acc_val-vector
-                # all_acc_val = all_acc_val[rnd].assign(val_acc)  # if all_acc_val is Tensor variable
 
                 # Save loss_ & acc_lists externally per S-Fold
                 loss_acc_lists = [train_loss_list, train_acc_list,
@@ -574,9 +577,8 @@ def train_lstm():
                                         "val_acc_list", "val_loss_list",
                                         "val_acc_training_list", "val_loss_training_list"]
                 for list_idx, liste in enumerate(loss_acc_lists):
-                    with open(logdir + str(s_fold_idx) + "/{}.txt".format(loss_acc_lists_names[list_idx]),
-                              "w") \
-                            as list_file:
+                    with open(logdir + str(s_fold_idx) + "/{}.txt".format(
+                            loss_acc_lists_names[list_idx]), "w") as list_file:
                         for value in liste:
                             list_file.write(str(value) + "\n")
 
@@ -591,43 +593,41 @@ def train_lstm():
 
     # Final Accuracy & Time
     timer_fold_list.append(duration_fold)
-    cprint("Time to train all folds (each {} steps): {} [h:m:s] | {} | S{}".format(
+    cprint("Time to train all folds (each {} steps): {} [h:m:s] | {} | {}".format(
          int(max_steps), np.sum(timer_fold_list), FLAGS.path_specificities[:-1],
-         str(FLAGS.subject).zfill(2)), "y")
+         s(FLAGS.subject)), "y")
 
     # Create all_acc_val_binary
     all_acc_val_binary = calc_binary_class_accuracy(prediction_matrix=val_pred_matrix)
     # Calculate mean val accuracy across all folds
     mean_val_acc = np.nanmean(all_acc_val if FLAGS.task == "regression" else all_acc_val_binary)
 
-    print("Average accuracy across all {} validation set: {:.3f} | {} | S{}".format(
-        FLAGS.s_fold, mean_val_acc, FLAGS.path_specificities[:-1], str(FLAGS.subject).zfill(2)))
+    print("Average accuracy across all {} validation set: {:.3f} | {} | {}".format(
+        FLAGS.s_fold, mean_val_acc, FLAGS.path_specificities[:-1], s(FLAGS.subject)))
 
     # Save training information in Textfile
     # Define sub_dir
-    sub_dir = "./LSTM/S{}/{}".format(str(FLAGS.subject).zfill(2), FLAGS.path_specificities)
+    sub_dir = "./LSTM/{}/{}".format(s(FLAGS.subject), FLAGS.path_specificities)
     if not tf.gfile.Exists(sub_dir):
         tf.gfile.MakeDirs(sub_dir)
 
-    with open(sub_dir + "{}S{}_accuracy_across_{}_folds_{}.txt".format(time.strftime('%Y_%m_%d_'),
-                                                                       FLAGS.subject,
-                                                                       FLAGS.s_fold,
-                                                                       FLAGS.path_specificities[:-1]),
+    with open(sub_dir + "{}S{}_accuracy_across_{}_folds_{}.txt".format(
+            time.strftime('%Y_%m_%d_'), FLAGS.subject, FLAGS.s_fold, FLAGS.path_specificities[:-1]),
               "w") as file:
         file.write("Subject {}\nCondition: {}\nSBA: {}\nTask: {}\nShuffle_data: {}\ndatatype: {}"
                    "\nband_pass: {}\nHilbert_z-Power: {}"
-                   "\ns-Fold: {}\nmax_step: {}\nrepetition_set: {}\nlearning_rate: {}\nbatch_size: {}"
-                   "\nbatch_random: {}"
-                   "\nsuccessive_batches: {}(mode {})\nweight_reg: {}({})\nact_fct: {}\nlstm_h_size: {}"
-                   "\nn_hidden_units: {}"
+                   "\ns-Fold: {}\nmax_step: {}\nrepetition_set: {}\nlearning_rate: {}"
+                   "\nbatch_size: {}\nbatch_random: {}"
+                   "\nsuccessive_batches: {}(mode {})\nweight_reg: {}({})\nact_fct: {}"
+                   "\nlstm_h_size: {}\nn_hidden_units: {}"
                    "\ncomponent: {}({}){}"
                    "\ninput_matrix_size: {}"
                    "\npath_specificities: {}\n".format(FLAGS.subject, FLAGS.condition, FLAGS.sba,
                                                        FLAGS.task, FLAGS.shuffle, FLAGS.filetype,
                                                        FLAGS.band_pass, FLAGS.hilbert_power,
                                                        FLAGS.s_fold, int(max_steps), FLAGS.repet_scalar,
-                                                       FLAGS.learning_rate, FLAGS.batch_size,
-                                                       FLAGS.rand_batch,
+                                                       FLAGS.learning_rate,
+                                                       FLAGS.batch_size, FLAGS.rand_batch,
                                                        FLAGS.successive, FLAGS.successive_mode,
                                                        FLAGS.weight_reg, FLAGS.weight_reg_strength,
                                                        FLAGS.activation_fct,
@@ -762,7 +762,7 @@ def initialize_folders():
     """
     Initializes all folders in FLAGS variable.
     """
-    path = ".some/random/path"
+    path = ".some/random/path"  # TODO no need
     if not tf.gfile.Exists(path):
         tf.gfile.MakeDirs(path)
 
