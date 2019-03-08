@@ -241,10 +241,11 @@ def train_lstm():
 
     # Run through S-Fold-Cross-Validation (take the mean-performance across all validation sets)
     for rnd, s_fold_idx in enumerate(s_fold_idx_list):
-        print("\nTrain now on Fold-Nr.{} (fold {}/{}) | {} | S{}".format(s_fold_idx, rnd+1,
-                                                                         len(s_fold_idx_list),
-                                                                         FLAGS.path_specificities[:-1],
-                                                                         str(FLAGS.subject).zfill(2)))
+        cprint("\nTrain now on Fold-Nr.{} (fold {}/{}) | {} | S{}".format(s_fold_idx, rnd+1,
+                                                                          len(s_fold_idx_list),
+                                                                          FLAGS.path_specificities[:-1],
+                                                                          str(FLAGS.subject).zfill(2)),
+               "b")
         start_timer_fold = datetime.datetime.now().replace(microsecond=0)
 
         # For each fold define new graph to finally compare the validation accuracies of each fold
@@ -256,16 +257,16 @@ def train_lstm():
                 # Load Data:
                 if rnd > 0:
                     # Show time passed per fold and estimation of rest time
-                    print("Duration of previous fold {} [h:m:s] | {} | S{}".format(
-                        duration_fold, FLAGS.path_specificities[:-1], str(FLAGS.subject).zfill(2)))
+                    cprint("Duration of previous fold {} [h:m:s] | {} | S{}".format(
+                         duration_fold, FLAGS.path_specificities[:-1], str(FLAGS.subject).zfill(2)), "y")
                     timer_fold_list.append(duration_fold)
                     # average over previous folds (np.mean(timer_fold_list) not possible in python2)
                     rest_duration_fold = average_time(timer_fold_list,
                                                       in_timedelta=True) * (FLAGS.s_fold - rnd)
                     rest_duration_fold = chop_microseconds(delta=rest_duration_fold)
-                    print("Estimated time to train rest {} fold(s): {} [h:m:s] | {} | S{}\n".format(
-                        FLAGS.s_fold - rnd, rest_duration_fold, FLAGS.path_specificities[:-1],
-                        str(FLAGS.subject).zfill(2)))
+                    cprint("Estimated time to train rest {} fold(s): {} [h:m:s] | {} | S{}\n".format(
+                         FLAGS.s_fold - rnd, rest_duration_fold, FLAGS.path_specificities[:-1],
+                         str(FLAGS.subject).zfill(2)), "y")
 
                     nevro_data = get_nevro_data(subject=FLAGS.subject,
                                                 component=input_component,
@@ -382,9 +383,9 @@ def train_lstm():
                         start_timer = datetime.datetime.now().replace(microsecond=0)
 
                     if step % (timer_freq/2) == 0.:
-                        print("Step {}/{} in Fold Nr.{} ({}/{}) | {} | S{}".format(
-                            step, int(max_steps), s_fold_idx, rnd+1, len(s_fold_idx_list),
-                            FLAGS.path_specificities[:-1], str(FLAGS.subject).zfill(2)))
+                        cprint("Step {}/{} in Fold Nr.{} ({}/{}) | {} | S{}".format(
+                             step, int(max_steps), s_fold_idx, rnd+1, len(s_fold_idx_list),
+                             FLAGS.path_specificities[:-1], str(FLAGS.subject).zfill(2)), "b")
 
                     # Evaluate on training set every print_freq (=10) iterations
                     if (step + 1) % print_freq == 0:
@@ -538,18 +539,19 @@ def train_lstm():
                         rest_duration = chop_microseconds(delta=rest_duration)
                         rest_duration_all_folds = chop_microseconds(delta=rest_duration_all_folds)
 
-                        print("Time passed to train {} steps: "
-                              "{} [h:m:s] | {} | S{}".format(timer_freq, duration,
-                                                             FLAGS.path_specificities[:-1],
-                                                             str(FLAGS.subject).zfill(2)))
-                        print("Estimated time to train the rest {} steps in current Fold-Nr.{}: "
-                              "{} [h:m:s] | {} | S{}".format(int(max_steps - (step + 1)), s_fold_idx,
-                                                             rest_duration, FLAGS.path_specificities[:-1],
-                                                             str(FLAGS.subject).zfill(2)))
-                        print("Estimated time to train the rest steps and {} {}: {} [h:m:s] | {} | "
-                              "S{}".format(remaining_folds, "folds" if remaining_folds > 1 else "fold",
-                                           rest_duration_all_folds, FLAGS.path_specificities[:-1],
-                                           str(FLAGS.subject).zfill(2)))
+                        cprint("Time passed to train {} steps: "
+                               "{} [h:m:s] | {} | S{}".format(timer_freq, duration,
+                                                              FLAGS.path_specificities[:-1],
+                                                              str(FLAGS.subject).zfill(2)), "y")
+                        cprint("Estimated time to train the rest {} steps in current Fold-Nr.{}: "
+                               "{} [h:m:s] | {} | S{}".format(int(max_steps - (step + 1)), s_fold_idx,
+                                                              rest_duration,
+                                                              FLAGS.path_specificities[:-1],
+                                                              str(FLAGS.subject).zfill(2)), "y")
+                        cprint("Estimated time to train the rest steps and {} {}: {} [h:m:s] | {} | "
+                               "S{}".format(remaining_folds, "folds" if remaining_folds > 1 else "fold",
+                                            rest_duration_all_folds, FLAGS.path_specificities[:-1],
+                                            str(FLAGS.subject).zfill(2)), "y")
 
                         # Set Start Timer
                         start_timer = datetime.datetime.now().replace(microsecond=0)
@@ -589,9 +591,9 @@ def train_lstm():
 
     # Final Accuracy & Time
     timer_fold_list.append(duration_fold)
-    print("Time to train all folds (each {} steps): {} [h:m:s] | {} | S{}".format(
-        int(max_steps), np.sum(timer_fold_list), FLAGS.path_specificities[:-1],
-        str(FLAGS.subject).zfill(2)))
+    cprint("Time to train all folds (each {} steps): {} [h:m:s] | {} | S{}".format(
+         int(max_steps), np.sum(timer_fold_list), FLAGS.path_specificities[:-1],
+         str(FLAGS.subject).zfill(2)), "y")
 
     # Create all_acc_val_binary
     all_acc_val_binary = calc_binary_class_accuracy(prediction_matrix=val_pred_matrix)
@@ -681,8 +683,8 @@ def train_lstm():
             np.savetxt(fname=table_name, X=rs_table, delimiter=";", fmt="%s")
 
         else:
-            print("There is no entry for this trial in Random_Search_Table_{}.csv".format(
-                "BiCl" if FLAGS.task == "classification" else "Reg"))
+            cprint("There is no entry for this trial in Random_Search_Table_{}.csv".format(
+                 "BiCl" if FLAGS.task == "classification" else "Reg"), "r")
 
     # Save Prediction Matrices in File
     np.savetxt(sub_dir + "{}S{}_pred_matrix_{}_folds_{}.csv".format(
@@ -770,7 +772,7 @@ def print_flags():
     Prints all entries in FLAGS variable.
     """
     for key, value in vars(FLAGS).items():
-        print(key + ' : ' + str(value))
+        cprint(key + ' : ' + str(value), "b")
 
 
 def main(_):
