@@ -372,20 +372,53 @@ def check_computer():
     return platform.node()
 
 
-def set_path2data():
+def check_mpi_gpu(name_it=False):
+    """
+    This is a MPI CBS specific function, to check whether the script is run on GPU server at the
+    institute
+    :return True if current computer is MPI CBS' GPU server else False
+    """
+
+    path_data = "../../../Data/"
+    cinfo = path_data + 'compute_server'  # contains information about gpu compute server
+
+    if os.path.isfile(cinfo):
+        cinfo = np.genfromtxt(path_data + 'compute_server', str)
+        gpu_server_name = cinfo[cinfo[:, 0] == "server:", 1][0]
+
+        if name_it:
+            print("GPU server name is: \t{}{}{}".format(Bcolors.OKBLUE, gpu_server_name, Bcolors.ENDC))
+
+        if check_computer() == gpu_server_name:
+            return True
+        else:
+            return False
+
+    else:
+        cprint("No information about MPI CBS' GPU server found.", "r")
+        return False
+
+
+def path2_mpi_gpu_hd(disk):
+    assert disk in [1, 2], "disk must be 1 or 2"
 
     path_data = "../../../Data/"
 
-    # <<<<<< MPI-specific
-    cinfo = path_data + 'compute_server'  # contains information about gpu compute server
-    if os.path.isfile(cinfo):
-        cinfo = np.genfromtxt(path_data + 'compute_server', str)
-        mpi_gpu_server = cinfo[cinfo[:, 0] == "server:", 1][0]
-        print("MPI GPU computer is: \t{}{}{}".format(Bcolors.OKBLUE, mpi_gpu_server, Bcolors.ENDC))
+    # cinfo contains information about gpu compute server
+    cinfo = np.genfromtxt(path_data + 'compute_server', str)
+    gpu_server_hd = cinfo[cinfo[:, 0] == "disk{}:".format(disk), 1][0]  # 1:=/...2/ and 2:=/...3/
 
-        if check_computer() == mpi_gpu_server:
-            gpu_server_hd = cinfo[cinfo[:, 0] == "disk1:", 1][0]  # /...2/ and /...3/
-            path_data = "../../../../../../../../{}/NeVRo/Data/".format(gpu_server_hd)
+    path_2_mpi_gpu_hd = "../../../../../../../../{}/NeVRo/Data/".format(gpu_server_hd)
+
+    return path_2_mpi_gpu_hd
+
+
+def set_path2data():
+
+    path_data = "../../../Data/"
+    # <<<<<< MPI-specific
+    if check_mpi_gpu():
+        path_data = path2_mpi_gpu_hd(disk=1)  # disk=1 contains the NeVRo data
     # MPI-specific >>>>>>>>
 
     cprint("Data dir: \t\t{}".format(path_data), "y")
