@@ -121,7 +121,7 @@ def get_filename(subject, filetype, band_pass, cond="nomov", sba=True, check_exi
     if filetype.upper() == "SPOC":
         band_pass = True  # 'SPOC' always band-pass filtered
 
-    get_path += cond.lower() + "/"
+    get_path += cond.lower() + "/"  # os.path.join("a", "b") -> "a/b"
     get_path += "SBA/" if sba else "SA/"
     get_path += "narrowband/" if band_pass else "broadband/"
 

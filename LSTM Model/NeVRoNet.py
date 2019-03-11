@@ -118,6 +118,7 @@ class NeVRoNet:
             infer = tf.nn.tanh(x=self.fc_post_activation[-1], name="tanh_inference")
 
             # Write summary
+            # if self.summaries:
             with tf.name_scope("inference"):
                 tf.summary.histogram("hist", infer)
                 tf.summary.scalar(name="scalar", tensor=infer[0][0])
@@ -211,7 +212,8 @@ class NeVRoNet:
 
                 # Write Summaries
                 self._var_summaries(name=layer_name + "_elu" + "/post_activation", var=post_activation)
-                tf.summary.histogram(layer_name + "/post_activation_hist", post_activation)
+                if self.summaries:
+                    tf.summary.histogram(layer_name + "/post_activation_hist", post_activation)
 
         return post_activation
 
@@ -230,21 +232,20 @@ class NeVRoNet:
                                       # recommend (e.g., see: cs231n_2017_lecture8.pdf)
                                       initializer=tf.contrib.layers.xavier_initializer(),
                                       regularizer=self.weight_regularizer)
-            if self.summaries:
-                self._var_summaries(name="weights", var=weights)
 
             biases = tf.get_variable(name="biases",
                                      shape=[shape[1]],
                                      initializer=tf.constant_initializer(0.0))
 
-            if self.summaries:
-                self._var_summaries(name="biases", var=biases)
+            self._var_summaries(name="weights", var=weights)
+            self._var_summaries(name="biases", var=biases)
 
             # activation y=XW+b:
             with tf.name_scope(layer_name + "/XW_Bias"):
                 # Linear activation, using rnn inner loop last output
                 pre_activation = tf.matmul(x, weights) + biases
-                tf.summary.histogram(layer_name + "/pre_activation", pre_activation)
+                if self.summaries:
+                    tf.summary.histogram(layer_name + "/pre_activation", pre_activation)
 
             if not last_layer:
                 # Push through activation function, if not last layer
@@ -257,19 +258,18 @@ class NeVRoNet:
             else:  # in case its the last layer
                 return pre_activation
 
-    @staticmethod
-    def _var_summaries(name, var):
+    def _var_summaries(self, name, var):
+        if self.summaries:
+            with tf.name_scope("summaries"):
+                mean = tf.reduce_mean(var)
+                tf.summary.scalar("mean/" + name, mean)
+                with tf.name_scope("stddev"):
+                    stddev = tf.sqrt(tf.reduce_mean(tf.square(var - mean)))
 
-        with tf.name_scope("summaries"):
-            mean = tf.reduce_mean(var)
-            tf.summary.scalar("mean/" + name, mean)
-            with tf.name_scope("stddev"):
-                stddev = tf.sqrt(tf.reduce_mean(tf.square(var - mean)))
-
-            tf.summary.scalar("stddev/" + name, stddev)
-            tf.summary.scalar("max/" + name, tf.reduce_max(var))
-            tf.summary.scalar("min/" + name, tf.reduce_min(var))
-            tf.summary.histogram(name, var)
+                tf.summary.scalar("stddev/" + name, stddev)
+                tf.summary.scalar("max/" + name, tf.reduce_max(var))
+                tf.summary.scalar("min/" + name, tf.reduce_min(var))
+                tf.summary.histogram(name, var)
 
     @staticmethod
     def accuracy(infer, ratings):
@@ -301,6 +301,7 @@ class NeVRoNet:
                 # Return the number of true entries.
                 accuracy = tf.reduce_mean(tf.cast(correct, tf.float32))
 
+            # if self.summaries:
             tf.summary.scalar("accuracy", accuracy)
 
         return accuracy
@@ -337,6 +338,7 @@ class NeVRoNet:
                 loss = tf.add(mean_squared_error, tf.add_n(reg_losses), name="Full_Loss")
                 # add_n==tf.reduce_sum(reg_losses)
 
+            # if self.summaries:
             with tf.name_scope("summaries"):
                 tf.summary.scalar("Full_loss", loss)
                 tf.summary.scalar("Mean_Squared_Error_Loss", mean_squared_error)
