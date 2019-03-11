@@ -7,6 +7,8 @@ Main script
 Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017, 2019 (Update)
 """
 
+# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+
 # Adaptations if code is run under Python2
 from __future__ import absolute_import
 from __future__ import division  # int/int can result in float now, 1/2 = 0.5 (in python2 1/2=0, 1/2.=0.5)
@@ -25,12 +27,18 @@ import subprocess
 
 from NeVRoNet import NeVRoNet
 
+# os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # Makes TensorFlow less verbose, comment out for debugging
+
+# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+
 # TODO set path for MPI gpu server
 
 # TODO more components: 1) define size of input-matrix before,
 # TODO then 2) successively adding SSD components, adding more non-alpha related information (non-b-pass)
 # TODO test trained model on different subject dataset.
 # TODO Train model on various subjects
+
+# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
 TASK_DEFAULT = 'regression'  # prediction via 'regression' (continious) or 'classification' (Low-High)
 LEARNING_RATE_DEFAULT = 1e-3  # 1e-4
@@ -55,6 +63,8 @@ CONDITION_DEFAULT = "nomov"
 
 PATH_SPECIFICITIES_DEFAULT = ""  # or fill like this: "special_folder/"
 
+# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+
 WEIGHT_REGULARIZER_DICT = {'none': lambda x: None,  # No regularization
                            # L1 regularization
                            'l1': tf.keras.regularizers.l1,  # tf.contrib.layers.l1_regularizer,
@@ -63,6 +73,8 @@ WEIGHT_REGULARIZER_DICT = {'none': lambda x: None,  # No regularization
 
 ACTIVATION_FCT_DICT = {'elu': tf.nn.elu,
                        'relu': tf.nn.relu}
+
+# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
 
 def train_step(loss):
@@ -391,12 +403,12 @@ def train_lstm():
 
                     # Evaluate on training set every print_freq (=10) iterations
                     if (step + 1) % print_freq == 0:
-                        run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+                        # run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)  # TODO test
                         run_metadata = tf.RunMetadata()
 
                         summary, _, train_loss, train_acc, tain_infer, train_y = sess.run([
                             merged, optimization, loss, accuracy, infer, y],
-                            feed_dict=_feed_dict(training=True), options=run_options,
+                            feed_dict=_feed_dict(training=True),  # options=run_options,
                             run_metadata=run_metadata)
 
                         train_writer.add_run_metadata(run_metadata, "step{}".format(str(step).zfill(4)))
@@ -856,7 +868,7 @@ if __name__ == '__main__':
                         help="Either 'SSD' or 'SPOC'")
     parser.add_argument('--band_pass', type=str2bool, default=True,
                         help='Whether to load (alpha-)band-passed SSD components')
-    parser.add_argument('--summaries', type=str2bool, default=False,
+    parser.add_argument('--summaries', type=str2bool, default=True,
                         help='Whether to write verbose summaries of tf variables')
     parser.add_argument('--fc_n_hidden', type=str, default=FC_NUM_HIDDEN_UNITS,
                         help="Comma separated list of N of hidden units in each FC layer")

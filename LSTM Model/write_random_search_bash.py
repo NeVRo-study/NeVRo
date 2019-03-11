@@ -34,6 +34,8 @@ subjects = [21, 37]  # Test
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
+# TODO integrate summary flag
+
 
 def write_search_bash_files(subs, filetype, condition):
 
