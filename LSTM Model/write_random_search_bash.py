@@ -37,6 +37,7 @@ subjects = [21, 37]  # Test
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
 
+# TODO test with classification
 def write_search_bash_files(subs, filetype, condition):
 
     # # Following need to be set manually (Default)

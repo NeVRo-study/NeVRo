@@ -388,8 +388,6 @@ def train_lstm():
 
                 for step in range(int(max_steps)):
 
-                    cprint("Step {} in fold {}".format(step, rnd), "r")  # TODO for testing
-
                     # Timer for every timer_freq=100 steps
                     if step == 0:
                         # Set Start Timer
