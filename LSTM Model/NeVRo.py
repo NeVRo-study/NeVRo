@@ -26,15 +26,13 @@ import copy
 import subprocess
 
 from NeVRoNet import NeVRoNet
+from write_random_search_bash import update_bashfiles
 
 # os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # Makes TensorFlow less verbose, comment out for debugging
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
-# TODO set path for MPI gpu server
-
-# TODO more components: 1) define size of input-matrix before,
-# TODO then 2) successively adding SSD components, adding more non-alpha related information (non-b-pass)
+# TODO successively adding SSD components, adding more non-alpha related information (non-b-pass)
 # TODO test trained model on different subject dataset.
 # TODO Train model on various subjects
 
@@ -289,6 +287,7 @@ def train_lstm():
                                                 sba=FLAGS.sba,
                                                 filetype=FLAGS.filetype,
                                                 band_pass=FLAGS.band_pass,
+                                                equal_comp_matrix=FLAGS.eqcompmat,
                                                 hilbert_power=FLAGS.hilbert_power,
                                                 task=FLAGS.task,
                                                 shuffle=FLAGS.shuffle,
@@ -633,7 +632,7 @@ def train_lstm():
                    "\nsuccessive_batches: {}(mode {})\nweight_reg: {}({})\nact_fct: {}"
                    "\nlstm_h_size: {}\nn_hidden_units: {}"
                    "\ncomponent: {}({}){}"
-                   "\ninput_matrix_size: {}"
+                   "\nfix_input_matrix_size: {}"
                    "\npath_specificities: {}\n".format(FLAGS.subject, FLAGS.condition, FLAGS.sba,
                                                        FLAGS.task, FLAGS.shuffle, FLAGS.filetype,
                                                        FLAGS.band_pass, FLAGS.hilbert_power,
@@ -806,6 +805,10 @@ def main(_):
                           FLAGS.path_specificities,
                           str(FLAGS.dellog)])
 
+    # Update bash files
+    update_bashfiles(task=FLAGS.task, subject=FLAGS.subject, path_specs=FLAGS.path_specificities,
+                     all_runs=False)
+
 
 def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
@@ -868,7 +871,7 @@ if __name__ == '__main__':
                         help="Either 'SSD' or 'SPOC'")
     parser.add_argument('--band_pass', type=str2bool, default=True,
                         help='Whether to load (alpha-)band-passed SSD components')
-    parser.add_argument('--summaries', type=str2bool, default=True,
+    parser.add_argument('--summaries', type=str2bool, default=False,
                         help='Whether to write verbose summaries of tf variables')
     parser.add_argument('--fc_n_hidden', type=str, default=FC_NUM_HIDDEN_UNITS,
                         help="Comma separated list of N of hidden units in each FC layer")

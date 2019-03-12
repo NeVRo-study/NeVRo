@@ -977,7 +977,7 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
     assert task in ["regression", "classification"], "task must be 'regression' or 'classification'"
     if equal_comp_matrix:
         assert isinstance(equal_comp_matrix, int), "equal_comp_matrix must be None or integer."
-        assert equal_comp_matrix >= len(component) + 1 if hr_component else 0, \
+        assert equal_comp_matrix >= (len(component) + (1 if hr_component else 0)), \
             "List of given component(s) is too long (>equal_comp_matrix)"
 
     if s_fold_idx is None:

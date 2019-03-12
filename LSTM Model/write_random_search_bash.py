@@ -6,6 +6,8 @@ Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017, 2019 (U
 """
 
 from load_data import *
+import sys
+import fileinput
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 # Set paths to bashfile dir
@@ -34,14 +36,12 @@ subjects = [21, 37]  # Test
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
-# TODO integrate summary flag
-
 
 def write_search_bash_files(subs, filetype, condition):
 
     # # Following need to be set manually (Default)
     seed = True  # TODO revisit
-    repet_scalar = 30
+    repet_scalar = 2
     s_fold = 10
     sba = True
     batch_size = 9
@@ -53,6 +53,7 @@ def write_search_bash_files(subs, filetype, condition):
     # capture responses to the stimulus environment.
     successive_default = 3
     del_log_folders = True
+    summaries = False  # whether verbose summaries
 
     # Adjust input variable
     if not type(subs) is list:
@@ -84,6 +85,10 @@ def write_search_bash_files(subs, filetype, condition):
     eqcompmat = ask_true_false(question="Shall the model input matrix always be the same in size?")
     if eqcompmat:
         eqcompmat = int(cinput("What should be the number (int) of columns (i.e. components)?", "b"))
+        if eqcompmat > 10:
+            cprint("eqcompmat {} is too big. eqcompmat is set to 10 (=max) instead.".format(eqcompmat),
+                   "y")
+            eqcompmat = 10
     else:
         eqcompmat = None
 
@@ -218,19 +223,17 @@ def write_search_bash_files(subs, filetype, condition):
             # path_specificities
             path_specificities = "{}RndHPS_lstm-{}_fc-{}_lr-{}_wreg-{}-{:.2f}_actfunc-{}_ftype-{}_" \
                                  "hilb-{}_bpass-{}_comp-{}_" \
-                                 "hrcomp-{}_ncol-{}/".format('BiCl_' if "c" in task else "Reg_",
-                                                             "-".join(str(lstm_size).split(",")),
-                                                             "-".join(str(fc_n_hidden).split(",")),
-                                                             learning_rate,
-                                                             weight_reg, weight_reg_strength,
-                                                             activation_fct,
-                                                             filetype, "T" if hilbert_power else "F",
-                                                             "T" if band_pass else "F",
-                                                             "-".join(str(sub_component).split(",")),
-                                                             "T" if hrcomp else "F", eqcompmat)
+                                 "hrcomp-{}_fixncol-{}/".format('BiCl_' if "c" in task else "Reg_",
+                                                                "-".join(str(lstm_size).split(",")),
+                                                                "-".join(str(fc_n_hidden).split(",")),
+                                                                learning_rate,
+                                                                weight_reg, weight_reg_strength,
+                                                                activation_fct,
+                                                                filetype, "T" if hilbert_power else "F",
+                                                                "T" if band_pass else "F",
+                                                                "-".join(str(sub_component).split(",")),
+                                                                "T" if hrcomp else "F", eqcompmat)
 
-            # TODO integrate one line in the end where the file moves itself to bashfile_done folder
-            # TODO Hash those lines which are processed.
             # Write line for bashfile
             bash_line = "python3 NeVRo.py " \
                         "--subject {} --condition {} --seed {} --task {} --shuffle {} " \
@@ -241,7 +244,7 @@ def write_search_bash_files(subs, filetype, condition):
                         "--weight_reg {} --weight_reg_strength {} " \
                         "--activation_fct {} " \
                         "--filetype {} --hilbert_power {} --band_pass {} " \
-                        "--component {} --hrcomp {} " \
+                        "--component {} --hrcomp {} --eqcompmat {} --summaries {} " \
                         "--path_specificities {}".format(sub, cond, seed, task, shuffle,
                                                          repet_scalar, s_fold, batch_size,
                                                          successive, successive_mode, rand_batch,
@@ -250,7 +253,7 @@ def write_search_bash_files(subs, filetype, condition):
                                                          weight_reg, weight_reg_strength,
                                                          activation_fct,
                                                          filetype, hilbert_power, band_pass,
-                                                         sub_component, hrcomp,
+                                                         sub_component, hrcomp, eqcompmat, summaries,
                                                          path_specificities)
 
             # Write in bashfile
@@ -276,15 +279,16 @@ def write_search_bash_files(subs, filetype, condition):
                                      'lstm_size', 'fc_n_hidden', 'learning_rate',
                                      'weight_reg', 'weight_reg_strength',
                                      'activation_fct', 'filetype', 'hilbert_power', 'band_pass',
-                                     'component', 'hrcomp',
+                                     'component', 'hrcomp', 'fixncol', 'summaries',
                                      'path_specificities',
                                      'mean_val_acc', 'zeroline_acc', 'mean_class_val_acc'],
-                                    dtype='<U113')
+                                    dtype='<U120')
+
+                rs_table = np.reshape(rs_table, newshape=(-1, rs_table.shape[0]))
                 # Could write del_log_folders in table
+
             else:
                 rs_table = np.genfromtxt(table_name, delimiter=";", dtype=str)
-
-            rs_table = np.reshape(rs_table, newshape=(-1, 28))
 
             rnd = int(rs_table[-1, 0]) + 1 if rs_table[-1, 0].isnumeric() else 0
 
@@ -294,12 +298,12 @@ def write_search_bash_files(subs, filetype, condition):
                         lstm_size, fc_n_hidden, learning_rate,
                         weight_reg, weight_reg_strength,
                         activation_fct, filetype, hilbert_power, band_pass,
-                        sub_component, hrcomp,
+                        sub_component, hrcomp, eqcompmat, summaries,
                         path_specificities]
 
             fill_vec = np.repeat(a="nan", repeats=rs_table.shape[1])
             fill_vec = fill_vec.reshape((-1, len(fill_vec)))
-            rs_table = np.concatenate((rs_table, fill_vec), axis=0).astype("<U120")
+            rs_table = np.concatenate((rs_table, fill_vec), axis=0).astype("<U125")
             rs_table[-1, 0:len(exp_data)] = exp_data
 
             np.savetxt(fname=table_name, X=rs_table, delimiter=";", fmt="%s")
@@ -338,10 +342,10 @@ def write_bash_from_table(subs, table_path):
     subs = np.tile(subs, n_combis)
     subs = np.reshape(subs, newshape=(len(subs), 1))
     lside_table = np.concatenate((rounds, subs), 1)
-    lside_header = np.reshape(np.array(['round', 'subject'], dtype='<U113'), newshape=(1, 2))
+    lside_header = np.reshape(np.array(['round', 'subject'], dtype='<U125'), newshape=(1, 2))
     lside_table = np.concatenate((lside_header, lside_table))
     rside_header = np.reshape(np.array(['mean_val_acc', 'zeroline_acc', 'mean_class_val_acc'],
-                                       dtype='<U113'), (1, 3))
+                                       dtype='<U125'), (1, 3))
     rside_table = np.reshape(np.repeat(np.repeat(a="nan", repeats=n_combis*num_sub), 3), newshape=(-1, 3))
     rside_table = np.concatenate((rside_header, rside_table))
     mid_table = np.repeat(hp_table[1:, :], num_sub, axis=0)
@@ -379,7 +383,7 @@ def write_bash_from_table(subs, table_path):
             weight_reg, weight_reg_strength,\
             activation_fct, \
             filetype, hilbert_power, band_pass, \
-            component, hrcomp, \
+            component, hrcomp, eqcompmat, summaries, \
             path_specificities = line
 
         # Write line for bashfile (Important: [Space] after each entry)
@@ -393,7 +397,7 @@ def write_bash_from_table(subs, table_path):
                     "--weight_reg {} --weight_reg_strength {} " \
                     "--activation_fct {} " \
                     "--filetype {} --hilbert_power {} --band_pass {} " \
-                    "--component {} --hrcomp {} " \
+                    "--component {} --hrcomp {} --eqcompmat {} --summaries {} " \
                     "--path_specificities {}".format(subject, cond, seed, task, shuffle,
                                                      repet_scalar, s_fold, batch_size,
                                                      successive, successive_mode, rand_batch,
@@ -402,7 +406,7 @@ def write_bash_from_table(subs, table_path):
                                                      weight_reg, weight_reg_strength,
                                                      activation_fct,
                                                      filetype, hilbert_power, band_pass,
-                                                     component, hrcomp,
+                                                     component, hrcomp, eqcompmat, summaries,
                                                      path_specificities)
 
         # Write in bashfile
@@ -426,3 +430,56 @@ def write_bash_from_table(subs, table_path):
 # write_bash_from_table(
 #     subs=subjects,
 #     table_path='unique_Best_2_HPsets_over_10_Subjects_mean_acc_0.046_Random_Search_Table_Reg.csv')
+
+
+def update_bashfiles(task, subject=None, path_specs=None, all_runs=False):
+
+    assert "cl" in task.lower() or "reg" in task.lower(), \
+        "task must be either 'regression' or 'classification'"
+
+    # Load Random_Search_Table
+    table_name = "./LSTM/Random_Search_Table_{}.csv".format('BiCl' if "c" in task.lower() else "Reg")
+    if os.path.exists(table_name):
+        rs_table = np.genfromtxt(table_name, delimiter=";", dtype=str)
+        idx_sub = np.where(rs_table[0, :] == 'subject')[0][0]  # find column "subject"
+        idx_pspec = np.where(rs_table[0, :] == 'path_specificities')[0][0]  # column "path_specificities"
+
+        if not all_runs:
+            subject = int(subject)
+            # Find entry which needs to be updated
+            idx_sub = np.where(rs_table[:, idx_sub] == str(subject))[0]  # rows with respective subject
+            idx_pspec = np.where(rs_table[:, idx_pspec] == path_specs)[0]  # find respective path_specs
+            idx_check = list(set(idx_sub).intersection(idx_pspec))  # find index of case at hand
+
+            # If there is an entry, the run was successful, update bashfile(s)
+            if not np.all(rs_table[idx_check, -3:] == 'nan'):
+
+                # Run through all bashfiles and comment out those lines that were successfully executed
+                for bfile in os.listdir("./bashfiles/"):
+                    if bfile.split(".")[-1] == 'sh':  # check whether bash file
+                        for line in fileinput.input("./bashfiles/" + bfile, inplace=True):
+                            if path_specs in line and str(subject) in line and "#" not in line:
+                                # Note: This doesn't print in console, but overwrites in file
+                                sys.stdout.write('# {}'.format(line))
+                                # sys.stdout.write() instead of print() avoids new lines
+                            else:
+                                sys.stdout.write(line)
+
+        else:  # check for all runs
+
+            # Run through table and find successfully executed entries
+            for idx, rs_line in enumerate(rs_table[1:, -3:]):
+                if not np.all(rs_line == 'nan'):
+                    subject = rs_table[1+idx, idx_sub]
+                    path_specs = rs_table[1+idx, idx_pspec]
+
+                    for bfile in os.listdir("./bashfiles/"):
+                        if bfile.split(".")[-1] == 'sh':  # check whether bash file
+                            for line in fileinput.input("./bashfiles/" + bfile, inplace=True):
+                                if path_specs in line and subject in line and "#" not in line:
+                                    sys.stdout.write('# {}'.format(line))
+                                else:
+                                    sys.stdout.write(line)
+
+    else:
+        cprint("There is no corresponding table: '{}'".format(table_name), "r")

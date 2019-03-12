@@ -19,8 +19,8 @@ if platform.system() != 'Darwin':
 else:
     import matplotlib.pyplot as plt
 
-# TODO Add mean input data
-plt_input_data = False  # default value
+# Add mean input data
+plt_input_data = False  # default value: False
 
 
 # Save plot
@@ -92,9 +92,9 @@ wdic_lists = wdic + "/logs"
 wdic_checkpoint = wdic + "/checkpoints"
 lw = 0.5  # linewidth
 
-wdic_sub = wdic + "/S{}/{}".format(s(subject), path_specificity)
-wdic_lists_sub = wdic_lists + "/S{}/{}".format(s(subject), path_specificity)
-wdic_checkpoint_sub = wdic_checkpoint + "/S{}/{}".format(s(subject), path_specificity)
+wdic_sub = wdic + "/{}/{}".format(s(subject), path_specificity)
+wdic_lists_sub = wdic_lists + "/{}/{}".format(s(subject), path_specificity)
+wdic_checkpoint_sub = wdic_checkpoint + "/{}/{}".format(s(subject), path_specificity)
 
 # Find correct files (csv-tables)
 shuff_filename = "None"
@@ -117,7 +117,7 @@ for file in os.listdir(wdic_sub):
 # Intermediate step: check whether filenames alreay exist in already_plotted_dic
 abc = ''  # init
 if plots:
-    already_plotted_dic = wdic + "/S{}/already_plotted/".format(s(subject))
+    already_plotted_dic = wdic + "/{}/already_plotted/".format(s(subject))
     if not gfile.Exists(already_plotted_dic):
         gfile.MakeDirs(already_plotted_dic)
 
@@ -317,8 +317,7 @@ def subplot_div(n_s_fold):
 # # Plot predictions 1)
 # open frame
 figsize = (12, s_fold * (3 if s_fold < 4 else 1))
-fig = plt.figure("{}-Folds | S{} | {} | mean(val_acc)={} | 1Hz".format(s_fold, s(subject), task,
-                                                                       mean_acc),
+fig = plt.figure("{}-Folds | {} | {} | mean(val_acc)={} | 1Hz".format(s_fold, s(subject), task, mean_acc),
                  figsize=figsize)
 
 # Prepare subplot division
@@ -464,17 +463,17 @@ plt.tight_layout(pad=2)
 fig.show()
 
 if plots:
-    plot_filename = "{}{}_|{}{}*{}({})_|_{}-Folds_|_{}_|_S{}_|_mean(val_acc)_{:.2f}_|_{}.png".format(
+    plot_filename = "{}{}_|{}{}*{}({})_|_{}-Folds_|_{}_|_{}_|_mean(val_acc)_{:.2f}_|_{}.png".format(
         file_name[0:10], abc, "_Hilbert_" if hilb else "_", int(reps),
         "rnd-batch" if rnd_batch else "subsequent-batch", batch_size, s_fold, task,
-        str(subject).zfill(2), mean_acc,
+        s(subject), mean_acc,
         path_specificity[:-1])
 
     fig.savefig(wdic_plot + plot_filename)
 
 # # Plot accuracy-trajectories 2)
-fig2 = plt.figure("{}-Folds Accuracies | S{} | {} | mean(val_acc)={} | 1Hz ".format(s_fold, s(subject),
-                                                                                    task, mean_acc),
+fig2 = plt.figure("{}-Folds Accuracies | {} | {} | mean(val_acc)={} | 1Hz ".format(s_fold, s(subject),
+                                                                                   task, mean_acc),
                   figsize=figsize)
 
 # Prepare subplot division
@@ -534,11 +533,11 @@ fig2.show()
 # Plot
 if task == "regression":
     if plots:
-        plot_filename = "{}{}_|{}{}*{}({})_|_{}-Folds_|_Accuracies_|_S{}_|_mean(val_acc)_{:.2f}_|_{}" \
-                        ".png".format(
-            file_name[0:10], abc, "_Hilbert_" if hilb else "_", int(reps),
-            "rnd-batch" if rnd_batch else "subsequent-batch", batch_size, s_fold, str(subject).zfill(2),
-            mean_acc, path_specificity[:-1])
+        plot_filename = "{}{}_|{}{}*{}({})_|_{}-Folds_|_Accuracies_|_{}_|_mean(val_acc)_{:.2f}_|_{}" \
+                        ".png".format(file_name[0:10], abc, "_Hilbert_" if hilb else "_",
+                                      int(reps), "rnd-batch" if rnd_batch else "subsequent-batch",
+                                      batch_size, s_fold, s(subject), mean_acc,
+                                      path_specificity[:-1])
 
         fig2.savefig(wdic_plot + plot_filename)
 
@@ -548,9 +547,9 @@ else:  # task == "classification"
 
 # # Plot loss-trajectories
 
-fig3 = plt.figure("{}-Folds Loss | S{} | {} | mean(val_acc)={} | 1Hz ".format(s_fold,
-                                                                              str(subject).zfill(2), task,
-                                                                              mean_acc), figsize=figsize)
+fig3 = plt.figure("{}-Folds Loss | {} | {} | mean(val_acc)={} | 1Hz ".format(s_fold,
+                                                                             s(subject), task,
+                                                                             mean_acc), figsize=figsize)
 
 # Prepare subplot division
 sub_rows, sub_col, sub_n = subplot_div(n_s_fold=s_fold)
@@ -559,9 +558,8 @@ for fold in range(s_fold):
     # Load Data
     val_loss_fold = np.loadtxt(wdic_lists_sub + "{}/val_loss_list.txt".format(fold), delimiter=",")
     train_loss_fold = np.loadtxt(wdic_lists_sub + "{}/train_loss_list.txt".format(fold), delimiter=",")
-    val_loss_training_fold = [eval(line.split("\n")[0])
-                              for line in open(wdic_lists_sub + "{}/val_loss_training_list.txt".format(
-            fold))]
+    val_loss_training_fold = [eval(line.split("\n")[0]) for line in
+                              open(wdic_lists_sub + "{}/val_loss_training_list.txt".format(fold))]
 
     # Attach also last val_loss to list
     last_loss = (np.nanmean(val_loss_fold), len(train_loss_fold) - 1)
@@ -606,10 +604,10 @@ fig3.show()
 # Plot
 if task == "regression":
     if plots:
-        plot_filename = "{}{}_|{}{}*{}({})_|_{}-Folds_|_Loss_|_S{}_|_mean(val_acc)_{:.2f}_|_{}.png" \
+        plot_filename = "{}{}_|{}{}*{}({})_|_{}-Folds_|_Loss_|_{}_|_mean(val_acc)_{:.2f}_|_{}.png" \
                         "".format(file_name[0:10], abc, "_Hilbert_" if hilb else "_", int(reps),
                                   "rnd-batch" if rnd_batch else "subsequent-batch", batch_size, s_fold,
-                                  str(subject).zfill(2), mean_acc, path_specificity[:-1])
+                                  s(subject), mean_acc, path_specificity[:-1])
 
         fig3.savefig(wdic_plot + plot_filename)
 else:  # task == "classification"
@@ -618,7 +616,7 @@ else:  # task == "classification"
 # # Plot i) average training prediction and ii) concatenated val_prediction
 
 fig4 = plt.figure("{}-Folds mean(train)_&_concat(val)_| S{} | {} | mean(val_acc)={} | 1Hz ".format(
-    s_fold, str(subject).zfill(2), task, mean_acc), figsize=(10, 12))
+    s_fold, s(subject), task, mean_acc), figsize=(10, 12))
 
 # delete ratings out of pred_matrix first and then average across rows
 average_train_pred = np.nanmean(a=np.delete(arr=pred_matrix, obj=np.arange(1, 2*s_fold, 2), axis=0),
@@ -801,10 +799,12 @@ fig4.show()
 # Plot
 if plots:
     plot_filename = "{}{}_|{}{}*{}({})_|_{}-Folds_|_{}_|_all_train_val_|_S{}_|_" \
-                    "mean(val_acc)_{:.2f}_|_{}.png".format(
-        file_name[0:10], abc, "_Hilbert_" if hilb else "_", int(reps),
-        "rnd-batch" if rnd_batch else "subsequent-batch", batch_size, s_fold, task, str(subject).zfill(2),
-        mean_acc, path_specificity[:-1])
+                    "mean(val_acc)_{:.2f}_|_{}.png".format(file_name[0:10], abc,
+                                                           "_Hilbert_" if hilb else "_", int(reps),
+                                                           "rnd-batch" if rnd_batch else
+                                                                               "subsequent-batch",
+                                                           batch_size, s_fold, task, s(subject), mean_acc,
+                                                           path_specificity[:-1])
 
     fig4.savefig(wdic_plot + plot_filename)
 
