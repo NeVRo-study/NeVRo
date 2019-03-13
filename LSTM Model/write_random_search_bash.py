@@ -38,23 +38,30 @@ subjects = [21, 37]  # Test
 
 
 # TODO test with classification
-def write_search_bash_files(subs, filetype, condition):
-
+def write_search_bash_files(subs, filetype, condition,  seed=True,  repet_scalar=30, s_fold=10, sba=True,
+                            batch_size=9, successive_mode=1, rand_batch=True, plot=True,
+                            successive_default=3, del_log_folders=True, summaries=False):
+    """
+    :param subs: subject list
+    :param filetype: 'SSD' or 'SPOC'
+    :param condition: 'mov' or 'nomov'
+    :param seed: # TODO revisit
+    :param repet_scalar: how many times it runs through whole set (can be also fraction)
+    :param s_fold: number (s) of folds
+    :param sba: True:= SBA, False:= SA
+    :param batch_size: Batch size
+    :param successive_mode: 1 or 2 (see load_data.py in next_batch())
+    :param rand_batch: Should remain True
+    :param plot: Whether to plot results after processing
+    :param successive_default: How many of random batches shall remain in successive order. That is, the
+    time-slices (1-sec each) that are kept in succession. Representing subjective experience, this could
+    be 2-3 sec in order to capture responses to the stimulus environment.
+    :param del_log_folders: Whether to delete log files and checkpoints after processing and plotting
+    :param summaries: Whether verbose summaries (get deleted if del_log_folders==True)
+    :return:
+    """
     # # Following need to be set manually (Default)
-    seed = True  # TODO revisit
-    repet_scalar = 2
-    s_fold = 10
-    sba = True
-    batch_size = 9
-    successive_mode = 1
-    rand_batch = True
-    plot = True
-    # How many of random batches shall remain in successive order. That is, the time-slices (1-sec each)
-    # that are kept in succession. Representing subjective experience, this could be 2-3 sec in order to
-    # capture responses to the stimulus environment.
-    successive_default = 3
-    del_log_folders = True
-    summaries = False  # whether verbose summaries
+    # whether verbose summaries
 
     # Adjust input variable
     if not type(subs) is list:
@@ -65,6 +72,9 @@ def write_search_bash_files(subs, filetype, condition):
     assert filetype in ['SSD', 'SPOC'], "filetype must be either 'SSD' or 'SPOC'"
     cond = condition.lower()
     assert cond in ['mov', 'nomov'], "condition must be either 'mov' or 'nomov'"
+
+    if del_log_folders and summaries:
+        cprint("Note: Verbose summaries are redundant since they get deleted after processing.", "y")
 
     # Request
     n_combinations = int(cinput(

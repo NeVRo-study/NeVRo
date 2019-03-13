@@ -822,7 +822,7 @@ if not script_external_exe:  # Check whether script is opened from intern(python
 # When saved then move *.csv & *.txt files into folder "Already Plotted"
 if plots:
     for file in os.listdir(wdic_sub):
-        if file != 'already_plotted':
+        if file.split(".")[-1] in ['txt', 'csv']:
             new_file_name = file.split("_S")[0] + abc + "_S" + file.split("_S")[1]
 
             while True:
@@ -837,12 +837,16 @@ if plots:
                     abc = string.ascii_lowercase[abc_counter]
                     abc_counter += 1
 
+    # Delete corresponding folder (if empty)
+    if len(os.listdir(wdic_sub)) == 0:
+        gfile.DeleteRecursively(wdic_sub)
+
     # open folder
     open_folder(wdic_plot)
 
     # delete log + checkpoint folders and subfolders
-    if delete_log_folder and not (check_mpi_gpu() and path_data == '../../../Data/'):
+    if delete_log_folder:
         shutil.rmtree(wdic_lists_sub)
         shutil.rmtree(wdic_checkpoint_sub)
     else:  # In case files are saved on MPI GPU server, delete manually:
-        cprint("Delete log and checkpoint files manually, if no use.", "y")
+        cprint("Delete log and checkpoint files manually.", "y")
