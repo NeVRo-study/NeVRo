@@ -18,18 +18,26 @@ if not os.path.exists(p2_bash):
     os.mkdir(p2_bash)
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
-# # Adapt here for which subjects bashiles should be written
+# # # Adapt here for which subjects bashfiles should be written
 
 n_sub = 45
-# all_subjects = np.linspace(start=1, stop=n_sub, num=n_sub, dtype=int)  # np.arange(1, n_sub+1)
-# dropouts = np.array([1, 12, 32, 33, 38, 40, 45])
+all_subjects = np.linspace(start=1, stop=n_sub, num=n_sub, dtype=int)  # np.arange(1, n_sub+1)
+dropouts = np.array([1, 12, 32, 33, 38, 40, 45])
 
-subjects = [21, 37]  # Test
-# subjects = [2, 36]  # Test2
+# TODO check where those subjects are (add_drop). Currently not in SSD folder
+add_drop = [10, 16, 19, 23, 41, 43]
+dropouts = np.append(dropouts, add_drop)
+
+subjects = np.setdiff1d(all_subjects, dropouts)  # These are all subjects without dropouts
+
+# Test
+# subjects = [21, 37]
+
+# # Broad random search on subset of 10 subjects
+subsubjects = np.random.choice(a=subjects, size=10, replace=False)
+
+
 # already_proc = [2, 36]  # already processed subjects
-
-# # These are all subjects without dropouts
-# subjects = np.setdiff1d(all_subjects, dropouts)
 
 # # Without already computed subjects
 # subjects = np.setdiff1d(subjects, already_proc)
@@ -38,14 +46,19 @@ subjects = [21, 37]  # Test
 
 
 # TODO test with classification
-def write_search_bash_files(subs, filetype, condition,  seed=True,  repet_scalar=30, s_fold=10, sba=True,
+def write_search_bash_files(subs, filetype, condition,
+                            task_request=None, eqcompmat=None, n_combinations=None,
+                            seed=True,  repet_scalar=30, s_fold=10, sba=True,
                             batch_size=9, successive_mode=1, rand_batch=True, plot=True,
                             successive_default=3, del_log_folders=True, summaries=False):
     """
     :param subs: subject list
     :param filetype: 'SSD' or 'SPOC'
     :param condition: 'mov' or 'nomov'
-    :param seed: # TODO revisit
+    :param task_request: '(r)egression' or '(c)lassification'
+    :param eqcompmat: number of
+    :param n_combinations: Number of random combinations in hyperparameter search
+    :param seed: regarding randomization of folds, batches etc.
     :param repet_scalar: how many times it runs through whole set (can be also fraction)
     :param s_fold: number (s) of folds
     :param sba: True:= SBA, False:= SA
@@ -64,8 +77,11 @@ def write_search_bash_files(subs, filetype, condition,  seed=True,  repet_scalar
     # whether verbose summaries
 
     # Adjust input variable
-    if not type(subs) is list:
+    if not type(subs) is int:
+        subs = list(subs)
+    else:
         subs = [subs]
+
     # strsubs = [s(strsub) for strsub in subs]  # create form such as: ['S02', 'S36']
 
     filetype = filetype.upper()  # filetype (alternatively: np.random.choice(a=['SSD', 'SPOC']))
@@ -77,31 +93,37 @@ def write_search_bash_files(subs, filetype, condition,  seed=True,  repet_scalar
         cprint("Note: Verbose summaries are redundant since they get deleted after processing.", "y")
 
     # Request
-    n_combinations = int(cinput(
-        "How many combinations (multiple of 4) to test (given value will be multpied with n_subjects)): ",
-        "b"))
+    if n_combinations is None:
+        n_combinations = int(cinput(
+            "How many combinations (multiple of 4) to test (given value will be multpied with "
+            "n_subjects)): ", "b"))
     assert n_combinations % 4 == 0, "Number of combinations must be a multiple of 4"
-    # TODO why multiple of 4: ? due to 4 bashscripts? ["_local.sh", "_1.sh", "_2.sh", "_3.sh"] ?
+    # TODO adapt to flexible amount of bashscripts not just 4 ["_local.sh", "_1.sh", "_2.sh", "_3.sh"]
 
     tasks = ["regression", "classification"]
-    task_request = cinput(
-        "For which task is the random search bash? ['r' for'regression', 'c' for 'classification']: ",
-        "b")
+    if task_request is None:
+        task_request = cinput(
+            "For which task is the random search bash? ['r' for'regression', 'c' for 'classification']: ",
+            "b")
     assert task_request.lower() in tasks[0] or task_request.lower() in tasks[1], \
-        "Input must be eitehr 'r' or 'c'"
+        "Task input must be eitehr 'r' or 'c'"
     task = tasks[0] if task_request.lower() in tasks[0] else tasks[1]
+
     shuffle = True if task == "classification" else False
     successive = 1 if task == "classification" else successive_default
 
-    eqcompmat = ask_true_false(question="Shall the model input matrix always be the same in size?")
-    if eqcompmat:
-        eqcompmat = int(cinput("What should be the number (int) of columns (i.e. components)?", "b"))
-        if eqcompmat > 10:
-            cprint("eqcompmat {} is too big. eqcompmat is set to 10 (=max) instead.".format(eqcompmat),
-                   "y")
-            eqcompmat = 10
-    else:
+    if eqcompmat is None:
+        eqcompmat = ask_true_false(question="Shall the model input matrix always be the same in size?")
+        if eqcompmat:
+            eqcompmat = int(cinput("What should be the number (int) of columns (i.e. components)?", "b"))
+        else:
+            eqcompmat = None
+
+    elif eqcompmat == 0:
         eqcompmat = None
+
+    else:  # argument input for eqcompmat is integer
+        assert isinstance(eqcompmat, int), "eqcompmat must be int"
 
     # Create bashfile if not there already:
     bash_file_name = p2_bash + "bashfile_randomsearch_{}.sh".format('BiCl' if "c" in task else "Reg")
@@ -184,7 +206,7 @@ def write_search_bash_files(subs, filetype, condition,  seed=True,  repet_scalar
 
         # From here on it is subject-dependent
         ncomp = [get_num_components(sub, cond, filetype, sba) for sub in subs]  # TODO SPOC not there yet
-        max_n_comp = max(ncomp)  # init
+        max_n_comp = max(ncomp)
         sub_dep = False  # init
 
         if component_modes == "best":
@@ -214,6 +236,10 @@ def write_search_bash_files(subs, filetype, condition,  seed=True,  repet_scalar
         # eqcompmat
         if eqcompmat is not None:
             eqcompmat = max_n_comp if max_n_comp > eqcompmat else eqcompmat
+            if eqcompmat > 10:
+                cprint("eqcompmat {} is too big. eqcompmat is set to 10 (max) instead.".format(eqcompmat),
+                       "y")
+            eqcompmat = 10
 
         # Prepare to write line in bash file per subject
         for sidx, sub in enumerate(subs):
@@ -324,7 +350,17 @@ def write_search_bash_files(subs, filetype, condition,  seed=True,  repet_scalar
 
     print("\nBashfiles and table completed.")
 
-# write_search_bash_files(subs=subjects, filetype="SSD", condition="nomov", seed=True,  repet_scalar=30,
+
+# # Broad random search. Half (20/40) with fix sized input matrix (fixncomp=7)
+# write_search_bash_files(subs=subsubjects, filetype="SSD", condition="nomov",
+#                         task_request="r", eqcompmat=7, n_combinations=20,
+#                         seed=True, repet_scalar=30,
+#                         s_fold=10, sba=True, batch_size=9, successive_mode=1, rand_batch=True,
+#                         plot=True, successive_default=3, del_log_folders=True, summaries=False)
+#
+# write_search_bash_files(subs=subsubjects, filetype="SSD", condition="nomov",
+#                         task_request="r", eqcompmat=0, n_combinations=20,
+#                         seed=True, repet_scalar=30,
 #                         s_fold=10, sba=True, batch_size=9, successive_mode=1, rand_batch=True,
 #                         plot=True, successive_default=3, del_log_folders=True, summaries=False)
 

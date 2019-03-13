@@ -47,8 +47,8 @@ setwd("LSTM Model")
 
 path_data = set_path2data()
 
-path_ssd = path_data + "EEG/08_SSD/"
-path_spoc = path_data + "EEG/09_SPOC/"  # TODO not there yet
+path_ssd = path_data + "EEG/07_SSD/"
+path_spoc = path_data + "EEG/08.1_SPOC/"  # TODO not there yet
 # # SBA-pruned data (148:space, 30:break, 92:andes)
 
 # # Rating data
@@ -197,7 +197,7 @@ def get_num_components(subject, condition, filetype, sba=True):
 
     # Get number of components in condition from table
     cix = 1 if condition == "mov" else 2
-    ncomp = str(tab_ncomp[np.where(tab_ncomp[:, 0] == "S" + str(subject).zfill(2))][:, cix][0])
+    ncomp = str(tab_ncomp[np.where(tab_ncomp[:, 0] == s(subject))][:, cix][0])
     ncomp = int(ncomp) if ncomp != "nan" else np.nan
 
     return ncomp
