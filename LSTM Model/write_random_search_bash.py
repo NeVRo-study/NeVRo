@@ -324,7 +324,9 @@ def write_search_bash_files(subs, filetype, condition,  seed=True,  repet_scalar
 
     print("\nBashfiles and table completed.")
 
-# write_search_bash_files(subs=subjects, filetype="SSD", condition="nomov")
+# write_search_bash_files(subs=subjects, filetype="SSD", condition="nomov", seed=True,  repet_scalar=30,
+#                         s_fold=10, sba=True, batch_size=9, successive_mode=1, rand_batch=True,
+#                         plot=True, successive_default=3, del_log_folders=True, summaries=False)
 
 
 # TODO continue here
