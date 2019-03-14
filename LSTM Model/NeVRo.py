@@ -216,7 +216,7 @@ def train_lstm():
                                 filetype=FLAGS.filetype,
                                 hilbert_power=FLAGS.hilbert_power,
                                 band_pass=FLAGS.band_pass,
-                                equal_comp_matrix=FLAGS.eqcompmat,
+                                equal_comp_matrix=None if FLAGS.eqcompmat == 0 else FLAGS.eqcompmat,
                                 s_fold_idx=s_fold_idx_list[0],
                                 s_fold=FLAGS.s_fold,
                                 sba=FLAGS.sba,
@@ -287,7 +287,8 @@ def train_lstm():
                                                 sba=FLAGS.sba,
                                                 filetype=FLAGS.filetype,
                                                 band_pass=FLAGS.band_pass,
-                                                equal_comp_matrix=FLAGS.eqcompmat,
+                                                equal_comp_matrix=None if FLAGS.eqcompmat == 0
+                                                else FLAGS.eqcompmat,
                                                 hilbert_power=FLAGS.hilbert_power,
                                                 task=FLAGS.task,
                                                 shuffle=FLAGS.shuffle,

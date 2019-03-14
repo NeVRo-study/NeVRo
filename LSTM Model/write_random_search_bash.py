@@ -34,7 +34,7 @@ subjects = np.setdiff1d(all_subjects, dropouts)  # These are all subjects withou
 # subjects = [21, 37]
 
 # # Broad random search on subset of 10 subjects
-subsubjects = np.random.choice(a=subjects, size=10, replace=False)
+# subsubjects = np.random.choice(a=subjects, size=10, replace=False)
 
 
 # already_proc = [2, 36]  # already processed subjects
@@ -45,7 +45,6 @@ subsubjects = np.random.choice(a=subjects, size=10, replace=False)
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
 
-# TODO test with classification
 def write_search_bash_files(subs, filetype, condition,
                             task_request=None, eqcompmat=None, n_combinations=None,
                             seed=True,  repet_scalar=30, s_fold=10, sba=True,
@@ -56,7 +55,7 @@ def write_search_bash_files(subs, filetype, condition,
     :param filetype: 'SSD' or 'SPOC'
     :param condition: 'mov' or 'nomov'
     :param task_request: '(r)egression' or '(c)lassification'
-    :param eqcompmat: number of
+    :param eqcompmat: number of columns in input matrix. Gets filled with zero-vectors if not enough data
     :param n_combinations: Number of random combinations in hyperparameter search
     :param seed: regarding randomization of folds, batches etc.
     :param repet_scalar: how many times it runs through whole set (can be also fraction)
@@ -119,9 +118,6 @@ def write_search_bash_files(subs, filetype, condition,
         else:
             eqcompmat = None
 
-    elif eqcompmat == 0:
-        eqcompmat = None
-
     else:  # argument input for eqcompmat is integer
         assert isinstance(eqcompmat, int), "eqcompmat must be int"
 
@@ -183,7 +179,7 @@ def write_search_bash_files(subs, filetype, condition,
         weight_reg = np.random.choice(a=['l1', 'l2'])
 
         # weight_reg_strength
-        weight_reg_strength = np.random.choice(a=[0.00001, 0.18, 0.36, 0.72, 1.44])  # 0. == no regulariz.
+        weight_reg_strength = np.random.choice(a=[0.00001, 0.18, 0.36, 0.72, 1.44])  # .00001 == no regul.
 
         # activation_fct
         activation_fct = np.random.choice(a=['elu', 'relu'])
@@ -234,7 +230,7 @@ def write_search_bash_files(subs, filetype, condition,
                 sub_dep = True
 
         # eqcompmat
-        if eqcompmat is not None:
+        if eqcompmat != 0:
             eqcompmat = max_n_comp if max_n_comp > eqcompmat else eqcompmat
             if eqcompmat > 10:
                 cprint("eqcompmat {} is too big. eqcompmat is set to 10 (max) instead.".format(eqcompmat),
@@ -351,6 +347,7 @@ def write_search_bash_files(subs, filetype, condition,
     print("\nBashfiles and table completed.")
 
 
+# # Regression
 # # Broad random search. Half (20/40) with fix sized input matrix (fixncomp=7)
 # write_search_bash_files(subs=subsubjects, filetype="SSD", condition="nomov",
 #                         task_request="r", eqcompmat=7, n_combinations=20,
@@ -360,6 +357,20 @@ def write_search_bash_files(subs, filetype, condition,
 #
 # write_search_bash_files(subs=subsubjects, filetype="SSD", condition="nomov",
 #                         task_request="r", eqcompmat=0, n_combinations=20,
+#                         seed=True, repet_scalar=30,
+#                         s_fold=10, sba=True, batch_size=9, successive_mode=1, rand_batch=True,
+#                         plot=True, successive_default=3, del_log_folders=True, summaries=False)
+
+
+# # Binary classification
+# write_search_bash_files(subs=subjects, filetype="SSD", condition="nomov",
+#                         task_request="c", eqcompmat=7, n_combinations=4,
+#                         seed=True, repet_scalar=30,
+#                         s_fold=10, sba=True, batch_size=9, successive_mode=1, rand_batch=True,
+#                         plot=True, successive_default=3, del_log_folders=True, summaries=False)
+#
+# write_search_bash_files(subs=subjects, filetype="SSD", condition="nomov",
+#                         task_request="c", eqcompmat=0, n_combinations=4,
 #                         seed=True, repet_scalar=30,
 #                         s_fold=10, sba=True, batch_size=9, successive_mode=1, rand_batch=True,
 #                         plot=True, successive_default=3, del_log_folders=True, summaries=False)

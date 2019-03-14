@@ -19,8 +19,10 @@ if platform.system() != 'Darwin':
 else:
     import matplotlib.pyplot as plt
 
+# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+
 # Add mean input data
-plt_input_data = False  # default value: False
+plt_input_data = False  # default value: False TODO revisit
 
 
 # Save plot
@@ -66,7 +68,6 @@ else:
 
 assert path_specificity == "" or path_specificity[-1] == "/", \
     "path_specificity must be either empty or end with '/'"
-
 
 # Ask whether to delete log (large files) and checkpoint folders after plotting and saving plots:
 # if platform.system() != 'Darwin':
@@ -511,7 +512,7 @@ for fold in range(s_fold):
     plt.plot(train_acc_fold, color="steelblue", linewidth=lw/2, alpha=0.6, label="training set")
     plt.plot(where, vacc, color="aquamarine", linewidth=2*lw, alpha=0.9, label="validation set")
     plt.hlines(y=mean_line_acc, xmin=0, xmax=train_acc_fold.shape[0], colors="red", linestyles="dashed",
-               lw=2*lw, label="zeroline accuracy")
+               lw=2*lw, label="meanline accuracy")
 
     plt.title(s="{}-Fold | val-acc={}".format(fold + 1,
                                               np.round(
@@ -520,7 +521,7 @@ for fold in range(s_fold):
 
     # adjust size, add legend
     plt.xlim(0, len(train_acc_fold))
-    plt.ylim(0.0, 1.5)
+    plt.ylim(0.5, 1.2)  # min: approx. mean_line_acc-0.2
     if fold == 0:
         plt.legend(bbox_to_anchor=(0., 0.90, 1., .102), loc=1, ncol=4, mode="expand", borderaxespad=0.)
         plt.ylabel("accuracy")
@@ -684,7 +685,7 @@ else:  # if task == "classification":
 
 # adjust size, add legend
 plt.xlim(0, len(whole_rating))
-plt.ylim(-1.2, 2)
+plt.ylim(-1.2, 1.6)
 plt.legend(bbox_to_anchor=(0., 0.90, 1., .102), loc=1, ncol=4, mode="expand", borderaxespad=0.)
 plt.tight_layout(pad=2)
 
@@ -748,7 +749,7 @@ plt.title(s="Concatenated val-prediction | {}-Folds | {} | mean validation accur
     s_fold, task, np.round(mean_acc, 3)))
 # adjust size, add legend
 plt.xlim(0, len(whole_rating))
-plt.ylim(-1.2, 2)
+plt.ylim(-1.2, 1.6)
 plt.legend(bbox_to_anchor=(0., 0.90, 1., .102), loc=1, ncol=4, mode="expand", borderaxespad=0.)
 plt.tight_layout(pad=2)
 
@@ -762,7 +763,7 @@ plt.plot(where, x_fold_mean_vacc, color="aquamarine", linewidth=2*lw, alpha=0.9,
          label="mean validation accuracy")
 if task == "regression":
     plt.hlines(y=mean_line_acc, xmin=0, xmax=train_acc_fold.shape[0], colors="red", linestyles="dashed",
-               lw=2*lw, label="zeroline accuracy")
+               lw=2*lw, label="meanline accuracy")
 else:  # == "classification"
     plt.hlines(y=1.0, xmin=0, xmax=train_acc_fold.shape[0], colors="darkgrey", linestyles="dashed", lw=lw)
     plt.hlines(y=0.5, xmin=0, xmax=train_acc_fold.shape[0], colors="red", linestyles="dashed", lw=lw)
@@ -772,7 +773,7 @@ plt.title(s="Across all S-folds | mean training & validation accuracy")
 
 # adjust size, add legend
 plt.xlim(0, len(train_acc_fold))
-plt.ylim(0.0, 1.25)
+plt.ylim(0.5, 1.2)
 plt.legend(bbox_to_anchor=(0., 0.90, 1., .102), loc=1, ncol=4, mode="expand", borderaxespad=0.)
 plt.tight_layout(pad=2)
 
@@ -848,5 +849,10 @@ if plots:
     if delete_log_folder:
         shutil.rmtree(wdic_lists_sub)
         shutil.rmtree(wdic_checkpoint_sub)
+        # Delete also /logs/S.. folder (parent) if empty
+        sub_log_dir = wdic_lists + "/{}/".format(s(subject))
+        if len(os.listdir(sub_log_dir)) == 0:
+            shutil.rmtree(sub_log_dir)
+
     else:  # In case files are saved on MPI GPU server, delete manually:
         cprint("Delete log and checkpoint files manually.", "y")
