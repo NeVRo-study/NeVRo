@@ -196,7 +196,7 @@ cprint("eval_freq: {}".format(eval_freq), "r")  # TESTING
 checkpoint_freq = int(max_steps)
 cprint("checkpoint_freq: {}".format(checkpoint_freq), "r")  # TESTING
 # print_freq = int(max_steps/8)  # every 30th step for test or int(max_steps/10). Too low:uses much memory
-print_freq = 21  # TESTING
+print_freq = 6  # TESTING
 cprint("print_freq: {}".format(print_freq), "r")  # TESTING
 assert BATCH_SIZE_DEFAULT % SUCCESSIVE_BATCHES_DEFAULT == 0, \
     "BATCH_SIZE must be a multiple of SUCCESSIVE_BATCHES"
