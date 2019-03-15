@@ -181,6 +181,9 @@ for info in acc_date:
 
     elif "Task:" in info:
         task = info.split(": ")[1]
+        wdic_plot += task + "/"
+        if gfile.Exists(wdic_plot):
+            gfile.MakeDirs(wdic_plot)
 
     elif "Shuffle_data:" in info:
         shuffle = True if info.split(": ")[1] == "True" else False
@@ -451,7 +454,7 @@ for fold in range(s_fold):
             fold_acc = np.nan
 
     plot_acc = np.round(val_acc[int(np.where(np.array(s_rounds) == fold)[0])], 3)
-    plt.title(s="{}-Fold | val-acc={}".format(fold+1, fold_acc))  # fold_acc
+    plt.title(label="{}-Fold | val-acc={}".format(fold+1, fold_acc))  # fold_acc
     if fold == 0:
         plt.legend(bbox_to_anchor=(0., 0.90, 1., .102), loc=1, ncol=4, mode="expand", borderaxespad=0.)
 
@@ -514,7 +517,7 @@ for fold in range(s_fold):
     plt.hlines(y=mean_line_acc, xmin=0, xmax=train_acc_fold.shape[0], colors="red", linestyles="dashed",
                lw=2*lw, label="meanline accuracy")
 
-    plt.title(s="{}-Fold | val-acc={}".format(fold + 1,
+    plt.title(label="{}-Fold | val-acc={}".format(fold + 1,
                                               np.round(
                                                   val_acc[int(np.where(np.array(s_rounds) == fold)[0])],
                                                   3)))
@@ -587,7 +590,7 @@ for fold in range(s_fold):
     plt.plot(train_loss_fold, color="steelblue", linewidth=lw/2, alpha=0.6, label="training loss")
     plt.plot(where_loss, vloss, color="aquamarine", linewidth=2*lw, alpha=0.9, label="validation loss")
 
-    plt.title(s="{}-Fold | val-acc={}".format(
+    plt.title(label="{}-Fold | val-acc={}".format(
         fold + 1, np.round(val_acc[int(np.where(np.array(s_rounds) == fold)[0])], 3)))
 
     # adjust size, add legend
@@ -636,7 +639,7 @@ if task == "regression":
     plt.plot(whole_rating, ls="dotted", color="black", label="rating")
     plt.fill_between(x=np.arange(0, pred_matrix.shape[1], 1), y1=whole_rating, y2=average_train_pred,
                      color="steelblue", alpha='0.2')
-    plt.title(s="Average train prediction | {}-Folds".format(s_fold))
+    plt.title(label="Average train prediction | {}-Folds".format(s_fold))
 
     plt.hlines(y=0, xmin=0, xmax=pred_matrix.shape[1], colors="darkgrey", lw=lw, alpha=.8)  # midline
     plt.hlines(y=np.nanmean(average_train_pred), xmin=0, xmax=pred_matrix.shape[1], linestyle="dashed",
@@ -680,7 +683,7 @@ else:  # if task == "classification":
     correct_class_train = np.delete(correct_class_train, np.where(np.isnan(correct_class_train)))
     mean_train_acc = sum(correct_class_train[correct_class_train == 1])/len(correct_class_train)
     plt.xlabel("time(s)")
-    plt.title(s="Average train prediction | {}-Folds| {} | mean training accuracy={:.3f}".format(
+    plt.title(label="Average train prediction | {}-Folds| {} | mean training accuracy={:.3f}".format(
         s_fold, task, mean_train_acc))
 
 # adjust size, add legend
@@ -745,7 +748,7 @@ else:  # task == "classification":
         # print(wr, concat_val_pred[i])
 
 plt.xlabel("time(s)")
-plt.title(s="Concatenated val-prediction | {}-Folds | {} | mean validation accuracy={}".format(
+plt.title(label="Concatenated val-prediction | {}-Folds | {} | mean validation accuracy={}".format(
     s_fold, task, np.round(mean_acc, 3)))
 # adjust size, add legend
 plt.xlim(0, len(whole_rating))
@@ -769,7 +772,7 @@ else:  # == "classification"
     plt.hlines(y=0.5, xmin=0, xmax=train_acc_fold.shape[0], colors="red", linestyles="dashed", lw=lw)
 plt.xlabel("Training iterations")
 plt.ylabel("Accuracy")
-plt.title(s="Across all S-folds | mean training & validation accuracy")
+plt.title(label="Across all S-folds | mean training & validation accuracy")
 
 # adjust size, add legend
 plt.xlim(0, len(train_acc_fold))
@@ -787,7 +790,7 @@ plt.plot(where_loss, x_fold_mean_vloss, color="aquamarine", linewidth=2*lw, alph
 plt.hlines(y=0.0, xmin=0, xmax=x_fold_mean_tloss.shape[0], colors="darkgrey", linestyles="dashed", lw=lw)
 plt.xlabel("Training iterations")
 plt.ylabel("Loss")
-plt.title(s="Across all S-folds | mean training & validation loss")
+plt.title(label="Across all S-folds | mean training & validation loss")
 
 # adjust size, add legend
 plt.xlim(0, len(train_loss_fold))
@@ -823,7 +826,7 @@ if not script_external_exe:  # Check whether script is opened from intern(python
 # When saved then move *.csv & *.txt files into folder "Already Plotted"
 if plots:
     for file in os.listdir(wdic_sub):
-        if file.split(".")[-1] in ['txt', 'csv']:
+        if file.split(".")[-1] in ['txt', 'csv', 'npy']:
             new_file_name = file.split("_S")[0] + abc + "_S" + file.split("_S")[1]
 
             while True:

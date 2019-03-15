@@ -27,14 +27,13 @@ dropouts = np.array([1, 12, 32, 33, 38, 40, 45])
 # TODO check where those subjects are (add_drop). Currently not in SSD folder
 add_drop = [10, 16, 19, 23, 41, 43]
 dropouts = np.append(dropouts, add_drop)
-
 subjects = np.setdiff1d(all_subjects, dropouts)  # These are all subjects without dropouts
 
 # Test
 # subjects = [21, 37]
 
 # # Broad random search on subset of 10 subjects
-# subsubjects = np.random.choice(a=subjects, size=10, replace=False)
+subsubjects = np.random.choice(a=subjects, size=10, replace=False)
 
 
 # already_proc = [2, 36]  # already processed subjects
@@ -245,11 +244,22 @@ def write_search_bash_files(subs, filetype, condition,
             if component_modes != "best":
                 # Shorten component list for subject, if necessary
                 if sub_dep:
-                    while len(sub_component) > ncomp[sidx]:
-                        # Delete highest component number
-                        # Works for component_modes: "random_set" AND "one_up"
-                        sub_component = np.delete(sub_component,
-                                                  np.where(sub_component == max(sub_component)))
+                    # In case list of given components is too long for specific subject
+                    if len(sub_component) > ncomp[sidx]:
+                        # Shorten list, which is equal to taking all possible components of this subject
+                        sub_component = np.arange(start=1, stop=ncomp[sidx]+1)
+
+                    # In case the given 'highest' compoments(s) is/are beyond the component-scope of subj.
+                    while max(sub_component) > len(sub_component):
+                        # Find random component within the component-scope ...
+                        while True:
+                            repl_comp = np.random.choice(a=range(1, len(sub_component) + 1), size=1,
+                                                         replace=False)[0]
+                            # ... which is not in the given list of components yet ...
+                            if repl_comp not in sub_component:
+                                # ... and replace highest comp with it
+                                sub_component[np.where(sub_component == max(sub_component))] = repl_comp
+                                break
 
                 sub_component = ','.join([str(i) for i in sub_component])
 
@@ -363,17 +373,17 @@ def write_search_bash_files(subs, filetype, condition,
 
 
 # # Binary classification
-# write_search_bash_files(subs=subjects, filetype="SSD", condition="nomov",
-#                         task_request="c", eqcompmat=7, n_combinations=4,
-#                         seed=True, repet_scalar=30,
-#                         s_fold=10, sba=True, batch_size=9, successive_mode=1, rand_batch=True,
-#                         plot=True, successive_default=3, del_log_folders=True, summaries=False)
-#
-# write_search_bash_files(subs=subjects, filetype="SSD", condition="nomov",
-#                         task_request="c", eqcompmat=0, n_combinations=4,
-#                         seed=True, repet_scalar=30,
-#                         s_fold=10, sba=True, batch_size=9, successive_mode=1, rand_batch=True,
-#                         plot=True, successive_default=3, del_log_folders=True, summaries=False)
+write_search_bash_files(subs=subsubjects, filetype="SSD", condition="nomov",
+                        task_request="c", eqcompmat=7, n_combinations=4,
+                        seed=True, repet_scalar=30,
+                        s_fold=10, sba=True, batch_size=9, successive_mode=1, rand_batch=True,
+                        plot=True, successive_default=3, del_log_folders=True, summaries=False)
+
+write_search_bash_files(subs=subsubjects, filetype="SSD", condition="nomov",
+                        task_request="c", eqcompmat=0, n_combinations=4,
+                        seed=True, repet_scalar=30,
+                        s_fold=10, sba=True, batch_size=9, successive_mode=1, rand_batch=True,
+                        plot=True, successive_default=3, del_log_folders=True, summaries=False)
 
 
 # TODO continue here
