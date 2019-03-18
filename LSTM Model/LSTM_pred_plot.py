@@ -36,6 +36,25 @@ def logfolder_delete_request():
     print("Do you want to delete the log folders after plotting (+saving)?")
 
 
+def plot_all_there_is(dellog):
+    """
+    Search for processed files which weren't plotted yet.
+    :param dellog: True or False: Delete log and checkpoint files after plotting
+    """
+
+    for folder in os.listdir("./LSTM/"):
+        if "S" == folder[0]:
+            sub = int(folder.split('S')[1])
+            print("subject:", sub)
+            for subfolder in os.listdir("./LSTM/{}/".format(folder)):
+                if subfolder != 'already_plotted':
+                    subfol = subfolder
+                    print("subfolder:", subfol)
+                    if len(os.listdir("./LSTM/{}/{}/".format(folder, subfol))) == 3:
+                        subprocess.Popen(["python3", "LSTM_pred_plot.py", 'True', str(sub), subfol + "/",
+                                          str(dellog)])
+
+
 try:
     plots = sys.argv[1]
     try:
@@ -182,7 +201,7 @@ for info in acc_date:
     elif "Task:" in info:
         task = info.split(": ")[1]
         wdic_plot += task + "/"
-        if gfile.Exists(wdic_plot):
+        if not gfile.Exists(wdic_plot):
             gfile.MakeDirs(wdic_plot)
 
     elif "Shuffle_data:" in info:
@@ -524,7 +543,7 @@ for fold in range(s_fold):
 
     # adjust size, add legend
     plt.xlim(0, len(train_acc_fold))
-    plt.ylim(0.5, 1.2)  # min: approx. mean_line_acc-0.2
+    plt.ylim(0.5, 1.18)  # min: approx. mean_line_acc-0.2
     if fold == 0:
         plt.legend(bbox_to_anchor=(0., 0.90, 1., .102), loc=1, ncol=4, mode="expand", borderaxespad=0.)
         plt.ylabel("accuracy")
@@ -595,7 +614,7 @@ for fold in range(s_fold):
 
     # adjust size, add legend
     plt.xlim(0, len(train_loss_fold))
-    plt.ylim(-0.05, 1.8)
+    plt.ylim(-0.05, 1.55)
     if fold == 0:
         plt.legend(bbox_to_anchor=(0., 0.90, 1., .102), loc=1, ncol=4, mode="expand", borderaxespad=0.)
         plt.ylabel("Loss")
