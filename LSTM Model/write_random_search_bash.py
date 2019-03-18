@@ -373,17 +373,17 @@ def write_search_bash_files(subs, filetype, condition,
 
 
 # # Binary classification
-write_search_bash_files(subs=subsubjects, filetype="SSD", condition="nomov",
-                        task_request="c", eqcompmat=7, n_combinations=4,
-                        seed=True, repet_scalar=30,
-                        s_fold=10, sba=True, batch_size=9, successive_mode=1, rand_batch=True,
-                        plot=True, successive_default=3, del_log_folders=True, summaries=False)
-
-write_search_bash_files(subs=subsubjects, filetype="SSD", condition="nomov",
-                        task_request="c", eqcompmat=0, n_combinations=4,
-                        seed=True, repet_scalar=30,
-                        s_fold=10, sba=True, batch_size=9, successive_mode=1, rand_batch=True,
-                        plot=True, successive_default=3, del_log_folders=True, summaries=False)
+# write_search_bash_files(subs=subsubjects, filetype="SSD", condition="nomov",
+#                         task_request="c", eqcompmat=7, n_combinations=4,
+#                         seed=True, repet_scalar=30,
+#                         s_fold=10, sba=True, batch_size=9, successive_mode=1, rand_batch=True,
+#                         plot=True, successive_default=3, del_log_folders=True, summaries=False)
+#
+# write_search_bash_files(subs=subsubjects, filetype="SSD", condition="nomov",
+#                         task_request="c", eqcompmat=0, n_combinations=4,
+#                         seed=True, repet_scalar=30,
+#                         s_fold=10, sba=True, batch_size=9, successive_mode=1, rand_batch=True,
+#                         plot=True, successive_default=3, del_log_folders=True, summaries=False)
 
 
 # TODO continue here
