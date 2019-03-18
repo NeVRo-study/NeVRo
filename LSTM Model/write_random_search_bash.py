@@ -24,8 +24,10 @@ n_sub = 45
 all_subjects = np.linspace(start=1, stop=n_sub, num=n_sub, dtype=int)  # np.arange(1, n_sub+1)
 dropouts = np.array([1, 12, 32, 33, 38, 40, 45])
 
-# TODO check where those subjects are (add_drop). Currently not in SSD folder
-add_drop = [10, 16, 19, 23, 41, 43]
+# These are additional dropouts for the nomov-condition (add_drop). Criterium: More than 1/3 of all epochs
+# (1 epoch = 1 sec of EEG data) were above 100 mikro-volt.
+add_drop = [10, 16, 19, 23, 41, 43]  # no mov
+# TODO same for mov-condition
 dropouts = np.append(dropouts, add_drop)
 subjects = np.setdiff1d(all_subjects, dropouts)  # These are all subjects without dropouts
 
