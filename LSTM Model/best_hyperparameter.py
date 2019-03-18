@@ -1,8 +1,9 @@
 # coding=utf-8
 """
-After we run grid or random search on subjects, we find now the best hyperparameters from the processed files.
+After we run grid or random search on subjects,
+we find now the best hyperparameters from the processed files.
 
-Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017
+Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017, 2019 (Update)
 """
 
 import os
@@ -21,7 +22,8 @@ def open_best_params(subjects, rand_search, task, n=5):
     :return:
     """
 
-    assert task in ["classification", "regression"], "Task must be either 'classification' or 'regression'."
+    assert task in ["classification", "regression"], \
+        "Task must be either 'classification' or 'regression'."
 
     if not isinstance(subjects, list):
         subjects = [subjects]
@@ -65,7 +67,8 @@ def open_best_params(subjects, rand_search, task, n=5):
                                 acc_list.append(float(accuracy))
                                 acc_name_list.append(file_name)
 
-        acc_list_sorted, acc_name_list_sorted = map(list, zip(*sorted(zip(acc_list, acc_name_list))[::-1]))
+        acc_list_sorted, acc_name_list_sorted = map(list, zip(*sorted(zip(acc_list,
+                                                                          acc_name_list))[::-1]))
 
         print("\n")
         for i, j in zip(acc_list_sorted[:n], acc_name_list_sorted[:n]):
@@ -109,7 +112,8 @@ def sort_table(task, table=None):
         # Sort according to difference of mean validation accuracy and zeroline accuracy
         table[0, -1] = "meanval-zeroline_acc"
         for idx in range(1, table.shape[0]):
-            table[idx, -1] = "{:.5}".format(str(float(table[idx, -3]) - float(table[idx, -2])))  # acc - zeroline_acc
+            table[idx, -1] = "{:.5}".format(
+                str(float(table[idx, -3]) - float(table[idx, -2])))  # acc - zeroline_acc
 
     sorted_table = copy.copy(table)
     sorted_table[1:, :] = sorted_table[np.argsort(sorted_table[1:, acc_col]) + 1]
@@ -120,7 +124,8 @@ def sort_table(task, table=None):
     sorted_table[1:nan_start, ] = sorted_table[np.argsort(sorted_table[1:nan_start, acc_col]) + 1, ][::-1]
 
     if save_externally:
-        np.savetxt(fname="." + table_filename.split(".")[1] + "_sorted.csv", X=sorted_table, delimiter=";", fmt="%s")
+        np.savetxt(fname="." + table_filename.split(".")[1] + "_sorted.csv", X=sorted_table,
+                   delimiter=";", fmt="%s")
     else:
         return sorted_table
 # sort_table(task="classification")
@@ -134,14 +139,16 @@ def merge_randsearch_tables(task, sort=True):
     """
 
     # Check function input
-    assert task.lower() in ["classification", "regression"], "task must be either 'classification' or 'regression'"
+    assert task.lower() in ["classification", "regression"], \
+        "task must be either 'classification' or 'regression'"
 
     tfix = "_BiCl" if task.lower() == "classification" else "_Reg"
 
     # Find tables
     wd_table = "./LSTM/"
     for file in os.listdir(wd_table):
-        if "Random_Search_Table" in file and tfix in file and "_server.csv" not in file and ".csv" in file:
+        if "Random_Search_Table" in file and tfix in file and "_server.csv" not in file \
+                and ".csv" in file:
             local_table_filename = wd_table + file
         elif "Random_Search_Table" in file and tfix in file and "_server.csv" in file:
             server_table_filename = wd_table + file
@@ -189,7 +196,8 @@ def rnd_search_table_per_subject(table_name):
         sub_rs_table = np.concatenate((header, sub_rs_table), axis=0)  # attach header
 
         # Save
-        export_filename = "S{}_Ran".format(str(sub).zfill(2)) + table_name.split("Ran")[1].split("_m")[0] + ".csv"
+        export_filename = "S{}_Ran".format(str(sub).zfill(2)) + table_name.split("Ran")[1].split(
+            "_m")[0] + ".csv"
         np.savetxt(fname=wd_tables+export_filename, X=sub_rs_table, delimiter=";", fmt="%s")
 # rnd_search_table_per_subject(table_name='Random_Search_Final_Table_BiCl_merged_sorted.csv')
 # rnd_search_table_per_subject(table_name='Random_Search_Final_Table_Reg_merged_sorted.csv')
@@ -215,7 +223,8 @@ def table_per_hp_setting(table_name):
         set_rs_table = np.concatenate((header, set_rs_table), axis=0)  # attach header
 
         # Save
-        export_filename = "Set{}_Ran".format(str(setx+1).zfill(2)) + table_name.split("Ran")[1].split("_m")[0] + ".csv"
+        export_filename = "Set{}_Ran".format(str(setx+1).zfill(2)) + table_name.split("Ran")[1].split(
+            "_m")[0] + ".csv"
         np.savetxt(fname=wd_tables+export_filename, X=set_rs_table, delimiter=";", fmt="%s")
 # table_per_hp_setting(table_name='Random_Search_Final_Table_BiCl_merged_sorted.csv')
 # table_per_hp_setting(table_name='Random_Search_Final_Table_Reg_merged_sorted.csv')
@@ -230,7 +239,8 @@ def table_of_best_hp_over_all_subjects(n, task):
     :param task: 'classification' or 'regression'
     :param n: number of hyper parameter settings to be saved in new table
     """
-    assert task.lower() in ["classification", "regression"], "task must be either 'classification' or 'regression'"
+    assert task.lower() in ["classification", "regression"], \
+        "task must be either 'classification' or 'regression'"
 
     wd_tables = "./LSTM/Random_Search_Tables/"
 
@@ -284,7 +294,8 @@ def model_performance(over, task, input_type):
     :return: performance table
     """
 
-    assert task.lower() in ['classification', 'regression'], "task must be either 'regression' or 'classification'"
+    assert task.lower() in ['classification', 'regression'], \
+        "task must be either 'regression' or 'classification'"
     assert input_type.lower() in ['ssd', 'spoc'], "input_type must be either 'SSD' or 'SPOC'"
     assert over.lower() in ['subjects', 'hp-sets'], "over must be either 'subjects' or 'hp-sets'"
 
@@ -306,11 +317,12 @@ def model_performance(over, task, input_type):
                 if count_entries == 1:
                     fin_table = np.reshape(rs_table[0, head_idx], newshape=(1, len(head_idx)))  # header
 
-                perform = [rs_table[1, -1]] if task == "classification" else list(rs_table[1, -3:])  # float()
+                perform = [rs_table[1, -1]] if task == "classification" else list(rs_table[1, -3:])
                 setting = rs_table[1, 23]
                 sub = file_name.split("_Random")[0].split("S")[1]  # subject number (str)
 
-                fin_table = np.concatenate((fin_table, np.reshape([sub, setting] + perform, (1, len(fin_table[0])))))
+                fin_table = np.concatenate((fin_table, np.reshape([sub, setting] + perform,
+                                                                  (1, len(fin_table[0])))))
 
         # performances = [float(x) if x != "nan" else np.nan for x in fin_table[1:, 2:]]
         # mean_perform = np.round(np.nanmean(performances), 3)
@@ -344,7 +356,8 @@ def model_performance(over, task, input_type):
                 std_perform = np.round(np.nanstd(performances, axis=0), 3)
                 setting = rs_table[1, 23]  # for all the same
 
-                fin_table = np.concatenate((fin_table, np.reshape(np.array(["all", setting, mean_perform, std_perform]),
+                fin_table = np.concatenate((fin_table, np.reshape(np.array(["all", setting, mean_perform,
+                                                                            std_perform]),
                                                                   newshape=(1, len(head_idx)+2))))
 
         # Sort w.r.t. mean_perform
@@ -355,7 +368,8 @@ def model_performance(over, task, input_type):
             nan_start = np.where(sorted_fin_table[:, acc_col] == "nan")[0][0]
         else:
             nan_start = sorted_fin_table.shape[0]
-        sorted_fin_table[1:nan_start, ] = sorted_fin_table[np.argsort(sorted_fin_table[1:nan_start, acc_col])+1, ][::-1]
+        sorted_fin_table[1:nan_start, ] = sorted_fin_table[np.argsort(sorted_fin_table[1:nan_start,
+                                                                      acc_col])+1, ][::-1]
 
         # Save
         export_filename = "AllHPsets_Ran" + file_name.split("Ran")[1]

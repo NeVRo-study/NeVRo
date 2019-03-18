@@ -2,6 +2,10 @@
 
 *This is a rough outline. A more detailed description will come soon. Please see the publications for the specific models linked in the corresponding sections.*
 
+[![Python.pm](https://img.shields.io/badge/python->3.5-brightgreen.svg?maxAge=259200)](#)
+[![Matlab.pm](https://img.shields.io/badge/Matlab->R2016.a-informational.svg?maxAge=259200)](#)
+[![version](https://img.shields.io/badge/version-2.0.1-yellow.svg?maxAge=259200)](#)
+
 <h2>Introduction</h2> 
 
 We used virtual reality (VR) to investigate emotional arousal under ecologically valid conditions. 45 subjects experienced virtual roller coaster rides while their neural (EEG) and peripheral physiological (ECG, GSR) responses were recorded. Afterwards, they rated their subject levels of arousal retrospectively on a continuous scale while viewing a recording of their experience.

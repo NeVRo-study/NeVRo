@@ -4,61 +4,75 @@ Main script
     • run model
     • script should be called via bash files (see parser)
 
-Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017
+Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017, 2019 (Update)
 """
+
+# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
 # Adaptations if code is run under Python2
 from __future__ import absolute_import
-from __future__ import division  # int/int can result in float now, e.g. 1/2 = 0.5 (in python2 1/2=0, 1/2.=0.5)
+from __future__ import division  # int/int can result in float now, 1/2 = 0.5 (in python2 1/2=0, 1/2.=0.5)
 from __future__ import print_function  # : Use print as a function as in Python 3: print()
 
 # import sys
 # sys.path.insert(0, './LSTM Model')  # or set the folder as source root
-from Load_Data import *
+from load_data import *
+
 import numpy as np
-import tensorflow as tf  # implemented with TensorFlow 1.3.0
+import tensorflow as tf  # implemented with TensorFlow 1.13.1
 import argparse
 import time
 import copy
 import subprocess
 
-from NEVROnet import NeVRoNet
+from NeVRoNet import NeVRoNet
+from write_random_search_bash import update_bashfiles
 
-# TODO more components: 1) define size of input-matrix before,
-# TODO then 2) successively adding SSD components, hence adding more non-alpha related information (non-b-pass)
-# TODO Exchange zeroline with mean
+# os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # Makes TensorFlow less verbose, comment out for debugging
+
+# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+
+# TODO successively adding SSD components, adding more non-alpha related information (non-b-pass)
 # TODO test trained model on different subject dataset.
 # TODO Train model on various subjects
 
-TASK_DEFAULT = 'regression'  # predict ratings via 'regression' (continious) or 'classification' (Low vs. High arousal)
+# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+
+TASK_DEFAULT = 'regression'  # prediction via 'regression' (continious) or 'classification' (Low-High)
 LEARNING_RATE_DEFAULT = 1e-3  # 1e-4
 BATCH_SIZE_DEFAULT = 9  # or bigger, batch_size must be a multiple of 'successive batches'
 SUCCESSIVE_BATCHES_DEFAULT = 1  # (time-)length per sample is hyperparameter in form of successive batches
 SUCCESSIVE_MODE_DEFAULT = 1  # either 1 or 2
 S_FOLD_DEFAULT = 10
-REPETITION_SCALAR_DEFAULT = 30  # scaler for how many times it should run through set (can be also fraction)
+REPETITION_SCALAR_DEFAULT = 30  # scaler for how many times it runs through set (can be also fraction)
 OPTIMIZER_DEFAULT = 'ADAM'
 WEIGHT_REGULARIZER_DEFAULT = 'l2'
 WEIGHT_REGULARIZER_STRENGTH_DEFAULT = 0.18
 ACTIVATION_FCT_DEFAULT = 'elu'
 LOSS_DEFAULT = "normal"  # is not used yet
-LSTM_SIZE_DEFAULT = '100'  # number of hidden units per LSTM layer, e.g., '10,5' would create second lstm_layer
+LSTM_SIZE_DEFAULT = '100'  # N of hidden units per LSTM layer, e.g., '10,5' would create second lstm_layer
 FC_NUM_HIDDEN_UNITS = None  # if len(n_hidden_units)>0, create len(n_hidden_units) layers
 FILE_TYPE_DEFAULT = "SSD"  # Either 'SSD' or 'SPOC'
-COMPONENT_DEFAULT = "best"  # 'best', 'noise', 'random', 'all' or list of 1 or more comps (1-5), e.g. '1,3,5' or '4'
-# HR_COMPONENT_DEFAULT = False
+COMPONENT_DEFAULT = "best"
+# 'best', 'noise', 'random', 'all' or list of 1 or more comps (1-5), e.g. '1,3,5' or '4'
+
 SUBJECT_DEFAULT = 36
+CONDITION_DEFAULT = "nomov"
 
 PATH_SPECIFICITIES_DEFAULT = ""  # or fill like this: "special_folder/"
 
+# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+
 WEIGHT_REGULARIZER_DICT = {'none': lambda x: None,  # No regularization
                            # L1 regularization
-                           'l1': tf.contrib.layers.l1_regularizer,
+                           'l1': tf.keras.regularizers.l1,  # tf.contrib.layers.l1_regularizer,
                            # L2 regularization
-                           'l2': tf.contrib.layers.l2_regularizer}
+                           'l2': tf.keras.regularizers.l2}   # tf.contrib.layers.l2_regularizer
 
 ACTIVATION_FCT_DICT = {'elu': tf.nn.elu,
                        'relu': tf.nn.relu}
+
+# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
 
 def train_step(loss):
@@ -107,13 +121,15 @@ def train_lstm():
     [https://www.tensorflow.org/versions/r0.11/how_tos/variables/index.html]
     """
 
-    # Parameters
-    max_steps = FLAGS.repet_scalar * (270 - 270 / FLAGS.s_fold) / FLAGS.batch_size  # runs x-times through set
+    # # Parameters
+    # runs max_steps-times through set
+    max_steps = FLAGS.repet_scalar * (270 - 270 / FLAGS.s_fold) / FLAGS.batch_size
     assert float(max_steps).is_integer(), "max steps must be integer"
     eval_freq = int(((270 - 270 / FLAGS.s_fold) / FLAGS.batch_size) / 2)  # approx. 2 times per epoch
     checkpoint_freq = int(max_steps)  # int(max_steps)/2 for chechpoint after half the training
     print_freq = int(max_steps / 8)  # if too low, uses much memory
-    assert FLAGS.batch_size % FLAGS.successive == 0, "batch_size must be a multiple of successive (batches)."
+    assert FLAGS.batch_size % FLAGS.successive == 0, \
+        "batch_size must be a multiple of successive (batches)."
     assert FLAGS.task.upper() in ['REGRESSION', 'CLASSIFICATION'], "Prediction task is undefined."
 
     # Set the random seeds on True for reproducibility.
@@ -130,6 +146,7 @@ def train_lstm():
     else:
         lstm_hidden_states = []
 
+    # For fully connected layers
     if FLAGS.fc_n_hidden and len(FLAGS.fc_n_hidden) > 0 and FLAGS.fc_n_hidden not in "0":
         n_hidden_units = FLAGS.fc_n_hidden.split(",")
         n_hidden_units = [int(hidden_unites_) for hidden_unites_ in n_hidden_units]
@@ -152,56 +169,61 @@ def train_lstm():
     # Create to save the performance for each validation set
     all_acc_val = np.zeros(FLAGS.s_fold)
 
-    # Choose component: Given by list e.g., '1,3,5' or as label, e.g., 'best'
-    if FLAGS.filetype.upper() == "SSD":
-        best_comp = best_component(subject=FLAGS.subject)  # First find best component
-    elif FLAGS.filetype.upper() == "SPOC":
-        print("The best correlating SPOC component of Subject {} is Component Number 1".format(FLAGS.subject))
-        best_comp = 1
+    # # Choose component: Given by list e.g., '1,3,5' or as label, e.g., 'best'
+    input_component = None  # initialize
+
+    # First find best component
+    # choose_component(subject, condition, f_type, best, sba=True)
+    if FLAGS.component in ['best', 'noise']:
+        best_comp = best_or_random_component(subject=FLAGS.subject, condition=FLAGS.condition,
+                                             f_type=FLAGS.filetype.upper(),
+                                             best=True,
+                                             sba=FLAGS.sba)
 
     if not FLAGS.component.split(",")[0].isnumeric():
+
         assert FLAGS.component in ["best", "noise", "random", "all"], \
             "Component must be either 'best', 'noise', 'random', or 'all'"
+
         if FLAGS.component == "best":
             input_component = best_comp
         elif FLAGS.component == "noise":
             input_component = 90 + best_comp  # coding for noise component
         elif FLAGS.component == "random":
-            while True:
-                input_component = np.random.randint(1, 5 + 1)  # ! If 'SPOC' some subjects might have less than 5 comps!
-                if input_component != best_comp:
-                    break
+            input_component = best_or_random_component(subject=FLAGS.subject,
+                                                       condition=FLAGS.condition,
+                                                       f_type=FLAGS.filetype.upper(),
+                                                       best=False,  # Finds random component != best
+                                                       sba=FLAGS.sba)
         elif FLAGS.component == "all":
-            cfname = get_filename(subject=FLAGS.subject, filetype=FLAGS.filetype, band_pass=FLAGS.band_pass,
-                                  cond="NoMov", sba=True)
-            if os.path.isfile(cfname):
-                n_comp = len(np.genfromtxt(cfname, delimiter=";", dtype="str")[0].split("\t")[:-1])  # last=' '
-                input_component = list(range(1, n_comp + 1))
-            else:
-                raise FileNotFoundError(cfname)
+            n_comp = get_num_components(subject=FLAGS.subject, condition=FLAGS.condition,
+                                        filetype=FLAGS.filetype, sba=FLAGS.sba)
+            input_component = list(range(1, n_comp + 1))
 
     else:  # given components are in form of list
-        assert np.all([comp.isnumeric() for comp in FLAGS.component.split(",")]), "All given components must be numeric"
+        assert np.all([comp.isnumeric() for comp in FLAGS.component.split(",")]), \
+            "All given components must be numeric"
         input_component = [int(comp) for comp in FLAGS.component.split(",")]
 
-    print("LSTM model get trained on input_component:", input_component)
+    print("LSTM model get trained on input_component(s):", input_component)
 
     # Load first data-set for preparation
     nevro_data = get_nevro_data(subject=FLAGS.subject,
+                                task=FLAGS.task,
+                                cond=FLAGS.condition,
                                 component=input_component,
                                 hr_component=FLAGS.hrcomp,
+                                filetype=FLAGS.filetype,
+                                hilbert_power=FLAGS.hilbert_power,
+                                band_pass=FLAGS.band_pass,
+                                equal_comp_matrix=None if FLAGS.eqcompmat == 0 else FLAGS.eqcompmat,
                                 s_fold_idx=s_fold_idx_list[0],
                                 s_fold=FLAGS.s_fold,
-                                cond="NoMov",
-                                sba=True,
-                                filetype=FLAGS.filetype,
-                                band_pass=FLAGS.band_pass,
-                                hilbert_power=FLAGS.hilbert_power,
-                                task=FLAGS.task,
+                                sba=FLAGS.sba,
                                 shuffle=FLAGS.shuffle,
                                 testmode=FLAGS.testmodel)
 
-    zero_line_acc = zero_line_prediction(subject=FLAGS.subject)
+    mean_line_acc = mean_line_prediction(subject=FLAGS.subject, condition=FLAGS.condition, sba=FLAGS.sba)
 
     # Define graph using class NeVRoNet and its methods:
     ddims = list(nevro_data["train"].eeg.shape[1:])  # [250, n_comp]
@@ -213,10 +235,9 @@ def train_lstm():
     # ...   ...   ...   ...   ...   ...
     # S Fold predic [0.397, ..., -0.134]
     # S Fold rating [0.412, ..., -0.983]
-
     pred_matrix = np.zeros(shape=(FLAGS.s_fold*2, full_length), dtype=np.float32)
     pred_matrix[np.where(pred_matrix == 0)] = np.nan  # set to NaN values
-    # We create a separate matrix for the validation (which can be merged with the first pred_matrix later)
+    # We create a separate matrix for the validation (which can be merged with the 1. pred_matrix later)
     val_pred_matrix = copy.copy(pred_matrix)
 
     # In case data was shuffled save corresponding order per fold in matrix and save later
@@ -230,63 +251,66 @@ def train_lstm():
 
     # Run through S-Fold-Cross-Validation (take the mean-performance across all validation sets)
     for rnd, s_fold_idx in enumerate(s_fold_idx_list):
-        print("Train now on Fold-Nr.{} (fold {}/{}) | {} | S{}".format(s_fold_idx, rnd+1,
-                                                                       len(s_fold_idx_list),
-                                                                       FLAGS.path_specificities[:-1],
-                                                                       str(FLAGS.subject).zfill(2)))
+        cprint("\nTrain now on Fold-Nr.{} (fold {}/{}) | {} | {}".format(s_fold_idx, rnd+1,
+                                                                         len(s_fold_idx_list),
+                                                                         FLAGS.path_specificities[:-1],
+                                                                         s(FLAGS.subject)),
+               "b")
         start_timer_fold = datetime.datetime.now().replace(microsecond=0)
 
-        # For each fold we need to define new graph to compare the validation accuracies of each fold in the end
-        with tf.Session(graph=graph_dict[s_fold_idx]) as sess:  # This is a way to re-initialise the model completely
+        # For each fold define new graph to finally compare the validation accuracies of each fold
+        with tf.Session(graph=graph_dict[s_fold_idx]) as sess:  # (re-)initialise the model completely
 
-            with tf.variable_scope(name_or_scope="Fold_Nr{}/{}".format(str(rnd).zfill(len(str(FLAGS.s_fold))),
-                                                                       len(s_fold_idx_list))):
+            with tf.variable_scope(name_or_scope="Fold_Nr{}/{}".format(str(rnd).zfill(len(str(
+                    FLAGS.s_fold))), len(s_fold_idx_list))):
 
                 # Load Data:
                 if rnd > 0:
                     # Show time passed per fold and estimation of rest time
-                    print("Duration of previous fold {} [h:m:s] | {} | S{}".format(duration_fold,
-                                                                                   FLAGS.path_specificities[:-1],
-                                                                                   str(FLAGS.subject).zfill(2)))
+                    cprint("Duration of previous fold {} [h:m:s] | {} | {}".format(
+                         duration_fold, FLAGS.path_specificities[:-1], s(FLAGS.subject)), "y")
                     timer_fold_list.append(duration_fold)
                     # average over previous folds (np.mean(timer_fold_list) not possible in python2)
-                    rest_duration_fold = average_time(timer_fold_list, in_timedelta=True) * (FLAGS.s_fold - rnd)
+                    rest_duration_fold = average_time(timer_fold_list,
+                                                      in_timedelta=True) * (FLAGS.s_fold - rnd)
                     rest_duration_fold = chop_microseconds(delta=rest_duration_fold)
-                    print("Estimated time to train rest {} fold(s): {} [h:m:s] | {} | S{}".format(
-                        FLAGS.s_fold - rnd, rest_duration_fold, FLAGS.path_specificities[:-1],
-                        str(FLAGS.subject).zfill(2)))
+                    cprint("Estimated time to train rest {} fold(s): {} [h:m:s] | {} | {}\n".format(
+                         FLAGS.s_fold - rnd, rest_duration_fold, FLAGS.path_specificities[:-1],
+                         s(FLAGS.subject)), "y")
 
                     nevro_data = get_nevro_data(subject=FLAGS.subject,
                                                 component=input_component,
                                                 hr_component=FLAGS.hrcomp,
                                                 s_fold_idx=s_fold_idx,
                                                 s_fold=FLAGS.s_fold,
-                                                cond="NoMov",
-                                                sba=True,
+                                                cond=FLAGS.condition,
+                                                sba=FLAGS.sba,
                                                 filetype=FLAGS.filetype,
                                                 band_pass=FLAGS.band_pass,
+                                                equal_comp_matrix=None if FLAGS.eqcompmat == 0
+                                                else FLAGS.eqcompmat,
                                                 hilbert_power=FLAGS.hilbert_power,
                                                 task=FLAGS.task,
                                                 shuffle=FLAGS.shuffle,
                                                 testmode=FLAGS.testmodel)
 
-                    # Save order in shuffle_order_matrix: shuffle=False:(1,2,...,270); shuffle=True:(56,4,...,173)
+                    # Save order in shuffle_order_matrix: shuffle=False:(1,2,...,270);
+                    # shuffle=True:(56,4,...,173)
                     shuffle_order_matrix[s_fold_idx, :] = nevro_data["order"]
 
                 with tf.name_scope("input"):
                     # shape = [None] + ddims includes num_steps = 250
                     #  Tensorflow requires input as a tensor (a Tensorflow variable) of the dimensions
                     # [batch_size, sequence_length, input_dimension] (a 3d variable).
-                    x = tf.placeholder(dtype=tf.float32, shape=[None] + ddims, name="x-input")  # None for Batch-Size
-                    # x = tf.placeholder(dtype=tf.float32, shape=[None, 250, 2], name="x-input")
+                    x = tf.placeholder(dtype=tf.float32, shape=[None] + ddims, name="x-input")
+                    # None for Batch-Size
                     y = tf.placeholder(dtype=tf.float32, shape=[None, 1], name="y-input")
 
                 # Model
-                lstm_model = NeVRoNet(lstm_size=lstm_hidden_states,
-                                      fc_hidden_unites=n_hidden_units,
-                                      activation_function=ACTIVATION_FCT_DICT.get(FLAGS.activation_fct),
+                lstm_model = NeVRoNet(activation_function=ACTIVATION_FCT_DICT.get(FLAGS.activation_fct),
                                       weight_regularizer=WEIGHT_REGULARIZER_DICT.get(FLAGS.weight_reg)(
-                                          scale=FLAGS.weight_reg_strength),
+                                          FLAGS.weight_reg_strength),
+                                      lstm_size=lstm_hidden_states, fc_hidden_unites=n_hidden_units,
                                       n_steps=ddims[0], batch_size=FLAGS.batch_size,
                                       summaries=FLAGS.summaries)  # n_step = 250
 
@@ -307,7 +331,8 @@ def train_lstm():
                 merged = tf.summary.merge_all()
 
                 # Define logdir
-                logdir = './LSTM/logs/S{}/{}'.format(str(FLAGS.subject).zfill(2), FLAGS.path_specificities)
+                logdir = './LSTM/logs/{}/{}'.format(s(FLAGS.subject),
+                                                    FLAGS.path_specificities)
 
                 if not tf.gfile.Exists(logdir):
                     tf.gfile.MakeDirs(logdir)
@@ -370,57 +395,50 @@ def train_lstm():
                         start_timer = datetime.datetime.now().replace(microsecond=0)
 
                     if step % (timer_freq/2) == 0.:
-                        print("Step {}/{} in Fold Nr.{} ({}/{}) | {} | S{}".format(step, int(max_steps),
-                                                                                   s_fold_idx,
-                                                                                   rnd+1, len(s_fold_idx_list),
-                                                                                   FLAGS.path_specificities[:-1],
-                                                                                   str(FLAGS.subject).zfill(2)))
+                        cprint("Step {}/{} in Fold Nr.{} ({}/{}) | {} | {}".format(
+                            step, int(max_steps), s_fold_idx, rnd + 1, len(s_fold_idx_list),
+                            FLAGS.path_specificities[:-1], s(FLAGS.subject)), "b")
 
                     # Evaluate on training set every print_freq (=10) iterations
                     if (step + 1) % print_freq == 0:
-                        run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+                        # run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)  # TODO test
                         run_metadata = tf.RunMetadata()
 
-                        summary, _, train_loss, train_acc, tain_infer, train_y = sess.run([merged, optimization, loss,
-                                                                                           accuracy, infer, y],
-                                                                                          feed_dict=_feed_dict(
-                                                                                              training=True),
-                                                                                          options=run_options,
-                                                                                          run_metadata=run_metadata)
+                        summary, _, train_loss, train_acc, tain_infer, train_y = sess.run([
+                            merged, optimization, loss, accuracy, infer, y],
+                            feed_dict=_feed_dict(training=True),  # options=run_options,
+                            run_metadata=run_metadata)
 
                         train_writer.add_run_metadata(run_metadata, "step{}".format(str(step).zfill(4)))
                         train_writer.add_summary(summary=summary, global_step=step)
 
-                        print("\nTrain-Loss: {:.3f} at step:{} | {} | S{}".format(np.round(train_loss, 3),
-                                                                                  step + 1,
-                                                                                  FLAGS.path_specificities[:-1],
-                                                                                  str(FLAGS.subject).zfill(2)))
-                        print("Train-Accuracy: {:.3f} at step:{} | {} | S{}\n".format(np.round(train_acc, 3),
-                                                                                      step + 1,
-                                                                                      FLAGS.path_specificities[:-1],
-                                                                                      str(FLAGS.subject).zfill(2)))
+                        print("\nTrain-Loss: \t{:.3f} at step:{} | {} | {}".format(
+                            np.round(train_loss, 3), step + 1, FLAGS.path_specificities[:-1],
+                            s(FLAGS.subject)))
+                        print("Train-Accuracy: {:.3f} at step:{} | {} | {}\n".format(
+                            np.round(train_acc, 3), step + 1, FLAGS.path_specificities[:-1],
+                            s(FLAGS.subject)))
+
                         # Update Lists
                         train_acc_list.append(train_acc)
                         train_loss_list.append(train_loss)
 
                     else:
-                        # summary, _, train_loss, train_acc = sess.run([merged, optimization, loss, accuracy],
-                        #                                              feed_dict=_feed_dict(training=True))
+                        # summary, _, train_loss, train_acc = sess.run([merged, optimization, loss,
+                        #                                               accuracy],
+                        #                                              feed_dict=_feed_dict(True))
                         # train_writer.add_summary(summary=summary, global_step=step)
 
-                        _, train_loss, train_acc, tain_infer, train_y = sess.run([optimization, loss, accuracy,
-                                                                                  infer, y],
-                                                                                 feed_dict=_feed_dict(training=True))
+                        _, train_loss, train_acc, tain_infer, train_y = sess.run(
+                            [optimization, loss, accuracy, infer, y], feed_dict=_feed_dict(training=True))
 
                         if step % 25 == 0:
-                            print("\nTrain-Loss: {:.3f} at step:{} | {} | S{}".format(np.round(train_loss, 3),
-                                                                                      step + 1,
-                                                                                      FLAGS.path_specificities[:-1],
-                                                                                      str(FLAGS.subject).zfill(2)))
-                            print("Train-Accuracy: {:.3f} at step:{} | {} | S{}\n".format(np.round(train_acc, 3),
-                                                                                          step + 1,
-                                                                                          FLAGS.path_specificities[:-1],
-                                                                                          str(FLAGS.subject).zfill(2)))
+                            print("\nTrain-Loss: {:.3f} at step:{} | {} | {}".format(
+                                np.round(train_loss, 3), step + 1, FLAGS.path_specificities[:-1],
+                                s(FLAGS.subject)))
+                            print("Train-Accuracy: {:.3f} at step:{} | {} | {}\n".format(
+                                np.round(train_acc, 3), step + 1, FLAGS.path_specificities[:-1],
+                                s(FLAGS.subject)))
 
                         # Update Lists
                         train_acc_list.append(train_acc)
@@ -429,11 +447,12 @@ def train_lstm():
                     # Write train_infer & train_y in prediction matrix
                     pred_matrix = fill_pred_matrix(pred=tain_infer, y=train_y, current_mat=pred_matrix,
                                                    sfold=FLAGS.s_fold, s_idx=s_fold_idx,
-                                                   current_batch=nevro_data["train"].current_batch, train=True)
+                                                   current_batch=nevro_data["train"].current_batch,
+                                                   train=True)
 
                     # Evaluate on validation set every eval_freq iterations
                     if (step + 1) % eval_freq == 0:
-                        # val_counter += 1  # count the number of validation steps (implementation could improved)
+                        # val_counter += 1  # count the number of val steps (implementation could improve)
 
                         # Check (average) val_performance during training
                         va_ls_acc = []
@@ -447,65 +466,60 @@ def train_lstm():
                             va_ls_loss.append(val_train_loss)
 
                         if step % 25 == 0:
-                            print("Val-Loss: {:.3f} at step: {} | {} | S{}".format(np.round(np.mean(va_ls_loss), 3),
-                                                                                   step + 1,
-                                                                                   FLAGS.path_specificities[:-1],
-                                                                                   str(FLAGS.subject).zfill(2)))
-                            print("Val-Accuracy: {:.3f} at step: {} | {} | S{}".format(np.round(np.mean(va_ls_acc), 3),
-                                                                                       step + 1,
-                                                                                       FLAGS.path_specificities[:-1],
-                                                                                       str(FLAGS.subject).zfill(2)))
+                            print("Val-Loss: {:.3f} at step: {} | {} | {}".format(
+                                np.round(np.mean(va_ls_loss), 3), step + 1, FLAGS.path_specificities[:-1],
+                                s(FLAGS.subject)))
+                            print("Val-Accuracy: {:.3f} at step: {} | {} | {}".format(
+                                np.round(np.mean(va_ls_acc), 3), step + 1, FLAGS.path_specificities[:-1],
+                                s(FLAGS.subject)))
 
-                        val_acc_training_list.append((np.mean(va_ls_acc), step))  # tuple of val_acc and at what step
+                        # Update Lists
+                        val_acc_training_list.append((np.mean(va_ls_acc), step))  # tuple: val_acc & step
                         val_loss_training_list.append((np.mean(va_ls_loss), step))
 
                     if step == max_steps - 1:  # Validation in last round
-                        # val_counter /= FLAGS.repet_scalar
-                        # assert float(val_counter).is_integer(), \
-                        #     "val_counter (={}) devided by repetition (={}) is not integer".format(
-                        #         val_counter, FLAGS.repet_scalar)
-                        # assert val_counter == val_steps, "Final val_counter must be 270/s_fold = val_steps"
 
                         # for val_step in range(int(val_counter)):
                         for val_step in range(int(val_steps)):
-                            summary, val_loss, val_acc, val_infer, val_y = sess.run([merged, loss, accuracy, infer,
-                                                                                     y],
-                                                                                    feed_dict=_feed_dict(
-                                                                                        training=False))
-                            # test_loss, test_acc = sess.run([loss, accuracy], feed_dict=_feed_dict(training=False))
-                            # print("now do: test_writer.add_summary(summary=summary, global_step=step)")
+                            summary, val_loss, val_acc, val_infer, val_y = sess.run(
+                                [merged, loss, accuracy, infer, y], feed_dict=_feed_dict(training=False))
+                            # test_loss, test_acc = sess.run([loss, accuracy], feed_dict=feed_dict(False))
                             test_writer.add_summary(summary=summary, global_step=step)
-                            # print("Validation-Loss: {} at step:{}".format(np.round(val_loss, 3), step + 1))
+
                             if val_step % 5 == 0:
-                                print("Validation-Loss: {:.3f} of Fold Nr.{} ({}/{}) | {} | S{}".format(
+                                print("Validation-Loss: \t{:.3f} of Fold Nr.{} ({}/{}) | {} | {}".format(
                                     np.round(val_loss, 3), s_fold_idx, rnd + 1, len(s_fold_idx_list),
-                                    FLAGS.path_specificities[:-1], str(FLAGS.subject).zfill(2)))
-                                # print("Validation-Accuracy: {} at step:{}".format(np.round(val_acc, 3), step + 1))
-                                print("Validation-Accuracy: {:.3f} of Fold Nr.{} ({}/{}) | {} | S{}".format(
-                                    np.round(val_acc, 3), s_fold_idx, rnd+1, len(s_fold_idx_list),
-                                    FLAGS.path_specificities[:-1], str(FLAGS.subject).zfill(2)))
+                                    FLAGS.path_specificities[:-1], s(FLAGS.subject)))
+
+                                print("Validation-Accuracy: {:.3f} of Fold Nr.{} ({}/{}) | {} | "
+                                      "{}".format(np.round(val_acc, 3), s_fold_idx, rnd+1,
+                                                  len(s_fold_idx_list), FLAGS.path_specificities[:-1],
+                                                  s(FLAGS.subject)))
 
                             # Update Lists
                             val_acc_list.append(val_acc)
                             val_loss_list.append(val_loss)
 
                             # Write val_infer & val_y in val_pred_matrix
-                            val_pred_matrix = fill_pred_matrix(pred=val_infer, y=val_y, current_mat=val_pred_matrix,
+                            val_pred_matrix = fill_pred_matrix(pred=val_infer, y=val_y,
+                                                               current_mat=val_pred_matrix,
                                                                sfold=FLAGS.s_fold, s_idx=s_fold_idx,
-                                                               current_batch=nevro_data["validation"].current_batch,
+                                                               current_batch=nevro_data[
+                                                                   "validation"].current_batch,
                                                                train=False)
 
                     # Save the variables to disk every checkpoint_freq (=5000) iterations
                     if (step + 1) % checkpoint_freq == 0:
 
                         # Define checkpoint_dir
-                        checkpoint_dir = './LSTM/checkpoints/S{}/{}'.format(str(FLAGS.subject).zfill(2),
-                                                                            FLAGS.path_specificities)
+                        checkpoint_dir = './LSTM/checkpoints/{}/{}'.format(s(FLAGS.subject),
+                                                                           FLAGS.path_specificities)
                         if not tf.gfile.Exists(checkpoint_dir):
                             tf.gfile.MakeDirs(checkpoint_dir)
 
-                        save_path = saver.save(sess=sess, save_path=checkpoint_dir + "lstmnet_rnd{}.ckpt".format(
-                            str(rnd).zfill(2)), global_step=step)
+                        save_path = saver.save(sess=sess,
+                                               save_path=checkpoint_dir + "lstmnet_rnd{}.ckpt".format(
+                                                   str(rnd).zfill(2)), global_step=step)
                         print("Model saved in file: %s" % save_path)
 
                     # End Timer
@@ -515,6 +529,7 @@ def train_lstm():
                         # Calculate Duration and Estimations
                         duration = end_timer - start_timer
                         timer_list.append(duration)  # mean(timer_list) = average time per 100steps
+
                         # For this fold
                         # Can not take mean(daytime) in python2
                         # estim_t_per_step = np.mean(timer_list) / timer_freq  # only python3
@@ -522,6 +537,7 @@ def train_lstm():
                         estim_t_per_step = mean_timer_list/timer_freq
                         remaining_steps_in_fold = (max_steps - (step + 2))
                         rest_duration = remaining_steps_in_fold * estim_t_per_step
+
                         # For whole training
                         remaining_folds = len(s_fold_idx_list) - (rnd + 1)
                         if rnd == 0:
@@ -529,7 +545,8 @@ def train_lstm():
                             rest_duration_all_folds = rest_duration + remaining_steps*estim_t_per_step
                         else:  # this is more accurate, but only possible after first round(rnd)/fold
                             rest_duration_all_folds = rest_duration + \
-                                                      average_time(timer_fold_list, in_timedelta=False)*remaining_folds
+                                                      average_time(timer_fold_list,
+                                                                   in_timedelta=False)*remaining_folds
                         # convert back to: datetime.timedelta(seconds=27)
                         rest_duration = datetime.timedelta(seconds=rest_duration)
                         rest_duration_all_folds = datetime.timedelta(seconds=rest_duration_all_folds)
@@ -537,16 +554,19 @@ def train_lstm():
                         rest_duration = chop_microseconds(delta=rest_duration)
                         rest_duration_all_folds = chop_microseconds(delta=rest_duration_all_folds)
 
-                        print("Time passed to train {} steps: "
-                              "{} [h:m:s] | {} | S{}".format(timer_freq, duration, FLAGS.path_specificities[:-1],
-                                                             str(FLAGS.subject).zfill(2)))
-                        print("Estimated time to train the rest {} steps in current Fold-Nr.{}: "
-                              "{} [h:m:s] | {} | S{}".format(int(max_steps - (step + 1)), s_fold_idx,
-                                                             rest_duration, FLAGS.path_specificities[:-1],
-                                                             str(FLAGS.subject).zfill(2)))
-                        print("Estimated time to train the rest steps and {} {}: {} [h:m:s] | {} | S{}".format(
-                            remaining_folds, "folds" if remaining_folds > 1 else "fold", rest_duration_all_folds,
-                            FLAGS.path_specificities[:-1], str(FLAGS.subject).zfill(2)))
+                        cprint("Time passed to train {} steps: "
+                               "{} [h:m:s] | {} | {}".format(timer_freq, duration,
+                                                             FLAGS.path_specificities[:-1],
+                                                             s(FLAGS.subject)), "y")
+                        cprint("Estimated time to train the rest {} steps in current Fold-Nr.{}: "
+                               "{} [h:m:s] | {} | {}".format(int(max_steps - (step + 1)), s_fold_idx,
+                                                             rest_duration,
+                                                             FLAGS.path_specificities[:-1],
+                                                             s(FLAGS.subject)), "y")
+                        cprint("Estimated time to train the rest steps and {} {}: {} [h:m:s] | {} | "
+                               "{}".format(remaining_folds, "folds" if remaining_folds > 1 else "fold",
+                                           rest_duration_all_folds, FLAGS.path_specificities[:-1],
+                                           s(FLAGS.subject)), "y")
 
                         # Set Start Timer
                         start_timer = datetime.datetime.now().replace(microsecond=0)
@@ -556,9 +576,8 @@ def train_lstm():
                 test_writer.close()
 
                 # Save last val_acc in all_acc_val-vector
-                all_acc_val[rnd] = np.nanmean(val_acc_list)  # since we validate in the end of train average across all
-                # all_acc_val[rnd] = val_acc  # Save last val_acc in all_acc_val-vector
-                # all_acc_val = all_acc_val[rnd].assign(val_acc)  # if all_acc_val is Tensor variable
+                # since we validate in the end of train average across all:
+                all_acc_val[rnd] = np.nanmean(val_acc_list)
 
                 # Save loss_ & acc_lists externally per S-Fold
                 loss_acc_lists = [train_loss_list, train_acc_list,
@@ -568,8 +587,8 @@ def train_lstm():
                                         "val_acc_list", "val_loss_list",
                                         "val_acc_training_list", "val_loss_training_list"]
                 for list_idx, liste in enumerate(loss_acc_lists):
-                    with open(logdir + str(s_fold_idx) + "/{}.txt".format(loss_acc_lists_names[list_idx]), "w") \
-                            as list_file:
+                    with open(logdir + str(s_fold_idx) + "/{}.txt".format(
+                            loss_acc_lists_names[list_idx]), "w") as list_file:
                         for value in liste:
                             list_file.write(str(value) + "\n")
 
@@ -579,47 +598,54 @@ def train_lstm():
 
         # In case data was shuffled save corresponding order externally
         if FLAGS.shuffle:
-            np.save(file=logdir + str(s_fold_idx) + "/{}_shuffle_order.npy".format(s_fold_idx), arr=nevro_data["order"])
+            np.save(file=logdir + str(s_fold_idx) + "/{}_shuffle_order.npy".format(s_fold_idx),
+                    arr=nevro_data["order"])
 
     # Final Accuracy & Time
     timer_fold_list.append(duration_fold)
-    print("Time to train all folds (each {} steps): {} [h:m:s] | {} | S{}".format(int(max_steps),
-                                                                                  np.sum(timer_fold_list),
-                                                                                  FLAGS.path_specificities[:-1],
-                                                                                  str(FLAGS.subject).zfill(2)))
+    cprint("Time to train all folds (each {} steps): {} [h:m:s] | {} | {}".format(
+         int(max_steps), np.sum(timer_fold_list), FLAGS.path_specificities[:-1],
+         s(FLAGS.subject)), "y")
 
     # Create all_acc_val_binary
     all_acc_val_binary = calc_binary_class_accuracy(prediction_matrix=val_pred_matrix)
     # Calculate mean val accuracy across all folds
     mean_val_acc = np.nanmean(all_acc_val if FLAGS.task == "regression" else all_acc_val_binary)
 
-    print("Average accuracy across all {} validation set: {:.3f} | {} | S{}".format(FLAGS.s_fold, mean_val_acc,
-                                                                                    FLAGS.path_specificities[:-1],
-                                                                                    str(FLAGS.subject).zfill(2)))
+    print("Average accuracy across all {} validation set: {:.3f} | {} | {}".format(
+        FLAGS.s_fold, mean_val_acc, FLAGS.path_specificities[:-1], s(FLAGS.subject)))
 
     # Save training information in Textfile
     # Define sub_dir
-    sub_dir = "./LSTM/S{}/{}".format(str(FLAGS.subject).zfill(2), FLAGS.path_specificities)
+    sub_dir = "./LSTM/{}/{}".format(s(FLAGS.subject), FLAGS.path_specificities)
     if not tf.gfile.Exists(sub_dir):
         tf.gfile.MakeDirs(sub_dir)
 
-    with open(sub_dir + "{}S{}_accuracy_across_{}_folds_{}.txt".format(time.strftime('%Y_%m_%d_'),
-                                                                       FLAGS.subject,
-                                                                       FLAGS.s_fold,
-                                                                       FLAGS.path_specificities[:-1]), "w") as file:
-        file.write("Subject {}\nTask: {}\nShuffle_data: {}\ndatatype: {}\nband_pass: {}\nHilbert_z-Power: {}"
-                   "\ns-Fold: {}\nmax_step: {}\nrepetition_set: {}\nlearning_rate: {}\nbatch_size: {}\nbatch_random: {}"
-                   "\nsuccessive_batches: {}(mode {})\nweight_reg: {}({})\nact_fct: {}\nlstm_h_size: {}"
-                   "\nn_hidden_units: {}"
-                   "\ncomponent: {}({}){}\n".format(FLAGS.subject, FLAGS.task, FLAGS.shuffle,
-                                                    FLAGS.filetype, FLAGS.band_pass, FLAGS.hilbert_power,
-                                                    FLAGS.s_fold, int(max_steps), FLAGS.repet_scalar,
-                                                    FLAGS.learning_rate, FLAGS.batch_size, FLAGS.rand_batch,
-                                                    FLAGS.successive, FLAGS.successive_mode,
-                                                    FLAGS.weight_reg, FLAGS.weight_reg_strength, FLAGS.activation_fct,
-                                                    FLAGS.lstm_size, str(n_hidden_units),
-                                                    FLAGS.component, input_component,
-                                                    " + HRcomp" if FLAGS.hrcomp else ""))
+    with open(sub_dir + "{}S{}_accuracy_across_{}_folds_{}.txt".format(
+            time.strftime('%Y_%m_%d_'), FLAGS.subject, FLAGS.s_fold, FLAGS.path_specificities[:-1]),
+              "w") as file:
+        file.write("Subject {}\nCondition: {}\nSBA: {}\nTask: {}\nShuffle_data: {}\ndatatype: {}"
+                   "\nband_pass: {}\nHilbert_z-Power: {}"
+                   "\ns-Fold: {}\nmax_step: {}\nrepetition_set: {}\nlearning_rate: {}"
+                   "\nbatch_size: {}\nbatch_random: {}"
+                   "\nsuccessive_batches: {}(mode {})\nweight_reg: {}({})\nact_fct: {}"
+                   "\nlstm_h_size: {}\nn_hidden_units: {}"
+                   "\ncomponent: {}({}){}"
+                   "\nfix_input_matrix_size: {}"
+                   "\npath_specificities: {}\n".format(FLAGS.subject, FLAGS.condition, FLAGS.sba,
+                                                       FLAGS.task, FLAGS.shuffle, FLAGS.filetype,
+                                                       FLAGS.band_pass, FLAGS.hilbert_power,
+                                                       FLAGS.s_fold, int(max_steps), FLAGS.repet_scalar,
+                                                       FLAGS.learning_rate,
+                                                       FLAGS.batch_size, FLAGS.rand_batch,
+                                                       FLAGS.successive, FLAGS.successive_mode,
+                                                       FLAGS.weight_reg, FLAGS.weight_reg_strength,
+                                                       FLAGS.activation_fct,
+                                                       FLAGS.lstm_size, str(n_hidden_units),
+                                                       FLAGS.component, input_component,
+                                                       " + HRcomp" if FLAGS.hrcomp else "",
+                                                       FLAGS.eqcompmat,
+                                                       FLAGS.path_specificities))
 
         # rounding for the export
         rnd_all_acc_val = ["{:.3f}".format(np.round(acc, 3)) for acc in all_acc_val]
@@ -629,9 +655,9 @@ def train_lstm():
 
         # preparing export
         lists_export = [s_fold_idx_list, rnd_all_acc_val, np.round(np.mean(all_acc_val), 3),
-                        np.round(zero_line_acc, 3), np.sum(timer_fold_list)]
+                        np.round(mean_line_acc, 3), np.sum(timer_fold_list)]
         label_export = ["S-Fold(Round): ", "Validation-Acc: ", "mean(Accuracy): ",
-                        "zero_line_acc: ", "Train-Time: "]
+                        "mean_line_acc: ", "Train-Time: "]
 
         if FLAGS.task == "classification":
             lists_export.insert(len(lists_export) - 1, rnd_all_acc_val_binary)
@@ -643,7 +669,8 @@ def train_lstm():
             file.write(label_export[i] + str(item)+"\n")
 
     # Save Accuracies in Random_Search_Table.csv if applicable
-    table_name = "./LSTM/Random_Search_Table_{}.csv".format("BiCl" if FLAGS.task == "classification" else "Reg")
+    table_name = "./LSTM/Random_Search_Table_{}.csv".format(
+        "BiCl" if FLAGS.task == "classification" else "Reg")
     if os.path.exists(table_name):
         rs_table = np.genfromtxt(table_name, delimiter=";", dtype=str)
 
@@ -652,39 +679,35 @@ def train_lstm():
             path_idx = np.where(rs_table == FLAGS.path_specificities)
             # len(path_idx[0]) > 0 and len(path_idx[1]) > 0
             sub_idx = np.where(rs_table[:, np.where(rs_table == "subject")[1]] == str(FLAGS.subject))[0]
-            # rs_table[list(set(path_idx[0]) & set(sub_idx)), path_idx[1][0]][0]  == FLAGS.path_specificities
             trial_row = list(set(path_idx[0]) & set(sub_idx))[0]
             mvacc_col = np.where(rs_table == "mean_val_acc")[1][0]
             zlacc_col = np.where(rs_table == "zeroline_acc")[1][0]
             mcvacc_col = np.where(rs_table == "mean_class_val_acc")[1][0]
             # Write in table
-            rs_table[trial_row, [mvacc_col, zlacc_col, mcvacc_col]] = np.array([np.round(np.mean(all_acc_val), 3),
-                                                                                np.round(zero_line_acc, 3),
-                                                                                np.round(np.nanmean(
-                                                                                    rnd_all_acc_val_binary), 3) if
-                                                                                FLAGS.task == "classification" else
-                                                                                rs_table[trial_row, mcvacc_col]])
+            rs_table[trial_row, [mvacc_col, zlacc_col, mcvacc_col]] = np.array(
+                [np.round(np.mean(all_acc_val), 3), np.round(mean_line_acc, 3),
+                 np.round(np.nanmean(rnd_all_acc_val_binary), 3) if FLAGS.task == "classification" else
+                 rs_table[trial_row, mcvacc_col]])
 
             # Save table
             np.savetxt(fname=table_name, X=rs_table, delimiter=";", fmt="%s")
 
         else:
-            print("There is no entry for this trial in Random_Search_Table_{}.csv".format(
-                "BiCl" if FLAGS.task == "classification" else "Reg"))
+            cprint("There is no entry for this trial in Random_Search_Table_{}.csv".format(
+                 "BiCl" if FLAGS.task == "classification" else "Reg"), "r")
 
     # Save Prediction Matrices in File
-    np.savetxt(sub_dir + "{}S{}_pred_matrix_{}_folds_{}.csv".format(time.strftime('%Y_%m_%d_'), FLAGS.subject,
-                                                                    FLAGS.s_fold, FLAGS.path_specificities[:-1]),
+    np.savetxt(sub_dir + "{}S{}_pred_matrix_{}_folds_{}.csv".format(
+        time.strftime('%Y_%m_%d_'), FLAGS.subject, FLAGS.s_fold, FLAGS.path_specificities[:-1]),
                pred_matrix, delimiter=",")
 
-    np.savetxt(sub_dir + "{}S{}_val_pred_matrix_{}_folds_{}.csv".format(time.strftime('%Y_%m_%d_'), FLAGS.subject,
-                                                                        FLAGS.s_fold, FLAGS.path_specificities[:-1]),
+    np.savetxt(sub_dir + "{}S{}_val_pred_matrix_{}_folds_{}.csv".format(
+        time.strftime('%Y_%m_%d_'), FLAGS.subject, FLAGS.s_fold, FLAGS.path_specificities[:-1]),
                val_pred_matrix, delimiter=",")
 
     if FLAGS.shuffle:
-        np.save(sub_dir + "{}S{}_shuffle_order_matrix_{}_folds_{}.npy".format(time.strftime('%Y_%m_%d_'), FLAGS.subject,
-                                                                              FLAGS.s_fold,
-                                                                              FLAGS.path_specificities[:-1]),
+        np.save(sub_dir + "{}S{}_shuffle_order_matrix_{}_folds_{}.npy".format(
+            time.strftime('%Y_%m_%d_'), FLAGS.subject, FLAGS.s_fold, FLAGS.path_specificities[:-1]),
                 shuffle_order_matrix)
 
 
@@ -749,7 +772,7 @@ def initialize_folders():
     """
     Initializes all folders in FLAGS variable.
     """
-    path = ".some/random/path"
+    path = ".some/random/path"  # TODO no need
     if not tf.gfile.Exists(path):
         tf.gfile.MakeDirs(path)
 
@@ -759,7 +782,7 @@ def print_flags():
     Prints all entries in FLAGS variable.
     """
     for key, value in vars(FLAGS).items():
-        print(key + ' : ' + str(value))
+        cprint(key + ' : ' + str(value), "b")
 
 
 def main(_):
@@ -769,10 +792,7 @@ def main(_):
 
     # if eval(FLAGS.is_train):
     if FLAGS.is_train:
-        if FLAGS.train_model == 'lstm':
-            train_lstm()
-        else:
-            raise ValueError("--train_model argument can be 'lstm'")
+        train_lstm()
     else:
         pass
         # print("I run now feature_extraction()")
@@ -780,8 +800,13 @@ def main(_):
 
     if FLAGS.plot:
         # ["python3", "LSTM_pred_plot.py", Save_plots='True', Path specificities]
-        subprocess.Popen(["python3", "LSTM_pred_plot.py", 'True', str(FLAGS.subject), FLAGS.path_specificities,
+        subprocess.Popen(["python3", "LSTM_pred_plot.py", 'True', str(FLAGS.subject),
+                          FLAGS.path_specificities,
                           str(FLAGS.dellog)])
+
+    # Update bash files
+    update_bashfiles(task=FLAGS.task, subject=FLAGS.subject, path_specs=FLAGS.path_specificities,
+                     all_runs=False)
 
 
 def str2bool(v):
@@ -796,12 +821,18 @@ def str2bool(v):
 if __name__ == '__main__':
     # Command line arguments
     parser = argparse.ArgumentParser()
-
+    parser.add_argument('--is_train', type=str2bool, default=True,
+                        help='Training or feature extraction')
+    parser.add_argument('--seed', type=str2bool, default=False,
+                        help='Random seed(42) either off or on')
+    parser.add_argument('--sba', type=str2bool, default=True,
+                        help="True for SBA; False for SA")
     parser.add_argument('--task', type=str, default=TASK_DEFAULT,
                         help="Either 'classification' or 'regression'")
     # parser.add_argument('--shuffle', type=bool, default=False) # This does not work: 'type=bool' (!)
     parser.add_argument('--shuffle', type=str2bool, default=False,
-                        help="shuffle data (to have balance low/high arousal in all valsets of classification task)")
+                        help="shuffle data (to have balance low/high arousal in all valsets of "
+                             "classification task)")
     parser.add_argument('--learning_rate', type=float, default=LEARNING_RATE_DEFAULT,
                         help='Learning rate')
     parser.add_argument('--repet_scalar', type=int, default=REPETITION_SCALAR_DEFAULT,
@@ -814,22 +845,18 @@ if __name__ == '__main__':
                         help='Mode of successive batching, 1 or 2.')
     parser.add_argument('--path_specificities', type=str, default=PATH_SPECIFICITIES_DEFAULT,
                         help='Specificities for the paths (depending on model-setups)')
-    parser.add_argument('--is_train', type=str2bool, default=True,
-                        help='Training or feature extraction')
-    parser.add_argument('--seed', type=str2bool, default=False,
-                        help='Random seed(42) either off or on')
-    parser.add_argument('--train_model', type=str, default='lstm',
-                        help='Type of model. Possible option(s): lstm')
     parser.add_argument('--weight_reg', type=str, default=WEIGHT_REGULARIZER_DEFAULT,
                         help='Regularizer type for weights of fully-connected layers [none, l1, l2].')
     parser.add_argument('--weight_reg_strength', type=float, default=WEIGHT_REGULARIZER_STRENGTH_DEFAULT,
                         help='Regularizer strength for weights of fully-connected layers.')
     parser.add_argument('--activation_fct', type=str, default=ACTIVATION_FCT_DEFAULT,
-                        help='Type of activation function from lstm to fully-connected layers [elu, relu].')
+                        help='Type of activation function from LSTM to fully-connected layers: elu, relu')
     parser.add_argument('--loss', type=str, default=LOSS_DEFAULT,
                         help='Type of loss. For now only: "normal".')
     parser.add_argument('--subject', type=int, default=SUBJECT_DEFAULT,
                         help='Which subject data to process')
+    parser.add_argument('--condition', type=str, default=CONDITION_DEFAULT,
+                        help="Which condition: 'nomov' (no movement) or 'mov'")
     parser.add_argument('--lstm_size', type=str, default=LSTM_SIZE_DEFAULT,
                         help='Comma separated list of size of hidden states in each LSTM layer')
     parser.add_argument('--s_fold', type=int, default=S_FOLD_DEFAULT,
@@ -837,7 +864,8 @@ if __name__ == '__main__':
     parser.add_argument('--rand_batch', type=str, default=True,
                         help='Whether random batch (True), or cronologically drawn batches (False)')
     parser.add_argument('--hilbert_power', type=str2bool, default=True,
-                        help='Whether input is z-scored power extraction of SSD components (via Hilbert transform)')
+                        help='Whether input is z-scored power extraction of SSD components '
+                             '(via Hilbert transform)')
     parser.add_argument('--filetype', type=str, default=FILE_TYPE_DEFAULT,
                         help="Either 'SSD' or 'SPOC'")
     parser.add_argument('--band_pass', type=str2bool, default=True,
@@ -845,17 +873,22 @@ if __name__ == '__main__':
     parser.add_argument('--summaries', type=str2bool, default=False,
                         help='Whether to write verbose summaries of tf variables')
     parser.add_argument('--fc_n_hidden', type=str, default=FC_NUM_HIDDEN_UNITS,
-                        help="Comma separated list of number of hidden units in each fully connected (fc) layer")
+                        help="Comma separated list of N of hidden units in each FC layer")
     parser.add_argument('--plot', type=str2bool, default=True,
                         help="Whether to plot results and save them.")
     parser.add_argument('--dellog', type=str2bool, default=True,  # TODO rather False
                         help="Whether to delete log folders after plotting.")
     parser.add_argument('--component', type=str, default=COMPONENT_DEFAULT,
-                        help="Which component: 'best', 'noise', 'random', 'all', or comma separated list, e.g., 1,3,5")
+                        help="Which component: 'best', 'noise', 'random', 'all', "
+                             "or comma separated list, e.g., 1,3,5")
     parser.add_argument('--hrcomp', type=str2bool, default=False,
-                        help="Whether to attach the hear rate (HR) vector as component to neural components")
+                        help="Whether to attach the heart rate (HR) vector to neural components")
+    parser.add_argument('--eqcompmat', type=int, default=None,
+                        help="Provide N (int) of columns of input matrix which should be equal in size "
+                             "across all tested conditions")
     parser.add_argument('--testmodel', type=str2bool, default=False,
-                        help="Whether to test the model's learning ability with inverse+stretch+noise ratings as input")
+                        help="Whether to test the model's learning ability with "
+                             "inverse+stretch+noise ratings as input")
 
     FLAGS, unparsed = parser.parse_known_args()
 
