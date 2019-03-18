@@ -25,7 +25,8 @@ all_subjects = np.linspace(start=1, stop=n_sub, num=n_sub, dtype=int)  # np.aran
 dropouts = np.array([1, 12, 32, 33, 38, 40, 45])
 
 # These are additional dropouts for the nomov-condition (add_drop). Criterium: More than 1/3 of all epochs
-# (1 epoch = 1 sec of EEG data) were above 100 mikro-volt.
+# (1 epoch = 1 sec of EEG data) in the EEG-channel data were above 100 μV. This would lead to an
+# calculation of unreliable ICA-weights, dominated by the noisy segments.
 add_drop = [10, 16, 19, 23, 41, 43]  # no mov
 # TODO same for mov-condition
 dropouts = np.append(dropouts, add_drop)
@@ -37,10 +38,8 @@ subjects = np.setdiff1d(all_subjects, dropouts)  # These are all subjects withou
 # # Broad random search on subset of 10 subjects
 subsubjects = np.random.choice(a=subjects, size=10, replace=False)
 
-
-# already_proc = [2, 36]  # already processed subjects
-
 # # Without already computed subjects
+# already_proc = [2, 36]  # already processed subjects
 # subjects = np.setdiff1d(subjects, already_proc)
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
