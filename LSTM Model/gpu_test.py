@@ -29,7 +29,7 @@ if 'gpu' not in compute_on:
 device_name = ["/gpu:0", "/cpu:0"] if tf.test.is_gpu_available() else ["/cpu:0"]
 
 for device in device_name:
-    for shape in [1500, 3000, 4500, 6000]:
+    for shape in [4500, 6000, 12000]:
         with tf.device(device):
             random_matrix = tf.random_uniform(shape=(shape, shape), minval=0, maxval=1)
             dot_operation = tf.matmul(random_matrix, tf.transpose(random_matrix))
