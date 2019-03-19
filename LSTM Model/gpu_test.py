@@ -25,20 +25,22 @@ if 'gpu' not in compute_on:
 
 
 # Another test
-device_name = "/gpu:0" if tf.test.is_gpu_available() else "/cpu:0"
+# In case there is a GPU: test it against CPU
+device_name = ["/gpu:0", "/cpu:0"] if tf.test.is_gpu_available() else ["/cpu:0"]
 
-for shape in [1500, 3000, 4500, 6000]:
-    with tf.device(device_name):
-        random_matrix = tf.random_uniform(shape=(shape, shape), minval=0, maxval=1)
-        dot_operation = tf.matmul(random_matrix, tf.transpose(random_matrix))
-        sum_operation = tf.reduce_sum(dot_operation)
+for device in device_name:
+    for shape in [1500, 3000, 4500, 6000]:
+        with tf.device(device):
+            random_matrix = tf.random_uniform(shape=(shape, shape), minval=0, maxval=1)
+            dot_operation = tf.matmul(random_matrix, tf.transpose(random_matrix))
+            sum_operation = tf.reduce_sum(dot_operation)
 
-    startTime = datetime.now()
-    with tf.Session(config=tf.ConfigProto(log_device_placement=True)) as session:
-            result = session.run(sum_operation)
-            print(result)
+        startTime = datetime.now()
+        with tf.Session(config=tf.ConfigProto(log_device_placement=True)) as session:
+                result = session.run(sum_operation)
+                print(result)
 
-    print("\n" * 3)
-    print("Shape:", (shape, shape), "Device:", device_name)
-    print("Time taken:", datetime.now() - startTime)
-    print("\n" * 3)
+        print("\n" * 3)
+        print("Shape:", (shape, shape), "Device:", device)
+        print("Time taken:", datetime.now() - startTime)
+        print("\n" * 3)
