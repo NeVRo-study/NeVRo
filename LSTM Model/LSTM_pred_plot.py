@@ -873,8 +873,13 @@ if plots:
         shutil.rmtree(wdic_checkpoint_sub)
         # Delete also /logs/S.. folder (parent) if empty
         sub_log_dir = wdic_lists + "/{}/".format(s(subject))
+        sub_ckpt_dir = wdic_checkpoint_sub.split("/")
+        sub_ckpt_dir.pop(-2)
+        sub_ckpt_dir = "/".join(sub_ckpt_dir)
         if len(os.listdir(sub_log_dir)) == 0:
             shutil.rmtree(sub_log_dir)
+        if len(os.listdir(sub_ckpt_dir)) == 0:
+            shutil.rmtree(sub_ckpt_dir)
 
     else:  # In case files are saved on MPI GPU server, delete manually:
         cprint("Delete log and checkpoint files manually.", "y")
