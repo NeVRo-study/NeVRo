@@ -338,8 +338,7 @@ def interpolate_nan(arr_with_nan, verbose=False):
 
 def cln(factor=1):
     """Clean the console"""
-    for ln in range(factor):
-        print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
+    print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n" * factor)
 
 
 def true_false_request(func):
