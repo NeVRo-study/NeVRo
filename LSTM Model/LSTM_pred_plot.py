@@ -537,7 +537,7 @@ for fold in range(s_fold):
                lw=2*lw, label="meanline accuracy")
 
     plt.title(label="{}-Fold | val-acc={}".format(fold + 1,
-                                              np.round(
+                                                  np.round(
                                                   val_acc[int(np.where(np.array(s_rounds) == fold)[0])],
                                                   3)))
 
