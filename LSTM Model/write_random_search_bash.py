@@ -45,9 +45,8 @@ subsubjects = np.random.choice(a=subjects, size=10, replace=False)
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
 
-# TODO: adjust for SSD component selection: only one-up, and random N of comps
 def write_search_bash_files(subs, filetype, condition,
-                            task_request=None, eqcompmat=None, n_combinations=None,
+                            task_request=None, component_mode=1, eqcompmat=None, n_combinations=None,
                             seed=True,  repet_scalar=30, s_fold=10, sba=True,
                             batch_size=9, successive_mode=1, rand_batch=True, plot=True,
                             successive_default=3, del_log_folders=True, summaries=False):
@@ -56,6 +55,7 @@ def write_search_bash_files(subs, filetype, condition,
     :param filetype: 'SSD' or 'SPOC'
     :param condition: 'mov' or 'nomov'
     :param task_request: '(r)egression' or '(c)lassification'
+    :param component_mode: mode 1: only 'one-up'; mode 2: one-up or random choice of components
     :param eqcompmat: number of columns in input matrix. Gets filled with zero-vectors if not enough data
     :param n_combinations: Number of random combinations in hyperparameter search
     :param seed: regarding randomization of folds, batches etc.
@@ -88,6 +88,7 @@ def write_search_bash_files(subs, filetype, condition,
     assert filetype in ['SSD', 'SPOC'], "filetype must be either 'SSD' or 'SPOC'"
     cond = condition.lower()
     assert cond in ['mov', 'nomov'], "condition must be either 'mov' or 'nomov'"
+    assert component_mode in [1, 2], "component_mode must be either 1 or 2 (int)"
 
     if del_log_folders and summaries:
         cprint("Note: Verbose summaries are redundant since they get deleted after processing.", "y")
@@ -198,37 +199,34 @@ def write_search_bash_files(subs, filetype, condition,
         hrcomp = np.random.choice(a=[True, False])
 
         # component
-        # component_modes = np.random.choice(a=["best", "random_set", "one_up"])
-        component_modes = np.random.choice(a=["random_set", "one_up"])  # TODO new Xcorr table required
+        if component_mode == 1:
+            component_modes = "one_up"
+        else:  # component_mode == 2
+            component_modes = np.random.choice(a=["random_set", "one_up"])
 
         # From here on it is subject-dependent
         ncomp = [get_num_components(sub, cond, filetype, sba) for sub in subs]  # TODO SPOC not there yet
         max_n_comp = max(ncomp)
         sub_dep = False  # init
 
-        if component_modes == "best":
-            component = "best"
+        # Randomly choice number of feed-components
+        while True:
+            choose_n_comp = np.random.randint(1, max_n_comp+1)  # x
+            if choose_n_comp <= 10:  # don't feed more than 10 components
+                break
 
-        else:  # component_modes == 'random_set' or == 'one_up'
-            # Randomly choice number of feed-components
+        if component_modes == "one_up":
+            # Choose from component 1 to n_choose (see: SPOC(comp_order) & SSD(alpha-hypotheses)):
+            component = np.arange(start=1, stop=choose_n_comp + 1)  # range [1, n_choose]
 
-            while True:
-                choose_n_comp = np.random.randint(1, max_n_comp+1)  # x
-                if choose_n_comp <= 10:  # don't feed more than 10 components
-                    break
+        else:  # component_modes == "random_set"
+            # Choose x random components, where x == choose_n_comp
+            component = np.sort(np.random.choice(a=range(1, max_n_comp + 1), size=choose_n_comp,
+                                                 replace=False))
 
-            if component_modes == "one_up":
-                # Choose from component 1 to n_choose (see: SPOC(comp_order) & SSD(alpha-hypotheses)):
-                component = np.arange(start=1, stop=choose_n_comp + 1)  # range [1, n_choose]
-
-            else:  # component_modes == "random_set"
-                # Choose x random components, where x == choose_n_comp
-                component = np.sort(np.random.choice(a=range(1, max_n_comp + 1), size=choose_n_comp,
-                                                     replace=False))
-
-            # Does this needs to be adapted per subject?
-            if not all([choose_n_comp <= maxcomp for maxcomp in ncomp]):
-                sub_dep = True
+        # Does this needs to be adapted per subject?
+        if not all([choose_n_comp <= maxcomp for maxcomp in ncomp]):
+            sub_dep = True
 
         # eqcompmat
         if eqcompmat != 0:
@@ -362,13 +360,13 @@ def write_search_bash_files(subs, filetype, condition,
 # # Regression
 # # Broad random search. Half (20/40) with fix sized input matrix (fixncomp=7)
 # write_search_bash_files(subs=subsubjects, filetype="SSD", condition="nomov",
-#                         task_request="r", eqcompmat=7, n_combinations=20,
+#                         task_request="r", component_mode=1, eqcompmat=7, n_combinations=20,
 #                         seed=True, repet_scalar=30,
 #                         s_fold=10, sba=True, batch_size=9, successive_mode=1, rand_batch=True,
 #                         plot=True, successive_default=3, del_log_folders=True, summaries=False)
 #
 # write_search_bash_files(subs=subsubjects, filetype="SSD", condition="nomov",
-#                         task_request="r", eqcompmat=0, n_combinations=20,
+#                         task_request="r", component_mode=1, eqcompmat=0, n_combinations=20,
 #                         seed=True, repet_scalar=30,
 #                         s_fold=10, sba=True, batch_size=9, successive_mode=1, rand_batch=True,
 #                         plot=True, successive_default=3, del_log_folders=True, summaries=False)
@@ -376,13 +374,13 @@ def write_search_bash_files(subs, filetype, condition,
 
 # # Binary classification
 # write_search_bash_files(subs=subsubjects, filetype="SSD", condition="nomov",
-#                         task_request="c", eqcompmat=7, n_combinations=4,
+#                         task_request="c", component_mode=1, eqcompmat=7, n_combinations=4,
 #                         seed=True, repet_scalar=30,
 #                         s_fold=10, sba=True, batch_size=9, successive_mode=1, rand_batch=True,
 #                         plot=True, successive_default=3, del_log_folders=True, summaries=False)
 #
 # write_search_bash_files(subs=subsubjects, filetype="SSD", condition="nomov",
-#                         task_request="c", eqcompmat=0, n_combinations=4,
+#                         task_request="c", component_mode=1, eqcompmat=0, n_combinations=4,
 #                         seed=True, repet_scalar=30,
 #                         s_fold=10, sba=True, batch_size=9, successive_mode=1, rand_batch=True,
 #                         plot=True, successive_default=3, del_log_folders=True, summaries=False)
