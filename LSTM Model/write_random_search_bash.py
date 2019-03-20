@@ -45,6 +45,7 @@ subsubjects = np.random.choice(a=subjects, size=10, replace=False)
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
 
+# TODO: adjust for SSD component selection: only one-up, and random N of comps
 def write_search_bash_files(subs, filetype, condition,
                             task_request=None, eqcompmat=None, n_combinations=None,
                             seed=True,  repet_scalar=30, s_fold=10, sba=True,
