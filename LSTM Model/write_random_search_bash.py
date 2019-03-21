@@ -73,16 +73,12 @@ def write_search_bash_files(subs, filetype, condition,
     :param summaries: Whether verbose summaries (get deleted if del_log_folders==True)
     :return:
     """
-    # # Following need to be set manually (Default)
-    # whether verbose summaries
 
     # Adjust input variable
     if not type(subs) is int:
         subs = list(subs)
     else:
         subs = [subs]
-
-    # strsubs = [s(strsub) for strsub in subs]  # create form such as: ['S02', 'S36']
 
     filetype = filetype.upper()  # filetype (alternatively: np.random.choice(a=['SSD', 'SPOC']))
     assert filetype in ['SSD', 'SPOC'], "filetype must be either 'SSD' or 'SPOC'"
