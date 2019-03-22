@@ -46,10 +46,11 @@ subsubjects = np.random.choice(a=subjects, size=10, replace=False)
 
 
 def write_search_bash_files(subs, filetype, condition,
-                            task_request=None, component_mode=1, eqcompmat=None, n_combinations=None,
+                            task_request=None, component_mode=1, eqcompmat=None,
                             seed=True,  repet_scalar=30, s_fold=10, sba=True,
                             batch_size=9, successive_mode=1, rand_batch=True, plot=True,
-                            successive_default=3, del_log_folders=True, summaries=False):
+                            successive_default=3, del_log_folders=True, summaries=False,
+                            n_combinations=None, n_subbash=4):
     """
     :param subs: subject list
     :param filetype: 'SSD' or 'SPOC'
@@ -57,7 +58,6 @@ def write_search_bash_files(subs, filetype, condition,
     :param task_request: '(r)egression' or '(c)lassification'
     :param component_mode: mode 1: only 'one-up'; mode 2: one-up or random choice of components
     :param eqcompmat: number of columns in input matrix. Gets filled with zero-vectors if not enough data
-    :param n_combinations: Number of random combinations in hyperparameter search
     :param seed: regarding randomization of folds, batches etc.
     :param repet_scalar: how many times it runs through whole set (can be also fraction)
     :param s_fold: number (s) of folds
@@ -71,6 +71,8 @@ def write_search_bash_files(subs, filetype, condition,
     be 2-3 sec in order to capture responses to the stimulus environment.
     :param del_log_folders: Whether to delete log files and checkpoints after processing and plotting
     :param summaries: Whether verbose summaries (get deleted if del_log_folders==True)
+    :param n_combinations: Number of random combinations in hyperparameter search
+    :param n_subbash: Define number of sub-bashfiles (for distributed processing)
     :return:
     """
 
@@ -85,6 +87,7 @@ def write_search_bash_files(subs, filetype, condition,
     cond = condition.lower()
     assert cond in ['mov', 'nomov'], "condition must be either 'mov' or 'nomov'"
     assert component_mode in [1, 2], "component_mode must be either 1 or 2 (int)"
+    assert isinstance(n_subbash, int), "n_subbash must be integer"
 
     if del_log_folders and summaries:
         cprint("Note: Verbose summaries are redundant since they get deleted after processing.", "y")
@@ -92,10 +95,10 @@ def write_search_bash_files(subs, filetype, condition,
     # Request
     if n_combinations is None:
         n_combinations = int(cinput(
-            "How many combinations (multiple of 4) to test (given value will be multpied with "
-            "n_subjects)): ", "b"))
-    assert n_combinations % 4 == 0, "Number of combinations must be a multiple of 4"
-    # TODO adapt to flexible amount of bashscripts not just 4 ["_local.sh", "_1.sh", "_2.sh", "_3.sh"]
+            "How many random combinations of hyperparameters (multiple of {}) to test (given value will "
+            "be multpied with n_subjects)): ".format(n_subbash), "b"))
+    assert n_combinations % n_subbash == 0, \
+        "Number of combinations must be a multiple of {}".format(n_subbash)
 
     tasks = ["regression", "classification"]
     if task_request is None:
@@ -122,7 +125,9 @@ def write_search_bash_files(subs, filetype, condition,
     # Create bashfile if not there already:
     bash_file_name = p2_bash + "bashfile_randomsearch_{}.sh".format('BiCl' if "c" in task else "Reg")
     sub_bash_file_names = []
-    for sub_bash in ["_local.sh", "_1.sh", "_2.sh", "_3.sh"]:
+    subbash_suffix = ["_local.sh"] + ["_{}.sh".format(subba) for subba in range(1, n_subbash)]
+
+    for sub_bash in subbash_suffix:
         sub_bash_file_name = "." + bash_file_name.split(".")[1] + sub_bash
         sub_bash_file_names.append(sub_bash_file_name)
 
