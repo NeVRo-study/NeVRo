@@ -1,0 +1,49 @@
+---
+title: "SITI plot"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+Sample code to read in output from SITI tool;
+
+!! working version !!
+For now only reading in a single subject (NVR_S02). 
+If this shall be integrated into the pipeline then also the data structure needs 
+adequate adaptation.
+For now files all are in /Data/SITI/
+Numbers relate to actual sequence of runs (still have to be "decoded" to mov and 
+nomov)
+
+
+```{r, echo=FALSE}
+library(tidyverse)
+library(fs)
+library(here)
+
+vid_in_path <- here('Data/SITI/NVR_S02/')
+runs = c(1,2)
+
+full_dat <- data_frame(frameCount=integer(), 
+                       SI = numeric(), 
+                       TI = numeric(), 
+                       run = numeric())
+
+for (i in runs) {
+  str <- str_c('outp', 1)
+  dat <- read_csv(path(vid_in_path, str_c('outp', i, '.txt')))
+  dat <- add_column(dat, run = i)
+  full_dat <- bind_rows(full_dat, dat)              
+}
+
+full_dat$run <- as.factor(full_dat$run)
+  
+ggplot(data = full_dat, mapping = aes(x = SI, y = TI)) + 
+  geom_point(aes(color = run))
+
+             
+```
+
