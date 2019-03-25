@@ -115,7 +115,7 @@ def write_search_bash_files(subs, filetype, condition,
         if eqcompmat:
             eqcompmat = int(cinput("What should be the number (int) of columns (i.e. components)?", "b"))
         else:
-            eqcompmat = None
+            eqcompmat = 0
 
     else:  # argument input for eqcompmat is integer
         assert isinstance(eqcompmat, int), "eqcompmat must be int"
