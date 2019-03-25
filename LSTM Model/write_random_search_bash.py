@@ -95,10 +95,8 @@ def write_search_bash_files(subs, filetype, condition,
     # Request
     if n_combinations is None:
         n_combinations = int(cinput(
-            "How many random combinations of hyperparameters (multiple of {}) to test (given value will "
-            "be multpied with n_subjects)): ".format(n_subbash), "b"))
-    assert n_combinations % n_subbash == 0, \
-        "Number of combinations must be a multiple of {}".format(n_subbash)
+            "How many random combinations of hyperparameters to test (given value will be multpied with "
+            "n_subjects)): ", "b"))
 
     tasks = ["regression", "classification"]
     if task_request is None:
@@ -353,7 +351,7 @@ def write_search_bash_files(subs, filetype, condition,
             np.savetxt(fname=table_name, X=rs_table, delimiter=";", fmt="%s")
 
             # Set Counter
-            combi_count = combi_count+1 if combi_count < 3 else 0
+            combi_count = combi_count+1 if combi_count < n_subbash-1 else 0
 
     print("\nBashfiles and table completed.")
 
