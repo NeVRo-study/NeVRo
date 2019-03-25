@@ -975,6 +975,8 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
                                                                                         s_fold)
     assert filetype in ["SSD", "SPOC"], "filetype must be either 'SSD' or 'SPOC'"
     assert task in ["regression", "classification"], "task must be 'regression' or 'classification'"
+    if equal_comp_matrix == "None":
+        equal_comp_matrix = None
     if equal_comp_matrix:
         assert isinstance(equal_comp_matrix, int), "equal_comp_matrix must be None or integer."
         assert equal_comp_matrix >= (len(component) + (1 if hr_component else 0)), \
