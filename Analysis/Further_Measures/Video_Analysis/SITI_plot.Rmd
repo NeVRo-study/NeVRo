@@ -1,0 +1,103 @@
+---
+title: "SITI plot"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+Sample code to read in output from SITI tool;
+
+!! working version !! 
+
+For now only reading in a single subject (NVR_S02).\newline
+If this shall be integrated into the pipeline then also the data structure needs 
+adequate adaptation.\newline
+For now files all are in /Data/SITI/\newline
+Numbers relate to actual sequence of runs (still have to be "decoded" to mov and 
+nomov)
+
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(fs)
+library(here)
+
+vid_in_path <- here('Data/SITI/NVR_S02/')
+runs = c(1,2)
+run_cols = c('darkred', 'darkgreen')
+full_dat <- data_frame(frameCount=integer(), 
+                       SI = numeric(), 
+                       TI = numeric(), 
+                       run = numeric())
+
+for (i in runs) {
+  str <- str_c('outp', 1)
+  dat <- read_csv(path(vid_in_path, str_c('outp', i, '.txt')))
+  dat <- add_column(dat, run = i)
+  full_dat <- bind_rows(full_dat, dat)              
+}
+
+
+# standard TI~SI plots:
+ggplot(data = full_dat, mapping = aes(x = SI, y = TI)) + 
+  geom_point(aes(color = factor(run))) +
+  scale_color_manual(name = "run", values = run_cols)
+
+
+```
+
+
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+# look at SI and TI over time
+
+frameRate = 30 # this you have to know from the video
+full_dat <- mutate(full_dat, secs = frameCount/frameRate)
+
+tPlt <- ggplot(NULL, mapping = aes(x = secs, y = fit$y))
+full_fit <- NULL;
+
+for (r in runs) {
+  vars = c("TI", "SI")
+  fit <- NULL;
+  for (var in vars) {
+    # smooth the data:
+    fit[[var]] <- full_dat %>% 
+      filter(run == r) %>% 
+      with(ksmooth(secs, 
+                   eval(as.symbol(var)), 
+                   x.points = secs, 
+                   kernel = "box", 
+                   bandwidth = 3  #interpol. over secs
+                   )
+           )
+    full_fit[[var]] <- rbind(full_fit[[var]], as.data.frame(fit[[var]]))
+  }
+
+  
+  # Let's plot for each run:
+  print(
+    full_dat %>% 
+      filter(run == r) %>% 
+      mutate(TI = fit$TI$y, SI = fit$SI$y) %>% 
+      gather(infoType, info, SI, TI) %>%
+      ggplot(mapping = aes(x = secs)) + 
+      geom_line(aes(y = info, linetype = infoType), color = run_cols[r]) +
+      ggtitle(str_c("run ", r))
+  )
+}
+
+# this will be usefull once videos are trimmed to equal length:
+full_dat %>% mutate(TI = full_fit$TI$y, SI = full_fit$SI$y) %>% 
+  gather(infoType, info, SI, TI) %>%
+  ggplot(mapping = aes(x = secs)) + 
+  geom_line(aes(y = info, linetype = infoType, color = factor(run))) + 
+  scale_color_manual(name = "run", values = run_cols)
+
+
+             
+```
+
