@@ -331,7 +331,7 @@ def train_lstm():
                 merged = tf.summary.merge_all()
 
                 # Define logdir
-                logdir = './LSTM/logs/{}/{}'.format(s(FLAGS.subject),
+                logdir = './processed/logs/{}/{}'.format(s(FLAGS.subject),
                                                     FLAGS.path_specificities)
 
                 if not tf.gfile.Exists(logdir):
@@ -512,7 +512,7 @@ def train_lstm():
                     if (step + 1) % checkpoint_freq == 0:
 
                         # Define checkpoint_dir
-                        checkpoint_dir = './LSTM/checkpoints/{}/{}'.format(s(FLAGS.subject),
+                        checkpoint_dir = './processed/checkpoints/{}/{}'.format(s(FLAGS.subject),
                                                                            FLAGS.path_specificities)
                         if not tf.gfile.Exists(checkpoint_dir):
                             tf.gfile.MakeDirs(checkpoint_dir)
@@ -617,7 +617,7 @@ def train_lstm():
 
     # Save training information in Textfile
     # Define sub_dir
-    sub_dir = "./LSTM/{}/{}".format(s(FLAGS.subject), FLAGS.path_specificities)
+    sub_dir = "./processed/{}/{}".format(s(FLAGS.subject), FLAGS.path_specificities)
     if not tf.gfile.Exists(sub_dir):
         tf.gfile.MakeDirs(sub_dir)
 
@@ -669,7 +669,7 @@ def train_lstm():
             file.write(label_export[i] + str(item)+"\n")
 
     # Save Accuracies in Random_Search_Table.csv if applicable
-    table_name = "./LSTM/Random_Search_Table_{}.csv".format(
+    table_name = "./processed/Random_Search_Table_{}.csv".format(
         "BiCl" if FLAGS.task == "classification" else "Reg")
     if os.path.exists(table_name):
         rs_table = np.genfromtxt(table_name, delimiter=";", dtype=str)

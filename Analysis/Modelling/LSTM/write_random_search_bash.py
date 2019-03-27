@@ -299,8 +299,8 @@ def write_search_bash_files(subs, filetype, condition,
                                                          path_specificities)
 
             # Write in bashfile
-            if not os.path.exists("./LSTM/"):
-                os.mkdir("./LSTM/")
+            if not os.path.exists("./processed/"):
+                os.mkdir("./processed/")
 
             with open(bash_file_name, "a") as bashfile:  # 'a' for append
                 bashfile.write("\n"+bash_line)
@@ -312,7 +312,7 @@ def write_search_bash_files(subs, filetype, condition,
                 sub_bashfile.write("\n"+bash_line)
 
             # Fill in Random_Search_Table.csv
-            table_name = "./LSTM/Random_Search_Table_{}.csv".format('BiCl' if "c" in task else "Reg")
+            table_name = "./processed/Random_Search_Table_{}.csv".format('BiCl' if "c" in task else "Reg")
 
             if not os.path.exists(table_name):
                 rs_table = np.array(['round', 'subject', 'cond', 'seed', 'task',
@@ -391,7 +391,7 @@ def write_bash_from_table(subs, table_path):
     # # Following need to be set manually (Default)
     del_log_folders = True
 
-    wd_tables = "./LSTM/Random Search Tables/"
+    wd_tables = "./processed/Random Search Tables/"
     table_path = wd_tables + table_path
     # table_path = wd_tables \
     #              + "unique_Best_2_HPsets_over_10_Subjects_mean_acc_0.660_Random_Search_Table_BiCl.csv"
@@ -424,7 +424,7 @@ def write_bash_from_table(subs, table_path):
     new_hp_table = np.concatenate((np.concatenate((lside_table, mid_table), 1), rside_table), 1)
 
     # Save new HP-table
-    new_table_name = "./LSTM/" + "Ran" + table_path.split("_Ran")[-1]
+    new_table_name = "./processed/" + "Ran" + table_path.split("_Ran")[-1]
     np.savetxt(fname=new_table_name, X=new_hp_table, delimiter=";", fmt="%s")
 
     # Create bashfile if not there already:
@@ -507,7 +507,7 @@ def update_bashfiles(task, subject=None, path_specs=None, all_runs=False):
         "task must be either 'regression' or 'classification'"
 
     # Load Random_Search_Table
-    table_name = "./LSTM/Random_Search_Table_{}.csv".format('BiCl' if "c" in task.lower() else "Reg")
+    table_name = "./processed/Random_Search_Table_{}.csv".format('BiCl' if "c" in task.lower() else "Reg")
     if os.path.exists(table_name):
         rs_table = np.genfromtxt(table_name, delimiter=";", dtype=str)
         idx_sub = np.where(rs_table[0, :] == 'subject')[0][0]  # find column "subject"

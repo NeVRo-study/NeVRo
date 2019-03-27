@@ -66,9 +66,9 @@ TESTMODEL = False
 # '--is_train', default=True,
 
 PATH_SPECIFICITIES_DEFAULT = "debug/"  # dont change
-SUB_DIR_DEFAULT = "./LSTM/{1}/{0}".format(PATH_SPECIFICITIES_DEFAULT, s(SUBJECT_DEFAULT))
-LOG_DIR_DEFAULT = "./LSTM/logs/{1}/{0}".format(PATH_SPECIFICITIES_DEFAULT, s(SUBJECT_DEFAULT))
-CHECKPOINT_DIR_DEFAULT = "./LSTM/checkpoints/{1}/{0}".format(PATH_SPECIFICITIES_DEFAULT,
+SUB_DIR_DEFAULT = "./processed/{1}/{0}".format(PATH_SPECIFICITIES_DEFAULT, s(SUBJECT_DEFAULT))
+LOG_DIR_DEFAULT = "./processed/logs/{1}/{0}".format(PATH_SPECIFICITIES_DEFAULT, s(SUBJECT_DEFAULT))
+CHECKPOINT_DIR_DEFAULT = "./processed/checkpoints/{1}/{0}".format(PATH_SPECIFICITIES_DEFAULT,
                                                              s(SUBJECT_DEFAULT))
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
@@ -768,7 +768,7 @@ with open(SUB_DIR_DEFAULT + "{}S{}_accuracy_across_{}_folds_{}.txt".format(
 
 
 # Save Accuracies in Random_Search_Table.csv if applicable
-table_name = "./LSTM/Random_Search_Table_{}.csv".format(
+table_name = "./processed/Random_Search_Table_{}.csv".format(
     "BiCl" if TASK_DEFAULT == "classification" else "Reg")
 if os.path.exists(table_name):
     rs_table = np.genfromtxt(table_name, delimiter=";", dtype=str)

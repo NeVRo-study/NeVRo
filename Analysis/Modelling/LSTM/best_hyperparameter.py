@@ -30,8 +30,8 @@ def open_best_params(subjects, rand_search, task, n=5):
 
     for sub in subjects:
 
-        wdic = "./LSTM/S{}/already_plotted/".format(str(sub).zfill(2))
-        # wdic = "./LSTM/S02/already_plotted/"
+        wdic = "./processed/S{}/already_plotted/".format(str(sub).zfill(2))
+        # wdic = "./processed/S02/already_plotted/"
         if rand_search:
             wdic_plot = "../../Results/Plots/LSTM/Hyperparameter_Search_C_RndSearch/"
         else:
@@ -95,16 +95,16 @@ def sort_table(task, table=None):
     if table is None:
         task_fix = "_BiCl_merged.csv" if task.lower() == "classification" else "_Reg_merged.csv"
         file_found = False
-        for file in os.listdir("./LSTM/"):
+        for file in os.listdir("./processed/"):
             if "Random_Search_Table" in file and task_fix in file:
-                table_filename = "./LSTM/" + file
+                table_filename = "./processed/" + file
                 file_found = True
                 save_externally = True
 
         if file_found:
             table = np.genfromtxt(table_filename, delimiter=";", dtype=str)
         else:
-            raise FileNotFoundError("No table given and no table found in './LSTM/'")
+            raise FileNotFoundError("No table given and no table found in './processed/'")
 
     # acc_col = -1 if task == "classification" else -3
     acc_col = -1
@@ -145,7 +145,7 @@ def merge_randsearch_tables(task, sort=True):
     tfix = "_BiCl" if task.lower() == "classification" else "_Reg"
 
     # Find tables
-    wd_table = "./LSTM/"
+    wd_table = "./processed/"
     for file in os.listdir(wd_table):
         if "Random_Search_Table" in file and tfix in file and "_server.csv" not in file \
                 and ".csv" in file:
@@ -182,7 +182,7 @@ def merge_randsearch_tables(task, sort=True):
 # # Save random search tables per subject, extract n best settings per subject
 def rnd_search_table_per_subject(table_name):
 
-    wd_tables = "./LSTM/Random_Search_Tables/"
+    wd_tables = "./processed/Random_Search_Tables/"
 
     assert ".csv" in table_name, "Must be a csv file and filename ending with '.csv'"
     assert os.path.exists(wd_tables+table_name), "File does not exist:\t{}".format(table_name)
@@ -208,7 +208,7 @@ def rnd_search_table_per_subject(table_name):
 
 def table_per_hp_setting(table_name):
 
-    wd_tables = "./LSTM/Random_Search_Tables/"
+    wd_tables = "./processed/Random_Search_Tables/"
 
     assert ".csv" in table_name, "Must be a csv file and filename ending with '.csv'"
     assert os.path.exists(wd_tables+table_name), "File does not exist:\t{}".format(table_name)
@@ -242,7 +242,7 @@ def table_of_best_hp_over_all_subjects(n, task):
     assert task.lower() in ["classification", "regression"], \
         "task must be either 'classification' or 'regression'"
 
-    wd_tables = "./LSTM/Random_Search_Tables/"
+    wd_tables = "./processed/Random_Search_Tables/"
 
     tsk = "BiCl" if task.lower() == "classification" else "Reg"
     # count subjects:
@@ -299,7 +299,7 @@ def model_performance(over, task, input_type):
     assert input_type.lower() in ['ssd', 'spoc'], "input_type must be either 'SSD' or 'SPOC'"
     assert over.lower() in ['subjects', 'hp-sets'], "over must be either 'subjects' or 'hp-sets'"
 
-    wd_tables = "./LSTM/Random_Search_Tables/Random_Search_Final_Table{}{}/".format(
+    wd_tables = "./processed/Random_Search_Tables/Random_Search_Final_Table{}{}/".format(
         "_Reg" if task == "regression" else "",
         "_SPOC" if input_type.lower() == "spoc" else "")
     wd_tables += "per_subject/" if over == "subjects" else "per_hp_set/"

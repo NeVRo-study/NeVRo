@@ -42,15 +42,15 @@ def plot_all_there_is(dellog):
     :param dellog: True or False: Delete log and checkpoint files after plotting
     """
 
-    for folder in os.listdir("./LSTM/"):
+    for folder in os.listdir("./processed/"):
         if "S" == folder[0]:
             sub = int(folder.split('S')[1])
             print("subject:", sub)
-            for subfolder in os.listdir("./LSTM/{}/".format(folder)):
+            for subfolder in os.listdir("./processed/{}/".format(folder)):
                 if subfolder != 'already_plotted':
                     subfol = subfolder
                     print("subfolder:", subfol)
-                    if len(os.listdir("./LSTM/{}/{}/".format(folder, subfol))) == 3:
+                    if len(os.listdir("./processed/{}/{}/".format(folder, subfol))) == 3:
                         subprocess.Popen(["python3", "LSTM_pred_plot.py", 'True', str(sub), subfol + "/",
                                           str(dellog)])
 
