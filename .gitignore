@@ -1,5 +1,5 @@
 
 # ignore Data folder
 /Data
-
-
+/Analysis/Statistics/
+/Analysis/Modelling/LSTM/bashfiles/
