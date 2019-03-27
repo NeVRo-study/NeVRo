@@ -1,5 +1,11 @@
 
-# ignore Data folder
+# Files and folders to be ignored
 /Data
+/Results
+/Publication
+/Literature
+
+
+# Subfolders to be ignored 
 /Analysis/Statistics/
-/Analysis/Modelling/LSTM/bashfiles/
+/Analysis/Modelling/LSTM/
