@@ -12,6 +12,7 @@ from scipy.signal import hilbert
 import subprocess
 import platform
 import os
+import psutil
 
 
 def setwd(new_dir):
@@ -369,6 +370,18 @@ def open_folder(path):
 def check_computer():
     print("Current computer is: \t{}{}{}".format(Bcolors.OKBLUE, platform.node(), Bcolors.ENDC))
     return platform.node()
+
+
+def check_executor(return_bash_bool=False):
+    # Check whether scipt is run via bash
+    ppid = os.getppid()
+    bash = psutil.Process(ppid).name() == "bash"
+    print("Current script{} executed via: {}{}{}".format(
+        ' {}{}{}'.format(Bcolors.WARNING, platform.sys.argv[0], Bcolors.ENDC) if bash else "",
+        Bcolors.OKBLUE, psutil.Process(ppid).name(), Bcolors.ENDC))
+
+    if return_bash_bool:
+        return bash
 
 
 def check_mpi_gpu(name_it=False):
