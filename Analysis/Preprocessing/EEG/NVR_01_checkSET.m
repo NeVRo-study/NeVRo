@@ -19,8 +19,8 @@ clc
 
 %1.1 Set different paths:
 % path to NeVRo/Data:
-path_data = '../../Data/';
-path_dataeeg = [path_data 'EEG/raw/'];
+path_data = '../../../Data/';
+path_dataeeg = [path_data 'EEG/01_raw/'];
 path_in_eeg = [path_dataeeg m_cond '_SETs/']; 
 
 

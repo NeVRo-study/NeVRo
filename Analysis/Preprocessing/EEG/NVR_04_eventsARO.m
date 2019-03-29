@@ -11,10 +11,10 @@ function NVR_04_eventsARO(cropstyle, mov_cond)
 %clear all
 
 %1.1 Set different paths:
-path_data = '../../Data/';
+path_data = '../../../Data/';
 path_dataeeg =  [path_data 'EEG/'];
 path_in_eeg = [path_dataeeg '03_CROP/' mov_cond '/' cropstyle '/']; 
-path_evaro_rat = [path_data 'ratings/ratings_' cropstyle '/' mov_cond '/'];
+path_evaro_rat = [path_data 'ratings/class_bins/' mov_cond '/' cropstyle '/' ];
 
 % output paths:
 path_out_eeg = [path_dataeeg '04_eventsAro/' mov_cond '/' cropstyle '/'];

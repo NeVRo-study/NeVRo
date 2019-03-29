@@ -16,6 +16,7 @@ NVR__preprocess.m:    runs the full preprocessing pipeline over all data sets by
 
 Helpers:
 NVR_00_cutParts.m:    Divide EEG data SETs into mov and nomov parts.
+                      [Should not be necessary any more unless modified.]
 
 NVR_01.checkSet.m:    Check the data SETs for integrity (all markers present?)
                       [Should not be necessary any more unless modified.]

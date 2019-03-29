@@ -8,7 +8,7 @@ function NVR_05_1_prep4ICA(cropstyle, mov_cond)
 %clear all
 
 %1.1 Set different paths:
-path_data = '../../Data/';
+path_data = '../../../Data/';
 path_dataeeg =  [path_data 'EEG/'];
 path_in_eeg = [path_dataeeg '04_eventsAro/' mov_cond '/' cropstyle '/'];
 

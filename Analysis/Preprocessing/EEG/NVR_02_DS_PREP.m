@@ -23,9 +23,9 @@ mov_cond = m_cond;
 
 %1.1 Set different paths:
 % input paths:
-path_data = '../../Data/';
+path_data = '../../../Data/';
 path_data_eeg = [path_data 'EEG/'];
-path_in_eeg = [path_data_eeg 'raw/' mov_cond '_SETs/']; 
+path_in_eeg = [path_data_eeg '01_raw/' mov_cond '_SETs/']; 
 
 % output paths:
 path_out_eeg = [path_data_eeg '02_PREP/' mov_cond '/'];

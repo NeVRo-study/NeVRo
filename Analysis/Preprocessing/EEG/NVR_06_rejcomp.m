@@ -1,9 +1,14 @@
 %% NVR_06_rejcomp
-% 
-% 
+%
+% Run SASICA guided, semi-manual rejection of ICA components and reproject
+% the ICA weights to "full" (continuous) data set (before removal of noisy
+% epochs).
+
 % Inspirations and code snippets from:
 % https://www.aesthetics.mpg.de/fileadmin/user_upload/Services/ProgressFiles/EEGLab_RunICA_PruneData.html
 % by R. Muralikrishnan
+
+% 2018: Felix Klotzsche --- eioe
 
 function NVR_06_rejcomp(cropstyle, mov_cond, varargin)
 
@@ -19,7 +24,7 @@ else
 end
 
 %1.1 Set different paths:
-path_data = '../../Data/';
+path_data = '../../../Data/';
 path_dataeeg =  [path_data 'EEG/'];
 path_in_eegICA = [path_dataeeg '05_cleanICA/' mov_cond '/' cropstyle '/'];
 path_in_eegFull = [path_dataeeg '04_eventsAro/' mov_cond '/' cropstyle '/'];
@@ -89,10 +94,10 @@ for isub = (1+skipsubs):length(files_eegICA)
     
     if length(EEG.etc.rejepo_thresh) > ceil(0.33 * len_full)
         fprintf(['\n\n\n\n##########################\n\n' ...
-                 'Subject skipped due too many rejected epochs.\n' ...
-                 thissubject '\n# of rejected epochs: ' ... 
-                 num2str(length(EEG.etc.rejepo_thresh)) ...
-                 '\n\n\n\n##########################\n\n']);
+            'Subject skipped due too many rejected epochs.\n' ...
+            thissubject '\n# of rejected epochs: ' ...
+            num2str(length(EEG.etc.rejepo_thresh)) ...
+            '\n\n\n\n##########################\n\n']);
         pause(2);
         continue
     end
@@ -175,7 +180,7 @@ for isub = (1+skipsubs):length(files_eegICA)
     EEGFull.icasphere = EEG.icasphere;
     EEGFull.icaweights = EEG.icaweights;
     EEGFull.icachansind = EEG.icachansind;
-    EEGFull.icaact = EEGFull.icaweights*EEGFull.icasphere*EEGFull.data;  
+    EEGFull.icaact = EEGFull.icaweights*EEGFull.icasphere*EEGFull.data;
     EEGFull.etc.rejcomp = EEG.etc.rejcomp;
     EEGFull.reject.SASICA = EEG.reject.SASICA;
     
@@ -186,8 +191,8 @@ for isub = (1+skipsubs):length(files_eegICA)
     EEGFull = eegh(com,EEGFull);
     EEGFull.setname=filenameFull;
     EEGFull = pop_saveset(EEGFull, [filenameFull  '_rejcomp.set'] , path_out_eeg_full);
-
-    fprintf('\n\n###################################################\n\n');    
+    
+    fprintf('\n\n###################################################\n\n');
     fprintf("We're done with %s.\n\n", filenameFull);
     fprintf('Number of Removed Components ... %d. \n\n', length(rej_comps));
     fprintf('\n\n###################################################\n\n');

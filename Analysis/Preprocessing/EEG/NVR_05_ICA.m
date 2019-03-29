@@ -1,5 +1,10 @@
-%% NVR ICA
+%% NVR_05_ICA
 %
+% ICA decemposition of the data (after removing noisy epochs). 
+% in first parameter of <varargin> the ICA type can be specified. Defaults 
+% to runica (Infomax) which we also used.
+
+% 2018: Felix Klotzsche --- eioe
 
 function NVR_05_ICA(cropstyle, mov_cond, varargin) 
 
@@ -14,7 +19,7 @@ else
 end
 
 %1.1 Set different paths:
-path_data = '../../Data/';
+path_data = '../../../Data/';
 path_dataeeg =  [path_data 'EEG/'];
 path_in_eeg = [path_dataeeg '04_eventsAro/' mov_cond '/' cropstyle '/']; 
 

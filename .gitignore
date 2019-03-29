@@ -8,3 +8,7 @@
 /Analysis/Statistics
 /Analysis/Modelling/LSTM/bashfiles
 /Analysis/Modelling/LSTM/processed
+
+# Ignore MATLAB autosaves:
+*.asv  # Windows
+*.m~   # OSX

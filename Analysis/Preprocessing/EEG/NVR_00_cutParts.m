@@ -1,10 +1,11 @@
 %% NVR cutParts
 %
-% This script loads the raw and continuous EEG data (saved as EEGLAB SET
+% This function loads the raw and continuous EEG data (saved as EEGLAB SET
 % files), extracts the MOV and NO-MOV parts, and saves them to separate
 % files:
 %
-% 2017 (edited 2018) by Felix Klotzsche
+
+% 2017 (edited 2018) by Felix Klotzsche --- eioe
 %
 
 function NVR_00_cutParts()
@@ -16,7 +17,7 @@ clc
 %1.1 Set different paths:
 
 % input paths:
-path_data = '../../Data/';
+path_data = '../../../Data/';
 path_dataeeg = [path_data 'EEG/01_raw/'];
 path_in_eeg = [path_dataeeg 'full_SETs/'];
 
