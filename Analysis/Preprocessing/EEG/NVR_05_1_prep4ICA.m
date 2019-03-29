@@ -84,6 +84,9 @@ for isub = 1:length(files_eeg)
     EEG = eegh(com,EEG);
     EEG.setname=[filename '_epo'];
     
+    % run identification of noisy epochs applying a mere threshold based
+    % criterion: epochs with measurement values outside of the range[-100;
+    % 100][uV] are marked as "noisy"
     EEG = pop_eegthresh(EEG,1,ICA_prep_chans ,-100,100,-0.5,0.496,0,0);
     [ALLEEG, EEG, CURRENTSET] = eeg_store(ALLEEG, EEG);
     

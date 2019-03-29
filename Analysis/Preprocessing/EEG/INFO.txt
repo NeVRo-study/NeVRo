@@ -1,0 +1,38 @@
+### README --- NEVRO preprocessing
+#
+# A brief overview over the preprocessing steps in the NeVRo project.
+# 
+# For more details please look into the single scripts/functions. Ideally, there will be more detailled comments in the code soon.
+#
+#---------------------------------------------------------------------------
+#
+# 29 March 2019: Felix Klotzsche --- eioe
+#
+#---------------------------------------------------------------------------
+
+NVR__preprocess.m:    runs the full preprocessing pipeline over all data sets by calling the single helper functions. It does this in seperate iterations for (a) the movement ("mov") vs. 
+                      the non-movement ("nomov") condition as well as (b) either including ("SBA" := Space Coaster + Break + Andes Coaster) or excluding ("SA") the break. Normally, you 
+					  will want to uncomment some steps or conditions you're not interested in. 
+
+Helpers:
+NVR_00_cutParts.m:    Divide EEG data SETs into mov and nomov parts.
+
+NVR_01.checkSet.m:    Check the data SETs for integrity (all markers present?)
+                      [Should not be necessary any more unless modified.]
+
+NVR_02_DS_PREP.m:    Downsample to 250Hz and run PREP pipeline (Bigdely-Shamlo et al., 2015) for standardized preprocessing
+
+NVR_03_crop.m:    Crop data to relevant episodes (SPACE -- BREAK -- ANDES)
+
+NVR_04_eventsARO.m:    Add individual arousal "events" (relevant for binary analysis).
+
+NVR_05_1_prep4ICA.m:    "helpershelper" - this function is normally only called by NVR_05_ICA.m, however, due to it's visualization feature it can be handy to get a (data set by data set) 
+                        overview over which parts of the data will be (automatically) marked as "noisy" and excluded from ICA decomposition. 
+						Importantly, if this function marked more than 30% of the epochs as noisy, we excluded the data set from further analyses downstream.
+
+NVR_05_ICA.m:    Run ICA decomposition (default: Infomax; can be changed via <varargin>) on the "cleaned" (noisy epochs removed) data
+
+NVR_06_rejcomp.m:    Perform semi-manual rejection of noisy ICA components, guided by the SASICA plugin (Chaumon et al., 2015) for EEGLAB and reproject the ICA weights onto the full data set 
+                     (including the "noisy" epochs) to keep the temporal continuity and same length of data sets for all participants.
+
+
