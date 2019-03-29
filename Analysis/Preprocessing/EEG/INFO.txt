@@ -10,7 +10,7 @@
 #
 #---------------------------------------------------------------------------
 
-NVR__preprocess.m:    runs the full preprocessing pipeline over all data sets by calling the single helper functions. It does this in seperate iterations for (a) the movement ("mov") vs. 
+_NVR_preprocess.m:    runs the full preprocessing pipeline over all data sets by calling the single helper functions. It does this in seperate iterations for (a) the movement ("mov") vs. 
                       the non-movement ("nomov") condition as well as (b) either including ("SBA" := Space Coaster + Break + Andes Coaster) or excluding ("SA") the break. Normally, you 
 					  will want to uncomment some steps or conditions you're not interested in. 
 
