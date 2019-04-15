@@ -36,12 +36,12 @@ NVR_05_ICA.m:    Run ICA decomposition (default: Infomax; can be changed via <va
 NVR_06_rejcomp.m:    Perform semi-manual rejection of noisy ICA components, guided by the SASICA plugin (Chaumon et al., 2015) for EEGLAB and reproject the ICA weights onto the full data set 
                      (including the "noisy" epochs) to keep the temporal continuity and same length of data sets for all participants.
 
-NVR_07_peak:    This script finds the peak in a selected frequency band (alpha in our case) for both the resting state and SBA task-related recordings. 
+NVR_07_peak.m:    This script finds the peak in a selected frequency band (alpha in our case) for both the resting state and SBA task-related recordings. 
 Please note: SBA are ICA-cleaned (.set) whereas resting state data are raw. 
 The current version allows you to select all 3 different conditions (here represented by folder) to extract the respective alpha peak, but it has been mainly used with the resting state data. 
 The periodogram (power spectrum) of the data has been calculated with the neurospec package (http://www.neurospec.org/) by David Halliday. 
 The alpha peak is then recovered by applying the findpeaks function to the averaged power spectrum across channels (Min. Peak Distance= 4.5).
 
-NVR_08_SSD:    currently updating 
+NVR_08_SSD.m:    currently updating 
 
 
