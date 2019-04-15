@@ -84,7 +84,7 @@ EEG.setname=fileName;
 
 eeglab redraw
 
-%% 3.Find peak in the selected frequency band 
+%% 3.Find peak in the selected frequency band  - to run this section it's necessary to download the neurospec package (http://www.neurospec.org/) by David M. Halliday.
 
 %3.1 First remove V/HEOG channels
 EEG = pop_select( EEG,'nochannel',{'HEOG' 'VEOG'});
