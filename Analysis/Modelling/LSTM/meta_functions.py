@@ -8,7 +8,7 @@ Author: Simon Hofmann | <[surname].[lastname][at]pm.me> | 2017, 2019 (Update)
 import datetime
 from functools import wraps
 import numpy as np
-from scipy.signal import hilbert
+from scipy.signal import hilbert, welch
 import subprocess
 import platform
 import os
