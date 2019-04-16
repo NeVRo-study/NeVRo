@@ -7,11 +7,20 @@ from meta_functions import *
 from load_data import get_filename
 import matplotlib.pyplot as plt
 
+# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+
+
 path_data = set_path2data()
 p2ssd = path_data + "EEG/07_SSD/"
 p2ssdnomov = p2ssd + "nomov/SBA/broadband/"
 
+# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+
+
 sub = 14  # rnd subject
+
+# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+
 
 sub_ssd = get_filename(subject=sub, filetype="SSD", band_pass=False, cond="nomov", sba=True,
                        check_existence=True)
@@ -29,6 +38,8 @@ if os.path.isfile(sub_ssd):
 
 print("subject SSD df.shape:", sub_df.shape)
 print("First 5 rows:\n", sub_df[:5, :])
+
+# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
 
 # Plot power spectral density (Welch)
@@ -60,3 +71,5 @@ ax.set_xticks(xt)
 ax.set_xticklabels(xtl)
 plt.xlim([-1, 130])
 plt.show()
+
+# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
