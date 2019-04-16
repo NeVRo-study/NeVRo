@@ -138,6 +138,26 @@ def normalization(array, lower_bound, upper_bound):
     return normed_array
 
 
+def denormalize(array, denorm_minmax, norm_minmax):
+    """
+    :param array: array to be de-normalized
+    :param denorm_minmax: tuple of (min, max) of de-normalized (target) vector
+    :param norm_minmax: tuple of (min, max) of normalized vector
+    :return: de-normalized value
+    """
+    array = np.array(array)
+
+    dnmin, dnmax = denorm_minmax
+    nmin, nmax = norm_minmax
+
+    assert nmin < nmax, "norm_minmax must be tuple (min, max), where min < max"
+    assert dnmin < dnmax, "denorm_minmax must be tuple (min, max), where min < max"
+
+    denormed_array = (array - nmin)/(nmax - nmin) * (dnmax-dnmin) + dnmin
+
+    return denormed_array
+
+
 def z_score(array):
     """
     Create z-score
@@ -448,8 +468,50 @@ class Bcolors:
     Usage:
     print(Bcolors.HEADER + "Warning: No active frommets remain. Continue?" + Bcolors.ENDC)
     print(Bcolors.OKBLUE + "Warning: No active frommets remain. Continue?" + Bcolors.ENDC)
+
+    For more:
+
+        CSELECTED = '\33[7m'
+
+        CBLACK  = '\33[30m'
+        CRED    = '\33[31m'
+        CGREEN  = '\33[32m'
+        CYELLOW = '\33[33m'
+        CBLUE   = '\33[34m'
+        CVIOLET = '\33[35m'
+        CBEIGE  = '\33[36m'
+        CWHITE  = '\33[37m'
+
+        CBLACKBG  = '\33[40m'
+        CREDBG    = '\33[41m'
+        CGREENBG  = '\33[42m'
+        CYELLOWBG = '\33[43m'
+        CBLUEBG   = '\33[44m'
+        CVIOLETBG = '\33[45m'
+        CBEIGEBG  = '\33[46m'
+        CWHITEBG  = '\33[47m'
+
+        CGREY    = '\33[90m'
+        CBEIGE2  = '\33[96m'
+        CWHITE2  = '\33[97m'
+
+        CGREYBG    = '\33[100m'
+        CREDBG2    = '\33[101m'
+        CGREENBG2  = '\33[102m'
+
+        CYELLOWBG2 = '\33[103m'
+        CBLUEBG2   = '\33[104m'
+        CVIOLETBG2 = '\33[105m'
+        CBEIGEBG2  = '\33[106m'
+        CWHITEBG2  = '\33[107m'
+
+    # For preview type:
+    for i in [1, 4, 7] + list(range(30, 38)) + list(range(40, 48)) + list(range(90, 98)) + list(
+            range(100, 108)):  # range(107+1)
+        print(i, '\33[{}m'.format(i) + "ABC & abc" + '\33[0m')
     """
-    HEADER = '\033[95m'
+
+    HEADERPINK = '\033[95m'
     OKBLUE = '\033[94m'
     OKGREEN = '\033[92m'
     WARNING = '\033[93m'
@@ -458,7 +520,7 @@ class Bcolors:
     BOLD = '\033[1m'
     ENDC = '\033[0m'  # this is necessary in the end to reset to default print
 
-    DICT = {'p': HEADER, 'b': OKBLUE, 'g': OKGREEN, 'y': WARNING, 'r': FAIL,
+    DICT = {'p': HEADERPINK, 'b': OKBLUE, 'g': OKGREEN, 'y': WARNING, 'r': FAIL,
             'ul': UNDERLINE, 'bo': BOLD}
 
 # print(Bcolors.HEADER + "Header: No active frommets remain. Continue?" + Bcolors.ENDC)
