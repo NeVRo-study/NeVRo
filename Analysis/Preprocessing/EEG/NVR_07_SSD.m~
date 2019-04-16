@@ -68,9 +68,7 @@ for isub = (1:length(files_eeg))
     idx = find(strcmp({alphaPeaks.name}, thissubject));
     alphaPeak = alphaPeaks(idx).(alphaPeakSource);
     if (alphaPeak == 0)
-        warning("No valid alpha peak found. Taking default = 10Hz.");
-        alphaPeak = 10;
-    end
+        warning("No valid alpha peak found. Taking default 
     
     %% Prepare the SSD:
     
@@ -102,8 +100,7 @@ for isub = (1:length(files_eeg))
     
     % Write CSV files with (broadband) SSD component activation:
     bbData = EEG.data' * SSD_Wout;
-    csvwrite([path_out_eeg '/CSV/' thissubject '_' mov_cond ... 
-        '_broad_SSD_cmp.csv'], bbData');
+    csvwrite([path_out_eeg '/CSV/' thissubject '_SSD.csv'], bbData');
     
 end
 
