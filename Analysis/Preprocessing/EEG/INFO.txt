@@ -42,7 +42,6 @@ NVR_07_peak.m:    This script finds the peak in a selected frequency band (alpha
 	          The periodogram (power spectrum) of the data has been calculated with the neurospec package (http://www.neurospec.org/) by David Halliday. 
 	          The alpha peak is then recovered by applying the findpeaks function to the averaged power spectrum across channels (Min. Peak Distance= 4.5).
 
-NVR_08_SSD.m:    This script computes SSD on the ICA cleaned data. SSD is centered on the individualized peak alpha frequency computed for each participant (NVR_07_peak.m). Users can choose which peak file to use as a reference (eyes-closed
-%resting state, no_movement task or movement_task). - currently updating -   
+NVR_08_SSD.m:    This script computes SSD on the ICA cleaned data. SSD is centered on the individualized peak alpha frequency computed for each participant (NVR_07_peak.m). Users can choose which peak file to use as a reference (eyes-closed resting state, no_movement task or movement_task). - currently updating -   
 
 
