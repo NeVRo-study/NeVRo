@@ -1,8 +1,17 @@
 %% Summarize alpha peaks
 
 % assumes the outputs of NVR_Peak to be loaded as "rest", "nomov", "mov"
+% Update 16/04/19: Doing this here:
+path_SSD = ['../../../Data/EEG/07_SSD/'];
 
-path_SSD = ['../../../../Data/EEG/07_SSD/'];
+rest = load([path_SSD '1_peaks.mat']);
+rest = rest.subj_peaks;
+nomov = load([path_SSD '2_peaks.mat']);
+nomov = nomov.subj_peaks;
+mov = load([path_SSD '3_peaks.mat']);
+mov = mov.subj_peaks;
+
+
 allAlpha = [];
 for i=1:44
     allAlpha(i,1:2) = rest(i,1:2);
@@ -30,7 +39,7 @@ for (i=1:size(allAlpha,1))
         subNum_str = num2str(subNum);
     end
         
-    name = ['NVR_' subNum_str];
+    name = ['NVR_S' subNum_str];
     alphaPeaks(i).name = name;
     alphaPeaks(i).restEyesClosed = allAlpha(i,2);
     alphaPeaks(i).nomov = allAlpha(i,3);

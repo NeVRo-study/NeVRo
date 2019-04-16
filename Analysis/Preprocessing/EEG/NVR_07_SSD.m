@@ -31,6 +31,7 @@ if ~exist(path_out_eeg, 'dir'); mkdir(path_out_eeg); end
 
 %1.2 Get data files
 files_eeg = dir([path_in_eeg '*.set']);
+files_eeg = {files_eeg.name};
 
 % Get the alpha peaks:
 
@@ -60,6 +61,7 @@ for isub = (1:length(files_eeg))
     EEG = eegh(com,EEG);
     
     % Get the individual alpha peak:
+    idx = 
     alphaPeaks(
     
     [ALLEEG EEG] = pop_ssd(ALLEEG,EEG,CURRENTSET,...
