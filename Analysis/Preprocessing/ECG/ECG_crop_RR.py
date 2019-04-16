@@ -5,7 +5,7 @@ Takes the concatenated ECG (TR) Kubios file of a participant and (re-)crops them
     • crop
     • export (*.txt)
 
-Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017
+Author: Simon Hofmann | <[surname].[lastname][at]pm.me> | 2017
 """
 
 import numpy as np

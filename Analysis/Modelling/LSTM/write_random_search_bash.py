@@ -2,7 +2,7 @@
 """
 Write a random search bash file.
 
-Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017, 2019 (Update)
+Author: Simon Hofmann | <[surname].[lastname][at]pm.me> | 2017, 2019 (Update)
 """
 
 from load_data import *

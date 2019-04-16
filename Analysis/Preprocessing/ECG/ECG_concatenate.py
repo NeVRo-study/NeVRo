@@ -5,7 +5,7 @@ Takes the single cropped ECG (mV) files of a participant and concatenates them i
     • concatenate
     • export (*.txt)
 
-Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017
+Author: Simon Hofmann | <[surname].[lastname][at]pm.me> | 2017
 """
 
 import numpy as np

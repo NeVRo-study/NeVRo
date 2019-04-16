@@ -8,7 +8,7 @@ Plot ECG (RR and HR), EEG, and Rating Trajectories
     • plot subjective Ratings
     • save plots
 
-Author: Simon Hofmann | <[surname].[lastname][at]protonmail.com> | 2017
+Author: Simon Hofmann | <[surname].[lastname][at]pm.me> | 2017
 """
 
 # import sys
