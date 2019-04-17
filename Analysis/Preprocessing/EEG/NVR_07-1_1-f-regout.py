@@ -39,7 +39,7 @@ if os.path.isfile(sub_ssd):
     else:
         sub_df = np.genfromtxt(sub_ssd, delimiter=",").transpose()
 
-    sub_df = sub_df[:, :int(sub_df.shape[1]/2)]  # Take subset (half)
+    sub_df = sub_df[:, int(sub_df.shape[1]/2):]  # Take subset (half)
 
     n_comp = sub_df.shape[1]
 
@@ -218,6 +218,7 @@ for ch in range(sub_df.shape[1]):
         Pxx_den = Pxx_den[f <= 50]
         f = f[f <= 50]
 
+    # TODO consider average polyfit across all normalized comps
     model = np.polyfit(f, np.log(Pxx_den), 1)
     predicted = np.polyval(model, f)
 
@@ -245,7 +246,7 @@ for ch in range(sub_df.shape[1]):
     plt.plot(f, np.log(Pxx_den) - predicted3, label='poly_3')
     # plt.plot(f, np.exp(np.log(Pxx_den)), label='exp')
     ax6.set_title("Detrend")
-    plt.legend()
+    plt.legend(loc='upper right')
     plt.tight_layout()
 
     plt.show()
@@ -298,7 +299,7 @@ for ch in range(sub_df.shape[1]):
                linestyles="dashed", alpha=0.2)  # ymax=np.polyval(model3_small, sub_apeak)
     # plt.plot(f, np.exp(np.log(Pxx_den)), label='exp')
     ax8.set_title("Detrend")
-    plt.legend()
+    plt.legend(loc='upper right')
     plt.tight_layout()
 
     plt.show()
@@ -308,9 +309,11 @@ for ch in range(sub_df.shape[1]):
 
 # Define component selection criterion
 
+figs6 = plt.figure(figsize=[14, 10])
+
 for ch in range(n_comp):
 
-    # fig6 = plt.figure()
+    axs = figs6.add_subplot(rpl, 2, ch + 1)
 
     f, Pxx_den = welch(x=sub_df[:, ch], fs=250.0, window="hann", nperseg=None, noverlap=None,
                        nfft=None,
@@ -332,10 +335,23 @@ for ch in range(n_comp):
 
     log_Pxx_den_detrend = np.log(Pxx_den) - predicted3_alphout
 
-    # f[((f > sub_apeak - 4) & (sub_apeak + 4 > f))]
-    # log_Pxx_den_detrend[((f > sub_apeak - 4) & (sub_apeak + 4 > f))]
+    f_apeak = f[((f > sub_apeak - 4) & (sub_apeak + 4 > f))]
+    log_Pxx_den_apeak = log_Pxx_den_detrend[((f > sub_apeak - 4) & (sub_apeak + 4 > f))]
 
-    plt.figure()
-    plt.plot(f, log_Pxx_den_detrend)
-    plt.plot(f[((f > sub_apeak - 4) & (sub_apeak + 4 > f))],
-             log_Pxx_den_detrend[((f > sub_apeak - 4) & (sub_apeak + 4 > f))])
+    axs.plot(f, log_Pxx_den_detrend)
+    axs.plot(f_apeak, log_Pxx_den_apeak)
+    axs.set_title("SSD comp{}".format(ch+1))
+    axs.vlines(sub_apeak,
+               ymin=min(log_Pxx_den_detrend),
+               ymax=log_Pxx_den_detrend[np.argmin(np.abs(f - sub_apeak))],
+               linestyles="dashed", alpha=.2)
+    plt.hlines(y=0, xmin=0, xmax=50, alpha=.4, linestyles=":")  # Zero-line
+
+    log_Pxx_den_apeak_stand = log_Pxx_den_apeak - np.linspace(log_Pxx_den_apeak[0], log_Pxx_den_apeak[-1],
+                                                              num=len(log_Pxx_den_apeak))
+
+    axs.plot(f_apeak, log_Pxx_den_apeak_stand)
+    # axs.fill_between(f_apeak, np.array(log_Pxx_den_apeak_stand+.5), alpha=.2)
+
+plt.tight_layout()
+
