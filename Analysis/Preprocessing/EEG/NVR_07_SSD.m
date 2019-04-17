@@ -101,7 +101,7 @@ for isub = (1:length(files_eeg))
     
     % Write CSV files with (broadband) SSD component activation:
     bbData = EEG.data' * SSD_Wout;
-    csvwrite([path_out_eeg thissubject '_' mov_cond ... 
+    csvwrite([path_out_eeg 'broadband/' thissubject '_' mov_cond ... 
         '_broad_SSD_cmp.csv'], bbData');
     
 end
