@@ -2,13 +2,13 @@
 
 % assumes the outputs of NVR_Peak to be loaded as "rest", "nomov", "mov"
 % Update 16/04/19: Doing this here:
-path_SSD = ['../../../Data/EEG/07_SSD'];
+path_SSD = ['../../../Data/EEG/07_SSD_old/'];
 
-rest = load([path_SSD '_old/1_peaks.mat']);
+rest = load([path_SSD '1_peaks.mat']);
 rest = rest.subj_peaks;
-nomov = load([path_SSD '_old/2_peaks.mat']);
+nomov = load([path_SSD '2_peaks.mat']);
 nomov = nomov.subj_peaks;
-mov = load([path_SSD '_old/3_peaks.mat']);
+mov = load([path_SSD '3_peaks.mat']);
 mov = mov.subj_peaks;
 
 
@@ -16,12 +16,28 @@ allAlpha = [];
 nSubs = max([size(rest,1), size(nomov,1), size(mov,1)]);
 
 allAlpha(1:nSubs,1:2) = rest(1:nSubs,1:2);
-% values for nomov:
-[~,globIdx,locIdx] = intersect(allAlpha(:,1),nomov(:,1));
-allAlpha(globIdx,3) = nomov(locIdx,2);
-% values for mov:
-[~,globIdx,locIdx] = intersect(allAlpha(:,1),mov(:,1));
-allAlpha(globIdx,4) = mov(locIdx,2);
+% values for nomove:
+[~,globIdx,locIdx] = intersect
+
+for i=1:nSubs
+    allAlpha(i,1:2) = rest(i,1:2);
+
+        if (sum(nomov(:,1) == i))
+            allAlpha(i,3) = nomov(nomov(:,1) == i,2);
+        else
+            allAlpha(i,3) = 0;
+        end
+
+    
+
+        if (sum(mov(:,1) == i))
+            allAlpha(i,4) = mov(mov(:,1) == i,2);
+        else
+            allAlpha(i,4) = 0;
+        end
+
+end
+
 
 
 for (i=1:size(allAlpha,1)) 
@@ -47,5 +63,5 @@ fprintf(fID,'%i,%f,%f, %f\r\n',allAlpha');
 fclose(fID);
 
 % Save as .mat:
-save([path_SSD '/alphaPeaks.mat'], 'alphaPeaks');
+save([path_SSD 'alphaPeaks.mat'], 'alphaPeaks');
 

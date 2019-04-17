@@ -26,9 +26,8 @@ path_in_eeg = [path_dataeeg '06_rejcomp/' mov_cond '/' cropstyle '/'];
 path_in_aPeaks = [path_dataeeg '07_SSD/'];
 
 % output paths:
-path_out_eeg = [path_dataeeg '07_SSD_NEW/' mov_cond '/' cropstyle '/'];
+path_out_eeg = [path_dataeeg '07_SSD/' mov_cond '/' cropstyle '/'];
 if ~exist(path_out_eeg, 'dir'); mkdir(path_out_eeg); end
-if ~exist([path_out_eeg 'CSV/'], 'dir'); mkdir([path_out_eeg 'CSV/']); end
 
 %1.2 Get data files
 files_eeg = dir([path_in_eeg '*.set']);
@@ -102,7 +101,7 @@ for isub = (1:length(files_eeg))
     
     % Write CSV files with (broadband) SSD component activation:
     bbData = EEG.data' * SSD_Wout;
-    csvwrite([path_out_eeg '/CSV/' thissubject '_' mov_cond ... 
+    csvwrite([path_out_eeg thissubject '_' mov_cond ... 
         '_broad_SSD_cmp.csv'], bbData');
     
 end
