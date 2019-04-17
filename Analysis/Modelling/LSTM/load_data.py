@@ -43,7 +43,7 @@ n_sub = 45
 
 # # # Define root abd data folders
 
-setwd("LSTM")
+setwd("/Analysis/Modelling/LSTM")
 
 path_data = set_path2data()
 

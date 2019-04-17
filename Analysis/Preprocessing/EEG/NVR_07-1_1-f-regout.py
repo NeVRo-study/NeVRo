@@ -13,30 +13,22 @@ import matplotlib.pyplot as plt
 
 path_data = set_path2data()
 # path_data = "../../../Data/"
-p2ssd = path_data + "EEG/07_SSD/"
-p2ssdnomov = p2ssd + "nomov/SBA/broadband/"
+p2ssd = path_data + "EEG/07_SSD/"  # TEMP
+p2ssdnomov = p2ssd + "nomov/SBA/broadband/"  # TEMP
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
-
 
 sub = 2  # rnd subject
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
-new_ssd = False
 
-# Case1: post-SSD remaining comps after rejecting
+# # Case1: post-SSD remaining comps after rejecting
+new_ssd = False
 # sub_ssd = get_filename(subject=sub, filetype="SSD", band_pass=False, cond="nomov", sba=True,
 #                        check_existence=True)
 
-# # Case2: pre-SSD ICA comps
-# sub_ssd = path_data + "EEG/NVR_S14_rejcomp_testfile.txt"
-
-# # Case3: post-SSD comps befor rejecting
-# sub_ssd = path_data + "EEG/NVR_S02_1_SSD_filt_cmp.csv"  # 3.1.
-# sub_ssd = path_data + "EEG/NVR_S03_1_SSD_filt_cmp.csv"  # 3.2.
-
-# # Case4: post-SSD comps befor rejecting
-sub_ssd = path_data + "EEG/ssdcomps.csv"
+# # Case2: post-SSD comps befor rejecting
+sub_ssd = path_data + "EEG/ssdcomps_test.csv"
 new_ssd = True
 
 if os.path.isfile(sub_ssd):
@@ -47,6 +39,8 @@ if os.path.isfile(sub_ssd):
     else:
         sub_df = np.genfromtxt(sub_ssd, delimiter=",").transpose()
 
+    sub_df = sub_df[:, :int(sub_df.shape[1]/2)]  # Take subset (half)
+
     n_comp = sub_df.shape[1]
 
     print("subject SSD df.shape:", sub_df.shape)
@@ -54,8 +48,9 @@ if os.path.isfile(sub_ssd):
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
+tight_range = True  # Freq-range 0-50 Hz
 
-# Plot power spectral density (Welch)
+# # Plot power spectral density (Welch)
 freq_peak = []
 min_max_Pxx_den = 99
 
@@ -102,11 +97,10 @@ ax2.set_title("plt.psd()")
 
 plt.show()
 
-# subplot per comps
+# # subplot per comps
 # for ch in range(1, sub_df.shape[1]):
 
 rpl = int(n_comp/2) if n_comp % 2 == 0 else int(n_comp/2) + 1
-
 
 opt = [0, 1]
 for o in opt:
@@ -122,6 +116,10 @@ for o in opt:
                            nfft=None,
                            detrend='constant', return_onesided=True, scaling='density', axis=-1,
                            average='mean')
+
+        if tight_range:
+            Pxx_den = Pxx_den[f <= 50]
+            f = f[f <= 50]
 
         max_Pxx_den = max(Pxx_den)
         freq_peak.append(f[np.where(Pxx_den == max_Pxx_den)])
@@ -144,7 +142,8 @@ for o in opt:
         axs.set_xticklabels(xtl)
 
         axs.set_title("SSD_comp_{}".format(ch+1))
-        axs.set_xlim([-1, 130])
+
+        axs.set_xlim([-1, 51 if tight_range else 130])
         if o == 1:
             axs.set_ylim([0, 1])
 
@@ -170,6 +169,10 @@ for ch in range(sub_df.shape[1]):
                        detrend='constant', return_onesided=True, scaling='density', axis=-1,
                        average='mean')
 
+    if tight_range:
+        Pxx_den = Pxx_den[f <= 50]
+        f = f[f <= 50]
+
     ax3 = plt.subplot(2, 1, 1)
     ax3.semilogy(f, Pxx_den)  # == plt.plot(f, np.log(Pxx_den))
     ax3.set_title("semilogy(f, Pxx_den)")
@@ -189,14 +192,13 @@ ax3.set_xticks(xt4)
 ax3.set_xticklabels(xtl4)
 ax4.set_xticks(xt4)
 ax4.set_xticklabels(xtl4)
-ax3.set_xlim([-1, 130])
-ax4.set_xlim([-1, 130])
+ax3.set_xlim([-1, 51 if tight_range else 130])
+ax4.set_xlim([-1, 51 if tight_range else 130])
 
 plt.tight_layout()
 plt.show()
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
-
 
 for ch in range(sub_df.shape[1]):
 
@@ -206,6 +208,10 @@ for ch in range(sub_df.shape[1]):
                        nfft=None,
                        detrend='constant', return_onesided=True, scaling='density', axis=-1,
                        average='mean')
+
+    if tight_range:
+        Pxx_den = Pxx_den[f <= 50]
+        f = f[f <= 50]
 
     model = np.polyfit(f, np.log(Pxx_den), 1)
     predicted = np.polyval(model, f)
@@ -240,59 +246,47 @@ for ch in range(sub_df.shape[1]):
     plt.show()
 
 
-# Smaller freq-window
+# Smaller freq-window (0-50Hz)  + Leave alpha-out
+for ch in range(sub_df.shape[1]):
 
-fig5 = plt.figure()
-f_small = f[f < 50]
-Pxx_den_small = Pxx_den[f<50]
+    fig5 = plt.figure()
 
-model3_small = np.polyfit(f_small, np.log(Pxx_den_small), 3)
-predicted3_small = np.polyval(model3_small, f_small)
+    f, Pxx_den = welch(x=sub_df[:, ch], fs=250.0, window="hann", nperseg=None, noverlap=None,
+                       nfft=None,
+                       detrend='constant', return_onesided=True, scaling='density', axis=-1,
+                       average='mean')
 
-ax7 = plt.subplot(2, 1, 1)
-plt.plot(f_small, np.log(Pxx_den_small), label='data (f<50)')
-plt.plot(predicted3_small, alpha=.8, linestyle=":", label='poly_3')
-ax7.set_title("Original SSD comp{}".format(ch+1))
-plt.legend()
-plt.tight_layout()
+    # Freq.-Range (0-50Hz)
+    f_small = f[f <= 50]
+    Pxx_den_small = Pxx_den[f <= 50]
 
-ax8 = plt.subplot(2, 1, 2)
-plt.plot(f_small, np.log(Pxx_den_small), linestyle=":", label='data (f<50)')
-plt.plot(f_small, np.log(Pxx_den_small) - predicted3_small, label='poly_3')
-# plt.plot(f, np.exp(np.log(Pxx_den)), label='exp')
-ax8.set_title("Detrend")
-plt.legend()
-plt.tight_layout()
+    # Leave alpha out
+    f_small_alphout = f_small[~((15 > f_small) & (f_small > 6))]  # TODO adapt around alpha peak per subj
+    Pxx_den_small_alphout = Pxx_den_small[~((15 > f_small) & (f_small > 6))]
 
-plt.show()
+    # Fit polynomial(3)
+    model3_small = np.polyfit(f_small, np.log(Pxx_den_small), 3)
+    predicted3_small = np.polyval(model3_small, f_small)
 
+    # Fit polynomial(3) to alpha out data
+    model3_small_alphout = np.polyfit(f_small_alphout, np.log(Pxx_den_small_alphout), deg=3)
+    predicted3_small_alphout = np.polyval(model3_small_alphout, f_small)  # predict on whole! freq-range
 
-# Leave alpha-out freq-window
-fig6 = plt.figure()
-f_small_alphout = f_small[~((15 > f_small) & (f_small > 6))]
-Pxx_den_small_alphout = Pxx_den_small[~((15 > f_small) & (f_small > 6))]
+    ax7 = plt.subplot(2, 1, 1)
+    plt.plot(f_small, np.log(Pxx_den_small), label='data (f<=50)')
+    plt.plot(predicted3_small, alpha=.8, linestyle=":", label='poly3')
+    plt.plot(predicted3_small_alphout, alpha=.8, linestyle=":", label='poly3_alpha-out')
+    ax7.set_title("Original SSD comp{}".format(ch+1))
+    plt.legend()
+    plt.tight_layout()
 
-model3_small_alphout = np.polyfit(f_small_alphout, np.log(Pxx_den_small_alphout), deg=3)
-predicted3_small_alphout = np.polyval(model3_small_alphout, f_small)
+    ax8 = plt.subplot(2, 1, 2)
+    plt.plot(f_small, np.log(Pxx_den_small), linestyle=":", label='data (f<=50)')
+    plt.plot(f_small, np.log(Pxx_den_small) - predicted3_small, label='poly_3')
+    plt.plot(f_small, np.log(Pxx_den_small) - predicted3_small_alphout, label='poly3_alpha-out')
+    # plt.plot(f, np.exp(np.log(Pxx_den)), label='exp')
+    ax8.set_title("Detrend")
+    plt.legend()
+    plt.tight_layout()
 
-
-ax9 = plt.subplot(2, 1, 1)
-plt.plot(f_small, np.log(Pxx_den_small), label='data (f<50, alpha_out)')
-plt.plot(predicted3_small_alphout, alpha=.8, linestyle=":", label='poly_3')
-ax9.set_title("Original SSD comp{}".format(ch+1))
-plt.legend()
-plt.tight_layout()
-
-ax10 = plt.subplot(2, 1, 2)
-plt.plot(f_small, np.log(Pxx_den_small), linestyle=":", label='data (f<50, alpha_out)')
-plt.plot(f_small, np.log(Pxx_den_small) - predicted3_small_alphout, label='poly_3')
-# plt.plot(f, np.exp(np.log(Pxx_den)), label='exp')
-ax10.set_title("Detrend")
-plt.legend()
-plt.tight_layout()
-
-plt.show()
-
-plt.figure()
-plt.plot(predicted3_small)
-plt.plot(predicted3_small_alphout)
+    plt.show()

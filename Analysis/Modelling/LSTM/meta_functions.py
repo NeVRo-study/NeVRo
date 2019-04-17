@@ -28,6 +28,7 @@ def setwd(new_dir):
     # First look down the tree
     if not found:
         for path, j, files in os.walk('.'):
+            # print(path, j, files)
             if new_dir in path:
                 os.chdir(path)
                 found = True
