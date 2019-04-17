@@ -332,15 +332,10 @@ for ch in range(n_comp):
 
     log_Pxx_den_detrend = np.log(Pxx_den) - predicted3_alphout
 
-    # plt.figure()
-    # plt.plot(f, log_Pxx_den_detrend)
+    # f[((f > sub_apeak - 4) & (sub_apeak + 4 > f))]
+    # log_Pxx_den_detrend[((f > sub_apeak - 4) & (sub_apeak + 4 > f))]
+
+    plt.figure()
+    plt.plot(f, log_Pxx_den_detrend)
     plt.plot(f[((f > sub_apeak - 4) & (sub_apeak + 4 > f))],
              log_Pxx_den_detrend[((f > sub_apeak - 4) & (sub_apeak + 4 > f))])
-
-    f[((f > sub_apeak - 4) & (sub_apeak + 4 > f))]
-    log_Pxx_den_detrend[((f > sub_apeak - 4) & (sub_apeak + 4 > f))]
-
-
-
-    sub_apeak+4
-    sub_apeak-4
