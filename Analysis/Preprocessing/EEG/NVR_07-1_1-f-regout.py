@@ -18,7 +18,7 @@ p2ssdnomov = p2ssd + "nomov/SBA/broadband/"  # TEMP
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
-sub = 2  # rnd subject
+sub = 5  # rnd subject
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
@@ -28,7 +28,7 @@ new_ssd = False
 #                        check_existence=True)
 
 # # Case2: post-SSD comps befor rejecting
-sub_ssd = path_data + "EEG/ssdcomps_test.csv"
+sub_ssd = path_data + "EEG/ssdcomps_test.csv"  # subject 5
 new_ssd = True
 
 if os.path.isfile(sub_ssd):
@@ -49,6 +49,11 @@ if os.path.isfile(sub_ssd):
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
 tight_range = True  # Freq-range 0-50 Hz
+
+# Get alpha peak information for subject
+tab_alpha_peaks = np.genfromtxt(p2ssd + "alphaPeaks.csv", delimiter=",", names=True)
+sub_apeak = tab_alpha_peaks["nomov"][tab_alpha_peaks["ID"] == sub].item()
+
 
 # # Plot power spectral density (Welch)
 freq_peak = []
@@ -132,8 +137,8 @@ for o in opt:
         axs.set_xlabel('frequency [Hz]')
         axs.set_ylabel('PSD [V**2/Hz]')
 
-        axs.vlines(f[np.where(Pxx_den == max_Pxx_den)], ymin=-0.01, ymax=min_max_Pxx_den, linestyles="dashed",
-                   alpha=.2)
+        axs.vlines(f[np.where(Pxx_den == max_Pxx_den)], ymin=-0.01, ymax=min_max_Pxx_den,
+                   linestyles="dashed", alpha=.2)
         xt = axs.get_xticks()
         xt = np.append(xt, f[np.where(Pxx_den == max_Pxx_den)][0])
         xtl = xt.tolist()
@@ -245,7 +250,6 @@ for ch in range(sub_df.shape[1]):
 
     plt.show()
 
-
 # Smaller freq-window (0-50Hz)  + Leave alpha-out
 for ch in range(sub_df.shape[1]):
 
@@ -261,8 +265,8 @@ for ch in range(sub_df.shape[1]):
     Pxx_den_small = Pxx_den[f <= 50]
 
     # Leave alpha out
-    f_small_alphout = f_small[~((15 > f_small) & (f_small > 6))]  # TODO adapt around alpha peak per subj
-    Pxx_den_small_alphout = Pxx_den_small[~((15 > f_small) & (f_small > 6))]
+    f_small_alphout = f_small[~((sub_apeak+4 > f_small) & (f_small > sub_apeak-4))]
+    Pxx_den_small_alphout = Pxx_den_small[~((sub_apeak+4 > f_small) & (f_small > sub_apeak-4))]
 
     # Fit polynomial(3)
     model3_small = np.polyfit(f_small, np.log(Pxx_den_small), 3)
@@ -276,6 +280,11 @@ for ch in range(sub_df.shape[1]):
     plt.plot(f_small, np.log(Pxx_den_small), label='data (f<=50)')
     plt.plot(predicted3_small, alpha=.8, linestyle=":", label='poly3')
     plt.plot(predicted3_small_alphout, alpha=.8, linestyle=":", label='poly3_alpha-out')
+
+    ax7.vlines(sub_apeak,
+               ymin=ax7.get_ylim()[0], ymax=np.log(Pxx_den_small)[np.argmin(np.abs(f_small - sub_apeak))],
+               linestyles="dashed", alpha=0.2)  # ymax=np.polyval(model3_small, sub_apeak)
+
     ax7.set_title("Original SSD comp{}".format(ch+1))
     plt.legend()
     plt.tight_layout()
@@ -284,9 +293,54 @@ for ch in range(sub_df.shape[1]):
     plt.plot(f_small, np.log(Pxx_den_small), linestyle=":", label='data (f<=50)')
     plt.plot(f_small, np.log(Pxx_den_small) - predicted3_small, label='poly_3')
     plt.plot(f_small, np.log(Pxx_den_small) - predicted3_small_alphout, label='poly3_alpha-out')
+    ax8.vlines(sub_apeak,
+               ymin=ax7.get_ylim()[0], ymax=np.log(Pxx_den_small)[np.argmin(np.abs(f_small - sub_apeak))],
+               linestyles="dashed", alpha=0.2)  # ymax=np.polyval(model3_small, sub_apeak)
     # plt.plot(f, np.exp(np.log(Pxx_den)), label='exp')
     ax8.set_title("Detrend")
     plt.legend()
     plt.tight_layout()
 
     plt.show()
+
+
+# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+
+# Define component selection criterion
+
+for ch in range(n_comp):
+
+    # fig6 = plt.figure()
+
+    f, Pxx_den = welch(x=sub_df[:, ch], fs=250.0, window="hann", nperseg=None, noverlap=None,
+                       nfft=None,
+                       detrend='constant', return_onesided=True, scaling='density', axis=-1,
+                       average='mean')
+
+    if tight_range:
+        # Freq.-Range (0-50Hz)
+        Pxx_den = Pxx_den[f <= 50]
+        f = f[f <= 50]
+
+    # Leave alpha out
+    f_alphout = f[~((sub_apeak + 4 > f) & (f > sub_apeak - 4))]
+    Pxx_den_alphout = Pxx_den[~((sub_apeak + 4 > f) & (f > sub_apeak - 4))]
+
+    # Fit polynomial(3) to alpha out data
+    model3_alphout = np.polyfit(f_alphout, np.log(Pxx_den_alphout), deg=3)
+    predicted3_alphout = np.polyval(model3_alphout, f)  # predict on whole! freq-range
+
+    log_Pxx_den_detrend = np.log(Pxx_den) - predicted3_alphout
+
+    # plt.figure()
+    # plt.plot(f, log_Pxx_den_detrend)
+    plt.plot(f[((f > sub_apeak - 4) & (sub_apeak + 4 > f))],
+             log_Pxx_den_detrend[((f > sub_apeak - 4) & (sub_apeak + 4 > f))])
+
+    f[((f > sub_apeak - 4) & (sub_apeak + 4 > f))]
+    log_Pxx_den_detrend[((f > sub_apeak - 4) & (sub_apeak + 4 > f))]
+
+
+
+    sub_apeak+4
+    sub_apeak-4
