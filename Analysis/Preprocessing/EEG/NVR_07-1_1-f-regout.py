@@ -39,7 +39,8 @@ if os.path.isfile(sub_ssd):
     else:
         sub_df = np.genfromtxt(sub_ssd, delimiter=",").transpose()
 
-    sub_df = sub_df[:, int(sub_df.shape[1]/2):]  # Take subset (half)
+    sub_df = sub_df[:, :int(sub_df.shape[1]/2)]  # Take subset (first half)
+    # sub_df = sub_df[:, int(sub_df.shape[1]/2):]  # Take subset (second half)
 
     n_comp = sub_df.shape[1]
 
@@ -56,11 +57,11 @@ sub_apeak = tab_alpha_peaks["nomov"][tab_alpha_peaks["ID"] == sub].item()
 
 
 # # Plot power spectral density (Welch)
-freq_peak = []
-min_max_Pxx_den = 99
+min_apeak = 99  # init
+psd_alternative = False  # True: plt.psd() [is equivalent]
 
 fig = plt.figure()
-ax = plt.subplot(1, 2, 1)
+ax = plt.subplot(1, 2 if psd_alternative else 1, 1)
 # for ch in range(1, sub_df.shape[1]):
 for ch in range(sub_df.shape[1]):
     f, Pxx_den = welch(x=sub_df[:, ch], fs=250.0, window="hann", nperseg=None, noverlap=None,
@@ -68,49 +69,52 @@ for ch in range(sub_df.shape[1]):
                        detrend='constant', return_onesided=True, scaling='density', axis=-1,
                        average='mean')
 
+    if tight_range:
+        Pxx_den = Pxx_den[f <= 50]
+        f = f[f <= 50]
+
     ax.semilogy(f, Pxx_den)
     plt.xlabel('frequency [Hz]')
     plt.ylabel('PSD [V**2/Hz]')
-    max_Pxx_den = max(Pxx_den)
-    freq_peak.append(f[np.where(Pxx_den == max_Pxx_den)])
-    min_max_Pxx_den = max_Pxx_den if max_Pxx_den < min_max_Pxx_den else min_max_Pxx_den
 
-plt.vlines(np.mean(freq_peak), ymin=-0.01, ymax=min_max_Pxx_den, linestyles="dashed", alpha=.2)
+    Pxx_den_apeak = Pxx_den[np.argmin(np.abs(f - sub_apeak))]
+    min_apeak = Pxx_den_apeak if Pxx_den_apeak < min_apeak else min_apeak
+
+plt.vlines(sub_apeak, ymin=-0.01, ymax=min_apeak, linestyles="dashed", alpha=.2)
 xt = ax.get_xticks()
-xt = np.append(xt, np.mean(freq_peak))
+xt = np.append(xt, sub_apeak)
 xtl = xt.tolist()
-xtl[-1] = str(np.round(np.mean(freq_peak), 1))
+xtl[-1] = str(np.round(sub_apeak, 1))
 ax.set_xticks(xt)
 ax.set_xticklabels(xtl)
-ax.set_xlim([-1, 130])
-ax.set_title("plt.semilogy(f ,Pxx_den)")
+ax.set_xlim([-1, 51 if tight_range else 130])
+ax.set_title("plt.semilogy(f, Pxx_den)")
 
 # Alternative: plt.psd
-ax2 = plt.subplot(1, 2, 2)
-# for ch in range(1, sub_df.shape[1]):
-for ch in range(sub_df.shape[1]):
-    ax2.psd(x=sub_df[:, ch], Fs=250.)
-ax2.vlines(np.mean(freq_peak), ymin=-121, ymax=np.log(min_max_Pxx_den), linestyles="dashed", alpha=.2)
-xt2 = ax2.get_xticks()
-xt2 = np.append(xt2, np.mean(freq_peak))
-xtl2 = xt2.tolist()
-xtl2[-1] = str(np.round(np.mean(freq_peak), 1))
-ax2.set_xticks(xt2)
-ax2.set_xticklabels(xtl2)
-ax2.set_xlim([-1, 130])
-ax2.set_title("plt.psd()")
+if psd_alternative:
+    ax2 = plt.subplot(1, 2, 2)
+    # for ch in range(1, sub_df.shape[1]):
+    for ch in range(sub_df.shape[1]):
+        ax2.psd(x=sub_df[:, ch], Fs=250.)
+    ax2.vlines(sub_apeak, ymin=-121, ymax=np.log(min_apeak), linestyles="dashed", alpha=.2)
+    xt2 = ax2.get_xticks()
+    xt2 = np.append(xt2, sub_apeak)
+    xtl2 = xt2.tolist()
+    xtl2[-1] = str(np.round(sub_apeak, 1))
+    ax2.set_xticks(xt2)
+    ax2.set_xticklabels(xtl2)
+    ax2.set_xlim([-1, 51 if tight_range else 130])
+    ax2.set_title("plt.psd()")
 
 plt.show()
 
-# # subplot per comps
+# # Subplot per component
 # for ch in range(1, sub_df.shape[1]):
 
 rpl = int(n_comp/2) if n_comp % 2 == 0 else int(n_comp/2) + 1
 
 opt = [0, 1]
 for o in opt:
-    freq_peak = []
-    min_max_Pxx_den = 99
 
     figs = plt.figure(figsize=[14, 10])
 
@@ -126,9 +130,7 @@ for o in opt:
             Pxx_den = Pxx_den[f <= 50]
             f = f[f <= 50]
 
-        max_Pxx_den = max(Pxx_den)
-        freq_peak.append(f[np.where(Pxx_den == max_Pxx_den)])
-        min_max_Pxx_den = max_Pxx_den if max_Pxx_den < min_max_Pxx_den else min_max_Pxx_den
+        Pxx_den_apeak = Pxx_den[np.argmin(np.abs(f - sub_apeak))]
 
         if o == 0:
             axs.semilogy(f, Pxx_den)
@@ -137,20 +139,20 @@ for o in opt:
         axs.set_xlabel('frequency [Hz]')
         axs.set_ylabel('PSD [V**2/Hz]')
 
-        axs.vlines(f[np.where(Pxx_den == max_Pxx_den)], ymin=-0.01, ymax=min_max_Pxx_den,
+        axs.vlines(sub_apeak, ymin=-0.01, ymax=Pxx_den_apeak,
                    linestyles="dashed", alpha=.2)
         xt = axs.get_xticks()
-        xt = np.append(xt, f[np.where(Pxx_den == max_Pxx_den)][0])
+        xt = np.append(xt, sub_apeak)
         xtl = xt.tolist()
-        xtl[-1] = str(np.round(f[np.where(Pxx_den == max_Pxx_den)][0], 1))
+        xtl[-1] = str(np.round(sub_apeak, 1))
         axs.set_xticks(xt)
         axs.set_xticklabels(xtl)
 
-        axs.set_title("SSD_comp_{}".format(ch+1))
+        axs.set_title("{}SSD_comp_{}".format("semilog " if o == 0 else "", ch+1))
 
         axs.set_xlim([-1, 51 if tight_range else 130])
-        if o == 1:
-            axs.set_ylim([0, 1])
+        # if o == 1:
+        #     axs.set_ylim([0, 1])
 
     plt.tight_layout()
 
@@ -178,6 +180,8 @@ for ch in range(sub_df.shape[1]):
         Pxx_den = Pxx_den[f <= 50]
         f = f[f <= 50]
 
+    Pxx_den_apeak = Pxx_den[np.argmin(np.abs(f - sub_apeak))]
+
     ax3 = plt.subplot(2, 1, 1)
     ax3.semilogy(f, Pxx_den)  # == plt.plot(f, np.log(Pxx_den))
     ax3.set_title("semilogy(f, Pxx_den)")
@@ -187,12 +191,12 @@ for ch in range(sub_df.shape[1]):
     ax4.set_title("plot(f,  np.exp(np.log(Pxx_den))")
     # plt.plot(f, Pxx_den)
 
-ax3.vlines(np.mean(freq_peak), ymin=- 1e-1, ymax=min_max_Pxx_den, linestyles="dashed", alpha=.2)
-ax4.vlines(np.mean(freq_peak), ymin=0, ymax=min_max_Pxx_den, linestyles="dashed", alpha=.2)
+ax3.vlines(sub_apeak, ymin=- 1e-1, ymax=Pxx_den_apeak, linestyles="dashed", alpha=.2)
+ax4.vlines(sub_apeak, ymin=0, ymax=Pxx_den_apeak, linestyles="dashed", alpha=.2)
 xt4 = ax4.get_xticks()
-xt4 = np.append(xt4, np.mean(freq_peak))
+xt4 = np.append(xt4, sub_apeak)
 xtl4 = xt4.tolist()
-xtl4[-1] = str(np.round(np.mean(freq_peak), 1))
+xtl4[-1] = str(np.round(sub_apeak, 1))
 ax3.set_xticks(xt4)
 ax3.set_xticklabels(xtl4)
 ax4.set_xticks(xt4)
@@ -205,9 +209,11 @@ plt.show()
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
+figs4 = plt.figure(figsize=[14, 10])
+
 for ch in range(sub_df.shape[1]):
 
-    fig4 = plt.figure()
+    axs = figs4.add_subplot(rpl, 2, ch + 1)
 
     f, Pxx_den = welch(x=sub_df[:, ch], fs=250.0, window="hann", nperseg=None, noverlap=None,
                        nfft=None,
@@ -217,6 +223,8 @@ for ch in range(sub_df.shape[1]):
     if tight_range:
         Pxx_den = Pxx_den[f <= 50]
         f = f[f <= 50]
+
+    Pxx_den_apeak = np.log(Pxx_den)[np.argmin(np.abs(f - sub_apeak))]
 
     # TODO consider average polyfit across all normalized comps
     model = np.polyfit(f, np.log(Pxx_den), 1)
@@ -230,31 +238,33 @@ for ch in range(sub_df.shape[1]):
 
     np.polyfit(f, np.log(Pxx_den), 3)
 
-    ax5 = plt.subplot(2, 1, 1)
-    plt.plot(f, np.log(Pxx_den), label='data')
-    plt.plot(predicted, alpha=.8, linestyle=":", label='poly_1/linear')
-    plt.plot(predicted2, alpha=.8, linestyle=":", label='poly_2')
-    plt.plot(predicted3, alpha=.8, linestyle=":", label='poly_3')
-    ax5.set_title("Original SSD comp{}".format(ch+1))
-    plt.legend()
-    plt.tight_layout()
+    # Plot
+    axs.plot(f, np.log(Pxx_den), linestyle="-.", label='data')
 
-    ax6 = plt.subplot(2, 1, 2)
-    plt.plot(f, np.log(Pxx_den), linestyle=":", label='data')
-    plt.plot(f, np.log(Pxx_den) - predicted, label='poly_1/linear')
-    plt.plot(f, np.log(Pxx_den) - predicted2, label='poly_2')
-    plt.plot(f, np.log(Pxx_den) - predicted3, label='poly_3')
-    # plt.plot(f, np.exp(np.log(Pxx_den)), label='exp')
-    ax6.set_title("Detrend")
-    plt.legend(loc='upper right')
-    plt.tight_layout()
+    axs.plot(predicted, alpha=.8, linestyle=":", c="g", label='poly_1/linear')
+    axs.plot(predicted2, alpha=.8, linestyle=":", c="y", label='poly_2')
+    axs.plot(predicted3, alpha=.8, linestyle=":", c="m", label='poly_3')
+    axs.set_title("Detrend SSD comp{}".format(ch+1))
 
+    axs.plot(f, np.log(Pxx_den) - predicted, c="g", label='poly_1/linear')
+    axs.plot(f, np.log(Pxx_den) - predicted2, c="y", label='poly_2')
+    axs.plot(f, np.log(Pxx_den) - predicted3, c="m", label='poly_3')
+
+    # TODO adapt
+    axs.vlines(sub_apeak, ymin=min(np.log(Pxx_den)), ymax=Pxx_den_apeak, linestyles="dashed", alpha=.2)
+
+    if ch == 0:
+        axs.legend(loc='upper right')
+    plt.tight_layout()
     plt.show()
 
 # Smaller freq-window (0-50Hz)  + Leave alpha-out
+
+figs5 = plt.figure(figsize=[14, 10])
+
 for ch in range(sub_df.shape[1]):
 
-    fig5 = plt.figure()
+    axs = figs5.add_subplot(rpl, 2, ch + 1)
 
     f, Pxx_den = welch(x=sub_df[:, ch], fs=250.0, window="hann", nperseg=None, noverlap=None,
                        nfft=None,
@@ -277,31 +287,19 @@ for ch in range(sub_df.shape[1]):
     model3_small_alphout = np.polyfit(f_small_alphout, np.log(Pxx_den_small_alphout), deg=3)
     predicted3_small_alphout = np.polyval(model3_small_alphout, f_small)  # predict on whole! freq-range
 
-    ax7 = plt.subplot(2, 1, 1)
-    plt.plot(f_small, np.log(Pxx_den_small), label='data (f<=50)')
-    plt.plot(predicted3_small, alpha=.8, linestyle=":", label='poly3')
-    plt.plot(predicted3_small_alphout, alpha=.8, linestyle=":", label='poly3_alpha-out')
+    plt.plot(f_small, np.log(Pxx_den_small), linestyle="-.", label='data (f<=50)')
+    plt.plot(predicted3_small, alpha=.8, linestyle=":", c="m", label='poly3')
+    plt.plot(predicted3_small_alphout, alpha=.8, c="g", linestyle=":", label='poly3_alpha-out')
 
-    ax7.vlines(sub_apeak,
-               ymin=ax7.get_ylim()[0], ymax=np.log(Pxx_den_small)[np.argmin(np.abs(f_small - sub_apeak))],
+    plt.plot(f_small, np.log(Pxx_den_small) - predicted3_small, c="m", label='poly_3')
+    plt.plot(f_small, np.log(Pxx_den_small) - predicted3_small_alphout, c="g", label='poly3_alpha-out')
+    axs.vlines(sub_apeak,
+               ymin=axs.get_ylim()[0], ymax=np.log(Pxx_den_small)[np.argmin(np.abs(f_small - sub_apeak))],
                linestyles="dashed", alpha=0.2)  # ymax=np.polyval(model3_small, sub_apeak)
-
-    ax7.set_title("Original SSD comp{}".format(ch+1))
-    plt.legend()
+    axs.set_title("Detrend SSD comp{}".format(ch+1))
+    if ch == 0:
+        plt.legend(loc='upper right')
     plt.tight_layout()
-
-    ax8 = plt.subplot(2, 1, 2)
-    plt.plot(f_small, np.log(Pxx_den_small), linestyle=":", label='data (f<=50)')
-    plt.plot(f_small, np.log(Pxx_den_small) - predicted3_small, label='poly_3')
-    plt.plot(f_small, np.log(Pxx_den_small) - predicted3_small_alphout, label='poly3_alpha-out')
-    ax8.vlines(sub_apeak,
-               ymin=ax7.get_ylim()[0], ymax=np.log(Pxx_den_small)[np.argmin(np.abs(f_small - sub_apeak))],
-               linestyles="dashed", alpha=0.2)  # ymax=np.polyval(model3_small, sub_apeak)
-    # plt.plot(f, np.exp(np.log(Pxx_den)), label='exp')
-    ax8.set_title("Detrend")
-    plt.legend(loc='upper right')
-    plt.tight_layout()
-
     plt.show()
 
 
