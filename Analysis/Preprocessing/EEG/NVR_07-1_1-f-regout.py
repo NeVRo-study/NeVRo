@@ -13,15 +13,36 @@ import matplotlib.pyplot as plt
 
 path_data = set_path2data()
 # path_data = "../../../Data/"
-p2ssd = path_data + "EEG/07_SSD/"  # TEMP
-p2ssdnomov = p2ssd + "nomov/SBA/broadband/"  # TEMP
+p2ssd = path_data + "EEG/07_SSD/"  # TODO remove after testphase
+p2ssdnomov = p2ssd + "nomov/SBA/broadband/"  # TODO remove after testphase
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
+# Set hyperparameters
 new_ssd = True  # TODO remove after testphase
 tight_range = True  # Freq-range 0-50 Hz
+subjects = np.arange(1, 45+1)
 bpass = False
 condition = "nomov"
+
+# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+
+# # Create table for selected components
+# Colums: ID | selected components  | number of selected components | number of all SSD components
+col_names = ["ID", "selected_comps", "n_sel_comps", "n_all_comps"]
+tab_select_ssd = np.zeros(shape=(subjects[-1], 4))  # Init table
+tab_select_ssd.fill(np.nan)  # convert entries to nan
+tab_select_ssd[:, 0] = subjects
+
+# col_names = [(cnam, "<f8") for cnam in ["ID", "selected_comps", "n_sel_comps", "n_all_comps"]]
+# tab_select_ssd.dtype = col_names
+# tab_select_ssd["ID"] = subjects.reshape((len(subjects), 1))
+# print(tab_select_ssd["ID"])
+# print(tab_select_ssd)
+# np.savetxt("test.csv", tab_select_ssd, delimiter=",", fmt="%s",
+#            header=",".join(tab_select_ssd.dtype.names))
+# np.genfromtxt("test.csv")  # comes without col names
+
 
 # # Test Case: post-SSD comps before rejecting # TODO remove after testphase
 # sub = 5
@@ -29,7 +50,7 @@ condition = "nomov"
 # new_ssd = False
 
 # # Full Case: fresh SSDs components
-for sub in range(45):
+for sub in subjects:
     try:
         sub_ssd = get_filename(subject=sub, filetype="SSD", band_pass=bpass, cond=condition, sba=True,
                                check_existence=True)
@@ -49,15 +70,16 @@ for sub in range(45):
         n_comp = sub_df.shape[1]
 
         # TODO remove after testphase
-        sub_df = sub_df[:, :int(n_comp/2)]  # Take subset (first half)
-        # sub_df = sub_df[:, int(n_comp/2):]  # Take subset (second half)
+        n_comp = int(n_comp / 2)  # half
+        sub_df = sub_df[:, :n_comp]  # Take subset (first half)
+        # sub_df = sub_df[:, n_comp:]  # Take subset (second half)
 
         print("{} SSD df.shape: {}".format(s(sub), sub_df.shape))
         print("First 5 rows:\n", sub_df[:5, :])
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
-    # Get alpha peak information for subject
+    # # Get alpha peak information for given subject
     tab_alpha_peaks = np.genfromtxt(p2ssd + "alphaPeaks.csv", delimiter=",", names=True)
     sub_apeak = tab_alpha_peaks[condition][tab_alpha_peaks["ID"] == sub].item()
 
@@ -93,8 +115,8 @@ for sub in range(45):
     ax.set_xticks(xt)
     ax.set_xticklabels(xtl)
     ax.set_xlim([-1, 51 if tight_range else 130])
-    ax.set_title("S{} | {} | {} | plt.semilogy(f, Pxx_den)".format(str(sub).zfill(2), condition,
-                                                                   "narrowband" if bpass else "broadband"))
+    ax.set_title("{} | {} | {} | plt.semilogy(f, Pxx_den)".format(s(sub), condition,
+                                                                  "narrowband" if bpass else "broadband"))
 
     # Alternative: plt.psd
     if psd_alternative:
@@ -298,6 +320,13 @@ for sub in range(45):
 
         # Select
         # TODO write in table
+
+        log_Pxx_den_detrend_above_zero = log_Pxx_den_detrend[log_Pxx_den_detrend > 0]
+        f_above_zero = f[log_Pxx_den_detrend > 0]
+        # log_Pxx_den_detrend_above_zero /= max(log_Pxx_den_detrend_above_zero)  # normalize
+        # axs.plot(f_above_zero, log_Pxx_den_detrend_above_zero)
+        min(log_Pxx_den_detrend_above_zero)
+
         error_term = 0.01  # TODO define more systematically
         if np.any(log_Pxx_den_apeak > 0 + error_term):
             # write ch (component) as selected
@@ -310,7 +339,8 @@ for sub in range(45):
 
         axs.plot(f, log_Pxx_den_detrend)
         axs.plot(f_apeak, log_Pxx_den_apeak, c="g" if selected else "r")
-        axs.set_title("SSD comp{}".format(ch+1))
+        axs.set_title("{} | {} | {} | SSD comp{}".format(s(sub), condition,
+                                                         "narrowband" if bpass else "broadband", ch+1))
         axs.vlines(sub_apeak,
                    ymin=min(log_Pxx_den_detrend),
                    ymax=log_Pxx_den_detrend[np.argmin(np.abs(f - sub_apeak))],
@@ -321,7 +351,14 @@ for sub in range(45):
                                                                   log_Pxx_den_apeak[-1],
                                                                   num=len(log_Pxx_den_apeak))
 
-        axs.plot(f_apeak, log_Pxx_den_apeak_stand, c="g" if selected else "r", alpha=.5)
+        axs.plot(f_apeak, log_Pxx_den_apeak_stand, c="g" if selected else "r", alpha=.2)
+
+        # np.var()
         # axs.fill_between(f_apeak, np.array(log_Pxx_den_apeak_stand+.5), alpha=.2)
 
     plt.tight_layout()
+
+
+# Save Table of selected components
+np.savetxt(fname="SSD_selected_components.csv", X=tab_select_ssd, header=",".join(col_names),
+           delimiter=",")
