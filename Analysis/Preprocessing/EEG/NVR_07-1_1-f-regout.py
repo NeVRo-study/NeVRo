@@ -20,19 +20,28 @@ p2ssdnomov = p2ssd + "nomov/SBA/broadband/"  # TODO remove after testphase
 
 # Set hyperparameters
 new_ssd = True  # TODO remove after testphase
+sanity_check = False
 tight_range = True  # Freq-range 0-50 Hz
 subjects = np.arange(1, 45+1)
-bpass = False
+# subjects = np.arange(1, 20+1)  # subjects = np.arange(21, 45+1)  # subsets
 condition = "nomov"
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
 # # Create table for selected components
 # Colums: ID | selected components  | number of selected components | number of all SSD components
+tab_select_name = p2ssd + "{0}/SSD_selected_components_{0}.csv".format(condition)
 col_names = ["ID", "selected_comps", "n_sel_comps", "n_all_comps"]
-tab_select_ssd = np.zeros(shape=(subjects[-1], 4))  # Init table
-tab_select_ssd.fill(np.nan)  # convert entries to nan
-tab_select_ssd[:, 0] = subjects
+
+if os.path.isfile(tab_select_name):
+
+    tab_select_ssd = np.genfromtxt(tab_select_name, delimiter=";", dtype='<U{}'.format(
+        len(",".join(str(x) for x in np.arange(1, 20+1)))))  # == '<U50' needed if 20 comps selected
+else:
+    tab_select_ssd = np.zeros(shape=(subjects[-1], 4), dtype='<U{}'.format(
+        len(",".join(str(x) for x in np.arange(1, 20+1)))))  # Init table
+    tab_select_ssd.fill(np.nan)  # convert entries to nan
+    tab_select_ssd[:, 0] = subjects
 
 # col_names = [(cnam, "<f8") for cnam in ["ID", "selected_comps", "n_sel_comps", "n_all_comps"]]
 # tab_select_ssd.dtype = col_names
@@ -52,11 +61,12 @@ tab_select_ssd[:, 0] = subjects
 # # Full Case: fresh SSDs components
 for sub in subjects:
     try:
-        sub_ssd = get_filename(subject=sub, filetype="SSD", band_pass=bpass, cond=condition, sba=True,
+        sub_ssd = get_filename(subject=sub, filetype="SSD", band_pass=False, cond=condition, sba=True,
                                check_existence=True)
     except FileExistsError:
+        cprint("No SSD data for {} in {} condition!".format(s(sub), condition), "r")
         continue  # if file doesn't exist, continue with next subject
-    print(sub_ssd)
+    # print(sub_ssd)
 
     if os.path.isfile(sub_ssd):  # TODO remove after testphase, redundant due to check_existence=True
         # rows = components, columns value per timestep
@@ -70,18 +80,21 @@ for sub in subjects:
         n_comp = sub_df.shape[1]
 
         # TODO remove after testphase
-        n_comp = int(n_comp / 2)  # half
-        sub_df = sub_df[:, :n_comp]  # Take subset (first half)
+        # n_comp = int(n_comp / 2)  # half
+        # sub_df = sub_df[:, :n_comp]  # Take subset (first half)
         # sub_df = sub_df[:, n_comp:]  # Take subset (second half)
 
         print("{} SSD df.shape: {}".format(s(sub), sub_df.shape))
-        print("First 5 rows:\n", sub_df[:5, :])
+        # print("First 5 rows:\n", sub_df[:5, :])
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
     # # Get alpha peak information for given subject
     tab_alpha_peaks = np.genfromtxt(p2ssd + "alphaPeaks.csv", delimiter=",", names=True)
     sub_apeak = tab_alpha_peaks[condition][tab_alpha_peaks["ID"] == sub].item()
+    if sub_apeak == 0.:
+        cprint("No alpha peak information for {} in {} condition!".format(s(sub), condition), "r")
+        continue  # No alpha peak information go to next subject
 
     # # Plot power spectral density (Welch)
     min_apeak = 99  # init
@@ -89,6 +102,7 @@ for sub in subjects:
 
     fig = plt.figure()
     ax = plt.subplot(1, 2 if psd_alternative else 1, 1)
+
     # for ch in range(1, n_comp):
     for ch in range(n_comp):
         f, Pxx_den = welch(x=sub_df[:, ch], fs=250.0, window="hann", nperseg=None, noverlap=None,
@@ -115,8 +129,7 @@ for sub in subjects:
     ax.set_xticks(xt)
     ax.set_xticklabels(xtl)
     ax.set_xlim([-1, 51 if tight_range else 130])
-    ax.set_title("{} | {} | {} | plt.semilogy(f, Pxx_den)".format(s(sub), condition,
-                                                                  "narrowband" if bpass else "broadband"))
+    ax.set_title("{} | {} | plt.semilogy(f, Pxx_den)".format(s(sub), condition))
 
     # Alternative: plt.psd
     if psd_alternative:
@@ -132,168 +145,141 @@ for sub in subjects:
         ax2.set_xticks(xt2)
         ax2.set_xticklabels(xtl2)
         ax2.set_xlim([-1, 51 if tight_range else 130])
-        ax2.set_title("S{} | {} | {} |plt.psd()".format(str(sub).zfill(2), condition,
-                                                        "narrowband" if bpass else "broadband"))
+        ax2.set_title("S{} | {} | plt.psd()".format(str(sub).zfill(2), condition))
 
     plt.tight_layout()
     plt.show()
-
-    # # Subplot per component
-    # for ch in range(1, n_comp):
-
-    rpl = int(n_comp/2) if n_comp % 2 == 0 else int(n_comp/2) + 1
-
-    figs = plt.figure(figsize=[14, 10])
-
-    for ch in range(n_comp):
-        axs = figs.add_subplot(rpl, 2, ch + 1)
-
-        f, Pxx_den = welch(x=sub_df[:, ch], fs=250.0, window="hann", nperseg=None, noverlap=None,
-                           nfft=None,
-                           detrend='constant', return_onesided=True, scaling='density', axis=-1,
-                           average='mean')
-
-        if tight_range:
-            Pxx_den = Pxx_den[f <= 50]
-            f = f[f <= 50]
-
-        Pxx_den_apeak = Pxx_den[np.argmin(np.abs(f - sub_apeak))]
-
-        axs.semilogy(f, Pxx_den)
-        # axs.psd(x=sub_df[:, ch], Fs=250.)  # Alternative
-
-        axs.set_xlabel('frequency [Hz]')
-        axs.set_ylabel('PSD [V**2/Hz]')
-
-        axs.vlines(sub_apeak, ymin=-0.01, ymax=Pxx_den_apeak,
-                   linestyles="dashed", alpha=.2)
-        xt = axs.get_xticks()
-        xt = np.append(xt, sub_apeak)
-        xtl = xt.tolist()
-        xtl[-1] = str(np.round(sub_apeak, 1))
-        axs.set_xticks(xt)
-        axs.set_xticklabels(xtl)
-
-        axs.set_title("{} | SSD component {}".format(s(sub), ch+1))
-
-        axs.set_xlim([-1, 51 if tight_range else 130])
-
-        plt.tight_layout()
+    plt.savefig(fname=p2ssd + "{}/selection_plots/{}_SSD_powerspec.png".format(condition, s(sub)))
+    plt.close()
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
     # # Detrend
+    # Subplot per component
 
-    figs3 = plt.figure(figsize=[14, 10])
+    # Define Grid-size
+    rpl = 1
+    cpl = 1
+    while (rpl*cpl) < n_comp:
+        if rpl == cpl:
+            rpl += 1
+        else:
+            cpl += 1
 
-    for ch in range(n_comp):
+    if sanity_check:
+        figs2 = plt.figure(figsize=[14, 10])
 
-        axs = figs3.add_subplot(rpl, 2, ch + 1)
+        for ch in range(n_comp):
 
-        f, Pxx_den = welch(x=sub_df[:, ch], fs=250.0, window="hann", nperseg=None, noverlap=None,
-                           nfft=None,
-                           detrend='constant', return_onesided=True, scaling='density', axis=-1,
-                           average='mean')
+            axs = figs2.add_subplot(rpl, 2, ch + 1)
 
-        if tight_range:
-            Pxx_den = Pxx_den[f <= 50]
-            f = f[f <= 50]
+            f, Pxx_den = welch(x=sub_df[:, ch], fs=250.0, window="hann", nperseg=None, noverlap=None,
+                               nfft=None,
+                               detrend='constant', return_onesided=True, scaling='density', axis=-1,
+                               average='mean')
 
-        Pxx_den_apeak = np.log(Pxx_den)[np.argmin(np.abs(f - sub_apeak))]
+            if tight_range:
+                Pxx_den = Pxx_den[f <= 50]
+                f = f[f <= 50]
 
-        # Linear fit / poly(1)
-        # model = np.polyfit(f, np.log(Pxx_den), 1)
-        # predicted = np.polyval(model, f)
+            Pxx_den_apeak = np.log(Pxx_den)[np.argmin(np.abs(f - sub_apeak))]
 
-        # Quadratic fit / poly(2)
-        model2 = np.polyfit(f, np.log(Pxx_den), 2)
-        predicted2 = np.polyval(model2, f)
+            # Linear fit / poly(1)
+            # model = np.polyfit(f, np.log(Pxx_den), 1)
+            # predicted = np.polyval(model, f)
 
-        # Cubic fit / poly(3)
-        model3 = np.polyfit(f, np.log(Pxx_den), 3)
-        predicted3 = np.polyval(model3, f)
+            # Quadratic fit / poly(2)
+            model2 = np.polyfit(f, np.log(Pxx_den), 2)
+            predicted2 = np.polyval(model2, f)
 
-        # Plot
-        axs.plot(f, np.log(Pxx_den), linestyle="-.", label='data')
+            # Cubic fit / poly(3)
+            model3 = np.polyfit(f, np.log(Pxx_den), 3)
+            predicted3 = np.polyval(model3, f)
 
-        # axs.plot(predicted, alpha=.8, linestyle=":", c="g", label='poly_1/linear')
-        axs.plot(predicted2, alpha=.8, linestyle=":", c="y", label='poly_2')
-        axs.plot(predicted3, alpha=.8, linestyle=":", c="m", label='poly_3')
-        axs.set_title("Detrend SSD comp{}".format(ch+1))
+            # Plot
+            axs.plot(f, np.log(Pxx_den), linestyle="-.", label='data')
 
-        # axs.plot(f, np.log(Pxx_den) - predicted, c="g", label='poly_1/linear')
-        axs.plot(f, np.log(Pxx_den) - predicted2, c="y", label='detrend/poly_2')
-        axs.plot(f, np.log(Pxx_den) - predicted3, c="m", label='detrend/poly_3')
+            # axs.plot(predicted, alpha=.8, linestyle=":", c="g", label='poly_1/linear')
+            axs.plot(predicted2, alpha=.8, linestyle=":", c="y", label='poly_2')
+            axs.plot(predicted3, alpha=.8, linestyle=":", c="m", label='poly_3')
+            axs.set_title("Detrend SSD comp{}".format(ch+1))
 
-        # Add subject's alpha peak
-        axs.vlines(sub_apeak, ymin=np.min([np.log(Pxx_den),
-                                           np.log(Pxx_den) - predicted2,
-                                           np.log(Pxx_den) - predicted3]),
-                   ymax=Pxx_den_apeak, linestyles="dashed",
-                   alpha=.2)
+            # axs.plot(f, np.log(Pxx_den) - predicted, c="g", label='poly_1/linear')
+            axs.plot(f, np.log(Pxx_den) - predicted2, c="y", label='detrend/poly_2')
+            axs.plot(f, np.log(Pxx_den) - predicted3, c="m", label='detrend/poly_3')
 
-        if ch == 0:
-            axs.legend(loc='upper right')
-        plt.tight_layout()
-        plt.show()
+            # Add subject's alpha peak
+            axs.vlines(sub_apeak, ymin=np.min([np.log(Pxx_den),
+                                               np.log(Pxx_den) - predicted2,
+                                               np.log(Pxx_den) - predicted3]),
+                       ymax=Pxx_den_apeak, linestyles="dashed",
+                       alpha=.2)
+
+            if ch == 0:
+                axs.legend(loc='upper right')
+            plt.tight_layout()
+            plt.show()
 
     # Smaller freq-window (0-50Hz)  + Leave alpha-out
 
-    figs4 = plt.figure(figsize=[14, 10])
+    if sanity_check:
+        figs3 = plt.figure(figsize=[14, 10])
 
-    for ch in range(n_comp):
+        for ch in range(n_comp):
 
-        axs = figs4.add_subplot(rpl, 2, ch + 1)
+            axs = figs3.add_subplot(rpl, 2, ch + 1)
 
-        f, Pxx_den = welch(x=sub_df[:, ch], fs=250.0, window="hann", nperseg=None, noverlap=None,
-                           nfft=None,
-                           detrend='constant', return_onesided=True, scaling='density', axis=-1,
-                           average='mean')
+            f, Pxx_den = welch(x=sub_df[:, ch], fs=250.0, window="hann", nperseg=None, noverlap=None,
+                               nfft=None,
+                               detrend='constant', return_onesided=True, scaling='density', axis=-1,
+                               average='mean')
 
-        # Freq.-Range (0-50Hz)
-        f_small = f[f <= 50]
-        Pxx_den_small = Pxx_den[f <= 50]
+            # Freq.-Range (0-50Hz)
+            f_small = f[f <= 50]
+            Pxx_den_small = Pxx_den[f <= 50]
 
-        # Leave alpha out
-        f_small_alphout = f_small[~((sub_apeak+4 > f_small) & (f_small > sub_apeak-4))]
-        Pxx_den_small_alphout = Pxx_den_small[~((sub_apeak+4 > f_small) & (f_small > sub_apeak-4))]
+            # Leave alpha out
+            f_small_alphout = f_small[~((sub_apeak+4 > f_small) & (f_small > sub_apeak-4))]
+            Pxx_den_small_alphout = Pxx_den_small[~((sub_apeak+4 > f_small) & (f_small > sub_apeak-4))]
 
-        # Fit polynomial(3)
-        model3_small = np.polyfit(f_small, np.log(Pxx_den_small), 3)
-        predicted3_small = np.polyval(model3_small, f_small)
+            # Fit polynomial(3)
+            model3_small = np.polyfit(f_small, np.log(Pxx_den_small), 3)
+            predicted3_small = np.polyval(model3_small, f_small)  # pred on full! freq-range
 
-        # Fit polynomial(3) to alpha out data
-        model3_small_alphout = np.polyfit(f_small_alphout, np.log(Pxx_den_small_alphout), deg=3)
-        predicted3_small_alphout = np.polyval(model3_small_alphout, f_small)  # pred on full! freq-range
+            # Fit polynomial(3) to alpha out data
+            model3_small_alphout = np.polyfit(f_small_alphout, np.log(Pxx_den_small_alphout), deg=3)
+            predicted3_small_alphout = np.polyval(model3_small_alphout, f_small)
 
-        plt.plot(f_small, np.log(Pxx_den_small), linestyle="-.", label='data (f<=50)')
-        plt.plot(predicted3_small, alpha=.8, linestyle=":", c="m", label='poly3')
-        plt.plot(predicted3_small_alphout, alpha=.8, c="g", linestyle=":", label='poly3_alpha-out')
+            plt.plot(f_small, np.log(Pxx_den_small), linestyle="-.", label='data (f<=50)')
+            plt.plot(predicted3_small, alpha=.8, linestyle=":", c="m", label='poly3')
+            plt.plot(predicted3_small_alphout, alpha=.8, c="g", linestyle=":", label='poly3_alpha-out')
 
-        plt.plot(f_small, np.log(Pxx_den_small) - predicted3_small, c="m",
-                 label='detrend/poly_3')
-        plt.plot(f_small, np.log(Pxx_den_small) - predicted3_small_alphout, c="g",
-                 label='detrend/poly3_alpha-out')
-        axs.vlines(sub_apeak,
-                   ymin=axs.get_ylim()[0],
-                   ymax=np.log(Pxx_den_small)[np.argmin(np.abs(f_small - sub_apeak))],
-                   linestyles="dashed", alpha=0.2)  # ymax=np.polyval(model3_small, sub_apeak)
-        axs.set_title("Detrend SSD comp{}".format(ch+1))
-        if ch == 0:
-            plt.legend(loc='upper right')
-        plt.tight_layout()
-        plt.show()
+            plt.plot(f_small, np.log(Pxx_den_small) - predicted3_small, c="m",
+                     label='detrend/poly_3')
+            plt.plot(f_small, np.log(Pxx_den_small) - predicted3_small_alphout, c="g",
+                     label='detrend/poly3_alpha-out')
+            axs.vlines(sub_apeak,
+                       ymin=axs.get_ylim()[0],
+                       ymax=np.log(Pxx_den_small)[np.argmin(np.abs(f_small - sub_apeak))],
+                       linestyles="dashed", alpha=0.2)  # ymax=np.polyval(model3_small, sub_apeak)
+            axs.set_title("Detrend SSD comp{}".format(ch+1))
+            if ch == 0:
+                plt.legend(loc='upper right')
+            plt.tight_layout()
+            plt.show()
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
     # # Define component selection criterion:
     # If bump around alpha peak is above zero + small error term: select component
 
-    figs6 = plt.figure(figsize=[14, 10])
+    figs4 = plt.figure(figsize=[14, 10])
+
+    selected_comps = []
 
     for ch in range(n_comp):
 
-        axs = figs6.add_subplot(rpl, 2, ch + 1)
+        axs = figs4.add_subplot(rpl, cpl, ch + 1)
 
         f, Pxx_den = welch(x=sub_df[:, ch], fs=250.0, window="hann", nperseg=None, noverlap=None,
                            nfft=None,
@@ -318,29 +304,28 @@ for sub in subjects:
         f_apeak = f[((f > sub_apeak - 4) & (sub_apeak + 4 > f))]
         log_Pxx_den_apeak = log_Pxx_den_detrend[((f > sub_apeak - 4) & (sub_apeak + 4 > f))]
 
-        # Select
-        # TODO write in table
-
-        log_Pxx_den_detrend_above_zero = log_Pxx_den_detrend[log_Pxx_den_detrend > 0]
-        f_above_zero = f[log_Pxx_den_detrend > 0]
+        # # # Select
+        # # Criterion option 1): alpha-peak not the smallest above zero-line
+        # log_Pxx_den_detrend_above_zero = log_Pxx_den_detrend[log_Pxx_den_detrend > 0]
+        # f_above_zero = f[log_Pxx_den_detrend > 0]
         # log_Pxx_den_detrend_above_zero /= max(log_Pxx_den_detrend_above_zero)  # normalize
         # axs.plot(f_above_zero, log_Pxx_den_detrend_above_zero)
-        min(log_Pxx_den_detrend_above_zero)
+        # min(log_Pxx_den_detrend_above_zero)
+        # TODO ... continue
 
-        error_term = 0.01  # TODO define more systematically
+        # # Criterion option 2): alpha-peak above zero-line + small error term
+        error_term = 0.01  # TODO can be defined more systematically
         if np.any(log_Pxx_den_apeak > 0 + error_term):
             # write ch (component) as selected
             selected = True
-            pass
+            selected_comps.append(ch+1)  # range(1, ...)
         else:
             # Throw ch (component) out
             selected = False
-            pass
 
         axs.plot(f, log_Pxx_den_detrend)
         axs.plot(f_apeak, log_Pxx_den_apeak, c="g" if selected else "r")
-        axs.set_title("{} | {} | {} | SSD comp{}".format(s(sub), condition,
-                                                         "narrowband" if bpass else "broadband", ch+1))
+        axs.set_title("{} | {} | SSD comp{}".format(s(sub), condition, ch+1))
         axs.vlines(sub_apeak,
                    ymin=min(log_Pxx_den_detrend),
                    ymax=log_Pxx_den_detrend[np.argmin(np.abs(f - sub_apeak))],
@@ -357,8 +342,15 @@ for sub in subjects:
         # axs.fill_between(f_apeak, np.array(log_Pxx_den_apeak_stand+.5), alpha=.2)
 
     plt.tight_layout()
+    plt.savefig(fname=p2ssd + "{}/selection_plots/{}_SSD_selection.png".format(condition, s(sub)))
+    plt.close()
+
+    # Write selected SSD components in table
+    tab_select_ssd[np.where(tab_select_ssd[:, 0] == str(sub)), 1] = ",".join(
+        str(x) for x in selected_comps)
+    tab_select_ssd[tab_select_ssd[:, 0] == str(sub), 2] = len(selected_comps)
+    tab_select_ssd[tab_select_ssd[:, 0] == str(sub), 3] = n_comp
 
 
 # Save Table of selected components
-np.savetxt(fname="SSD_selected_components.csv", X=tab_select_ssd, header=",".join(col_names),
-           delimiter=",")
+np.savetxt(fname=tab_select_name, X=tab_select_ssd, header=";".join(col_names), delimiter=";", fmt='%s')
