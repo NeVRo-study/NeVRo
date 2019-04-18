@@ -317,7 +317,8 @@ for sub in range(45):
                    linestyles="dashed", alpha=.2)
         plt.hlines(y=0, xmin=0, xmax=50, alpha=.4, linestyles=":")  # Zero-line
 
-        log_Pxx_den_apeak_stand = log_Pxx_den_apeak - np.linspace(log_Pxx_den_apeak[0], log_Pxx_den_apeak[-1],
+        log_Pxx_den_apeak_stand = log_Pxx_den_apeak - np.linspace(log_Pxx_den_apeak[0],
+                                                                  log_Pxx_den_apeak[-1],
                                                                   num=len(log_Pxx_den_apeak))
 
         axs.plot(f_apeak, log_Pxx_den_apeak_stand, c="g" if selected else "r", alpha=.5)
