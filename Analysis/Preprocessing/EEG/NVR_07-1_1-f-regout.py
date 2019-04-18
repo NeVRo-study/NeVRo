@@ -9,18 +9,14 @@ import matplotlib.pyplot as plt
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
-# TODO overwrite current working dir path in load_data
-
-path_data = set_path2data()
-# path_data = "../../../Data/"
-p2ssd = path_data + "EEG/07_SSD/"  # TODO remove after testphase
-p2ssdnomov = p2ssd + "nomov/SBA/broadband/"  # TODO remove after testphase
+# Set paths
+path_data = set_path2data()  # path_data = "../../../Data/"
+p2ssd = path_data + "EEG/07_SSD/"
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
 # Set hyperparameters
-new_ssd = True  # TODO remove after testphase
-sanity_check = False
+sanity_check = False  # plot additional infos (see below)
 tight_range = True  # Freq-range 0-50 Hz
 subjects = np.arange(1, 45+1)
 # subjects = np.arange(1, 20+1)  # subjects = np.arange(21, 45+1)  # subsets
@@ -34,7 +30,6 @@ tab_select_name = p2ssd + "{0}/SSD_selected_components_{0}.csv".format(condition
 col_names = ["ID", "selected_comps", "n_sel_comps", "n_all_comps"]
 
 if os.path.isfile(tab_select_name):
-
     tab_select_ssd = np.genfromtxt(tab_select_name, delimiter=";", dtype='<U{}'.format(
         len(",".join(str(x) for x in np.arange(1, 20+1)))))  # == '<U50' needed if 20 comps selected
 else:
@@ -43,22 +38,9 @@ else:
     tab_select_ssd.fill(np.nan)  # convert entries to nan
     tab_select_ssd[:, 0] = subjects
 
-# col_names = [(cnam, "<f8") for cnam in ["ID", "selected_comps", "n_sel_comps", "n_all_comps"]]
-# tab_select_ssd.dtype = col_names
-# tab_select_ssd["ID"] = subjects.reshape((len(subjects), 1))
-# print(tab_select_ssd["ID"])
-# print(tab_select_ssd)
-# np.savetxt("test.csv", tab_select_ssd, delimiter=",", fmt="%s",
-#            header=",".join(tab_select_ssd.dtype.names))
-# np.genfromtxt("test.csv")  # comes without col names
+# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
-
-# # Test Case: post-SSD comps before rejecting # TODO remove after testphase
-# sub = 5
-# sub_ssd = path_data + "EEG/ssdcomps_test.csv"  # subject 5
-# new_ssd = False
-
-# # Full Case: fresh SSDs components
+# # Run: Select SSDs components per subject, plot & save in table
 for sub in subjects:
     try:
         sub_ssd = get_filename(subject=sub, filetype="SSD", band_pass=False, cond=condition, sba=True,
@@ -66,28 +48,12 @@ for sub in subjects:
     except FileExistsError:
         cprint("No SSD data for {} in {} condition!".format(s(sub), condition), "r")
         continue  # if file doesn't exist, continue with next subject
-    # print(sub_ssd)
 
-    if os.path.isfile(sub_ssd):  # TODO remove after testphase, redundant due to check_existence=True
-        # rows = components, columns value per timestep
-        # first column: Nr. of component, last column is empty
-        if not new_ssd:  # TODO remove after testphase
-            sub_df = np.genfromtxt(sub_ssd, delimiter="\t")[:, 1:-1].transpose()
-        else:
-            sub_df = np.genfromtxt(sub_ssd, delimiter=",").transpose()
+    # columns: components; rows: value per timestep
+    sub_df = np.genfromtxt(sub_ssd, delimiter=",").transpose()
 
-        # number of components
-        n_comp = sub_df.shape[1]
-
-        # TODO remove after testphase
-        # n_comp = int(n_comp / 2)  # half
-        # sub_df = sub_df[:, :n_comp]  # Take subset (first half)
-        # sub_df = sub_df[:, n_comp:]  # Take subset (second half)
-
-        print("{} SSD df.shape: {}".format(s(sub), sub_df.shape))
-        # print("First 5 rows:\n", sub_df[:5, :])
-
-# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+    # number of components
+    n_comp = sub_df.shape[1]
 
     # # Get alpha peak information for given subject
     tab_alpha_peaks = np.genfromtxt(p2ssd + "alphaPeaks.csv", delimiter=",", names=True)
@@ -354,3 +320,4 @@ for sub in subjects:
 
 # Save Table of selected components
 np.savetxt(fname=tab_select_name, X=tab_select_ssd, header=";".join(col_names), delimiter=";", fmt='%s')
+cprint("Plots and table saved. End.", "b")
