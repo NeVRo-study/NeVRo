@@ -18,8 +18,11 @@ p2ssd = path_data + "EEG/07_SSD/"
 # Set hyperparameters
 sanity_check = False  # plot additional infos (see below)
 tight_range = True  # Freq-range 0-50 Hz
-subjects = np.arange(1, 45+1)
+subjects = np.arange(1, 45+1)  # ALL
 # subjects = np.arange(1, 20+1)  # subjects = np.arange(21, 45+1)  # subsets
+# subjects = np.array([6, 15, 18, 21, 22, 26, 27, 31, 35])  # subset: check selections
+# subjects = np.array([7 , 14, 15, 21, 25])  # subset: check alpha peak info
+# subjects = np.array([6])  # subset: single subject
 condition = "nomov"
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
@@ -267,8 +270,16 @@ for sub in subjects:
 
         log_Pxx_den_detrend = np.log(Pxx_den) - predicted3_alphout
 
+        # Define area around given alpha-peak
         f_apeak = f[((f > sub_apeak - 4) & (sub_apeak + 4 > f))]
         log_Pxx_den_apeak = log_Pxx_den_detrend[((f > sub_apeak - 4) & (sub_apeak + 4 > f))]
+        # Define adjacent area
+        log_Pxx_den_apeak_flank_links = log_Pxx_den_detrend[(f <= sub_apeak - 4)][-2:]
+        log_Pxx_den_apeak_flank_right = log_Pxx_den_detrend[(f >= sub_apeak + 4)][:2]
+        # plt.plot(f, log_Pxx_den_detrend)
+        # plt.plot(f[((f > sub_apeak - 4) & (sub_apeak + 4 > f))], log_Pxx_den_apeak)
+        # plt.plot(f[(f <= sub_apeak - 4)][-2:], log_Pxx_den_apeak_flank_links)
+        # plt.plot(f[(f >= sub_apeak + 4)][:2], log_Pxx_den_apeak_flank_right)
 
         # # # Select
         # # Criterion option 1): alpha-peak not the smallest above zero-line
@@ -282,9 +293,12 @@ for sub in subjects:
         # # Criterion option 2): alpha-peak above zero-line + small error term
         error_term = 0.01  # TODO can be defined more systematically
         if np.any(log_Pxx_den_apeak > 0 + error_term):
-            # write ch (component) as selected
-            selected = True
-            selected_comps.append(ch+1)  # range(1, ...)
+            # # Additional Criterion 2.2): peak in area > adjacent areas
+            if np.max(log_Pxx_den_apeak) > np.mean(log_Pxx_den_apeak_flank_links) and \
+                    np.max(log_Pxx_den_apeak) > np.mean(log_Pxx_den_apeak_flank_right):
+                # write ch (component) as selected
+                selected = True
+                selected_comps.append(ch+1)  # range(1, ...)
         else:
             # Throw ch (component) out
             selected = False
