@@ -367,7 +367,6 @@ for sub in subjects:
 
             axs.plot(f[f < 20], predicted4_aout_window, c="m", linestyle=":", alpha=.5)  # polyfit
 
-
         axs.plot(f, np.log(Pxx_den), c="b", alpha=.5)  # Original
         axs.plot(f, predicted3_alphout, c="b", linestyle=":", alpha=.5)  # polyfit
         axs.plot(f, log_Pxx_den_detrend, c="b")  # Detrend
