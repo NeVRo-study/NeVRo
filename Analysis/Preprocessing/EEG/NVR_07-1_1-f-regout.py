@@ -18,8 +18,8 @@ p2ssd = path_data + "EEG/07_SSD/"
 # Set hyperparameters
 sanity_check = True  # plot additional infos (see below)
 tight_range = True  # Freq-range 0-max_range Hz
-max_range = 50  # 20 / 50 Hz
-alpha_out_window = True  # False: only alpha out poly3-fit # TODO adapt
+max_range = 40  # 40 Hz: ignores the line-noise related bump in data / 20 Hz: Low-Pass / 130 Hz: ~max
+alpha_out_window = False  # False: only alpha out poly3-fit # TODO adapt
 
 save_plots = False
 subjects = np.arange(1, 45+1)  # ALL
@@ -102,7 +102,7 @@ for sub in subjects:
     xtl[-1] = str(np.round(sub_apeak, 1))
     ax.set_xticks(xt)
     ax.set_xticklabels(xtl)
-    ax.set_xlim([-1, 51 if tight_range else 130])
+    ax.set_xlim([-1, max_range+1 if tight_range else 130])
     ax.set_title("{} | {} | plt.semilogy(f, Pxx_den)".format(s(sub), condition))
 
     # Alternative: plt.psd
@@ -118,7 +118,7 @@ for sub in subjects:
         xtl2[-1] = str(np.round(sub_apeak, 1))
         ax2.set_xticks(xt2)
         ax2.set_xticklabels(xtl2)
-        ax2.set_xlim([-1, 51 if tight_range else 130])
+        ax2.set_xlim([-1, max_range+1 if tight_range else 130])
         ax2.set_title("S{} | {} | plt.psd()".format(str(sub).zfill(2), condition))
 
     plt.tight_layout()
@@ -221,6 +221,12 @@ for sub in subjects:
             f_small_alphout = f_small[~((sub_apeak+4 > f_small) & (f_small > sub_apeak-4))]
             Pxx_den_small_alphout = Pxx_den_small[~((sub_apeak+4 > f_small) & (f_small > sub_apeak-4))]
 
+            # Remove leading ascent for poly-fit
+            lead_peak_idx = np.where(Pxx_den_small_alphout == np.max(
+                Pxx_den_small_alphout[f_small_alphout < 5]))[0][0]
+            f_small_alphout = f_small_alphout[lead_peak_idx:]
+            Pxx_den_small_alphout = Pxx_den_small_alphout[lead_peak_idx:]
+
             # Fit polynomial(3)
             model3_small = np.polyfit(f_small, np.log(Pxx_den_small), 3)
             predicted3_small = np.polyval(model3_small, f_small)  # pred on full! freq-range
@@ -232,10 +238,10 @@ for sub in subjects:
             # Plot
             plt.plot(f_small, np.log(Pxx_den_small), linestyle="-.",
                      label='data (f<={})'.format(max_range))
-            # plt.plot(predicted3_small, alpha=.8, linestyle=":", c="m", label='poly3')
+            plt.plot(predicted3_small, alpha=.8, linestyle=":", c="m", label='poly3')
             plt.plot(predicted3_small_alphout, alpha=.8, c="g", linestyle=":", label='poly3_alpha-out')
-            # plt.plot(f_small, np.log(Pxx_den_small) - predicted3_small, c="m",
-            #          label='detrend/poly_3')
+            plt.plot(f_small, np.log(Pxx_den_small) - predicted3_small, c="m",
+                     label='detrend/poly_3')
             plt.plot(f_small, np.log(Pxx_den_small) - predicted3_small_alphout, c="g",
                      label='detrend/poly3_alpha-out')
 
@@ -274,7 +280,6 @@ for sub in subjects:
 
         plt.show()
         if save_plots:
-            plt.savefig(fname=p2ssd + "{}/selection_plots/{}_SSD_Detrend.png".format(condition, s(sub)))
             plt.close()
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
@@ -303,6 +308,12 @@ for sub in subjects:
         # Leave alpha out
         f_alphout = f[~((sub_apeak + 4 > f) & (f > sub_apeak - 4))]
         Pxx_den_alphout = Pxx_den[~((sub_apeak + 4 > f) & (f > sub_apeak - 4))]
+
+        # Remove leading ascent for poly-fit
+        lead_peak_idx = np.where(Pxx_den_alphout == np.max(
+            Pxx_den_alphout[f_alphout < 5]))[0][0]
+        f_alphout = f_alphout[lead_peak_idx:]
+        Pxx_den_alphout = Pxx_den_alphout[lead_peak_idx:]
 
         # Fit polynomial(3) to alpha-out data
         model3_alphout = np.polyfit(f_alphout, np.log(Pxx_den_alphout), deg=3)
@@ -367,9 +378,9 @@ for sub in subjects:
 
             axs.plot(f[f < 20], predicted4_aout_window, c="m", linestyle=":", alpha=.5)  # polyfit
 
-        axs.plot(f, np.log(Pxx_den), c="b", alpha=.5)  # Original
-        axs.plot(f, predicted3_alphout, c="b", linestyle=":", alpha=.5)  # polyfit
-        axs.plot(f, log_Pxx_den_detrend, c="b")  # Detrend
+        axs.plot(f, np.log(Pxx_den), c="m", alpha=.3)  # Original
+        axs.plot(f, predicted3_alphout, c="m", linestyle=":", alpha=.3)  # polyfit
+        axs.plot(f, log_Pxx_den_detrend, c="b", alpha=.8)  # Detrend
         axs.plot(f_apeak, log_Pxx_den_apeak, c="g" if selected else "r")
         axs.set_title("{} | {} | SSD comp{}".format(s(sub), condition, ch+1))
         axs.vlines(sub_apeak,
