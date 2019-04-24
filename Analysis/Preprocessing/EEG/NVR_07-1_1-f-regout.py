@@ -26,11 +26,11 @@ p2ssd = path_data + "EEG/07_SSD/"
 sanity_check = False  # plot additional infos (see below)
 tight_range = True  # Freq-range 0 – max_range Hz
 max_range = 40  # 40 Hz: ignores the line-noise related bump in data | 20 Hz: Low-Pass | 130 Hz: ~max
-save_plots = True
+save_plots = False
 subjects = np.arange(1, 45+1)  # ALL
 # subjects = np.arange(1, 20+1)  # subjects = np.arange(21, 45+1)  # subsets
 # subjects = np.array([6, 15, 18, 21, 22, 26, 27, 31, 35])  # subset: check selections
-# subjects = np.array([7 , 14, 15, 21, 25])  # subset: check alpha peak info
+subjects = np.array([7, 14, 15, 21, 25])  # subset: check alpha peak info
 # subjects = np.array([8])  # subset: single subject: 6, 11
 condition = "nomov"
 if save_plots:
@@ -367,4 +367,4 @@ for sub in subjects:
 
 # Save Table of selected components
 np.savetxt(fname=tab_select_name, X=tab_select_ssd, header=";".join(col_names), delimiter=";", fmt='%s')
-cprint("Plots and table saved. End.", "b")
+cprint("{}able saved. End.".format("Plots and t" if save_plots else "T"), "b")
