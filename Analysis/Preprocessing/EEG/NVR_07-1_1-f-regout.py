@@ -1,6 +1,13 @@
 # coding=utf-8
 """
-Regress out 1/f
+Selection of SSD components
+
+1) Regress out 1/f-curve per component
+2) Criterion 1: Check whether bump around given alpha peak is greater than zero
+3) Criterion 2: then check whether flanks outside of alpha area is smaller
+4) Select and write in table & save plots of components
+
+Author: Simon Hofmann | <[surname].[lastname][at]pm.me> | 2019
 """
 
 from meta_functions import *
