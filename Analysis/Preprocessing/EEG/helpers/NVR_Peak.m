@@ -17,9 +17,11 @@ addpath(genpath('/Users/Alberto/Documents/MATLAB/'));
 % e.g:
 rmpath(genpath('/Users/Alberto/Documents/MATLAB/eeglab14_1_2b/plugins/PrepPipeline0.55.3/'));  %remove PREP pipeline folder (problem with its findpeaks function)
 
-%Periodogram Parameters - to be put in the function
+% Periodogram Parameters - to be put in the function
 cropstyle = 'SBA';
 seg_pwr = 10;
+low_f = 8;
+high_f = 13;
 
 % 1.4 Paths (always assuming your cd is the one where you opened the script)
 path_data = '../../../../Data/';
@@ -54,10 +56,11 @@ rawData_cell = struct2cell(rawDataFiles_comb);
 [max_l I]=  max(cellfun(@(field) length(field),rawData_cell));
 
 % 1.7 Set empty general peak-matrix 
-subj_peaks=Nan(max_l,length(rawData_cell));
+subj_peaks=nan(max_l,length(rawData_cell));
 
 % 1.8 Insert "row header" to always double check the right participant
 r_head =  ({rawData_cell{I}.name})'; %row headers 
+r_head = cellfun(@(x){x(1:7)}, r_head);
 subj_peaks=[r_head, num2cell(subj_peaks)];  %concatenate them to the sub_peaks matrix
 
 %% 2.Load data
@@ -162,8 +165,8 @@ output = [head; subj_peaks];
 save([path_eegssd 'alphapeaks_full.mat'],'output');
 
 %csv
-T = cell2table(output(2:end,:),'VariableNames',output(1,:))
-writetable(T,[path_eegssd 'alphapeaks_full.csv'])
+T = cell2table(output(2:end,:),'VariableNames',output(1,:));
+writetable(T,[path_eegssd 'alphapeaks_full.csv']);
 
 
 
