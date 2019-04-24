@@ -29,6 +29,7 @@ path_dataeeg  =  [path_data 'EEG/'];
 path_eegraw   =  [path_dataeeg '01_raw/rs_raw/'];
 path_eegnomov =  [path_dataeeg '06_rejcomp/nomov/' cropstyle '/'];
 path_eegmov   =  [path_dataeeg '06_rejcomp/mov/' cropstyle '/'];
+path_eegssd   =  [path_dataeeg '07_SSD/'];
 
 % 1.5 Folders (tasks) of interests
 folders= {path_eegraw, path_eegnomov, path_eegmov};
@@ -53,7 +54,7 @@ rawData_cell = struct2cell(rawDataFiles_comb);
 [max_l I]=  max(cellfun(@(field) length(field),rawData_cell));
 
 % 1.7 Set empty general peak-matrix 
-subj_peaks=zeros(max_l,length(rawData_cell));
+subj_peaks=Nan(max_l,length(rawData_cell));
 
 % 1.8 Insert "row header" to always double check the right participant
 r_head =  ({rawData_cell{I}.name})'; %row headers 
@@ -61,7 +62,7 @@ subj_peaks=[r_head, num2cell(subj_peaks)];  %concatenate them to the sub_peaks m
 
 %% 2.Load data
 
-for r = 2:length(rawData_cell)
+for r = 1:length(rawData_cell)
     
     %Extract current data structure 
     curr_data = rawData_cell(r);
@@ -139,29 +140,30 @@ high=high_f*4;
 tab_name = char(subj_peaks(isub,1));
 i=isub;
 
-%Print 'Nan' if you can't find the specific sub. ID within the complete
-%list and if the space is empty
-while ((str2num(fileName(6:7)) ~= str2num(tab_name(6:7)))) & (cell2num(subj_peaks(i,r+1)) == 0)
-    subj_peaks(i,r+1)={'NaN'}; %print NaN
+%Print respective peak if ID within the complete list of participants.
+while ((str2num(fileName(6:7)) ~= str2num(tab_name(6:7))))
     i= i+1; %increment isub
     tab_name = char(subj_peaks(i,1)); %update row_header name       
-   % end
 end
     subj_peaks(i,r+1)=num2cell(locs);
     
 end
-
 close all;
 end
 
 %% 4.Fix cell array and save
 
-% 4.1 
+% 4.1 Fix col headers
 head = {'participant','rs','nomov','mov'};
 output = [head; subj_peaks];
 
 % 4.2 Save peaks in both .mat and .csv
-save([out_path num2str(fold) '_peaks.mat'],'output');
-csvwrite([out_path num2str(fold) '_peaks.csv'],'output');
+%mat
+save([path_eegssd 'alphapeaks_full.mat'],'output');
+
+%csv
+T = cell2table(output(2:end,:),'VariableNames',output(1,:))
+writetable(T,[path_eegssd 'alphapeaks_full.csv'])
+
 
 
