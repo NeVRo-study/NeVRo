@@ -24,9 +24,12 @@ subjects = np.arange(1, 45+1)  # ALL
 # subjects = np.arange(1, 20+1)  # subjects = np.arange(21, 45+1)  # subsets
 # subjects = np.array([6, 15, 18, 21, 22, 26, 27, 31, 35])  # subset: check selections
 # subjects = np.array([7 , 14, 15, 21, 25])  # subset: check alpha peak info
-# subjects = np.array([6])  # subset: single subject
-# subjects = np.array([11])  # subset: single subject
+# subjects = np.array([8])  # subset: single subject: 6, 11
 condition = "nomov"
+if save_plots:
+    plt_folder = p2ssd + "{0}/selection_plots_{0}/".format(condition)
+    if not os.path.exists(plt_folder):
+        os.mkdir(plt_folder)
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
@@ -37,10 +40,10 @@ col_names = ["ID", "selected_comps", "n_sel_comps", "n_all_comps"]
 
 if os.path.isfile(tab_select_name):
     tab_select_ssd = np.genfromtxt(tab_select_name, delimiter=";", dtype='<U{}'.format(
-        len(",".join(str(x) for x in np.arange(1, 20+1)))))  # == '<U50' needed if 20 comps selected
+        len(",".join(str(x) for x in np.arange(1, 25+1)))))  # == '<Uxx' needed if 25 comps selected
 else:
     tab_select_ssd = np.zeros(shape=(subjects[-1], 4), dtype='<U{}'.format(
-        len(",".join(str(x) for x in np.arange(1, 20+1)))))  # Init table
+        len(",".join(str(x) for x in np.arange(1, 25+1)))))  # Init table
     tab_select_ssd.fill(np.nan)  # convert entries to nan
     tab_select_ssd[:, 0] = subjects
 
@@ -122,7 +125,7 @@ for sub in subjects:
     plt.tight_layout()
     plt.show()
     if save_plots:
-        plt.savefig(fname=p2ssd + "{}/selection_plots/{}_SSD_powerspec.png".format(condition, s(sub)))
+        plt.savefig(fname=plt_folder + "{}_SSD_powerspec.png".format(s(sub)))
         plt.close()
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
@@ -302,27 +305,30 @@ for sub in subjects:
         log_Pxx_den_apeak = log_Pxx_den_detrend[((f > sub_apeak - 4) & (sub_apeak + 4 > f))]
 
         # Define adjacent area
-        log_Pxx_den_apeak_flank_links = log_Pxx_den_detrend[(f <= sub_apeak - 4)][-2:]
+        log_Pxx_den_apeak_flank_left = log_Pxx_den_detrend[(f <= sub_apeak - 4)][-2:]
         log_Pxx_den_apeak_flank_right = log_Pxx_den_detrend[(f >= sub_apeak + 4)][:2]
 
         # # # Select
         # # Criterion: alpha-peak above zero-line + small error term
-        error_term = 0.01  # TODO Could be defined more systematically
+        error_term = 0.15  # TODO Could be defined more systematically
+        selected = False
         if np.any(log_Pxx_den_apeak > 0 + error_term):
             # # Additional criterion: peak in area > adjacent areas
-            if np.max(log_Pxx_den_apeak) > np.mean(log_Pxx_den_apeak_flank_links) and \
-                    np.max(log_Pxx_den_apeak) > np.mean(log_Pxx_den_apeak_flank_right):
-                # write ch (component) as selected
-                selected = True
+            c = 0.01  # difference-constant
+            if np.max(log_Pxx_den_apeak) - np.mean(log_Pxx_den_apeak_flank_left) > c and \
+                    np.max(log_Pxx_den_apeak) - np.mean(log_Pxx_den_apeak_flank_right) > c:
+                # could be c * np.max(FLANK...)
+                selected = True  # write ch (component) as selected
                 selected_comps.append(ch+1)  # range(1, ...)
-        else:
-            # Throw ch (component) out
-            selected = False
 
         axs.plot(f, np.log(Pxx_den), c="m", alpha=.3)  # Original
         axs.plot(f, predicted3_alphout, c="m", linestyle=":", alpha=.3)  # polyfit
         axs.plot(f, log_Pxx_den_detrend, c="b", alpha=.8)  # Detrend
         axs.plot(f_apeak, log_Pxx_den_apeak, c="g" if selected else "r")
+
+        axs.plot(f[(f <= sub_apeak - 4)][-2:], log_Pxx_den_apeak_flank_left, c="y")
+        axs.plot(f[(f >= sub_apeak + 4)][:2], log_Pxx_den_apeak_flank_right, c="y")
+
         axs.set_title("{} | {} | SSD comp{}".format(s(sub), condition, ch+1))
         axs.vlines(sub_apeak,
                    ymin=min(log_Pxx_den_detrend),
@@ -342,7 +348,7 @@ for sub in subjects:
     plt.tight_layout()
     plt.show()
     if save_plots:
-        plt.savefig(fname=p2ssd + "{}/selection_plots/{}_SSD_selection.png".format(condition, s(sub)))
+        plt.savefig(fname=plt_folder + "{}_SSD_selection.png".format(s(sub)))
         plt.close()
 
     # Write selected SSD components in table
