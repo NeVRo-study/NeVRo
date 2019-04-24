@@ -15,19 +15,17 @@ p2ssd = path_data + "EEG/07_SSD/"
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
-# Set hyperparameters
-sanity_check = True  # plot additional infos (see below)
-tight_range = True  # Freq-range 0-max_range Hz
-max_range = 40  # 40 Hz: ignores the line-noise related bump in data / 20 Hz: Low-Pass / 130 Hz: ~max
-alpha_out_window = False  # False: only alpha out poly3-fit # TODO adapt
-
-save_plots = False
+# # Set hyperparameters
+sanity_check = False  # plot additional infos (see below)
+tight_range = True  # Freq-range 0 – max_range Hz
+max_range = 40  # 40 Hz: ignores the line-noise related bump in data | 20 Hz: Low-Pass | 130 Hz: ~max
+save_plots = True
 subjects = np.arange(1, 45+1)  # ALL
 # subjects = np.arange(1, 20+1)  # subjects = np.arange(21, 45+1)  # subsets
 # subjects = np.array([6, 15, 18, 21, 22, 26, 27, 31, 35])  # subset: check selections
 # subjects = np.array([7 , 14, 15, 21, 25])  # subset: check alpha peak info
 # subjects = np.array([6])  # subset: single subject
-subjects = np.array([11])  # subset: single subject
+# subjects = np.array([11])  # subset: single subject
 condition = "nomov"
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
@@ -175,13 +173,13 @@ for sub in subjects:
             axs.plot(f, np.log(Pxx_den), linestyle="-.", label='data')
 
             # axs.plot(predicted, alpha=.8, linestyle=":", c="g", label='poly_1/linear')
-            axs.plot(predicted2, alpha=.8, linestyle=":", c="y", label='poly_2')
-            axs.plot(predicted3, alpha=.8, linestyle=":", c="m", label='poly_3')
+            axs.plot(predicted2, alpha=.8, linestyle=":", c="y", label='poly2')
+            axs.plot(predicted3, alpha=.8, linestyle=":", c="m", label='poly3')
             axs.set_title("S{} | {} | Detrend SSD comp{}".format(s(sub), condition, ch+1))
 
             # axs.plot(f, np.log(Pxx_den) - predicted, c="g", label='poly_1/linear')
-            axs.plot(f, np.log(Pxx_den) - predicted2, c="y", label='detrend/poly_2')
-            axs.plot(f, np.log(Pxx_den) - predicted3, c="m", label='detrend/poly_3')
+            axs.plot(f, np.log(Pxx_den) - predicted2, c="y", label='detrend-p2')
+            axs.plot(f, np.log(Pxx_den) - predicted3, c="m", label='detrend-p3')
 
             # Add subject's alpha peak
             axs.vlines(sub_apeak, ymin=np.min([np.log(Pxx_den),
@@ -241,31 +239,9 @@ for sub in subjects:
             plt.plot(predicted3_small, alpha=.8, linestyle=":", c="m", label='poly3')
             plt.plot(predicted3_small_alphout, alpha=.8, c="g", linestyle=":", label='poly3_alpha-out')
             plt.plot(f_small, np.log(Pxx_den_small) - predicted3_small, c="m",
-                     label='detrend/poly_3')
+                     label='detrend-p3')
             plt.plot(f_small, np.log(Pxx_den_small) - predicted3_small_alphout, c="g",
-                     label='detrend/poly3_alpha-out')
-
-            # Leave alpha out + window around alpha
-            if alpha_out_window:
-                f_small_alphout_window = f_small_alphout[(f_small_alphout < sub_apeak+10) &
-                                                         (f_small_alphout > sub_apeak-6)]
-                Pxx_den_small_alphout_window = Pxx_den_small_alphout[(f_small_alphout < sub_apeak+10) &
-                                                                     (f_small_alphout > sub_apeak-6)]
-
-                # Fit polynomial(3) to alpha out + window data
-                model4_small_alphout_window = np.polyfit(f_small_alphout_window,
-                                                         np.log(Pxx_den_small_alphout_window),
-                                                         deg=3)
-                # define only for f<20
-                predicted4_small_alphout_window = np.polyval(model4_small_alphout_window,
-                                                             f_small[f_small < 20])
-
-                # Plot
-                plt.plot(predicted4_small_alphout_window, alpha=.8, c="y", linestyle=":",
-                         label='poly3_a-out-window')
-                plt.plot(f_small[f_small < 20],
-                         np.log(Pxx_den_small)[f_small < 20] - predicted4_small_alphout_window, c="y",
-                         label='detrend/poly3_a-out-window')
+                     label='detrend-p3_a-out')
 
             axs.vlines(sub_apeak,
                        ymin=axs.get_ylim()[0],
@@ -329,27 +305,6 @@ for sub in subjects:
         log_Pxx_den_apeak_flank_links = log_Pxx_den_detrend[(f <= sub_apeak - 4)][-2:]
         log_Pxx_den_apeak_flank_right = log_Pxx_den_detrend[(f >= sub_apeak + 4)][:2]
 
-        if alpha_out_window:
-            # Leave alpha out + window around alpha
-            f_aout_window = f_alphout[(f_alphout < sub_apeak + 10) & (f_alphout > sub_apeak - 6)]
-            Pxx_den_aout_window = Pxx_den_alphout[(f_alphout < sub_apeak + 10) &
-                                                  (f_alphout > sub_apeak - 6)]
-
-            # Fit polynomial(3) to alpha out + window data
-            # Define only for f<20
-            model4_small_aout_window = np.polyfit(f_aout_window, np.log(Pxx_den_aout_window), deg=3)
-            predicted4_aout_window = np.polyval(model4_small_aout_window, f[f < 20])
-
-            log_Pxx_den_detrend_awind = np.log(Pxx_den[f < 20]) - predicted4_aout_window
-
-            log_Pxx_den_apeak_awind = log_Pxx_den_detrend_awind[((f[f < 20] > sub_apeak - 4) &
-                                                                 (sub_apeak + 4 > f[f < 20]))]
-
-            log_Pxx_den_apeak_awind_flank_links = log_Pxx_den_detrend_awind[(
-                    f[f < 20] <= sub_apeak - 4)][-2:]
-            log_Pxx_den_apeak_awind_flank_right = log_Pxx_den_detrend_awind[(
-                    f[f < 20] >= sub_apeak + 4)][:2]
-
         # # # Select
         # # Criterion: alpha-peak above zero-line + small error term
         error_term = 0.01  # TODO Could be defined more systematically
@@ -363,20 +318,6 @@ for sub in subjects:
         else:
             # Throw ch (component) out
             selected = False
-
-        # Alternatively: Selection on Alpha-out + window
-        # TODO adapt, incl. plots
-        if alpha_out_window:
-            selected = False  # Init
-            if np.any(log_Pxx_den_apeak_awind > 0 + error_term):
-                # # Additional Criterion 2.2): peak in area > adjacent areas
-                if np.max(log_Pxx_den_apeak_awind) > np.mean(log_Pxx_den_apeak_awind_flank_links) and \
-                        np.max(log_Pxx_den_apeak_awind) > np.mean(log_Pxx_den_apeak_awind_flank_right):
-                    # write ch (component) as selected
-                    selected = True
-                    selected_comps.append(ch+1)  # range(1, ...)
-
-            axs.plot(f[f < 20], predicted4_aout_window, c="m", linestyle=":", alpha=.5)  # polyfit
 
         axs.plot(f, np.log(Pxx_den), c="m", alpha=.3)  # Original
         axs.plot(f, predicted3_alphout, c="m", linestyle=":", alpha=.3)  # polyfit
