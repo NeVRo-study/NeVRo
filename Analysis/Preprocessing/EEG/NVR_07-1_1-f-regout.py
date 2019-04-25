@@ -13,6 +13,7 @@ Author: Simon Hofmann | <[surname].[lastname][at]pm.me> | 2019
 from meta_functions import *
 from load_data import get_filename
 import matplotlib.pyplot as plt
+import pandas as pd
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
@@ -26,11 +27,12 @@ p2ssd = path_data + "EEG/07_SSD/"
 sanity_check = False  # plot additional infos (see below)
 tight_range = True  # Freq-range 0 – max_range Hz
 max_range = 40  # 40 Hz: ignores the line-noise related bump in data | 20 Hz: Low-Pass | 130 Hz: ~max
-save_plots = False
+save_plots = True
 subjects = np.arange(1, 45+1)  # ALL
+f_high_res = False  # True: sets nperseg=4*250 in scipy.welch(); False: Default = 256
 # subjects = np.arange(1, 20+1)  # subjects = np.arange(21, 45+1)  # subsets
 # subjects = np.array([6, 15, 18, 21, 22, 26, 27, 31, 35])  # subset: check selections
-subjects = np.array([7, 14, 15, 21, 25])  # subset: check alpha peak info
+# subjects = np.array([7, 14, 15, 21, 25])  # subset: check alpha peak info
 # subjects = np.array([8])  # subset: single subject: 6, 11
 condition = "nomov"
 if save_plots:
@@ -72,9 +74,10 @@ for sub in subjects:
     n_comp = sub_df.shape[1]
 
     # # Get alpha peak information for given subject
-    tab_alpha_peaks = np.genfromtxt(p2ssd + "alphaPeaks.csv", delimiter=",", names=True)
-    sub_apeak = tab_alpha_peaks[condition][tab_alpha_peaks["ID"] == sub].item()
-    if sub_apeak == 0.:
+    tab_alpha_peaks = pd.read_csv(p2ssd + "alphapeaks.csv", index_col=0)
+    sub_apeak = tab_alpha_peaks.loc["NVR_{}".format(s(sub)), condition]
+
+    if pd.isna(sub_apeak):
         cprint("No alpha peak information for {} in {} condition!".format(s(sub), condition), "r")
         continue  # No alpha peak information go to next subject
 
@@ -87,7 +90,8 @@ for sub in subjects:
 
     # for ch in range(1, n_comp):
     for ch in range(n_comp):
-        f, Pxx_den = welch(x=sub_df[:, ch], fs=250.0, window="hann", nperseg=None, noverlap=None,
+        f, Pxx_den = welch(x=sub_df[:, ch], fs=250.0, window="hann",
+                           nperseg=4*250 if f_high_res else None, noverlap=None,
                            nfft=None,
                            detrend='constant', return_onesided=True, scaling='density', axis=-1,
                            average='mean')
@@ -156,7 +160,8 @@ for sub in subjects:
 
             axs = figs2.add_subplot(rpl, cpl, ch + 1)
 
-            f, Pxx_den = welch(x=sub_df[:, ch], fs=250.0, window="hann", nperseg=None, noverlap=None,
+            f, Pxx_den = welch(x=sub_df[:, ch], fs=250.0, window="hann",
+                               nperseg=4*250 if f_high_res else None, noverlap=None,
                                nfft=None,
                                detrend='constant', return_onesided=True, scaling='density', axis=-1,
                                average='mean')
@@ -216,7 +221,8 @@ for sub in subjects:
 
             axs = figs3.add_subplot(rpl, cpl, ch + 1)
 
-            f, Pxx_den = welch(x=sub_df[:, ch], fs=250.0, window="hann", nperseg=None, noverlap=None,
+            f, Pxx_den = welch(x=sub_df[:, ch], fs=250.0, window="hann",
+                               nperseg=4*250 if f_high_res else None, noverlap=None,
                                nfft=None,
                                detrend='constant', return_onesided=True, scaling='density', axis=-1,
                                average='mean')
@@ -281,9 +287,11 @@ for sub in subjects:
 
         axs = figs4.add_subplot(rpl, cpl, ch + 1)
 
-        f, Pxx_den = welch(x=sub_df[:, ch], fs=250.0, window="hann", nperseg=None, noverlap=None,
+        f, Pxx_den = welch(x=sub_df[:, ch], fs=250.0, window="hann",
+                           nperseg=4*250 if f_high_res else None, noverlap=None,
                            nfft=None,
-                           detrend='constant', return_onesided=True, scaling='density', axis=-1,
+                           detrend='constant',  # detrend=False: no major difference to 'constant'
+                           return_onesided=True, scaling='density', axis=-1,
                            average='mean')
 
         if tight_range:
