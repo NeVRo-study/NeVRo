@@ -30,12 +30,13 @@ sanity_check = True  # plot additional infos (see below)
 tight_range = True  # Freq-range 0 – max_range Hz
 max_range = 40  # 40 Hz: ignores the line-noise related bump in data | 20 Hz: Low-Pass | 130 Hz: ~max
 save_plots = False
-subjects = np.arange(1, 45+1)  # ALL
 f_high_res = False  # True: sets nperseg=4*250 in scipy.welch(); False: Default = 256
+poly_fit = False  # False: Uses 1/f-fit
+subjects = np.arange(1, 45+1)  # ALL
 # subjects = np.arange(1, 20+1)  # subjects = np.arange(21, 45+1)  # subsets
 # subjects = np.array([6, 15, 18, 21, 22, 26, 27, 31, 35])  # subset: check selections
 # subjects = np.array([7, 14, 15, 21, 25])  # subset: check alpha peak info
-subjects = np.array([6])  # subset: single subject: 8, 11
+# subjects = np.array([6])  # subset: single subject: 8, 11
 condition = "nomov"
 if save_plots:
     plt_folder = p2ssd + "{0}/selection_plots_{0}/".format(condition)
@@ -158,6 +159,7 @@ for sub in subjects:
     # # Test different polynomial fits (order: 2, 3)
     if sanity_check:
         figs2 = plt.figure(figsize=[14, 10])
+        # figs22 = plt.figure(figsize=[14, 10])  # TEST
 
         for ch in range(n_comp):
 
@@ -187,12 +189,22 @@ for sub in subjects:
             model3 = np.polyfit(f, np.log(Pxx_den), 3)
             predicted3 = np.polyval(model3, f)
 
-            # # TODO Find b param in 1/f^b
-            # def f1_b(fr, b):
-            #     return 1/fr**b
-            #
-            # modelb_popt, modelb_pcov = curve_fit(f=f1_b, xdata=f[1:], ydata=Pxx_den[1:],
-            #                                      bounds=([.001, None], [20, None]))
+            # Fit 1/(a*f**b): Find optimal a, b params
+            def f1_ab(fr, a, b):
+                return np.log(1/(a*fr**b))  # in log scale
+
+            modelb_opt_param, modelb_cov_param = curve_fit(f=f1_ab,
+                                                           xdata=f[1:],  # f > 0 values, due to 1/f
+                                                           ydata=np.log(Pxx_den)[1:])
+
+            predicted4 = f1_ab(fr=f[1:], a=modelb_opt_param[0], b=modelb_opt_param[1])
+
+            # axs22 = figs22.add_subplot(rpl, cpl, ch + 1)  # TEST
+            # axs22.plot(f[1:], np.log(Pxx_den)[1:], label="log_Pxx")
+            # axs22.plot(predicted4, linestyle=":",
+            #          label="Fit: 1/{}f**{}".format(np.round(modelb_opt_param[0], 2),
+            #                                        np.round(modelb_opt_param[1], 2)))
+            # axs22.legend()
 
             # Plot
             axs.plot(f, np.log(Pxx_den), linestyle="-.", label='data')
@@ -200,11 +212,13 @@ for sub in subjects:
             # axs.plot(predicted, alpha=.8, linestyle=":", c="g", label='poly_1/linear')
             axs.plot(predicted2, alpha=.8, linestyle=":", c="y", label='poly2')
             axs.plot(predicted3, alpha=.8, linestyle=":", c="m", label='poly3')
+            axs.plot(f[1:], predicted4, alpha=.8, linestyle=":", c="g", label='1/af**b')
             axs.set_title("S{} | {} | Detrend SSD comp{}".format(s(sub), condition, ch+1))
 
             # axs.plot(f, np.log(Pxx_den) - predicted, c="g", label='poly_1/linear')
             axs.plot(f, np.log(Pxx_den) - predicted2, c="y", label='detrend-p2')
             axs.plot(f, np.log(Pxx_den) - predicted3, c="m", label='detrend-p3')
+            axs.plot(f[1:], np.log(Pxx_den)[1:] - predicted4, c="g", label='detrend-1/f')
 
             # Add subject's alpha peak
             axs.vlines(sub_apeak, ymin=np.min([np.log(Pxx_den),
@@ -247,7 +261,9 @@ for sub in subjects:
             # Remove leading ascent for poly-fit
             lead_peak_idx = np.where(Pxx_den_small_alphout == np.max(
                 Pxx_den_small_alphout[f_small_alphout < 5]))[0][0]
+            f_small_ = f_small[lead_peak_idx:]
             f_small_alphout = f_small_alphout[lead_peak_idx:]
+            Pxx_den_small_ = Pxx_den_small[lead_peak_idx:]
             Pxx_den_small_alphout = Pxx_den_small_alphout[lead_peak_idx:]
 
             # Fit polynomial(3)
@@ -258,15 +274,38 @@ for sub in subjects:
             model3_small_alphout = np.polyfit(f_small_alphout, np.log(Pxx_den_small_alphout), deg=3)
             predicted3_small_alphout = np.polyval(model3_small_alphout, f_small)
 
+            # Fit 1/(a*f**b): Find optimal a, b params
+            def f1_ab(fr, a, b):
+                return np.log(1 / (a * fr ** b))  # in log scale
+
+
+            modelf_opt_param, modelf_cov_param = curve_fit(f=f1_ab,
+                                                           xdata=f_small_,
+                                                           ydata=np.log(Pxx_den_small_))
+
+            modelfao_opt_param, modelfao_cov_param = curve_fit(f=f1_ab,
+                                                               xdata=f_small_alphout,
+                                                               ydata=np.log(Pxx_den_small_alphout))
+
+            predicted4 = f1_ab(fr=f_small, a=modelf_opt_param[0], b=modelf_opt_param[1])
+            predicted4ao = f1_ab(fr=f_small, a=modelfao_opt_param[0], b=modelfao_opt_param[1])
+
             # Plot
             plt.plot(f_small, np.log(Pxx_den_small), linestyle="-.",
                      label='data (f<={})'.format(max_range))
-            plt.plot(predicted3_small, alpha=.8, linestyle=":", c="m", label='poly3')
-            plt.plot(predicted3_small_alphout, alpha=.8, c="g", linestyle=":", label='poly3_alpha-out')
-            plt.plot(f_small, np.log(Pxx_den_small) - predicted3_small, c="m",
-                     label='detrend-p3')
-            plt.plot(f_small, np.log(Pxx_den_small) - predicted3_small_alphout, c="g",
-                     label='detrend-p3_a-out')
+            # plt.plot(predicted3_small, alpha=.8, linestyle=":", c="m", label='poly3')
+            # plt.plot(predicted3_small_alphout, alpha=.8, c="g", linestyle=":", label='poly3_alpha-out')
+            plt.plot(predicted4, alpha=.8, color='orange', linestyle=":", label='1/fit')
+            plt.plot(predicted4ao, alpha=.8, c="y", linestyle=":", label='1/fit_alpha-out')
+
+            # plt.plot(f_small, np.log(Pxx_den_small) - predicted3_small, c="m",
+            #          label='detrend-p3')
+            # plt.plot(f_small, np.log(Pxx_den_small) - predicted3_small_alphout, c="g",
+            #          label='detrend-p3_a-out')
+            plt.plot(f_small, np.log(Pxx_den_small) - predicted4, color='orange',
+                     label='detrend-1/fit')
+            plt.plot(f_small, np.log(Pxx_den_small) - predicted4ao, c="y",
+                     label='detrend-1/fit_a-out')
 
             axs.vlines(sub_apeak,
                        ymin=axs.get_ylim()[0],
@@ -318,11 +357,23 @@ for sub in subjects:
         f_alphout = f_alphout[lead_peak_idx:]
         Pxx_den_alphout = Pxx_den_alphout[lead_peak_idx:]
 
-        # Fit polynomial(3) to alpha-out data
-        model3_alphout = np.polyfit(f_alphout, np.log(Pxx_den_alphout), deg=3)
-        predicted3_alphout = np.polyval(model3_alphout, f)  # predict on whole! freq-range
+        if poly_fit:
+            # Fit polynomial(3) to alpha-out data
+            model3_alphout = np.polyfit(f_alphout, np.log(Pxx_den_alphout), deg=3)
+            predicted = np.polyval(model3_alphout, f)  # predict on whole! freq-range
 
-        log_Pxx_den_detrend = np.log(Pxx_den) - predicted3_alphout
+        else:
+            # Fit 1/(a*f**b): Find optimal a, b params
+            def f1_ab(fr, a, b):
+                return np.log(1 / (a * fr ** b))  # in log scale
+
+            modelfao_opt_param, modelfao_cov_param = curve_fit(f=f1_ab,
+                                                               xdata=f_alphout,
+                                                               ydata=np.log(Pxx_den_alphout))
+
+            predicted = f1_ab(fr=f, a=modelfao_opt_param[0], b=modelfao_opt_param[1])
+
+        log_Pxx_den_detrend = np.log(Pxx_den) - predicted
 
         # Define area around given alpha-peak
         f_apeak = f[((f > sub_apeak - 4) & (sub_apeak + 4 > f))]
@@ -338,7 +389,7 @@ for sub in subjects:
         selected = False
         if np.any(log_Pxx_den_apeak > 0 + error_term):
             # # Additional criterion: peak in area > adjacent areas
-            c = 0.01  # difference-constant
+            c = 0.05  # difference-constant
             if np.max(log_Pxx_den_apeak) - np.mean(log_Pxx_den_apeak_flank_left) > c and \
                     np.max(log_Pxx_den_apeak) - np.mean(log_Pxx_den_apeak_flank_right) > c:
                 # could be c * np.max(FLANK...)
@@ -346,7 +397,8 @@ for sub in subjects:
                 selected_comps.append(ch+1)  # range(1, ...)
 
         axs.plot(f, np.log(Pxx_den), c="m", alpha=.3)  # Original
-        axs.plot(f, predicted3_alphout, c="m", linestyle=":", alpha=.3)  # polyfit
+
+        axs.plot(f, predicted, c="m", linestyle=":", alpha=.3)  # poly or 1/f fit
         axs.plot(f, log_Pxx_den_detrend, c="b", alpha=.8)  # Detrend
         axs.plot(f_apeak, log_Pxx_den_apeak, c="g" if selected else "r")
 
