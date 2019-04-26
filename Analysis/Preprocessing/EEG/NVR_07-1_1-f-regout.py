@@ -28,7 +28,7 @@ p2ssd = path_data + "EEG/07_SSD/"
 # # Set hyperparameters
 sanity_check = True  # plot additional infos (see below)
 tight_range = True  # Freq-range 0 – max_range Hz
-max_range = 40  # 40 Hz: ignores the line-noise related bump in data | 20 Hz: Low-Pass | 130 Hz: ~max
+max_range = 20  # 40 Hz: ignores the line-noise related bump in data | 20 Hz: Low-Pass | 130 Hz: ~max
 save_plots = False
 f_high_res = False  # True: sets nperseg=4*250 in scipy.welch(); False: Default = 256
 poly_fit = False  # False: Uses 1/f-fit
@@ -36,7 +36,7 @@ subjects = np.arange(1, 45+1)  # ALL
 # subjects = np.arange(1, 20+1)  # subjects = np.arange(21, 45+1)  # subsets
 # subjects = np.array([6, 15, 18, 21, 22, 26, 27, 31, 35])  # subset: check selections
 # subjects = np.array([7, 14, 15, 21, 25])  # subset: check alpha peak info
-# subjects = np.array([6])  # subset: single subject: 8, 11
+subjects = np.array([5])  # subset: single subject: 6,8, 11
 condition = "nomov"
 if save_plots:
     plt_folder = p2ssd + "{0}/selection_plots_{0}/".format(condition)
