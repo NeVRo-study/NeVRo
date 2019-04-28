@@ -19,6 +19,9 @@ else
     alphaPeakSource = mov_cond;
 end
 
+%1.0 Calculate table with alpha peaks:
+%NVR_Peak();
+
 %1.1 Set different paths:
 path_data = '../../../Data/';
 path_dataeeg =  [path_data 'EEG/'];
@@ -34,8 +37,9 @@ files_eeg = dir([path_in_eeg '*.set']);
 files_eeg = {files_eeg.name};
 
 % Get the alpha peaks:
-alphaPeaks = load([path_in_aPeaks 'alphaPeaks.mat'], 'alphaPeaks');
-alphaPeaks = alphaPeaks.alphaPeaks; % now I would like to throw up.
+alphaPeaks = load([path_in_aPeaks 'alphapeaks.mat'], 'output');
+alphaPeaks = alphaPeaks.output; 
+alphaPeaks = cell2struct(alphaPeaks(2:end,:), alphaPeaks(1,:),2);
 
 
 for isub = (1:length(files_eeg))
@@ -64,10 +68,11 @@ for isub = (1:length(files_eeg))
     EEG = eegh(com,EEG);
     
     % Get the individual alpha peak:
-    idx = find(strcmp({alphaPeaks.name}, thissubject));
+    
+    idx = find(strcmp({alphaPeaks.participant}, thissubject));
     alphaPeak = alphaPeaks(idx).(alphaPeakSource);
-    if (alphaPeak == 0)
-        warning("No valid alpha peak found. Taking default = 10Hz.");
+    if (isnan(alphaPeak))
+        warning('No valid alpha peak found. Taking default = 10Hz.');
         alphaPeak = 10;
     end
     
