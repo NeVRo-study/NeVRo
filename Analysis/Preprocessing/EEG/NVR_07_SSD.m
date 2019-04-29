@@ -111,7 +111,26 @@ for isub = (1:length(files_eeg))
     csvwrite([path_out_eeg 'broadband/' thissubject '_' mov_cond ... 
         '_broad_SSD_cmp.csv'], bbData');
     
+    %% Plot: 
+    % get PSD:
+    [Pxx,f] = pwelch(EEG.data'*EEG.etc.SSD.W, 256, [], [], 250);
+    % ignore hi-freq:
+    idx = f < 50;
+    semilogy(f(idx), Pxx(idx,:))
+    hold on
+    plot([alphaPeak alphaPeak], [min(min(Pxx(idx,:))) max(max(Pxx(idx,:)))])
+    title(thissubject, 'Interpreter', 'none');
     
+    figure;
+    [oPxx,of] = pwelch(EEG.data', 1000, [], [], 250);
+    oidx = of < 50;
+    semilogy(of(oidx),oPxx(oidx, :))
+    hold on
+    plot([alphaPeak alphaPeak], [min(min(oPxx(oidx,:))) max(max(oPxx(oidx,:)))])
+    title('Channel space')
+    
+    keyboard;
+    % continue with dbcont
     
 end
 
