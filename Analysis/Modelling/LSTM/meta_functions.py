@@ -159,11 +159,13 @@ def denormalize(array, denorm_minmax, norm_minmax):
     return denormed_array
 
 
-def z_score(array):
+def z_score(array, inf=False):
     """
     Create z-score
     :return: z-score array
     """
+    if inf:
+        array[np.where(np.abs(array) == np.inf)] = np.nan
     sub_mean = np.nanmean(array)
     sub_std = np.nanstd(array)
     z_array = (array - sub_mean) / sub_std

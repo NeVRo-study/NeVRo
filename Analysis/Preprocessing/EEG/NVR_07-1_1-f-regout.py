@@ -33,9 +33,10 @@ assert max_range >= ffit_max, "max_range must be >= ffit_max"
 save_plots = False
 f_res_fac = 5  # sets nperseg= f_res_fac*250 in scipy.welch(), Default=256
 poly_fit = False  # False: Uses 1/f-fit
-subjects = np.arange(1, 45+1)  # ALL
+n_subs = 45  # number of all subjects
+subjects = np.arange(1, n_subs+1)  # ALL
 # subjects = np.arange(1, 20+1)  # subjects = np.arange(21, 45+1)  # subsets
-subjects = np.array([5, 6, 15, 18, 21, 22, 26, 27, 31, 35])  # subset: check selections
+# subjects = np.array([5, 6, 15, 18, 21, 22, 26, 27, 31, 35])  # subset: check selections
 # subjects = np.array([7, 14, 15, 21, 25])  # subset: check alpha peak info
 subjects = np.array([5])  # subset: single subject: 6,8, 11
 condition = "nomov"
@@ -55,10 +56,10 @@ if os.path.isfile(tab_select_name):
     tab_select_ssd = np.genfromtxt(tab_select_name, delimiter=";", dtype='<U{}'.format(
         len(",".join(str(x) for x in np.arange(1, 25+1)))))  # == '<Uxx' needed if 25 comps selected
 else:
-    tab_select_ssd = np.zeros(shape=(subjects[-1], 4), dtype='<U{}'.format(
+    tab_select_ssd = np.zeros(shape=(n_subs, 4), dtype='<U{}'.format(
         len(",".join(str(x) for x in np.arange(1, 25+1)))))  # Init table
     tab_select_ssd.fill(np.nan)  # convert entries to nan
-    tab_select_ssd[:, 0] = subjects
+    tab_select_ssd[:, 0] = np.arange(1, n_subs+1)
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
@@ -396,12 +397,61 @@ for sub in subjects:
         selected = False
         if np.any(log_Pxx_den_apeak > 0 + error_term):
             # # Additional criterion: peak in area > adjacent areas
-            c = 0.15  # TODO should be scale-indifferent difference-constant: check S05, comp16
-            if np.max(log_Pxx_den_apeak) - np.mean(log_Pxx_den_apeak_flank_left) > c and \
-                    np.max(log_Pxx_den_apeak) - np.mean(log_Pxx_den_apeak_flank_right) > c:
-                # could be c * np.max(FLANK...)
+            cSD = 1.  # TODO should be scale-indifferent difference-constant: check S05, comp16
+
+            # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+            # Z-transform comp:
+
+            # left_pxx_right = np.append(log_Pxx_den_apeak_flank_left,
+            #                            np.append(log_Pxx_den_apeak, log_Pxx_den_apeak_flank_right))
+            #
+            # lb = len(log_Pxx_den_apeak_flank_left)
+            # rb = lb + len(log_Pxx_den_apeak)
+            #
+            # z_left_pxx_right = z_score(left_pxx_right)
+            # z_log_Pxx_den_apeak_flank_left = z_left_pxx_right[:lb]
+            # z_log_Pxx_den_apeak = z_left_pxx_right[lb:rb]
+            # z_log_Pxx_den_apeak_flank_right = z_left_pxx_right[rb:]
+            #
+            # plt.figure()
+            # plt.plot(z_left_pxx_right)
+            # plt.plot(np.arange(len(left_pxx_right))[lb:rb], z_left_pxx_right[lb:rb])
+            # plt.plot(np.arange(len(left_pxx_right))[:lb], z_log_Pxx_den_apeak_flank_left, c="y")
+            # plt.plot(np.arange(len(left_pxx_right))[lb:rb], z_log_Pxx_den_apeak)
+            # plt.plot(np.arange(len(left_pxx_right))[rb:], z_log_Pxx_den_apeak_flank_right, c="y")
+            # plt.hlines(0, xmin=0, xmax=len(left_pxx_right), linestyles=":", alpha=.2)
+            #
+            # sel = False
+            # if np.max(z_log_Pxx_den_apeak) - np.mean(z_log_Pxx_den_apeak_flank_right) >= 1 and \
+            #         np.max(z_log_Pxx_den_apeak) - np.mean(z_log_Pxx_den_apeak_flank_left) >= 1:
+            #     sel = True
+            #
+            # plt.title("{}elected".format("S" if sel else "Not s"), color="g" if sel else "r")
+            # plt.show()
+            # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+            # Z-Score decision area:
+            left_pxx_right = np.append(log_Pxx_den_apeak_flank_left,
+                                       np.append(log_Pxx_den_apeak, log_Pxx_den_apeak_flank_right))
+            z_left_pxx_right = z_score(left_pxx_right)
+
+            lb = len(log_Pxx_den_apeak_flank_left)
+            rb = lb + len(log_Pxx_den_apeak)
+
+            # Crop into single flanks and alpha area, respectively
+            z_log_Pxx_den_apeak_flank_left = z_left_pxx_right[:lb]
+            z_log_Pxx_den_apeak = z_left_pxx_right[lb:rb]
+            z_log_Pxx_den_apeak_flank_right = z_left_pxx_right[rb:]
+
+            # could be c * np.max(FLANK...)
+            # if np.max(log_Pxx_den_apeak) - np.mean(log_Pxx_den_apeak_flank_left) > cSD and \
+            #         np.max(log_Pxx_den_apeak) - np.mean(log_Pxx_den_apeak_flank_right) > cSD:
+
+            # Select comp if alpha area c*standard deviation (SD) higher than of flanks
+            if np.max(z_log_Pxx_den_apeak) - np.mean(z_log_Pxx_den_apeak_flank_right) >= cSD and \
+                    np.max(z_log_Pxx_den_apeak) - np.mean(z_log_Pxx_den_apeak_flank_left) >= cSD:
                 selected = True  # write ch (component) as selected
-                selected_comps.append(ch+1)  # range(1, ...)
+                selected_comps.append(ch + 1)  # range(1, ...)
 
         axs.plot(f, np.log(Pxx_den), c="m", alpha=.3)  # Original
 
@@ -412,7 +462,8 @@ for sub in subjects:
         axs.plot(f[(f <= sub_apeak - 4)][-2*f_res_fac:], log_Pxx_den_apeak_flank_left, c="y")
         axs.plot(f[(f >= sub_apeak + 4)][:2*f_res_fac], log_Pxx_den_apeak_flank_right, c="y")
 
-        axs.set_title("{} | {} | SSD comp{}".format(s(sub), condition, ch+1))
+        axs.set_title("{} | {} | SSD comp{}".format(s(sub), condition, ch+1),
+                      color="g" if selected else "r")
         axs.vlines(sub_apeak,
                    ymin=min(log_Pxx_den_detrend[1:]),  # first value: -inf
                    ymax=log_Pxx_den_detrend[np.argmin(np.abs(f - sub_apeak))],
