@@ -397,7 +397,7 @@ for sub in subjects:
         selected = False
         if np.any(log_Pxx_den_apeak > 0 + error_term):
             # # Additional criterion: peak in area > adjacent areas
-            cSD = 1.  # TODO should be scale-indifferent difference-constant: check S05, comp16
+            cSD = 1.  # TODO check = 1. whether to conservative
 
             # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
             # Z-transform comp:
