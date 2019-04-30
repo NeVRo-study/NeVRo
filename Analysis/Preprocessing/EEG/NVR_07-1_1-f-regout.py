@@ -26,15 +26,16 @@ p2ssd = path_data + "EEG/07_SSD/"
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
 # # Set hyperparameters
-sanity_check = True  # plot additional infos (see below)
-tight_range = True  # Freq-range 0 – max_range Hz
-max_range = 20  # 40 Hz: ignores the line-noise related bump in data | 20 Hz: Low-Pass | 130 Hz: ~max
+sanity_check = False  # plot additional infos (see below)
+max_range = 40  # freq max for plots, 130 Hz: ~max
+ffit_max = 20  # freq. max for fit; 40 Hz: ignores the line-noise related bump in data | 20 Hz: Low-Pass
+assert max_range >= ffit_max, "max_range must be >= ffit_max"
 save_plots = False
-f_high_res = False  # True: sets nperseg=4*250 in scipy.welch(); False: Default = 256
+f_res_fac = 5  # sets nperseg= f_res_fac*250 in scipy.welch(), Default=256
 poly_fit = False  # False: Uses 1/f-fit
 subjects = np.arange(1, 45+1)  # ALL
 # subjects = np.arange(1, 20+1)  # subjects = np.arange(21, 45+1)  # subsets
-# subjects = np.array([6, 15, 18, 21, 22, 26, 27, 31, 35])  # subset: check selections
+subjects = np.array([5, 6, 15, 18, 21, 22, 26, 27, 31, 35])  # subset: check selections
 # subjects = np.array([7, 14, 15, 21, 25])  # subset: check alpha peak info
 subjects = np.array([5])  # subset: single subject: 6,8, 11
 condition = "nomov"
@@ -94,14 +95,14 @@ for sub in subjects:
     # for ch in range(1, n_comp):
     for ch in range(n_comp):
         f, Pxx_den = welch(x=sub_df[:, ch], fs=250.0, window="hann",
-                           nperseg=4*250 if f_high_res else None, noverlap=None,
+                           nperseg=f_res_fac*250, noverlap=None,
                            nfft=None,
                            detrend='constant', return_onesided=True, scaling='density', axis=-1,
                            average='mean')
 
-        if tight_range:
-            Pxx_den = Pxx_den[f <= max_range]
-            f = f[f <= max_range]
+        # Adapt range
+        Pxx_den = Pxx_den[f <= max_range]
+        f = f[f <= max_range]
 
         ax.semilogy(f, Pxx_den)
         plt.xlabel('frequency [Hz]')
@@ -117,7 +118,7 @@ for sub in subjects:
     xtl[-1] = str(np.round(sub_apeak, 1))
     ax.set_xticks(xt)
     ax.set_xticklabels(xtl)
-    ax.set_xlim([-1, max_range+1 if tight_range else 130])
+    ax.set_xlim([-1, max_range+1])
     ax.set_title("{} | {} | plt.semilogy(f, Pxx_den)".format(s(sub), condition))
 
     # Alternative: plt.psd
@@ -133,8 +134,8 @@ for sub in subjects:
         xtl2[-1] = str(np.round(sub_apeak, 1))
         ax2.set_xticks(xt2)
         ax2.set_xticklabels(xtl2)
-        ax2.set_xlim([-1, max_range+1 if tight_range else 130])
-        ax2.set_title("S{} | {} | plt.psd()".format(str(sub).zfill(2), condition))
+        ax2.set_xlim([-1, max_range+1])
+        ax2.set_title("S{} | {} | plt.psd()".format(s(sub), condition))
 
     plt.tight_layout()
     plt.show()
@@ -166,14 +167,14 @@ for sub in subjects:
             axs = figs2.add_subplot(rpl, cpl, ch + 1)
 
             f, Pxx_den = welch(x=sub_df[:, ch], fs=250.0, window="hann",
-                               nperseg=4*250 if f_high_res else None, noverlap=None,
+                               nperseg=f_res_fac*250, noverlap=None,
                                nfft=None,
                                detrend='constant', return_onesided=True, scaling='density', axis=-1,
                                average='mean')
 
-            if tight_range:
-                Pxx_den = Pxx_den[f <= max_range]
-                f = f[f <= max_range]
+            # Adapt range (0-max_range Hz)
+            Pxx_den = Pxx_den[f <= max_range]
+            f = f[f <= max_range]
 
             Pxx_den_apeak = np.log(Pxx_den)[np.argmin(np.abs(f - sub_apeak))]
 
@@ -182,7 +183,7 @@ for sub in subjects:
             # predicted = np.polyval(model, f)
 
             # Quadratic fit / poly(2)
-            model2 = np.polyfit(f, np.log(Pxx_den), 2)
+            model2 = np.polyfit(f, np.log(Pxx_den), 2)  # fit on whole range
             predicted2 = np.polyval(model2, f)
 
             # Cubic fit / poly(3)
@@ -210,8 +211,8 @@ for sub in subjects:
             axs.plot(f, np.log(Pxx_den), linestyle="-.", label='data')
 
             # axs.plot(predicted, alpha=.8, linestyle=":", c="g", label='poly_1/linear')
-            axs.plot(predicted2, alpha=.8, linestyle=":", c="y", label='poly2')
-            axs.plot(predicted3, alpha=.8, linestyle=":", c="m", label='poly3')
+            axs.plot(f, predicted2, alpha=.8, linestyle=":", c="y", label='poly2')
+            axs.plot(f, predicted3, alpha=.8, linestyle=":", c="m", label='poly3')
             axs.plot(f[1:], predicted4, alpha=.8, linestyle=":", c="g", label='1/af**b')
             axs.set_title("S{} | {} | Detrend SSD comp{}".format(s(sub), condition, ch+1))
 
@@ -245,34 +246,38 @@ for sub in subjects:
             axs = figs3.add_subplot(rpl, cpl, ch + 1)
 
             f, Pxx_den = welch(x=sub_df[:, ch], fs=250.0, window="hann",
-                               nperseg=4*250 if f_high_res else None, noverlap=None,
+                               nperseg=f_res_fac*250, noverlap=None,
                                nfft=None,
                                detrend='constant', return_onesided=True, scaling='density', axis=-1,
                                average='mean')
 
-            # Freq.-Range (0-max_range Hz)
-            f_small = f[f <= max_range]
-            Pxx_den_small = Pxx_den[f <= max_range]
+            # Adapt Freq.-range (0-max_range Hz)
+            Pxx_den = Pxx_den[f <= max_range]
+            f = f[f <= max_range]
+
+            # Adapt data to fit (0-fit_max Hz)
+            f_fit = f[f <= ffit_max]
+            Pxx_den_fit = Pxx_den[f <= ffit_max]
 
             # Leave alpha out
-            f_small_alphout = f_small[~((sub_apeak+4 > f_small) & (f_small > sub_apeak-4))]
-            Pxx_den_small_alphout = Pxx_den_small[~((sub_apeak+4 > f_small) & (f_small > sub_apeak-4))]
+            f_alphout_fit = f_fit[~((sub_apeak+4 > f_fit) & (f_fit > sub_apeak-4))]
+            Pxx_den_alphout_fit = Pxx_den_fit[~((sub_apeak+4 > f_fit) & (f_fit > sub_apeak-4))]
 
-            # Remove leading ascent for poly-fit
-            lead_peak_idx = np.where(Pxx_den_small_alphout == np.max(
-                Pxx_den_small_alphout[f_small_alphout < 5]))[0][0]
-            f_small_ = f_small[lead_peak_idx:]
-            f_small_alphout = f_small_alphout[lead_peak_idx:]
-            Pxx_den_small_ = Pxx_den_small[lead_peak_idx:]
-            Pxx_den_small_alphout = Pxx_den_small_alphout[lead_peak_idx:]
+            # Remove leading ascent for fit-functions
+            lead_peak_idx = np.where(Pxx_den_alphout_fit == np.max(
+                Pxx_den_alphout_fit[f_alphout_fit < 5]))[0][0]
+            _f_fit = f_fit[lead_peak_idx:]
+            _f_alphout_fit = f_alphout_fit[lead_peak_idx:]
+            _Pxx_den_fit = Pxx_den_fit[lead_peak_idx:]
+            _Pxx_den_alphout_fit = Pxx_den_alphout_fit[lead_peak_idx:]
 
             # Fit polynomial(3)
-            model3_small = np.polyfit(f_small, np.log(Pxx_den_small), 3)
-            predicted3_small = np.polyval(model3_small, f_small)  # pred on full! freq-range
+            model3_small = np.polyfit(f_fit, np.log(Pxx_den_fit), 3)
+            predicted3_small = np.polyval(model3_small, f)  # pred on full! freq-range
 
             # Fit polynomial(3) to alpha out data
-            model3_small_alphout = np.polyfit(f_small_alphout, np.log(Pxx_den_small_alphout), deg=3)
-            predicted3_small_alphout = np.polyval(model3_small_alphout, f_small)
+            model3_small_alphout = np.polyfit(f_alphout_fit, np.log(Pxx_den_alphout_fit), deg=3)
+            predicted3_small_alphout = np.polyval(model3_small_alphout, f)
 
             # Fit 1/(a*f**b): Find optimal a, b params
             def f1_ab(fr, a, b):
@@ -280,36 +285,33 @@ for sub in subjects:
 
 
             modelf_opt_param, modelf_cov_param = curve_fit(f=f1_ab,
-                                                           xdata=f_small_,
-                                                           ydata=np.log(Pxx_den_small_))
+                                                           xdata=_f_fit,
+                                                           ydata=np.log(_Pxx_den_fit))
 
             modelfao_opt_param, modelfao_cov_param = curve_fit(f=f1_ab,
-                                                               xdata=f_small_alphout,
-                                                               ydata=np.log(Pxx_den_small_alphout))
+                                                               xdata=_f_alphout_fit,
+                                                               ydata=np.log(_Pxx_den_alphout_fit))
 
-            predicted4 = f1_ab(fr=f_small, a=modelf_opt_param[0], b=modelf_opt_param[1])
-            predicted4ao = f1_ab(fr=f_small, a=modelfao_opt_param[0], b=modelfao_opt_param[1])
+            predicted4 = f1_ab(fr=f, a=modelf_opt_param[0], b=modelf_opt_param[1])
+            predicted4ao = f1_ab(fr=f, a=modelfao_opt_param[0], b=modelfao_opt_param[1])
 
             # Plot
-            plt.plot(f_small, np.log(Pxx_den_small), linestyle="-.",
-                     label='data (f<={})'.format(max_range))
+            plt.plot(f, np.log(Pxx_den), linestyle="-.", label='data (f<={})'.format(max_range))
             # plt.plot(predicted3_small, alpha=.8, linestyle=":", c="m", label='poly3')
             # plt.plot(predicted3_small_alphout, alpha=.8, c="g", linestyle=":", label='poly3_alpha-out')
-            plt.plot(predicted4, alpha=.8, color='orange', linestyle=":", label='1/fit')
-            plt.plot(predicted4ao, alpha=.8, c="y", linestyle=":", label='1/fit_alpha-out')
+            plt.plot(f, predicted4, alpha=.8, color='orange', linestyle=":", label='1/fit')
+            plt.plot(f, predicted4ao, alpha=.8, c="y", linestyle=":", label='1/fit_alpha-out')
 
-            # plt.plot(f_small, np.log(Pxx_den_small) - predicted3_small, c="m",
+            # plt.plot(f_fit, np.log(Pxx_den_fit) - predicted3_small, c="m",
             #          label='detrend-p3')
-            # plt.plot(f_small, np.log(Pxx_den_small) - predicted3_small_alphout, c="g",
+            # plt.plot(f_fit, np.log(Pxx_den_fit) - predicted3_small_alphout, c="g",
             #          label='detrend-p3_a-out')
-            plt.plot(f_small, np.log(Pxx_den_small) - predicted4, color='orange',
-                     label='detrend-1/fit')
-            plt.plot(f_small, np.log(Pxx_den_small) - predicted4ao, c="y",
-                     label='detrend-1/fit_a-out')
+            plt.plot(f, np.log(Pxx_den) - predicted4, color='orange', label='detrend-1/fit')
+            plt.plot(f, np.log(Pxx_den) - predicted4ao, c="y", label='detrend-1/fit_a-out')
 
             axs.vlines(sub_apeak,
                        ymin=axs.get_ylim()[0],
-                       ymax=np.log(Pxx_den_small)[np.argmin(np.abs(f_small - sub_apeak))],
+                       ymax=np.log(Pxx_den_fit)[np.argmin(np.abs(f_fit - sub_apeak))],
                        linestyles="dashed", alpha=0.2)  # ymax=np.polyval(model3_small, sub_apeak)
 
             axs.set_title("S{} | {} | Detrend SSD comp{}".format(s(sub), condition, ch + 1))
@@ -336,30 +338,35 @@ for sub in subjects:
         axs = figs4.add_subplot(rpl, cpl, ch + 1)
 
         f, Pxx_den = welch(x=sub_df[:, ch], fs=250.0, window="hann",
-                           nperseg=4*250 if f_high_res else None, noverlap=None,
+                           nperseg=f_res_fac*250, noverlap=None,
                            nfft=None,
                            detrend='constant',  # detrend=False: no major difference to 'constant'
                            return_onesided=True, scaling='density', axis=-1,
                            average='mean')
 
-        if tight_range:
-            # Freq.-Range (0-max_range Hz)
-            Pxx_den = Pxx_den[f <= max_range]
-            f = f[f <= max_range]
+        # Adapt Freq.-Range (0-max_range Hz)
+        Pxx_den = Pxx_den[f <= max_range]
+        f = f[f <= max_range]
+        # f[0] += 0.0001  #  stability term
+
+        # Adapt data to fit (0-fit_max Hz)
+        f_fit = f[f <= ffit_max]
+        Pxx_den_fit = Pxx_den[f <= ffit_max]
 
         # Leave alpha out
-        f_alphout = f[~((sub_apeak + 4 > f) & (f > sub_apeak - 4))]
-        Pxx_den_alphout = Pxx_den[~((sub_apeak + 4 > f) & (f > sub_apeak - 4))]
+        f_alphout_fit = f_fit[~((sub_apeak + 4 > f_fit) & (f_fit > sub_apeak - 4))]
+        Pxx_den_alphout_fit = Pxx_den_fit[~((sub_apeak + 4 > f_fit) & (f_fit > sub_apeak - 4))]
 
         # Remove leading ascent for poly-fit
-        lead_peak_idx = np.where(Pxx_den_alphout == np.max(
-            Pxx_den_alphout[f_alphout < 5]))[0][0]
-        f_alphout = f_alphout[lead_peak_idx:]
-        Pxx_den_alphout = Pxx_den_alphout[lead_peak_idx:]
+        lead_peak_idx = np.where(Pxx_den_alphout_fit == np.max(Pxx_den_alphout_fit[
+                                                                   f_alphout_fit < 5]))[0][0]
+
+        _f_alphout_fit = f_alphout_fit[lead_peak_idx:]
+        _Pxx_den_alphout_fit = Pxx_den_alphout_fit[lead_peak_idx:]
 
         if poly_fit:
             # Fit polynomial(3) to alpha-out data
-            model3_alphout = np.polyfit(f_alphout, np.log(Pxx_den_alphout), deg=3)
+            model3_alphout = np.polyfit(f_alphout_fit, np.log(Pxx_den_alphout_fit), deg=3)
             predicted = np.polyval(model3_alphout, f)  # predict on whole! freq-range
 
         else:
@@ -368,8 +375,8 @@ for sub in subjects:
                 return np.log(1 / (a * fr ** b))  # in log scale
 
             modelfao_opt_param, modelfao_cov_param = curve_fit(f=f1_ab,
-                                                               xdata=f_alphout,
-                                                               ydata=np.log(Pxx_den_alphout))
+                                                               xdata=_f_alphout_fit,
+                                                               ydata=np.log(_Pxx_den_alphout_fit))
 
             predicted = f1_ab(fr=f, a=modelfao_opt_param[0], b=modelfao_opt_param[1])
 
@@ -380,8 +387,8 @@ for sub in subjects:
         log_Pxx_den_apeak = log_Pxx_den_detrend[((f > sub_apeak - 4) & (sub_apeak + 4 > f))]
 
         # Define adjacent area
-        log_Pxx_den_apeak_flank_left = log_Pxx_den_detrend[(f <= sub_apeak - 4)][-2:]
-        log_Pxx_den_apeak_flank_right = log_Pxx_den_detrend[(f >= sub_apeak + 4)][:2]
+        log_Pxx_den_apeak_flank_left = log_Pxx_den_detrend[(f <= sub_apeak - 4)][-2*f_res_fac:]
+        log_Pxx_den_apeak_flank_right = log_Pxx_den_detrend[(f >= sub_apeak + 4)][:2*f_res_fac]
 
         # # # Select
         # # Criterion: alpha-peak above zero-line + small error term
@@ -389,7 +396,7 @@ for sub in subjects:
         selected = False
         if np.any(log_Pxx_den_apeak > 0 + error_term):
             # # Additional criterion: peak in area > adjacent areas
-            c = 0.05  # difference-constant
+            c = 0.15  # TODO should be scale-indifferent difference-constant: check S05, comp16
             if np.max(log_Pxx_den_apeak) - np.mean(log_Pxx_den_apeak_flank_left) > c and \
                     np.max(log_Pxx_den_apeak) - np.mean(log_Pxx_den_apeak_flank_right) > c:
                 # could be c * np.max(FLANK...)
@@ -402,12 +409,12 @@ for sub in subjects:
         axs.plot(f, log_Pxx_den_detrend, c="b", alpha=.8)  # Detrend
         axs.plot(f_apeak, log_Pxx_den_apeak, c="g" if selected else "r")
 
-        axs.plot(f[(f <= sub_apeak - 4)][-2:], log_Pxx_den_apeak_flank_left, c="y")
-        axs.plot(f[(f >= sub_apeak + 4)][:2], log_Pxx_den_apeak_flank_right, c="y")
+        axs.plot(f[(f <= sub_apeak - 4)][-2*f_res_fac:], log_Pxx_den_apeak_flank_left, c="y")
+        axs.plot(f[(f >= sub_apeak + 4)][:2*f_res_fac], log_Pxx_den_apeak_flank_right, c="y")
 
         axs.set_title("{} | {} | SSD comp{}".format(s(sub), condition, ch+1))
         axs.vlines(sub_apeak,
-                   ymin=min(log_Pxx_den_detrend),
+                   ymin=min(log_Pxx_den_detrend[1:]),  # first value: -inf
                    ymax=log_Pxx_den_detrend[np.argmin(np.abs(f - sub_apeak))],
                    linestyles="dashed", alpha=.2)
         plt.hlines(y=0, xmin=0, xmax=max_range, alpha=.4, linestyles=":")  # Zero-line

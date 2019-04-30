@@ -121,17 +121,18 @@ def get_filename(subject, filetype, band_pass, cond="nomov", sba=True, check_exi
     if filetype.upper() == "SPOC":
         band_pass = True  # 'SPOC' always band-pass filtered
 
+    band_pass_str = "narrowband" if band_pass else "broadband"
+
     get_path += cond.lower() + "/"  # os.path.join("a", "b") -> "a/b"
     get_path += "SBA/" if sba else "SA/"
-    get_path += "narrowband/" if band_pass else "broadband/"
+    get_path += band_pass_str + "/"
 
-    # e.g. "NVR_S36_1_broad_SSD_cmp.csv"
-
-    file_name = get_path + "NVR_S{}_{}_{}_{}_cmp.csv".format(str(subject).zfill(2),
-                                                             cond,
-                                                             "narrow" if band_pass else "broad",
-                                                             filetype.upper())
-
+    # e.g. "NVR_S05nomov_PREP_SBA_eventsaro_rejcomp_SSD_broadband.csv"
+    file_name = get_path + "NVR_{}{}_PREP_{}_eventsaro_rejcomp_{}_{}.csv".format(s(subject),
+                                                                                 cond,
+                                                                                 "SBA" if sba else "SA",
+                                                                                 filetype.upper(),
+                                                                                 band_pass_str)
     # Check existence of file
     if check_existence:
         if not os.path.exists(file_name):
