@@ -30,7 +30,7 @@ sanity_check = False  # plot additional infos (see below)
 max_range = 40  # freq max for plots, 130 Hz: ~max
 ffit_max = 20  # freq. max for fit; 40 Hz: ignores the line-noise related bump in data | 20 Hz: Low-Pass
 assert max_range >= ffit_max, "max_range must be >= ffit_max"
-save_plots = False
+save_plots = True
 f_res_fac = 5  # sets nperseg= f_res_fac*250 in scipy.welch(), Default=256
 poly_fit = False  # False: Uses 1/f-fit
 n_subs = 45  # number of all subjects
@@ -38,7 +38,7 @@ subjects = np.arange(1, n_subs+1)  # ALL
 # subjects = np.arange(1, 20+1)  # subjects = np.arange(21, 45+1)  # subsets
 # subjects = np.array([5, 6, 15, 18, 21, 22, 26, 27, 31, 35])  # subset: check selections
 # subjects = np.array([7, 14, 15, 21, 25])  # subset: check alpha peak info
-subjects = np.array([5])  # subset: single subject: 6,8, 11
+# subjects = np.array([5])  # subset: single subject: 6,8,11
 condition = "nomov"
 if save_plots:
     plt_folder = p2ssd + "{0}/selection_plots_{0}/".format(condition)
@@ -112,7 +112,7 @@ for sub in subjects:
         Pxx_den_apeak = Pxx_den[np.argmin(np.abs(f - sub_apeak))]
         min_apeak = Pxx_den_apeak if Pxx_den_apeak < min_apeak else min_apeak
 
-    plt.vlines(sub_apeak, ymin=-0.01, ymax=min_apeak, linestyles="dashed", alpha=.2)
+    ax.vlines(sub_apeak, ymin=-0.01, ymax=min_apeak, linestyles="dashed", alpha=.2)
     xt = ax.get_xticks()
     xt = np.append(xt, sub_apeak)
     xtl = xt.tolist()
@@ -138,11 +138,11 @@ for sub in subjects:
         ax2.set_xlim([-1, max_range+1])
         ax2.set_title("S{} | {} | plt.psd()".format(s(sub), condition))
 
-    plt.tight_layout()
-    plt.show()
+    fig.tight_layout()
+    fig.show()
     if save_plots:
-        plt.savefig(fname=plt_folder + "{}_SSD_powerspec.png".format(s(sub)))
-        plt.close()
+        fig.savefig(fname=plt_folder + "{}_SSD_powerspec.png".format(s(sub)))
+        plt.close(fig)
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
@@ -200,13 +200,6 @@ for sub in subjects:
                                                            ydata=np.log(Pxx_den)[1:])
 
             predicted4 = f1_ab(fr=f[1:], a=modelb_opt_param[0], b=modelb_opt_param[1])
-
-            # axs22 = figs22.add_subplot(rpl, cpl, ch + 1)  # TEST
-            # axs22.plot(f[1:], np.log(Pxx_den)[1:], label="log_Pxx")
-            # axs22.plot(predicted4, linestyle=":",
-            #          label="Fit: 1/{}f**{}".format(np.round(modelb_opt_param[0], 2),
-            #                                        np.round(modelb_opt_param[1], 2)))
-            # axs22.legend()
 
             # Plot
             axs.plot(f, np.log(Pxx_den), linestyle="-.", label='data')
@@ -331,6 +324,7 @@ for sub in subjects:
     # If bump around alpha peak is above zero + small error term: select component
 
     figs4 = plt.figure(figsize=[14, 10])
+    figs5 = plt.figure(figsize=[14, 10])
 
     selected_comps = []
 
@@ -399,37 +393,6 @@ for sub in subjects:
             # # Additional criterion: peak in area > adjacent areas
             cSD = 1.  # TODO check = 1. whether to conservative
 
-            # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-            # Z-transform comp:
-
-            # left_pxx_right = np.append(log_Pxx_den_apeak_flank_left,
-            #                            np.append(log_Pxx_den_apeak, log_Pxx_den_apeak_flank_right))
-            #
-            # lb = len(log_Pxx_den_apeak_flank_left)
-            # rb = lb + len(log_Pxx_den_apeak)
-            #
-            # z_left_pxx_right = z_score(left_pxx_right)
-            # z_log_Pxx_den_apeak_flank_left = z_left_pxx_right[:lb]
-            # z_log_Pxx_den_apeak = z_left_pxx_right[lb:rb]
-            # z_log_Pxx_den_apeak_flank_right = z_left_pxx_right[rb:]
-            #
-            # plt.figure()
-            # plt.plot(z_left_pxx_right)
-            # plt.plot(np.arange(len(left_pxx_right))[lb:rb], z_left_pxx_right[lb:rb])
-            # plt.plot(np.arange(len(left_pxx_right))[:lb], z_log_Pxx_den_apeak_flank_left, c="y")
-            # plt.plot(np.arange(len(left_pxx_right))[lb:rb], z_log_Pxx_den_apeak)
-            # plt.plot(np.arange(len(left_pxx_right))[rb:], z_log_Pxx_den_apeak_flank_right, c="y")
-            # plt.hlines(0, xmin=0, xmax=len(left_pxx_right), linestyles=":", alpha=.2)
-            #
-            # sel = False
-            # if np.max(z_log_Pxx_den_apeak) - np.mean(z_log_Pxx_den_apeak_flank_right) >= 1 and \
-            #         np.max(z_log_Pxx_den_apeak) - np.mean(z_log_Pxx_den_apeak_flank_left) >= 1:
-            #     sel = True
-            #
-            # plt.title("{}elected".format("S" if sel else "Not s"), color="g" if sel else "r")
-            # plt.show()
-            # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
             # Z-Score decision area:
             left_pxx_right = np.append(log_Pxx_den_apeak_flank_left,
                                        np.append(log_Pxx_den_apeak, log_Pxx_den_apeak_flank_right))
@@ -453,6 +416,36 @@ for sub in subjects:
                 selected = True  # write ch (component) as selected
                 selected_comps.append(ch + 1)  # range(1, ...)
 
+            # Plot z-Transform Comp >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+            axs2 = figs5.add_subplot(rpl, cpl, ch + 1)
+
+            axs2.plot(f[(f <= sub_apeak - 4)][-2 * f_res_fac:], z_log_Pxx_den_apeak_flank_left, c="y")
+            axs2.plot(f[((f > sub_apeak - 4) & (sub_apeak + 4 > f))], z_log_Pxx_den_apeak,
+                      c="g" if selected else "r")
+            axs2.plot(f[(f >= sub_apeak + 4)][:2 * f_res_fac], z_log_Pxx_den_apeak_flank_right, c="y")
+            axs2.hlines(y=0, xmin=0, xmax=max_range, alpha=.4, linestyles=":")  # Zero-line
+
+            axs2.hlines(y=np.mean(z_log_Pxx_den_apeak_flank_left),
+                        xmin=0, xmax=f[(f <= sub_apeak - 4)][-2 * f_res_fac:][-1]+1,
+                        alpha=.4, linestyles=":", color="y")  # Mean-line, left
+            axs2.hlines(y=np.max(z_log_Pxx_den_apeak),
+                        xmin=f[(f <= sub_apeak - 4)][-2 * f_res_fac:][-1]-1,
+                        xmax=f[(f >= sub_apeak + 4)][:2 * f_res_fac][0]+1,
+                        alpha=.4, linestyles=":",
+                        color="g" if selected else "r")  # max/peak-line, alpha area
+            axs2.hlines(y=np.mean(z_log_Pxx_den_apeak_flank_right),
+                        xmin=f[(f >= sub_apeak + 4)][:2 * f_res_fac][0]-1,
+                        xmax=max_range,
+                        alpha=.4, linestyles=":", color="y")  # Mean-line, right
+            axs2.vlines(sub_apeak,
+                        ymin=min(z_left_pxx_right), ymax=max(z_left_pxx_right),
+                        linestyles="dashed", alpha=.2)
+            axs2.set_xlim([int(sub_apeak-7) if int(sub_apeak-7) > 0 else 0, int(sub_apeak+7)])
+            axs2.set_ylim([-3.0, 3.0])
+            axs2.set_title("{} | {} | comp{} | z-alpha".format(s(sub), condition, ch + 1),
+                           color="g" if selected else "r")
+            # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
         axs.plot(f, np.log(Pxx_den), c="m", alpha=.3)  # Original
 
         axs.plot(f, predicted, c="m", linestyle=":", alpha=.3)  # poly or 1/f fit
@@ -468,7 +461,7 @@ for sub in subjects:
                    ymin=min(log_Pxx_den_detrend[1:]),  # first value: -inf
                    ymax=log_Pxx_den_detrend[np.argmin(np.abs(f - sub_apeak))],
                    linestyles="dashed", alpha=.2)
-        plt.hlines(y=0, xmin=0, xmax=max_range, alpha=.4, linestyles=":")  # Zero-line
+        axs.hlines(y=0, xmin=0, xmax=max_range, alpha=.4, linestyles=":")  # Zero-line
 
         log_Pxx_den_apeak_stand = log_Pxx_den_apeak - np.linspace(log_Pxx_den_apeak[0],
                                                                   log_Pxx_den_apeak[-1],
@@ -479,11 +472,16 @@ for sub in subjects:
         # np.var()
         # axs.fill_between(f_apeak, np.array(log_Pxx_den_apeak_stand+.5), alpha=.2)
 
-    plt.tight_layout()
-    plt.show()
+    figs4.tight_layout()
+    figs4.show()
+    figs5.tight_layout()
+    figs5.show()
+
     if save_plots:
-        plt.savefig(fname=plt_folder + "{}_SSD_selection.png".format(s(sub)))
-        plt.close()
+        figs4.savefig(fname=plt_folder + "{}_SSD_selection.png".format(s(sub)))
+        figs5.savefig(fname=plt_folder + "{}_SSD_selection_flank-criterion.png".format(s(sub)))
+        plt.close(fig=figs4)
+        plt.close(fig=figs5)
 
     # Write selected SSD components in table
     tab_select_ssd[np.where(tab_select_ssd[:, 0] == str(sub)), 1] = ",".join(
