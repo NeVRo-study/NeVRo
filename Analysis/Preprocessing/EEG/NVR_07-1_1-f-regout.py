@@ -391,7 +391,7 @@ for sub in subjects:
         selected = False
         if np.any(log_Pxx_den_apeak > 0 + error_term):
             # # Additional criterion: peak in area > adjacent areas
-            cSD = 1.  # TODO check = 1. whether to conservative
+            cSD = 1.8  # TODO check = 1. whether to conservative
 
             # Z-Score decision area:
             left_pxx_right = np.append(log_Pxx_den_apeak_flank_left,
