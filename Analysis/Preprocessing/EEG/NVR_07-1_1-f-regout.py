@@ -30,7 +30,7 @@ sanity_check = False  # plot additional infos (see below)
 max_range = 40  # freq max for plots, 130 Hz: ~max
 ffit_max = 20  # freq. max for fit; 40 Hz: ignores the line-noise related bump in data | 20 Hz: Low-Pass
 assert max_range >= ffit_max, "max_range must be >= ffit_max"
-save_plots = True
+save_plots = False
 f_res_fac = 5  # sets nperseg= f_res_fac*250 in scipy.welch(), Default=256
 poly_fit = False  # False: Uses 1/f-fit
 n_subs = 45  # number of all subjects
@@ -38,7 +38,8 @@ subjects = np.arange(1, n_subs+1)  # ALL
 # subjects = np.arange(1, 20+1)  # subjects = np.arange(21, 45+1)  # subsets
 # subjects = np.array([5, 6, 15, 18, 21, 22, 26, 27, 31, 35])  # subset: check selections
 # subjects = np.array([7, 14, 15, 21, 25])  # subset: check alpha peak info
-# subjects = np.array([5])  # subset: single subject: 6,8,11
+# subjects = np.array([7, 13, 21, 22])  # subset: zero-line treshold
+subjects = np.array([3])  # subset: single subject: 5,6,8,11
 condition = "nomov"
 if save_plots:
     plt_folder = p2ssd + "{0}/selection_plots_{0}/".format(condition)
@@ -387,11 +388,12 @@ for sub in subjects:
 
         # # # Select
         # # Criterion: alpha-peak above zero-line + small error term
-        error_term = 0.15  # TODO Could be defined more systematically
+        error_term = 0.35  # TODO Could be defined more systematically
+
         selected = False
         if np.any(log_Pxx_den_apeak > 0 + error_term):
             # # Additional criterion: peak in area > adjacent areas
-            cSD = 1.8  # TODO check = 1. whether to conservative
+            cSD = 1.45  # TODO check = 1.45 whether to conservative
 
             # Z-Score decision area:
             left_pxx_right = np.append(log_Pxx_den_apeak_flank_left,
@@ -411,8 +413,10 @@ for sub in subjects:
             #         np.max(log_Pxx_den_apeak) - np.mean(log_Pxx_den_apeak_flank_right) > cSD:
 
             # Select comp if alpha area c*standard deviation (SD) higher than of flanks
-            if np.max(z_log_Pxx_den_apeak) - np.mean(z_log_Pxx_den_apeak_flank_right) >= cSD and \
-                    np.max(z_log_Pxx_den_apeak) - np.mean(z_log_Pxx_den_apeak_flank_left) >= cSD:
+            ldist = np.max(z_log_Pxx_den_apeak) - np.mean(z_log_Pxx_den_apeak_flank_left)
+            rdist = np.max(z_log_Pxx_den_apeak) - np.mean(z_log_Pxx_den_apeak_flank_right)
+            pdist = min(ldist, rdist)
+            if pdist >= cSD:
                 selected = True  # write ch (component) as selected
                 selected_comps.append(ch + 1)  # range(1, ...)
 
@@ -440,10 +444,18 @@ for sub in subjects:
             axs2.vlines(sub_apeak,
                         ymin=min(z_left_pxx_right), ymax=max(z_left_pxx_right),
                         linestyles="dashed", alpha=.2)
+
+            axs2.vlines(f[(f >= sub_apeak + 4)][:2 * f_res_fac][0]+1 if rdist < ldist else
+                        f[(f <= sub_apeak - 4)][-2 * f_res_fac:][-1]-1,
+                        ymin=max(z_log_Pxx_den_apeak)-pdist, ymax=max(z_log_Pxx_den_apeak),
+                        linestyles=":", alpha=.5, color="g" if selected else "r",
+                        label="diff: {}".format(np.round(pdist, 2)))
+
             axs2.set_xlim([int(sub_apeak-7) if int(sub_apeak-7) > 0 else 0, int(sub_apeak+7)])
             axs2.set_ylim([-3.0, 3.0])
             axs2.set_title("{} | {} | comp{} | z-alpha".format(s(sub), condition, ch + 1),
                            color="g" if selected else "r")
+            axs2.legend(handlelength=0, handletextpad=0, loc='lower right')
             # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
         axs.plot(f, np.log(Pxx_den), c="m", alpha=.3)  # Original
@@ -463,11 +475,20 @@ for sub in subjects:
                    linestyles="dashed", alpha=.2)
         axs.hlines(y=0, xmin=0, xmax=max_range, alpha=.4, linestyles=":")  # Zero-line
 
+        axs.hlines(y=max(log_Pxx_den_apeak), xmin=0, xmax=f[(f >= sub_apeak + 4)][:2*f_res_fac][0]+1,
+                   linestyles="-.", alpha=.3,
+                   color="black", label="max: {}".format(np.round(max(log_Pxx_den_apeak), 3)))
+
         log_Pxx_den_apeak_stand = log_Pxx_den_apeak - np.linspace(log_Pxx_den_apeak[0],
                                                                   log_Pxx_den_apeak[-1],
                                                                   num=len(log_Pxx_den_apeak))
 
         axs.plot(f_apeak, log_Pxx_den_apeak_stand, c="g" if selected else "r", alpha=.2)
+
+        axs.set_xlim(2, max_range)
+        axs.set_ylim(-2, 2)
+
+        axs.legend(handlelength=0, handletextpad=0)
 
         # np.var()
         # axs.fill_between(f_apeak, np.array(log_Pxx_den_apeak_stand+.5), alpha=.2)
