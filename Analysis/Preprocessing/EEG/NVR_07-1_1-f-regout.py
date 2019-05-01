@@ -7,7 +7,7 @@ Selection of SSD components
 3) Criterion 2: then check whether flanks outside of alpha area is smaller
 4) Select and write in table & save plots of components
 
-Author: Simon Hofmann | <[surname].[lastname][at]pm.me> | 2019
+Author: Simon M. Hofmann | <[surname].[lastname][at]pm.me> | 2019
 """
 
 from meta_functions import *
@@ -27,19 +27,15 @@ p2ssd = path_data + "EEG/07_SSD/"
 
 # # Set hyperparameters
 sanity_check = False  # plot additional infos (see below)
-max_range = 40  # freq max for plots, 130 Hz: ~max
-ffit_max = 20  # freq. max for fit; 40 Hz: ignores the line-noise related bump in data | 20 Hz: Low-Pass
+max_range = 40  # freq.-max for plots, 130 Hz: ~max
+ffit_max = 20  # freq.-max for fit; 40 Hz: ignores the line-noise related bump in data | 20 Hz: Low-Pass
 assert max_range >= ffit_max, "max_range must be >= ffit_max"
-save_plots = False
+save_plots = False  # True: also saves selections in table
 f_res_fac = 5  # sets nperseg= f_res_fac*250 in scipy.welch(), Default=256
 poly_fit = False  # False: Uses 1/f-fit
 n_subs = 45  # number of all subjects
 subjects = np.arange(1, n_subs+1)  # ALL
-# subjects = np.arange(1, 20+1)  # subjects = np.arange(21, 45+1)  # subsets
-# subjects = np.array([5, 6, 15, 18, 21, 22, 26, 27, 31, 35])  # subset: check selections
-# subjects = np.array([7, 14, 15, 21, 25])  # subset: check alpha peak info
-# subjects = np.array([7, 13, 21, 22])  # subset: zero-line treshold
-# subjects = np.array([3])  # subset: single subject: 5,6,8,11
+# subjects = np.array([3])  # subset: single subject
 condition = "nomov"
 if save_plots:
     plt_folder = p2ssd + "{0}/selection_plots_{0}/".format(condition)
