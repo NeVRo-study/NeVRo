@@ -39,7 +39,7 @@ subjects = np.arange(1, n_subs+1)  # ALL
 # subjects = np.array([5, 6, 15, 18, 21, 22, 26, 27, 31, 35])  # subset: check selections
 # subjects = np.array([7, 14, 15, 21, 25])  # subset: check alpha peak info
 # subjects = np.array([7, 13, 21, 22])  # subset: zero-line treshold
-subjects = np.array([3])  # subset: single subject: 5,6,8,11
+# subjects = np.array([3])  # subset: single subject: 5,6,8,11
 condition = "nomov"
 if save_plots:
     plt_folder = p2ssd + "{0}/selection_plots_{0}/".format(condition)
@@ -90,6 +90,7 @@ for sub in subjects:
     # # Plot power spectral density (Welch)
     min_apeak = 99  # init
     psd_alternative = False  # True: plt.psd() [is equivalent]
+    maxPxx_den = 0
 
     fig = plt.figure()
     ax = plt.subplot(1, 2 if psd_alternative else 1, 1)
@@ -105,6 +106,7 @@ for sub in subjects:
         # Adapt range
         Pxx_den = Pxx_den[f <= max_range]
         f = f[f <= max_range]
+        maxPxx_den = max(Pxx_den) if maxPxx_den < max(Pxx_den) else maxPxx_den
 
         ax.semilogy(f, Pxx_den)
         plt.xlabel('frequency [Hz]')
@@ -114,6 +116,9 @@ for sub in subjects:
         min_apeak = Pxx_den_apeak if Pxx_den_apeak < min_apeak else min_apeak
 
     ax.vlines(sub_apeak, ymin=-0.01, ymax=min_apeak, linestyles="dashed", alpha=.2)
+    ax.annotate('alpha peak: {:.2f}'.format(sub_apeak), xy=(sub_apeak, maxPxx_den),
+                ha='left', va='top',
+                bbox=dict(boxstyle='round', fc='w'))
     xt = ax.get_xticks()
     xt = np.append(xt, sub_apeak)
     xtl = xt.tolist()
@@ -488,7 +493,7 @@ for sub in subjects:
         axs.set_xlim(2, max_range)
         axs.set_ylim(-2, 2)
 
-        axs.legend(handlelength=0, handletextpad=0)
+        axs.legend(handlelength=0, handletextpad=0, loc='lower right')
 
         # np.var()
         # axs.fill_between(f_apeak, np.array(log_Pxx_den_apeak_stand+.5), alpha=.2)
