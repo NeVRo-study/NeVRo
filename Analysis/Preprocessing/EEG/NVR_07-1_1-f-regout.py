@@ -35,8 +35,8 @@ f_res_fac = 5  # sets nperseg= f_res_fac*250 in scipy.welch(), Default=256
 poly_fit = False  # False: Uses 1/f-fit
 n_subs = 45  # number of all subjects
 subjects = np.arange(1, n_subs+1)  # ALL
-# subjects = np.array([3])  # subset: single subject
-condition = "nomov"
+# subjects = np.array([4])  # subset: single subject
+condition = "mov"  # "nomov"
 if save_plots:
     plt_folder = p2ssd + "{0}/selection_plots_{0}/".format(condition)
     if not os.path.exists(plt_folder):
