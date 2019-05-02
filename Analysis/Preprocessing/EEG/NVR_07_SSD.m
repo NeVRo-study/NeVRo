@@ -1,19 +1,46 @@
-
 %% NVR_07_SSD
-%
-% Run SSD.
-
-% 
-% 
-% 
-
-% 2019: Alberto Mariola & Felix Klotzsche --- eioe
-
-
 function NVR_07_SSD(cropstyle, mov_cond, varargin)
+%
+% NVR_07_SSD(cropstyle, mov_cond, alphaPeakSource, plot)
+%
+% Run Spatio-Spectral Decomposition (Nikulin et al., 2011) on the data. 
+%
+% INPUT:
+%       cropstyle        (string): 'SBA' or 'SA' (with or without break)
+%       mov_cond         (string): 'mov' or 'nomov'
+%                        data from the movement or the no-movement
+%                        condition?
+%       alphaPeakSource  (string): 'rs' (=restingstate), 'nomov', or 'mov'
+%                        Picks the individual alpha peak which has either
+%                        been calculated from the resting state (eyes
+%                        closed) data, movement, or no movement condition
+%                        data. Defaults to mov_cond, i.e. picks the peak
+%                        which has been calculated from the same data as is
+%                        going into this processing step.
+%       plot             (logical): shall the results be plotted? 
 
-% check input:
-if nargin > 2
+% 2019: Felix Klotzsche (eioe) & Alberto Mariola
+
+% % References:
+%
+% Nikulin VV, Nolte G, Curio G. A novel method for reliable and fast 
+% extraction of neuronal EEG/MEG oscillations on the basis of spatio-
+% spectral decomposition.
+% NeuroImage, 2011, 55: 1528-1535.
+%
+% Haufe, S., Dahne, S., & Nikulin, V. V. Dimensionality reduction for the 
+% analysis of brain oscillations. 
+% NeuroImage, 2014 
+% DOI: 10.1016/j.neuroimage.2014.06.073
+
+
+%% check input:
+if ((nargin > 3) && (logical(varargin{2})))
+    plot_results = true;
+else
+    plot_results = false;
+end
+if ((nargin > 2) && (~isempty(varargin{1})))
     alphaPeakSource = varargin{1};
 else
     alphaPeakSource = mov_cond;
@@ -31,6 +58,10 @@ path_in_aPeaks = [path_dataeeg '07_SSD/'];
 % output paths:
 path_out_eeg = [path_dataeeg '07_SSD/' mov_cond '/' cropstyle '/'];
 if ~exist(path_out_eeg, 'dir'); mkdir(path_out_eeg); end
+path_out_eeg_bb = [path_out_eeg 'broadband/'];
+if ~exist(path_out_eeg_bb, 'dir'); mkdir(path_out_eeg_bb); end
+path_out_eeg_nb = [path_out_eeg 'narrowband/'];
+if ~exist(path_out_eeg_nb, 'dir'); mkdir(path_out_eeg_nb); end
 
 %1.2 Get data files
 files_eeg = dir([path_in_eeg '*.set']);
@@ -104,33 +135,45 @@ for isub = (1:length(files_eeg))
     EEG.setname = [filename '_SSD'];
     
     % Save the SETs: 
-    pop_saveset(EEG, [filename '_SSD.set'] , path_out_eeg);
+    % broadband:
+    %pop_saveset(EEG, [filename '_SSD_broadband.set'] , path_out_eeg_bb);
+    % narrowband:
+    EEGnb = EEG;
+    EEGnb.data = EEGnb.etc.SSD.A * SSD_CompAct';
+    pop_saveset(EEGnb, [filename '_SSD_narrowband.set'] , path_out_eeg_nb);
     
-    % Write CSV files with (broadband) SSD component activation:
+    % Write CSV files with SSD component activation:
+    % broadband:
     bbData = EEG.data' * SSD_Wout;
-    csvwrite([path_out_eeg 'broadband/' thissubject '_' mov_cond ... 
-        '_broad_SSD_cmp.csv'], bbData');
+    %csvwrite([path_out_eeg_bb filename '_SSD_broadband.csv'], bbData');
+    % narrowband:
+    %csvwrite([path_out_eeg_nb filename '_SSD_narrowband.csv'], SSD_CompAct');
     
-    %% Plot: 
-    % get PSD:
-    [Pxx,f] = pwelch(EEG.data'*EEG.etc.SSD.W, 256, [], [], 250);
-    % ignore hi-freq:
-    idx = f < 50;
-    semilogy(f(idx), Pxx(idx,:))
-    hold on
-    plot([alphaPeak alphaPeak], [min(min(Pxx(idx,:))) max(max(Pxx(idx,:)))])
-    title(thissubject, 'Interpreter', 'none');
-    
-    figure;
-    [oPxx,of] = pwelch(EEG.data', 1000, [], [], 250);
-    oidx = of < 50;
-    semilogy(of(oidx),oPxx(oidx, :))
-    hold on
-    plot([alphaPeak alphaPeak], [min(min(oPxx(oidx,:))) max(max(oPxx(oidx,:)))])
-    title('Channel space')
-    
-    keyboard;
-    % continue with dbcont
-    
+    %% Plot:    
+    if plot_results     
+        figure('Position',  [100, 100, 800, 400]);  
+        % get PSD:
+        [Pxx,f] = pwelch(EEG.data'*EEG.etc.SSD.W, 256, [], [], 250);
+        % ignore hi-freq:
+        idx = f < 50;
+        subplot(1,2,1)
+        semilogy(f(idx), Pxx(idx,:))
+        hold on
+        plot([alphaPeak alphaPeak], ... 
+             [min(min(Pxx(idx,:))) max(max(Pxx(idx,:)))])
+        title(thissubject, 'Interpreter', 'none');
+
+        subplot(1,2,2)
+        [oPxx,of] = pwelch(EEG.data', 1000, [], [], 250);
+        oidx = of < 50;
+        semilogy(of(oidx),oPxx(oidx, :))
+        hold on
+        plot([alphaPeak alphaPeak], ...
+            [min(min(oPxx(oidx,:))) max(max(oPxx(oidx,:)))])
+        title('Channel space')
+
+        keyboard;
+        % continue with dbcont   
+    end
 end
 

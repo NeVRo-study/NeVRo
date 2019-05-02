@@ -1,22 +1,12 @@
 %% NVR_05_ICA
+
 function NVR_05_ICA(cropstyle, mov_cond, varargin) 
 %
 % NVR_05_ICA(cropstyle, mov_cond, icatype)
 %
 % ICA decemposition of the data (after removing noisy epochs). 
 % in first parameter of <varargin> the ICA type can be specified. Defaults 
-% to runica (Infomax) which we also used. Other ICA types have not been
-% tested.
-%
-% INPUT: 
-%       cropstyle        (string): 'SBA' or 'SA' (with or without break)
-%       mov_cond         (string): 'mov' or 'nomov'
-%                        data from the movement or the no-movement
-%                        condition?
-%       icatype          (string): which ICA shall be run on the data.
-%                        Defaults to 'runica' (INFOMAX). Other ICA types 
-%                        have not been tested.
-%
+% to runica (Infomax) which we also used.
 
 % 2018: Felix Klotzsche --- eioe
 
