@@ -12,12 +12,13 @@ Author: Simon M. Hofmann | <[surname].[lastname][at]pm.me> | 2019
 
 from meta_functions import *
 from load_data import get_filename
-import matplotlib
-matplotlib.use('TkAgg')  # for Pycharm+Mac related matplotlib issues (but lower quality plots)
-import matplotlib.pyplot as plt
 import pandas as pd
 from scipy.signal import welch
 from scipy.optimize import curve_fit
+import matplotlib
+if os.sys.platform == "darwin":  # "darwin" == Mac
+    matplotlib.use('TkAgg')  # due to Pycharm + Mac related matplotlib issues
+import matplotlib.pyplot as plt
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
