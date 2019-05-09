@@ -213,7 +213,7 @@ for sub in subjects:
             # Compare fitting to approach of Haller et al. (2018): No difference
             def f1_abc(fr, a, b, c):
                 """
-                from Haller et al. – Parameterizing neural power spectra – arXiv, 2018
+                from Haller et al. – Parameterizing neural power spectra – bioRxiv, 2018
                 :param fr: frequency vector
                 :param a: here: "k is the 'knee' param, controlling for the bend in the aperiodic signal"
                 :param b: slope (X)
