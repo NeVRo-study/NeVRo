@@ -36,6 +36,8 @@ save_plots = False  # True: also saves selections in table
 f_res_fac = 5  # sets nperseg= f_res_fac*250 in scipy.welch(), Default=256
 poly_fit = False  # False: Uses 1/f-fit
 test_f_fit_haller = False  # compare to Haller et al. (2018): little differences
+if save_plots or poly_fit:
+    test_f_fit_haller = False
 n_subs = 45  # number of all subjects
 subjects = np.arange(1, n_subs+1)  # ALL
 subjects = np.array([6])  # subset: single subject
@@ -389,9 +391,11 @@ for sub in subjects:
     # # Define component selection criterion:
     # If bump around alpha peak is above zero + small error term: select component
 
-    figs4 = plt.figure(num="SSD comp selection | 1/fit{}".format("_hal" if test_f_fit_haller else ""),
+    figs4 = plt.figure(num="SSD comp selection | {}fit{}".format("poly-" if poly_fit else "1/",
+                                                                 "_hal" if test_f_fit_haller else ""),
                        figsize=[14, 10])
-    figs5 = plt.figure(num="SSD comp selection | 1/fit{}".format("_hal" if test_f_fit_haller else ""),
+    figs5 = plt.figure(num="SSD comp selection | {}fit{}".format("poly-" if poly_fit else "1/",
+                                                                 "_hal" if test_f_fit_haller else ""),
                        figsize=[14, 10])
 
     selected_comps = []
