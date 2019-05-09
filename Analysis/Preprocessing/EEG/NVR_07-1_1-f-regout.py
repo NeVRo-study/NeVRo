@@ -12,6 +12,8 @@ Author: Simon M. Hofmann | <[surname].[lastname][at]pm.me> | 2019
 
 from meta_functions import *
 from load_data import get_filename
+import matplotlib
+matplotlib.use('TkAgg')  # for Pycharm+Mac related matplotlib issues (but lower quality plots)
 import matplotlib.pyplot as plt
 import pandas as pd
 from scipy.signal import welch
@@ -27,12 +29,13 @@ p2ssd = path_data + "EEG/07_SSD/"
 
 # # Set hyperparameters
 sanity_check = True  # plot additional infos (see below)
-max_range = 40  # freq.-max for plots, 130 Hz: ~max
+max_range = 100  # freq.-max for plots, 130 Hz: ~max
 ffit_max = 20  # freq.-max for fit; 40 Hz: ignores the line-noise related bump in data | 20 Hz: Low-Pass
 assert max_range >= ffit_max, "max_range must be >= ffit_max"
 save_plots = False  # True: also saves selections in table
 f_res_fac = 5  # sets nperseg= f_res_fac*250 in scipy.welch(), Default=256
 poly_fit = False  # False: Uses 1/f-fit
+test_f_fit_haller = False  # compare to Haller et al. (2018): little differences
 n_subs = 45  # number of all subjects
 subjects = np.arange(1, n_subs+1)  # ALL
 subjects = np.array([6])  # subset: single subject
@@ -59,6 +62,34 @@ else:
     tab_select_ssd[:, 0] = np.arange(1, n_subs+1)
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+
+
+# Define fit functions:
+def f1_ab(fr, a, b):
+    """
+    For posiitve values of a, fr, b: -log(a) -b*log(f)
+    :param fr: frequency array
+    :param a: stretch param
+    :param b: slope
+    :return: in log scale
+    """
+    return np.log(1 / (a * fr ** b))  # == log(f**(-b)/a)
+
+
+# Compare fitting to approach of Haller et al. (2018)
+def f1_abc(fr, a, b, c):
+    """
+    from Haller et al. – Parameterizing neural power spectra – bioRxiv, 2018
+    :param fr: frequency vector
+    :param a: here: "k is the 'knee' param, controlling for the bend in the aperiodic signal"
+    :param b: slope (X)
+    :param c: paper: "b is the broadband offset"
+    :return: in log scale
+    """
+    return c - np.log(a + fr ** b)
+
+# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+
 
 # # Run: Select SSDs components per subject, plot & save in table
 for sub in subjects:
@@ -194,41 +225,22 @@ for sub in subjects:
             predicted3 = np.polyval(model3, f)
 
             # Fit 1/(a*f**b): Find optimal a, b params
-            def f1_ab(fr, a, b):
-                """
-                For posiitve values of a, fr, b: -log(a) -b*log(f)
-                :param fr: frequency array
-                :param a: stretch param
-                :param b: slope
-                :return: in log scale
-                """
-                return np.log(1/(a*fr**b))  # == log(f**(-b)/a)
-
             modelb_opt_param, modelb_cov_param = curve_fit(f=f1_ab,
                                                            xdata=f[1:],  # f > 0 values, due to 1/f
                                                            ydata=np.log(Pxx_den)[1:])
 
             predicted4 = f1_ab(fr=f[1:], a=modelb_opt_param[0], b=modelb_opt_param[1])
 
-            # Compare fitting to approach of Haller et al. (2018): No difference
-            def f1_abc(fr, a, b, c):
-                """
-                from Haller et al. – Parameterizing neural power spectra – bioRxiv, 2018
-                :param fr: frequency vector
-                :param a: here: "k is the 'knee' param, controlling for the bend in the aperiodic signal"
-                :param b: slope (X)
-                :param c: paper: "b is the broadband offset"
-                :return: in log scale
-                """
-                return c - np.log(a + fr ** b)
+            # Compare fitting to approach of Haller et al. (2018): Very little differences
+            if test_f_fit_haller:
+                modelhal_opt_param, modelhal_cov_param = curve_fit(f=f1_abc,
+                                                                   xdata=f[1:],
+                                                                   ydata=np.log(Pxx_den)[1:])
 
-
-            modelhal_opt_param, modelhal_cov_param = curve_fit(f=f1_abc,
-                                                               xdata=f[1:],  # f > 0 values, due to 1/f
-                                                               ydata=np.log(Pxx_den)[1:])
-
-            predicted5 = f1_abc(fr=f[1:],
-                                a=modelhal_opt_param[0], b=modelhal_opt_param[1], c=modelhal_opt_param[2])
+                predicted5 = f1_abc(fr=f[1:],
+                                    a=modelhal_opt_param[0],
+                                    b=modelhal_opt_param[1],
+                                    c=modelhal_opt_param[2])
 
             # Plot
             axs.plot(f, np.log(Pxx_den), linestyle="-.", label='data')
@@ -237,14 +249,16 @@ for sub in subjects:
             # axs.plot(f, predicted2, alpha=.8, linestyle=":", c="y", label='poly2')
             axs.plot(f, predicted3, alpha=.8, linestyle=":", c="m", label='poly3')
             axs.plot(f[1:], predicted4, alpha=.8, linestyle=":", c="g", label='1/af**b')
-            axs.plot(f[1:], predicted5, alpha=.8, linestyle=":", c="c", label='1/fhal')
+            if test_f_fit_haller:
+                axs.plot(f[1:], predicted5, alpha=.8, linestyle=":", c="c", label='1/fhal')
             axs.set_title("S{} | {} | Detrend SSD comp{}".format(s(sub), condition, ch+1))
 
             # axs.plot(f, np.log(Pxx_den) - predicted, c="g", label='poly_1/linear')
             # axs.plot(f, np.log(Pxx_den) - predicted2, c="y", label='detrend-p2')
             axs.plot(f, np.log(Pxx_den) - predicted3, c="m", label='detrend-p3')
             axs.plot(f[1:], np.log(Pxx_den)[1:] - predicted4, c="g", label='detrend-1/f')
-            axs.plot(f[1:], np.log(Pxx_den)[1:] - predicted5, c="c", label='detrend-hal')
+            if test_f_fit_haller:
+                axs.plot(f[1:], np.log(Pxx_den)[1:] - predicted5, c="c", label='detrend-hal')
 
             # Add subject's alpha peak
             axs.vlines(sub_apeak, ymin=np.min([np.log(Pxx_den),
@@ -305,10 +319,6 @@ for sub in subjects:
             predicted3_small_alphout = np.polyval(model3_small_alphout, f)
 
             # Fit 1/(a*f**b): Find optimal a, b params
-            def f1_ab(fr, a, b):
-                return np.log(1 / (a * fr ** b))  # in log scale
-
-
             modelf_opt_param, modelf_cov_param = curve_fit(f=f1_ab,
                                                            xdata=_f_fit,
                                                            ydata=np.log(_Pxx_den_fit))
@@ -320,12 +330,33 @@ for sub in subjects:
             predicted4 = f1_ab(fr=f, a=modelf_opt_param[0], b=modelf_opt_param[1])
             predicted4ao = f1_ab(fr=f, a=modelfao_opt_param[0], b=modelfao_opt_param[1])
 
+            # Compare fitting to approach of Haller et al. (2018)
+            if test_f_fit_haller:
+                modelhal_opt_param, modelhal_cov_param = curve_fit(f=f1_abc,
+                                                                   xdata=_f_fit,
+                                                                   ydata=np.log(_Pxx_den_fit))
+                modelhao_opt_param, modelhao_cov_param = curve_fit(f=f1_abc,
+                                                                   xdata=_f_alphout_fit,
+                                                                   ydata=np.log(_Pxx_den_alphout_fit))
+
+                predicted5 = f1_abc(fr=f,
+                                    a=modelhal_opt_param[0],
+                                    b=modelhal_opt_param[1],
+                                    c=modelhal_opt_param[2])
+                predicted5ao = f1_abc(fr=f,
+                                      a=modelhao_opt_param[0],
+                                      b=modelhao_opt_param[1],
+                                      c=modelhao_opt_param[2])
+
             # Plot
             plt.plot(f, np.log(Pxx_den), linestyle="-.", label='data (f<={})'.format(max_range))
             # plt.plot(predicted3_small, alpha=.8, linestyle=":", c="m", label='poly3')
             # plt.plot(predicted3_small_alphout, alpha=.8, c="g", linestyle=":", label='poly3_alpha-out')
             plt.plot(f, predicted4, alpha=.8, color='orange', linestyle=":", label='1/fit')
             plt.plot(f, predicted4ao, alpha=.8, c="y", linestyle=":", label='1/fit_alpha-out')
+            if test_f_fit_haller:
+                plt.plot(f, predicted5, alpha=.8, color='cyan', linestyle=":", label='1/Hal')
+                plt.plot(f, predicted5ao, alpha=.8, c="c", linestyle=":", label='1/Hal_alpha-out')
 
             # plt.plot(f_fit, np.log(Pxx_den_fit) - predicted3_small, c="m",
             #          label='detrend-p3')
@@ -333,6 +364,9 @@ for sub in subjects:
             #          label='detrend-p3_a-out')
             plt.plot(f, np.log(Pxx_den) - predicted4, color='orange', label='detrend-1/fit')
             plt.plot(f, np.log(Pxx_den) - predicted4ao, c="y", label='detrend-1/fit_a-out')
+            if test_f_fit_haller:
+                plt.plot(f, np.log(Pxx_den) - predicted5, color='cyan', label='detrend-1/hal')
+                plt.plot(f, np.log(Pxx_den) - predicted5ao, c="c", label='detrend-1/hal_a-out')
 
             axs.vlines(sub_apeak,
                        ymin=axs.get_ylim()[0],
@@ -341,9 +375,10 @@ for sub in subjects:
 
             axs.set_title("S{} | {} | Detrend SSD comp{}".format(s(sub), condition, ch + 1))
 
+            # plt.tight_layout()
             if ch == 0:
                 plt.legend(loc='upper right')
-            plt.tight_layout()
+        figs3.tight_layout()
 
         plt.show()
         if save_plots:
@@ -354,8 +389,10 @@ for sub in subjects:
     # # Define component selection criterion:
     # If bump around alpha peak is above zero + small error term: select component
 
-    figs4 = plt.figure(figsize=[14, 10])
-    figs5 = plt.figure(figsize=[14, 10])
+    figs4 = plt.figure(num="SSD comp selection | 1/fit{}".format("_hal" if test_f_fit_haller else ""),
+                       figsize=[14, 10])
+    figs5 = plt.figure(num="SSD comp selection | 1/fit{}".format("_hal" if test_f_fit_haller else ""),
+                       figsize=[14, 10])
 
     selected_comps = []
 
@@ -396,15 +433,20 @@ for sub in subjects:
             predicted = np.polyval(model3_alphout, f)  # predict on whole! freq-range
 
         else:
-            # Fit 1/(a*f**b): Find optimal a, b params
-            def f1_ab(fr, a, b):
-                return np.log(1 / (a * fr ** b))  # in log scale
+            modelfao_opt_param, modelfao_cov_param = curve_fit(
+                f=f1_ab if not test_f_fit_haller else f1_abc,
+                xdata=_f_alphout_fit,
+                ydata=np.log(_Pxx_den_alphout_fit))
 
-            modelfao_opt_param, modelfao_cov_param = curve_fit(f=f1_ab,
-                                                               xdata=_f_alphout_fit,
-                                                               ydata=np.log(_Pxx_den_alphout_fit))
-
-            predicted = f1_ab(fr=f, a=modelfao_opt_param[0], b=modelfao_opt_param[1])
+            if not test_f_fit_haller:
+                predicted = f1_ab(fr=f,
+                                  a=modelfao_opt_param[0],
+                                  b=modelfao_opt_param[1])
+            else:
+                predicted = f1_abc(fr=f,
+                                   a=modelfao_opt_param[0],
+                                   b=modelfao_opt_param[1],
+                                   c=modelfao_opt_param[2])
 
         log_Pxx_den_detrend = np.log(Pxx_den) - predicted
 
