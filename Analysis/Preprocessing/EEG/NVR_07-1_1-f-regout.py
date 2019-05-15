@@ -639,5 +639,7 @@ if __name__ == "__main__":
                                   save_plots_and_selection=False)
 
     selcomp.select()
+    selcomp.condition = "nomov"
+    selcomp.select()
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< END
