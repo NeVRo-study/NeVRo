@@ -49,9 +49,9 @@ class SelectSSDcomponents:
         self.subjects = subjects if subjects else np.arange(1, self._n_subs+1)
         self.condition = condition
         self.max_range = max_range
+        self.f_res_fac = f_res_fac
         self.ffit_max = ffit_max
         assert max_range >= ffit_max, "max_range must be >= ffit_max"
-        self.f_res_fac = f_res_fac
         self.poly_fit = poly_fit
         self.test_alt_ffit = False if self.save_plots_and_selection or self.poly_fit else test_alt_ffit
         self.sanity_check = sanity_check
@@ -59,6 +59,7 @@ class SelectSSDcomponents:
         if self.save_plots_and_selection:
             self.plt_folder = self.create_plot_folders()  # path to plot folders
             self.tab_select_name, self.tab_select_ssd = self.create_selection_table()
+
 
     @property
     def n_subs(self):
@@ -631,8 +632,9 @@ class SelectSSDcomponents:
 
 # Execute
 if __name__ == "__main__":
-    selcomp = SelectSSDcomponents(subjects=None, condition="mov", max_range=40, ffit_max=20,
-                                  f_res_fac=5, poly_fit=False, test_alt_ffit=False,
+    selcomp = SelectSSDcomponents(subjects=None, condition="mov",
+                                  max_range=40, f_res_fac=5,
+                                  ffit_max=20, poly_fit=False, test_alt_ffit=False,
                                   sanity_check=True,
                                   save_plots_and_selection=False)
 
