@@ -60,7 +60,6 @@ class SelectSSDcomponents:
             self.plt_folder = self.create_plot_folders()  # path to plot folders
             self.tab_select_name, self.tab_select_ssd = self.create_selection_table()
 
-
     @property
     def n_subs(self):
         return self._n_subs

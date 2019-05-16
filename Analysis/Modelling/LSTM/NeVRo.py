@@ -344,7 +344,7 @@ def train_lstm():
 
                 # Saver
                 # https://www.tensorflow.org/versions/r0.11/api_docs/python/state_ops.html#Saver
-                saver = tf.train.Saver()  # might be under tf.initialize_all_variables().run()
+                saver = tf.train.Saver(max_to_keep=3)
 
                 # Initialize your model within a tf.Session
                 tf.global_variables_initializer().run()  # or without .run()
