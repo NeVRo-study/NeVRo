@@ -47,7 +47,7 @@ class SelectSSDcomponents:
         self.save_plots_and_selection = save_plots_and_selection
         self._n_subs = 45  # Total number of all subjects
         self.subjects = subjects if subjects else np.arange(1, self._n_subs+1)
-        self.condition = condition
+        self._condition = condition
         self.max_range = max_range
         self.f_res_fac = f_res_fac
         self.ffit_max = ffit_max
@@ -64,9 +64,22 @@ class SelectSSDcomponents:
     def n_subs(self):
         return self._n_subs
 
+    @property
+    def condition(self):
+        return self._condition
+
+    @condition.setter
+    def condition(self, condition):
+        print(f"Setting condition to {condition}")
+        self._condition = condition
+        # Update also folder and tables:
+        self.plt_folder = self.create_plot_folders()
+        self.tab_select_name, self.tab_select_ssd = self.create_selection_table()
+
     def create_plot_folders(self):
-        plt_folder = p2ssd + "{0}/selection_plots_{0}/".format(self.condition)
+        plt_folder = p2ssd + "{0}/selection_plots_{0}/".format(self._condition)
         if not os.path.exists(plt_folder):
+            print(f"Create folder for plots: '{plt_folder}'.")
             os.mkdir(plt_folder)
         return plt_folder
 
@@ -77,12 +90,14 @@ class SelectSSDcomponents:
         :return: selection table
         """
 
-        tab_select_name = p2ssd + "{0}/SSD_selected_components_{0}.csv".format(self.condition)
+        tab_select_name = p2ssd + "{0}/SSD_selected_components_{0}.csv".format(self._condition)
 
         if os.path.isfile(tab_select_name):
+            print(f"Read existing SSD selection table '{tab_select_name}'.")
             tab_select_ssd = np.genfromtxt(tab_select_name, delimiter=";", dtype='<U{}'.format(
                 len(",".join(str(x) for x in np.arange(1, 25+1)))))  # '<Uxx' needed if 25 comps selected
         else:
+            print(f"Create SSD selection table: '{tab_select_name}'.")
             tab_select_ssd = np.zeros(shape=(self._n_subs, 4), dtype='<U{}'.format(
                 len(",".join(str(x) for x in np.arange(1, 25+1)))))  # Init table
             tab_select_ssd.fill(np.nan)  # convert entries to nan
@@ -131,7 +146,7 @@ class SelectSSDcomponents:
             n_comp = sub_df.shape[1]
 
             # # Get alpha peak information for given subject
-            tab_name_alpha_peaks = "alphapeaks/alphapeaks_FOOOF_fres024_812.csv"  # old: "alphapeaks.csv"
+            tab_name_alpha_peaks = "alphapeaks/alphapeaks_FOOOF_fres024_813.csv"  # old: "alphapeaks.csv"
             tab_alpha_peaks = pd.read_csv(p2ssd + tab_name_alpha_peaks, index_col=0)
             sub_apeak = tab_alpha_peaks.loc["NVR_{}".format(s(sub)), self.condition]
 
@@ -623,7 +638,7 @@ class SelectSSDcomponents:
             col_names = ["ID", "selected_comps", "n_sel_comps", "n_all_comps"]
             np.savetxt(fname=self.tab_select_name, X=self.tab_select_ssd, header=";".join(col_names),
                        delimiter=";", fmt='%s')
-            cprint("{}able saved. End.".format("Plots and t" if self.save_plots_and_selection else "T"),
+            cprint("{}able saved. End.\n".format("Plots and t" if self.save_plots_and_selection else "T"),
                    "b")
 
 
@@ -634,8 +649,8 @@ if __name__ == "__main__":
     selcomp = SelectSSDcomponents(subjects=None, condition="mov",
                                   max_range=40, f_res_fac=5,
                                   ffit_max=20, poly_fit=False, test_alt_ffit=False,
-                                  sanity_check=True,
-                                  save_plots_and_selection=False)
+                                  sanity_check=False,
+                                  save_plots_and_selection=True)
 
     selcomp.select()
     selcomp.condition = "nomov"
