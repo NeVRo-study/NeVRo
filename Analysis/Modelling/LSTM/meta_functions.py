@@ -13,10 +13,11 @@ import subprocess
 import platform
 import os
 import psutil
-import smtplib
-import ssl
 from pathlib import Path
-# import getpass
+try:  # local function to send emails from script
+    from TEMP.send_mail import *
+except ModuleNotFoundError:
+    pass
 
 
 def setwd(new_dir):

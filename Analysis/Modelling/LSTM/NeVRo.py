@@ -783,7 +783,15 @@ def main(_):
 
     # if eval(FLAGS.is_train):
     if FLAGS.is_train:
+
+        # Run main training
         train_lstm()
+
+        # Inform if training is done
+        try:
+            message(subject="Training is done", content=FLAGS.path_specificities)
+        except NameError:
+            pass
 
     else:
         pass
