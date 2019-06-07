@@ -13,6 +13,10 @@ import subprocess
 import platform
 import os
 import psutil
+import smtplib
+import ssl
+from pathlib import Path
+# import getpass
 
 
 def setwd(new_dir):
@@ -569,10 +573,47 @@ def cinput(string, col=None):
 
 
 @true_false_request
-def ask_true_false(question):
+def ask_true_false(question, col="b"):
     """
     Ask user for input for given True-or-False question
     :param question: str
+    :param col: print-colour of question
     :return: answer
     """
-    cprint(question, "b")
+    cprint(question, col)
+
+
+def delete_dir_and_files(parent_path):
+    """
+    Delete given folder and all subfolders and files.
+
+    os.walk() returns three values on each iteration of the loop:
+        i)    The name of the current folder: dirpath
+        ii)   A list of folders in the current folder: dirnames
+        iii)  A list of files in the current folder: files
+
+    :param parent_path: path to parent folder
+    :return:
+    """
+    # Print the effected files and subfolders
+    if Path(parent_path).exists():
+        print(f"\nFollowing (sub-)folders and files of parent folder '{parent_path}' would be deleted:")
+        for file in Path(parent_path).glob("**/*"):
+            cprint(f"{file}", "b")
+
+        # Double checK: Ask whether to delete
+        delete = ask_true_false("Do you want to delete this tree and corresponding files?", "r")
+
+        if delete:
+            # Delete all folders and files in the tree
+            for dirpath, dirnames, files in os.walk(parent_path, topdown=False):  # start from bottom
+                cprint(f"Remove folder: {dirpath}", "r")
+                for file_name in files:
+                    cprint(f"Remove file: {file_name}", "r")  # f style  (for Python > 3.5)
+                    os.remove(os.path.join(dirpath, file_name))
+                os.rmdir(dirpath)
+        else:
+            cprint("Tree and files won't be deleted!", "b")
+
+    else:
+        cprint("Given folder '{}' doesn't exist.".format(parent_path), "r")

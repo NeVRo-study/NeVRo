@@ -38,7 +38,7 @@ from write_random_search_bash import update_bashfiles
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
-TASK_DEFAULT = 'regression'  # prediction via 'regression' (continious) or 'classification' (Low-High)
+TASK_DEFAULT = 'regression'  # prediction via 'regression' (continuous) or 'classification' (low-high)
 LEARNING_RATE_DEFAULT = 1e-3  # 1e-4
 BATCH_SIZE_DEFAULT = 9  # or bigger, batch_size must be a multiple of 'successive batches'
 SUCCESSIVE_BATCHES_DEFAULT = 1  # (time-)length per sample is hyperparameter in form of successive batches
@@ -53,7 +53,7 @@ LOSS_DEFAULT = "normal"  # is not used yet
 LSTM_SIZE_DEFAULT = '100'  # N of hidden units per LSTM layer, e.g., '10,5' would create second lstm_layer
 FC_NUM_HIDDEN_UNITS = None  # if len(n_hidden_units)>0, create len(n_hidden_units) layers
 FILE_TYPE_DEFAULT = "SSD"  # Either 'SSD' or 'SPOC'
-COMPONENT_DEFAULT = "best"
+COMPONENT_DEFAULT = "1,2,3"
 # 'best', 'noise', 'random', 'all' or list of 1 or more comps (1-5), e.g. '1,3,5' or '4'
 
 SUBJECT_DEFAULT = 36
@@ -331,8 +331,7 @@ def train_lstm():
                 merged = tf.summary.merge_all()
 
                 # Define logdir
-                logdir = './processed/logs/{}/{}'.format(s(FLAGS.subject),
-                                                    FLAGS.path_specificities)
+                logdir = './processed/logs/{}/{}'.format(s(FLAGS.subject), FLAGS.path_specificities)
 
                 if not tf.gfile.Exists(logdir):
                     tf.gfile.MakeDirs(logdir)
@@ -513,7 +512,7 @@ def train_lstm():
 
                         # Define checkpoint_dir
                         checkpoint_dir = './processed/checkpoints/{}/{}'.format(s(FLAGS.subject),
-                                                                           FLAGS.path_specificities)
+                                                                                FLAGS.path_specificities)
                         if not tf.gfile.Exists(checkpoint_dir):
                             tf.gfile.MakeDirs(checkpoint_dir)
 
@@ -598,7 +597,7 @@ def train_lstm():
 
         # In case data was shuffled save corresponding order externally
         if FLAGS.shuffle:
-            np.save(file=logdir + str(s_fold_idx) + "/{}_shuffle_order.npy".format(s_fold_idx),
+            np.save(file=logdir + str(s_fold_idx) + f"/{s_fold_idx}_shuffle_order.npy",
                     arr=nevro_data["order"])
 
     # Final Accuracy & Time
@@ -624,28 +623,20 @@ def train_lstm():
     with open(sub_dir + "{}S{}_accuracy_across_{}_folds_{}.txt".format(
             time.strftime('%Y_%m_%d_'), FLAGS.subject, FLAGS.s_fold, FLAGS.path_specificities[:-1]),
               "w") as file:
-        file.write("Subject {}\nCondition: {}\nSBA: {}\nTask: {}\nShuffle_data: {}\ndatatype: {}"
-                   "\nband_pass: {}\nHilbert_z-Power: {}"
-                   "\ns-Fold: {}\nmax_step: {}\nrepetition_set: {}\nlearning_rate: {}"
-                   "\nbatch_size: {}\nbatch_random: {}"
-                   "\nsuccessive_batches: {}(mode {})\nweight_reg: {}({})\nact_fct: {}"
-                   "\nlstm_h_size: {}\nn_hidden_units: {}"
-                   "\ncomponent: {}({}){}"
-                   "\nfix_input_matrix_size: {}"
-                   "\npath_specificities: {}\n".format(FLAGS.subject, FLAGS.condition, FLAGS.sba,
-                                                       FLAGS.task, FLAGS.shuffle, FLAGS.filetype,
-                                                       FLAGS.band_pass, FLAGS.hilbert_power,
-                                                       FLAGS.s_fold, int(max_steps), FLAGS.repet_scalar,
-                                                       FLAGS.learning_rate,
-                                                       FLAGS.batch_size, FLAGS.rand_batch,
-                                                       FLAGS.successive, FLAGS.successive_mode,
-                                                       FLAGS.weight_reg, FLAGS.weight_reg_strength,
-                                                       FLAGS.activation_fct,
-                                                       FLAGS.lstm_size, str(n_hidden_units),
-                                                       FLAGS.component, input_component,
-                                                       " + HRcomp" if FLAGS.hrcomp else "",
-                                                       FLAGS.eqcompmat,
-                                                       FLAGS.path_specificities))
+        file.write(f"Subject {FLAGS.subject}\nCondition: {FLAGS.condition}\nSBA: {FLAGS.sba}"
+                   f"\nTask: {FLAGS.task}\nShuffle_data: {FLAGS.shuffle}\ndatatype: {FLAGS.filetype}"
+                   f"\nband_pass: {FLAGS.band_pass}\nHilbert_z-Power: {FLAGS.hilbert_power}"
+                   f"\ns-Fold: {FLAGS.s_fold}\nmax_step: {int(max_steps)}"
+                   f"\nrepetition_set: {FLAGS.repet_scalar}\nlearning_rate: {FLAGS.learning_rate}"
+                   f"\nbatch_size: {FLAGS.batch_size}\nbatch_random: {FLAGS.rand_batch}"
+                   f"\nsuccessive_batches: {FLAGS.successive}(mode {FLAGS.successive_mode})"
+                   f"\nweight_reg: {FLAGS.weight_reg}({FLAGS.weight_reg_strength})"
+                   f"\nact_fct: {FLAGS.activation_fct}"
+                   f"\nlstm_h_size: {FLAGS.lstm_size}\nn_hidden_units: {str(n_hidden_units)}"
+                   f"\ncomponent: {FLAGS.component}({input_component})"
+                   f"{' + HRcomp' if FLAGS.hrcomp else ''}"
+                   f"\nfix_input_matrix_size: {FLAGS.eqcompmat}"
+                   f"\npath_specificities: {FLAGS.path_specificities}\n")
 
         # rounding for the export
         rnd_all_acc_val = ["{:.3f}".format(np.round(acc, 3)) for acc in all_acc_val]
@@ -793,6 +784,7 @@ def main(_):
     # if eval(FLAGS.is_train):
     if FLAGS.is_train:
         train_lstm()
+
     else:
         pass
         # print("I run now feature_extraction()")

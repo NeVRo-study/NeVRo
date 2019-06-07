@@ -171,7 +171,7 @@ def get_num_components(subject, condition, filetype, sba=True):
         # rows: subjects
         tab_ncomp = np.zeros((n_sub+1, 3), dtype=np.dtype((str, 5)))  # init table
         tab_ncomp[0, :] = np.array(["ID", "mov", "nomov"])  # header
-        tab_ncomp[1:, 0] = np.array(["S"+str(sub).zfill(2) for sub in range(1, n_sub+1)])  # set names
+        tab_ncomp[1:, 0] = np.array([s(sub) for sub in range(1, n_sub+1)])  # set names
 
         # Fill table
         for cidx, cond in enumerate(conditions):
@@ -181,7 +181,7 @@ def get_num_components(subject, condition, filetype, sba=True):
                                      cond=cond, sba=sba)
 
                 if os.path.exists(fname):
-                    if np.genfromtxt(fname, delimiter="\t").ndim > 1:
+                    if np.genfromtxt(fname, delimiter=",").ndim > 1:
                         n_comp = np.genfromtxt(fname, delimiter="\t").shape[0]
                     else:
                         n_comp = 1
@@ -251,7 +251,7 @@ def load_component(subjects, condition, f_type, band_pass, samp_freq=250., sba=T
 
             # rows = components, columns value per timestep
             # first column: Nr. of component, last column is empty
-            sub_df = np.genfromtxt(file_name, delimiter="\t")[:, 1:-1].transpose()
+            sub_df = np.genfromtxt(file_name, delimiter=",")[:, 1:-1].transpose()
             # sub_df.shape=(67503, 6=N-comps)  # for S36 with samp_freq=250: 67503/250. = 270.012 sec
 
             # Save whole SBA/SA under condition (nomov, mov)
@@ -316,7 +316,7 @@ def best_or_random_component(subject, condition, f_type, best, sba=True):
     if x_corr_table is not None:
         x_corr_table = x_corr_table.drop(x_corr_table.columns[0:3], axis=1)  # first col is idx
     # Find component (choose best for now)
-    component = best_comp = x_corr_table.loc["S{}".format(s(subject))].values[0] if f_type == "SSD" else 1
+    component = best_comp = x_corr_table.loc["{}".format(s(subject))].values[0] if f_type == "SSD" else 1
 
     if best:
         print("Best correlating {} component of S{} is Component number: {}".format(f_type,
@@ -328,13 +328,13 @@ def best_or_random_component(subject, condition, f_type, best, sba=True):
                                  band_pass=True,  # for False the same
                                  cond=condition, sba=sba, check_existence=True)
 
-        n_comp = len(np.genfromtxt(file_name, delimiter="\t")[:, 0])  # each row is a component
+        n_comp = len(np.genfromtxt(file_name, delimiter=",")[:, 0])  # each row is one component
 
         while component == best_comp:
             component = np.random.randint(low=1, high=n_comp + 1)  # choose random component != best
 
-        print("A random {} component of S{} is chosen (which is not the best one): Component {}".format(
-            f_type, str(subject).zfill(2), component))
+        print("A random {} component of {} is chosen (which is not the best one): Component {}".format(
+            f_type, s(subject), component))
 
     return component
 
