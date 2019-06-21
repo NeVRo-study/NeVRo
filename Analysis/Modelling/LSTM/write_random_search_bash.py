@@ -18,18 +18,33 @@ if not os.path.exists(p2_bash):
     os.mkdir(p2_bash)
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
-# # # Adapt here for which subjects bashfiles should be written
+# # # Adapt here for which subjects bashfiles should be written and in which condition
+
+condi = "nomov"  # "mov"
+if "condi" not in locals():
+    condi = input("Write bash files for 'M'ov or 'N'oMov condition: ")
+    condi = "nomov" if "n" in condi.lower() else "mov"
+cprint(f"Condition is set to: {condi}", "b")
+
+# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
 n_sub = 45
 all_subjects = np.linspace(start=1, stop=n_sub, num=n_sub, dtype=int)  # np.arange(1, n_sub+1)
-dropouts = np.array([1, 12, 32, 33, 38, 40, 45])
-
+# dropouts = np.array([1, 12, 32, 33, 38, 40, 45])
 # These are additional dropouts for the nomov-condition (add_drop). Criterium: More than 1/3 of all epochs
 # (1 epoch = 1 sec of EEG data) in the EEG-channel data were above 100 μV. This would lead to an
 # calculation of unreliable ICA-weights, dominated by the noisy segments.
-add_drop = [10, 16, 19, 23, 41, 43]  # no mov
-# TODO same for mov-condition
-dropouts = np.append(dropouts, add_drop)
+# add_drop = [10, 16, 19, 23, 41, 43]  # no mov
+# dropouts = np.append(dropouts, add_drop)
+
+# Load SSD selection table
+ssd_comp_sel_tab = pd.read_csv(f"../../../Data/EEG/07_SSD/{condi}/SSD_selected_components_{condi}.csv",
+                               sep=";")
+# Remove Subjects without any selected component
+dropouts = np.array(ssd_comp_sel_tab[pd.isna(ssd_comp_sel_tab['n_sel_comps'])]["# ID"])
+# # Dropout Criterion can be set to treshold, e.g. here min 4 selected comps:
+# dropouts = np.append(dropouts, np.array(ssd_comp_sel_tab[ssd_comp_sel_tab['n_sel_comps'] < 4]["# ID"]))
+
 subjects = np.setdiff1d(all_subjects, dropouts)  # These are all subjects without dropouts
 
 # Test
@@ -121,9 +136,9 @@ def write_search_bash_files(subs, filetype, condition,
         assert isinstance(eqcompmat, int), "eqcompmat must be int"
 
     # Create bashfile if not there already:
-    bash_file_name = p2_bash + "bashfile_randomsearch_{}.sh".format('BiCl' if "c" in task else "Reg")
+    bash_file_name = p2_bash + f"bashfile_randomsearch_{'BiCl' if 'c' in task else 'Reg'}.sh"
     sub_bash_file_names = []
-    subbash_suffix = ["_local.sh"] + ["_{}.sh".format(subba) for subba in range(1, n_subbash)]
+    subbash_suffix = ["_local.sh"] + [f"_{subba}.sh" for subba in range(1, n_subbash)]
 
     for sub_bash in subbash_suffix:
         sub_bash_file_name = "." + bash_file_name.split(".")[1] + sub_bash
@@ -131,7 +146,7 @@ def write_search_bash_files(subs, filetype, condition,
 
     if not os.path.exists(bash_file_name):
         with open(bash_file_name, "w") as bashfile:  # 'a' for append
-            bashfile.write("#!/usr/bin/env bash\n\n" + "# Random Search Bashfile: {}".format(task))
+            bashfile.write("#!/usr/bin/env bash\n\n" + f"# Random Search Bashfile: {task}")
         for subash_fname in sub_bash_file_names:
             with open(subash_fname, "w") as bashfile:  # 'a' for append
                 bashfile.write("#!/usr/bin/env bash\n\n"+"# Random Search Bashfile_{}: {}".format(
@@ -263,40 +278,25 @@ def write_search_bash_files(subs, filetype, condition,
                 sub_component = ','.join([str(i) for i in sub_component])
 
             # path_specificities
-            path_specificities = "{}RndHPS_lstm-{}_fc-{}_lr-{}_wreg-{}-{:.2f}_actfunc-{}_ftype-{}_" \
-                                 "hilb-{}_bpass-{}_comp-{}_" \
-                                 "hrcomp-{}_fixncol-{}/".format('BiCl_' if "c" in task else "Reg_",
-                                                                "-".join(str(lstm_size).split(",")),
-                                                                "-".join(str(fc_n_hidden).split(",")),
-                                                                learning_rate,
-                                                                weight_reg, weight_reg_strength,
-                                                                activation_fct,
-                                                                filetype, "T" if hilbert_power else "F",
-                                                                "T" if band_pass else "F",
-                                                                "-".join(str(sub_component).split(",")),
-                                                                "T" if hrcomp else "F", eqcompmat)
+            path_specificities = f"{'BiCl_' if 'c' in task else 'Reg_'}RndHPS_" \
+                f"lstm-{'-'.join(str(lstm_size).split(','))}_" \
+                f"fc-{'-'.join(str(fc_n_hidden).split(','))}_" \
+                f"lr-{learning_rate}_wreg-{weight_reg}-{weight_reg_strength:.2f}_" \
+                f"actfunc-{activation_fct}_ftype-{filetype}_hilb-{'T' if hilbert_power else 'F'}_" \
+                f"bpass-{'T' if band_pass else 'F'}_comp-{'-'.join(str(sub_component).split(','))}_" \
+                f"hrcomp-{'T' if hrcomp else 'F'}_fixncol-{eqcompmat}/"
 
             # Write line for bashfile
-            bash_line = "python3 NeVRo.py " \
-                        "--subject {} --condition {} --seed {} --task {} --shuffle {} " \
-                        "--repet_scalar {} --s_fold {} --batch_size {} " \
-                        "--successive {} --successive_mode {} --rand_batch {} " \
-                        "--plot {} --dellog {} " \
-                        "--lstm_size {} --fc_n_hidden {} --learning_rate {} " \
-                        "--weight_reg {} --weight_reg_strength {} " \
-                        "--activation_fct {} " \
-                        "--filetype {} --hilbert_power {} --band_pass {} " \
-                        "--component {} --hrcomp {} --eqcompmat {} --summaries {} " \
-                        "--path_specificities {}".format(sub, cond, seed, task, shuffle,
-                                                         repet_scalar, s_fold, batch_size,
-                                                         successive, successive_mode, rand_batch,
-                                                         plot, del_log_folders,
-                                                         lstm_size, fc_n_hidden, learning_rate,
-                                                         weight_reg, weight_reg_strength,
-                                                         activation_fct,
-                                                         filetype, hilbert_power, band_pass,
-                                                         sub_component, hrcomp, eqcompmat, summaries,
-                                                         path_specificities)
+            bash_line = f"python3 NeVRo.py --subject {sub} --condition {cond} --seed {seed} " \
+                f"--task {task} --shuffle {shuffle} --repet_scalar {repet_scalar} --s_fold {s_fold} " \
+                f"--batch_size {batch_size} --successive {successive} " \
+                f"--successive_mode {successive_mode} --rand_batch {rand_batch} --plot {plot} " \
+                f"--dellog {del_log_folders} --lstm_size {lstm_size} --fc_n_hidden {fc_n_hidden} " \
+                f"--learning_rate {learning_rate} --weight_reg {weight_reg} " \
+                f"--weight_reg_strength {weight_reg_strength} --activation_fct {activation_fct} " \
+                f"--filetype {filetype} --hilbert_power {hilbert_power} --band_pass {band_pass} " \
+                f"--component {sub_component} --hrcomp {hrcomp} --eqcompmat {eqcompmat} " \
+                f"--summaries {summaries} --path_specificities {path_specificities}"
 
             # Write in bashfile
             if not os.path.exists("./processed/"):
