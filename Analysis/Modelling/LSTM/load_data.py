@@ -142,7 +142,7 @@ def get_filename(subject, filetype, band_pass, cond="nomov", sba=True, check_exi
 
 
 # @function_timed  # after executing following function this returns runtime
-def get_num_components(subject, condition, filetype, sba=True):
+def get_num_components(subject, condition, filetype, selected=True):
     """
     Get number of components for subject in given condition. Information should be saved in corresponding
     table. If not: Create this table for all subjects.
@@ -150,55 +150,29 @@ def get_num_components(subject, condition, filetype, sba=True):
     :param subject: subject number
     :param condition: mov (1), or nomov(2)
     :param filetype: 'SSD' or 'SPOC'
-    :param sba: True or False for 'SA'
+    :param selected: True: selected components
     :return: number of components or nan (if no information)
     """
 
-    conditions = ["mov", "nomov"]
     condition = check_condition(cond=condition)
     filetype = filetype.upper()
     assert filetype in ["SSD", "SPOC"], "filetype must be either 'SSD' or 'SPOC'"
 
     # Path to table of number of components
     path_base = path_ssd if filetype == "SSD" else path_spoc
-    fname_tab_ncomp = path_base + "number_of_components_{}_{}.csv".format(filetype,
-                                                                          "SBA" if sba else "SA")
+    fname_tab_ncomp = path_base + f"{condition}/{filetype}_selected_components_{condition}.csv"
 
     # If table does not exist, create it
     if not os.path.isfile(fname_tab_ncomp):
-        # Initialize table:
-        # columns: subject ID, mov and nomov (needs to be done for both conditions)
-        # rows: subjects
-        tab_ncomp = np.zeros((n_sub+1, 3), dtype=np.dtype((str, 5)))  # init table
-        tab_ncomp[0, :] = np.array(["ID", "mov", "nomov"])  # header
-        tab_ncomp[1:, 0] = np.array([s(sub) for sub in range(1, n_sub+1)])  # set names
-
-        # Fill table
-        for cidx, cond in enumerate(conditions):
-            for idx, sub in enumerate(tab_ncomp[1:, 0]):
-
-                fname = get_filename(subject=int(sub[1:]), filetype=filetype, band_pass=True,
-                                     cond=cond, sba=sba)
-
-                if os.path.exists(fname):
-                    if np.genfromtxt(fname, delimiter=",").ndim > 1:
-                        n_comp = np.genfromtxt(fname, delimiter="\t").shape[0]
-                    else:
-                        n_comp = 1
-                else:
-                    n_comp = np.nan
-
-                tab_ncomp[idx+1, cidx+1] = n_comp
-
-        # Write table
-        pd.DataFrame(tab_ncomp).to_csv(fname_tab_ncomp, header=None, index=False)
+        raise FileNotFoundError(f"Component information in {fname_tab_ncomp} not found.\n"
+                                "Execute selection process first with SelectSSDcomponents().")
 
     else:  # Load table if exsits already
-        tab_ncomp = np.genfromtxt(fname_tab_ncomp, delimiter=",", dtype=str)
+        tab_ncomp = pd.read_csv(fname_tab_ncomp, sep=";")
+        # tab_ncomp = np.genfromtxt(fname_tab_ncomp, delimiter=";", dtype=str)
 
     # Get number of components in condition from table
-    cix = 1 if condition == "mov" else 2
-    ncomp = str(tab_ncomp[np.where(tab_ncomp[:, 0] == s(subject))][:, cix][0])
+    ncomp = tab_ncomp[tab_ncomp["# ID"] == subject]["n_sel_comps" if selected else "n_all_comps"].item()
     ncomp = int(ncomp) if ncomp != "nan" else np.nan
 
     return ncomp

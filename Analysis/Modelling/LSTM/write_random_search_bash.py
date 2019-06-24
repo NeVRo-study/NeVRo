@@ -219,7 +219,7 @@ def write_search_bash_files(subs, filetype, condition,
             component_modes = np.random.choice(a=["random_set", "one_up"])
 
         # From here on it is subject-dependent
-        ncomp = [get_num_components(sub, cond, filetype, sba) for sub in subs]  # TODO SPOC not there yet
+        ncomp = [get_num_components(sub, cond, filetype) for sub in subs]  # TODO SPOC not there yet
         max_n_comp = max(ncomp)
         sub_dep = False  # init
 
@@ -229,6 +229,7 @@ def write_search_bash_files(subs, filetype, condition,
             if choose_n_comp <= 10:  # don't feed more than 10 components
                 break
 
+        # TODO adapt to selected components, per subjects !
         if component_modes == "one_up":
             # Choose from component 1 to n_choose (see: SPOC(comp_order) & SSD(alpha-hypotheses)):
             component = np.arange(start=1, stop=choose_n_comp + 1)  # range [1, n_choose]
@@ -238,7 +239,7 @@ def write_search_bash_files(subs, filetype, condition,
             component = np.sort(np.random.choice(a=range(1, max_n_comp + 1), size=choose_n_comp,
                                                  replace=False))
 
-        # Does this needs to be adapted per subject?
+        # Does this need to be adapted per subject?
         if not all([choose_n_comp <= maxcomp for maxcomp in ncomp]):
             sub_dep = True
 
@@ -246,8 +247,7 @@ def write_search_bash_files(subs, filetype, condition,
         if eqcompmat != 0:
             eqcompmat = max_n_comp if max_n_comp > eqcompmat else eqcompmat
             if eqcompmat > 10:
-                cprint("eqcompmat {} is too big. eqcompmat is set to 10 (max) instead.".format(eqcompmat),
-                       "y")
+                cprint(f"eqcompmat {eqcompmat} is too big. eqcompmat is set to 10 (max) instead.", "y")
             eqcompmat = 10
 
         # Prepare to write line in bash file per subject
