@@ -37,8 +37,8 @@ for device in device_name:
 
         startTime = datetime.now()
         with tf.Session(config=tf.ConfigProto(log_device_placement=True)) as session:
-                result = session.run(sum_operation)
-                print(result)
+            result = session.run(sum_operation)
+            print(result)
 
         print("\n" * 3)
         print("Shape:", (shape, shape), "Device:", device)
