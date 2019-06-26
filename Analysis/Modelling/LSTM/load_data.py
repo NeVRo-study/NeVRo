@@ -43,7 +43,7 @@ n_sub = 45
 
 # # # Define root abd data folders
 
-setwd("/Analysis/Modelling/LSTM")
+setwd("/Analysis/Modelling/LSTM/")
 
 path_data = set_path2data()
 
@@ -1015,7 +1015,7 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
 
     for comp_idx, comp in enumerate(component):
 
-        max_comp = get_num_components(subject=subject, condition=cond, filetype=filetype, sba=sba)
+        max_comp = get_num_components(subject=subject, condition=cond, filetype=filetype)
 
         assert comp in range(1, max_comp + 1) or comp in range(91, 90 + max_comp + 1), \
             "Components must be in range (1, {}).".format(max_comp)

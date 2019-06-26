@@ -1,6 +1,8 @@
 # coding=utf-8
 """
-Write a random search bash file.
+Write random search bashfiles.
+1) Do broad search: run over small subset of 10 random subjects
+2) apply best working hyperparameter sets, i.e. 2 best sets per subject of broad search, on all subjects
 
 Author: Simon Hofmann | <[surname].[lastname][at]pm.me> | 2017, 2019 (Update)
 """
@@ -16,53 +18,13 @@ p2_bash = './bashfiles/'
 # If no bashfile dir: create it
 if not os.path.exists(p2_bash):
     os.mkdir(p2_bash)
-# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
-# # # Adapt here for which subjects bashfiles should be written and in which condition
-
-condi = "nomov"  # "mov"
-if "condi" not in locals():
-    condi = input("Write bash files for 'M'ov or 'N'oMov condition: ")
-    condi = "nomov" if "n" in condi.lower() else "mov"
-cprint(f"Condition is set to: {condi}", "b")
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
-
-n_sub = 45
-all_subjects = np.linspace(start=1, stop=n_sub, num=n_sub, dtype=int)  # np.arange(1, n_sub+1)
-# dropouts = np.array([1, 12, 32, 33, 38, 40, 45])
-# These are additional dropouts for the nomov-condition (add_drop). Criterium: More than 1/3 of all epochs
-# (1 epoch = 1 sec of EEG data) in the EEG-channel data were above 100 μV. This would lead to an
-# calculation of unreliable ICA-weights, dominated by the noisy segments.
-# add_drop = [10, 16, 19, 23, 41, 43]  # no mov
-# dropouts = np.append(dropouts, add_drop)
-
-# Load SSD selection table
-ssd_comp_sel_tab = pd.read_csv(f"../../../Data/EEG/07_SSD/{condi}/SSD_selected_components_{condi}.csv",
-                               sep=";")
-# Remove Subjects without any selected component
-dropouts = np.array(ssd_comp_sel_tab[pd.isna(ssd_comp_sel_tab['n_sel_comps'])]["# ID"])
-# # Dropout Criterion can be set to treshold, e.g. here min 4 selected comps:
-# dropouts = np.append(dropouts, np.array(ssd_comp_sel_tab[ssd_comp_sel_tab['n_sel_comps'] < 4]["# ID"]))
-
-subjects = np.setdiff1d(all_subjects, dropouts)  # These are all subjects without dropouts
-
-# Test
-# subjects = [21, 37]
-
-# # Broad random search on subset of 10 subjects
-subsubjects = np.random.choice(a=subjects, size=10, replace=False)
-
-# # Without already computed subjects
-# already_proc = [2, 36]  # already processed subjects
-# subjects = np.setdiff1d(subjects, already_proc)
-
-# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
-
 
 def write_search_bash_files(subs, filetype, condition,
                             task_request=None, component_mode=2, eqcompmat=None,
-                            seed=True, repet_scalar=30, s_fold=10,
+                            seed=False, repet_scalar=30, s_fold=10,
                             batch_size=9, successive_mode=1, rand_batch=True, plot=True,
                             successive_default=3, del_log_folders=True, summaries=False,
                             n_combinations=None, n_subbash=4):
@@ -72,7 +34,7 @@ def write_search_bash_files(subs, filetype, condition,
     :param condition: 'mov' or 'nomov'
     :param task_request: '(r)egression' or '(c)lassification'
     :param component_mode: mode 1: only 'one-up'; mode 2: one-up or random choice of components
-    :param eqcompmat: number of columns in input matrix. Gets filled with zero-vectors if not enough data
+    :param eqcompmat: True: fixed number of columns in input (filled with zero-vectors if not enough data)
     :param seed: regarding randomization of folds, batches etc.
     :param repet_scalar: how many times it runs through whole set (can be also fraction)
     :param s_fold: number (s) of folds
@@ -109,8 +71,8 @@ def write_search_bash_files(subs, filetype, condition,
     # Request variables if not given yet
     if n_combinations is None:
         n_combinations = int(cinput(
-            "How many random combinations of hyperparameters to test (given value will be multpied with "
-            "n_subjects)): ", "b"))
+            "How many random combinations of hyperparameters to test (given value will be multiplied "
+            "with n_subjects)): ", "b"))
 
     tasks = ["regression", "classification"]
     if task_request is None:
@@ -126,13 +88,9 @@ def write_search_bash_files(subs, filetype, condition,
 
     if eqcompmat is None:
         eqcompmat = ask_true_false(question="Shall the model input matrix always be the same in size?")
-        if eqcompmat:
-            eqcompmat = int(cinput("What should be the number (int) of columns (i.e. components)?", "b"))
-        else:
-            eqcompmat = 0
-
-    else:  # argument input for eqcompmat is integer
-        assert isinstance(eqcompmat, int), "eqcompmat must be int"
+    eqcompmat = 10 if eqcompmat else 0
+    # eqcompmat = int(cinput("What should be the number (int) of columns (i.e. components)?",
+    #                        "b"))
 
     # Create bashfile if not there already:
     bash_file_name = p2_bash + f"bashfile_randomsearch_{'BiCl' if 'c' in task else 'Reg'}.sh"
@@ -227,13 +185,6 @@ def write_search_bash_files(subs, filetype, condition,
             if choose_n_comp <= 10:  # don't feed more than 10 components
                 break
 
-        # eqcompmat
-        if eqcompmat != 0:
-            eqcompmat = max_n_comp if max_n_comp > eqcompmat else eqcompmat
-            if eqcompmat > 10:
-                cprint(f"eqcompmat {eqcompmat} is too big. eqcompmat is set to 10 (max) instead.", "y")
-            eqcompmat = 10
-
         # Prepare to write line in bash file per subject
         for sidx, sub in enumerate(subs):
 
@@ -300,7 +251,7 @@ def write_search_bash_files(subs, filetype, condition,
                                      'component', 'hrcomp', 'fixncol', 'summaries',
                                      'path_specificities',
                                      'mean_val_acc', 'zeroline_acc', 'mean_class_val_acc'],
-                                    dtype='<U120')
+                                    dtype='<U150')
 
                 rs_table = np.reshape(rs_table, newshape=(-1, rs_table.shape[0]))
                 # Could write del_log_folders in table
@@ -321,7 +272,7 @@ def write_search_bash_files(subs, filetype, condition,
 
             fill_vec = np.repeat(a="nan", repeats=rs_table.shape[1])
             fill_vec = fill_vec.reshape((-1, len(fill_vec)))
-            rs_table = np.concatenate((rs_table, fill_vec), axis=0).astype("<U125")
+            rs_table = np.concatenate((rs_table, fill_vec), axis=0).astype("<U150")
             rs_table[-1, 0:len(exp_data)] = exp_data
 
             np.savetxt(fname=table_name, X=rs_table, delimiter=";", fmt="%s")
@@ -330,35 +281,6 @@ def write_search_bash_files(subs, filetype, condition,
             combi_count = combi_count+1 if combi_count < n_subbash-1 else 0
 
     print("\nBashfiles and table completed.")
-
-
-# # Regression
-# # Broad random search. Half (20/40) with fix sized input matrix (fixncomp=7)
-# write_search_bash_files(subs=subsubjects, filetype="SSD", condition="nomov",
-#                         task_request="r", component_mode=1, eqcompmat=7, n_combinations=20,
-#                         seed=True, repet_scalar=30,
-#                         s_fold=10, batch_size=9, successive_mode=1, rand_batch=True,
-#                         plot=True, successive_default=3, del_log_folders=True, summaries=False)
-#
-# write_search_bash_files(subs=subsubjects, filetype="SSD", condition="nomov",
-#                         task_request="r", component_mode=1, eqcompmat=0, n_combinations=20,
-#                         seed=True, repet_scalar=30,
-#                         s_fold=10, batch_size=9, successive_mode=1, rand_batch=True,
-#                         plot=True, successive_default=3, del_log_folders=True, summaries=False)
-
-
-# # Binary classification
-# write_search_bash_files(subs=subsubjects, filetype="SSD", condition="nomov",
-#                         task_request="c", component_mode=1, eqcompmat=7, n_combinations=4,
-#                         seed=True, repet_scalar=30,
-#                         s_fold=10, sba=True, batch_size=9, successive_mode=1, rand_batch=True,
-#                         plot=True, successive_default=3, del_log_folders=True, summaries=False)
-#
-# write_search_bash_files(subs=subsubjects, filetype="SSD", condition="nomov",
-#                         task_request="c", component_mode=1, eqcompmat=0, n_combinations=4,
-#                         seed=True, repet_scalar=30,
-#                         s_fold=10, sba=True, batch_size=9, successive_mode=1, rand_batch=True,
-#                         plot=True, successive_default=3, del_log_folders=True, summaries=False)
 
 
 # TODO continue here
@@ -387,10 +309,10 @@ def write_bash_from_table(subs, table_path):
     subs = np.tile(subs, n_combis)
     subs = np.reshape(subs, newshape=(len(subs), 1))
     lside_table = np.concatenate((rounds, subs), 1)
-    lside_header = np.reshape(np.array(['round', 'subject'], dtype='<U125'), newshape=(1, 2))
+    lside_header = np.reshape(np.array(['round', 'subject'], dtype='<U150'), newshape=(1, 2))
     lside_table = np.concatenate((lside_header, lside_table))
     rside_header = np.reshape(np.array(['mean_val_acc', 'zeroline_acc', 'mean_class_val_acc'],
-                                       dtype='<U125'), (1, 3))
+                                       dtype='<U150'), (1, 3))
     rside_table = np.reshape(np.repeat(np.repeat(a="nan", repeats=n_combis*num_sub), 3), newshape=(-1, 3))
     rside_table = np.concatenate((rside_header, rside_table))
     mid_table = np.repeat(hp_table[1:, :], num_sub, axis=0)
@@ -528,3 +450,104 @@ def update_bashfiles(task, subject=None, path_specs=None, all_runs=False):
 
     else:
         cprint("There is no corresponding table: '{}'".format(table_name), "r")
+
+
+# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+
+# # # Adapt here for which subjects bashfiles should be written and in which condition
+
+if __name__ == "__main__":
+    wb = ask_true_false(question="Do you want to write new bashfiles?")
+    if wb:
+        # Check for which datatype: SSD or SPoC
+        datatype = cinput("For which datatype: 'SSD' or 'SPOC'", "b").upper()
+
+        # Define condition for random search
+        # condi = "nomov"  # "mov"  # manually
+        if "condi" not in locals():
+            condi = input("Write bash files for 'M'ov or 'N'oMov condition: ")
+            condi = "nomov" if "n" in condi.lower() else "mov"
+        cprint(f"Condition is set to: {condi}", "y")
+
+        # # Set up subjects
+        n_sub = 45  # number of all tested subjects
+        all_subjects = np.linspace(start=1, stop=n_sub, num=n_sub, dtype=int)  # np.arange(1, n_sub+1)
+
+        # # Define Dropouts
+        if datatype == "SSD":
+            # Find subjects with valid components in the selection table (so far only for SSD)
+            # Load SSD selection table
+            ssd_comp_sel_tab = pd.read_csv(
+                f"../../../Data/EEG/07_SSD/{condi}/SSD_selected_components_{condi}.csv", sep=";")
+
+            # Remove Subjects without any selected component
+            dropouts = np.array(ssd_comp_sel_tab[pd.isna(ssd_comp_sel_tab['n_sel_comps'])]["# ID"])
+            # # Dropout Criterion can be set to threshold, e.g. here min 4 selected comps:
+            # dropouts = np.append(dropouts,
+            #                      np.array(ssd_comp_sel_tab[ssd_comp_sel_tab['n_sel_comps']<4]["# ID"]))
+
+        elif datatype == "SPOC":
+            raise NotImplementedError("Dropouts are not defined yet via SPOC component selection.")
+
+            # # Alternatively define dropouts here:
+            # dropouts = np.array([1, 12, 32, 33, 38, 40, 45])  # due to acquisition problems
+
+            # These are additional dropouts for the nomov-condition (add_drop). Criterium: More than 1/3
+            # of all epochs (1 epoch = 1 sec of EEG data) in the EEG-channel data were above 100 μV. This
+            # would lead to a calculation of unreliable ICA-weights, dominated by the noisy segments.
+            # add_drop = [10, 16, 19, 23, 41, 43]  # no mov
+            # TODO add_drop = [...]  # mov
+
+            # dropouts = np.append(dropouts, add_drop)
+
+        else:
+            raise ValueError(f"Given datatype '{datatype}' does not exist.")
+
+        subjects = np.setdiff1d(all_subjects, dropouts)  # These are all subjects without dropouts
+
+        # # For pure testing define subjects here:
+        # subjects = [21, 37]  # set manually
+        testing = False  # set to True for testing
+
+        # # Without already computed subjects
+        # already_proc = [2, 36]  #  manually set already processed subjects
+        # subjects = np.setdiff1d(subjects, already_proc)
+
+        # # Step 1) Broad random search on subset of 10 subjects
+        brs = ask_true_false(question="Do you want to run a broad random search on random subset?")
+        if brs:
+            subsubjects = np.random.choice(a=subjects, size=10, replace=False)
+
+            # Binary classification
+            # Broad random search. Half (20/40) with fix sized input matrix (fixncomp=10)
+            write_search_bash_files(subs=subsubjects, filetype=datatype, condition=condi,
+                                    task_request="c", component_mode=2, eqcompmat=10, n_combinations=20,
+                                    seed=True, repet_scalar=20)
+
+            write_search_bash_files(subs=subsubjects, filetype=datatype, condition=condi,
+                                    task_request="c", component_mode=2, eqcompmat=0, n_combinations=20,
+                                    seed=True, repet_scalar=20)
+
+            # Regression
+            write_search_bash_files(subs=subsubjects, filetype=datatype, condition=condi,
+                                    task_request="r", component_mode=2, eqcompmat=10, n_combinations=20,
+                                    seed=True, repet_scalar=20)
+
+            write_search_bash_files(subs=subsubjects, filetype=datatype, condition=condi,
+                                    task_request="r", component_mode=2, eqcompmat=0, n_combinations=20,
+                                    seed=True, repet_scalar=20)
+
+        else:
+            if testing:
+                write_search_bash_files(subs=subjects, filetype=datatype, condition=condi,
+                                        task_request=None, component_mode=2, eqcompmat=None,
+                                        seed=False, repet_scalar=5, s_fold=10,
+                                        batch_size=9, successive_mode=1, rand_batch=True, plot=True,
+                                        successive_default=3, del_log_folders=True, summaries=False,
+                                        n_combinations=None, n_subbash=4)
+
+            else:
+                # Step 2) Run model over pre-selected hyperparameter sets on whole dataset
+                raise NotImplementedError("Fully automated Step 2) not implemented yet.")
+
+# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<  END

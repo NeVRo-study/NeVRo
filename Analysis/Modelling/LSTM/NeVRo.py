@@ -197,7 +197,7 @@ def train_lstm():
                                                        sba=FLAGS.sba)
         elif FLAGS.component == "all":
             n_comp = get_num_components(subject=FLAGS.subject, condition=FLAGS.condition,
-                                        filetype=FLAGS.filetype, sba=FLAGS.sba)
+                                        filetype=FLAGS.filetype)
             input_component = list(range(1, n_comp + 1))
 
     else:  # given components are in form of list

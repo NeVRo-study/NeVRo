@@ -69,7 +69,7 @@ PATH_SPECIFICITIES_DEFAULT = "debug/"  # dont change
 SUB_DIR_DEFAULT = "./processed/{1}/{0}".format(PATH_SPECIFICITIES_DEFAULT, s(SUBJECT_DEFAULT))
 LOG_DIR_DEFAULT = "./processed/logs/{1}/{0}".format(PATH_SPECIFICITIES_DEFAULT, s(SUBJECT_DEFAULT))
 CHECKPOINT_DIR_DEFAULT = "./processed/checkpoints/{1}/{0}".format(PATH_SPECIFICITIES_DEFAULT,
-                                                             s(SUBJECT_DEFAULT))
+                                                                  s(SUBJECT_DEFAULT))
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
@@ -272,7 +272,7 @@ if not COMPONENT_DEFAULT.split(",")[0].isnumeric():
                                                    sba=SBA_DEFAULT)
     elif COMPONENT_DEFAULT == "all":
         n_comp = get_num_components(subject=SUBJECT_DEFAULT, condition=CONDITION_DEFAULT,
-                                    filetype=FILE_TYPE_DEFAULT, sba=SBA_DEFAULT)
+                                    filetype=FILE_TYPE_DEFAULT)
 
         input_component = list(range(1, n_comp + 1))
 
