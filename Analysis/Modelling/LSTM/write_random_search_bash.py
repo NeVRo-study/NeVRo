@@ -61,8 +61,8 @@ subsubjects = np.random.choice(a=subjects, size=10, replace=False)
 
 
 def write_search_bash_files(subs, filetype, condition,
-                            task_request=None, component_mode=1, eqcompmat=None,
-                            seed=True,  repet_scalar=30, s_fold=10, sba=True,
+                            task_request=None, component_mode=2, eqcompmat=None,
+                            seed=True, repet_scalar=30, s_fold=10,
                             batch_size=9, successive_mode=1, rand_batch=True, plot=True,
                             successive_default=3, del_log_folders=True, summaries=False,
                             n_combinations=None, n_subbash=4):
@@ -76,7 +76,6 @@ def write_search_bash_files(subs, filetype, condition,
     :param seed: regarding randomization of folds, batches etc.
     :param repet_scalar: how many times it runs through whole set (can be also fraction)
     :param s_fold: number (s) of folds
-    :param sba: True:= SBA, False:= SA
     :param batch_size: Batch size
     :param successive_mode: 1 or 2 (see load_data.py in next_batch())
     :param rand_batch: Should remain True
@@ -91,7 +90,7 @@ def write_search_bash_files(subs, filetype, condition,
     :return:
     """
 
-    # Adjust input variable
+    # Adjust and test input variables
     if not type(subs) is int:
         subs = list(subs)
     else:
@@ -107,7 +106,7 @@ def write_search_bash_files(subs, filetype, condition,
     if del_log_folders and summaries:
         cprint("Note: Verbose summaries are redundant since they get deleted after processing.", "y")
 
-    # Request
+    # Request variables if not given yet
     if n_combinations is None:
         n_combinations = int(cinput(
             "How many random combinations of hyperparameters to test (given value will be multpied with "
@@ -168,7 +167,7 @@ def write_search_bash_files(subs, filetype, condition,
                 lstm_l2 = np.random.choice(layer_size)
                 if lstm_l2 <= lstm_l1:
                     break
-            lstm_size = "{},{}".format(lstm_l1, lstm_l2)
+            lstm_size = f"{lstm_l1},{lstm_l2}"
 
         # fc_n_hidden
         n_fc_layers = np.random.choice(range(n_lstm_layers))  # n_fc_layers <= n_lstm_layers
@@ -195,7 +194,7 @@ def write_search_bash_files(subs, filetype, condition,
         weight_reg = np.random.choice(a=['l1', 'l2'])
 
         # weight_reg_strength
-        weight_reg_strength = np.random.choice(a=[0.00001, 0.18, 0.36, 0.72, 1.44])  # .00001 == no regul.
+        weight_reg_strength = np.random.choice(a=[1e-5, 0.18, 0.36, 0.72, 1.44])  # .00001 == no regul.
 
         # activation_fct
         activation_fct = np.random.choice(a=['elu', 'relu'])
@@ -221,27 +220,12 @@ def write_search_bash_files(subs, filetype, condition,
         # From here on it is subject-dependent
         ncomp = [get_num_components(sub, cond, filetype) for sub in subs]  # TODO SPOC not there yet
         max_n_comp = max(ncomp)
-        sub_dep = False  # init
 
         # Randomly choice number of feed-components
         while True:
             choose_n_comp = np.random.randint(1, max_n_comp+1)  # x
             if choose_n_comp <= 10:  # don't feed more than 10 components
                 break
-
-        # TODO adapt to selected components, per subjects !
-        if component_modes == "one_up":
-            # Choose from component 1 to n_choose (see: SPOC(comp_order) & SSD(alpha-hypotheses)):
-            component = np.arange(start=1, stop=choose_n_comp + 1)  # range [1, n_choose]
-
-        else:  # component_modes == "random_set"
-            # Choose x random components, where x == choose_n_comp
-            component = np.sort(np.random.choice(a=range(1, max_n_comp + 1), size=choose_n_comp,
-                                                 replace=False))
-
-        # Does this need to be adapted per subject?
-        if not all([choose_n_comp <= maxcomp for maxcomp in ncomp]):
-            sub_dep = True
 
         # eqcompmat
         if eqcompmat != 0:
@@ -253,29 +237,21 @@ def write_search_bash_files(subs, filetype, condition,
         # Prepare to write line in bash file per subject
         for sidx, sub in enumerate(subs):
 
-            sub_component = component
+            # Get component list for subject
+            sub_ls_pos_comps = get_list_components(subject=sub, condition=cond, filetype=filetype)
 
-            if component_modes != "best":
-                # Shorten component list for subject, if necessary
-                if sub_dep:
-                    # In case list of given components is too long for specific subject
-                    if len(sub_component) > ncomp[sidx]:
-                        # Shorten list, which is equal to taking all possible components of this subject
-                        sub_component = np.arange(start=1, stop=ncomp[sidx]+1)
+            # Choose components w.r.t. component_modes
+            if component_modes == "one_up":
+                sub_component = sub_ls_pos_comps[0:choose_n_comp]
+                # works also for ncomp[sidx] < choose_n_comp
 
-                    # In case the given 'highest' compoments(s) is/are beyond the component-scope of subj.
-                    while max(sub_component) > len(sub_component):
-                        # Find random component within the component-scope ...
-                        while True:
-                            repl_comp = np.random.choice(a=range(1, len(sub_component) + 1), size=1,
-                                                         replace=False)[0]
-                            # ... which is not in the given list of components yet ...
-                            if repl_comp not in sub_component:
-                                # ... and replace highest comp with it
-                                sub_component[np.where(sub_component == max(sub_component))] = repl_comp
-                                break
+            else:  # component_modes == 'random_set'
+                sub_component = np.sort(np.random.choice(a=sub_ls_pos_comps,
+                                                         size=choose_n_comp if choose_n_comp < ncomp[sidx]
+                                                         else ncomp[sidx],
+                                                         replace=False))
 
-                sub_component = ','.join([str(i) for i in sub_component])
+            sub_component = ','.join([str(i) for i in sub_component])
 
             # path_specificities
             path_specificities = f"{'BiCl_' if 'c' in task else 'Reg_'}RndHPS_" \
@@ -361,13 +337,13 @@ def write_search_bash_files(subs, filetype, condition,
 # write_search_bash_files(subs=subsubjects, filetype="SSD", condition="nomov",
 #                         task_request="r", component_mode=1, eqcompmat=7, n_combinations=20,
 #                         seed=True, repet_scalar=30,
-#                         s_fold=10, sba=True, batch_size=9, successive_mode=1, rand_batch=True,
+#                         s_fold=10, batch_size=9, successive_mode=1, rand_batch=True,
 #                         plot=True, successive_default=3, del_log_folders=True, summaries=False)
 #
 # write_search_bash_files(subs=subsubjects, filetype="SSD", condition="nomov",
 #                         task_request="r", component_mode=1, eqcompmat=0, n_combinations=20,
 #                         seed=True, repet_scalar=30,
-#                         s_fold=10, sba=True, batch_size=9, successive_mode=1, rand_batch=True,
+#                         s_fold=10, batch_size=9, successive_mode=1, rand_batch=True,
 #                         plot=True, successive_default=3, del_log_folders=True, summaries=False)
 
 

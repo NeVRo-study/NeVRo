@@ -144,8 +144,8 @@ def get_filename(subject, filetype, band_pass, cond="nomov", sba=True, check_exi
 # @function_timed  # after executing following function this returns runtime
 def get_num_components(subject, condition, filetype, selected=True):
     """
-    Get number of components for subject in given condition. Information should be saved in corresponding
-    table. If not: Create this table for all subjects.
+    Get number of components for subject in given condition. Information should have been saved in
+    corresponding table. If not: Create this table for all subjects.
 
     :param subject: subject number
     :param condition: mov (1), or nomov(2)
@@ -178,6 +178,56 @@ def get_num_components(subject, condition, filetype, selected=True):
     return ncomp
 
 # get_num_components(subject=24, condition="mov", filetype="SSD")
+
+
+def get_list_components(subject, condition, filetype, selected=True, lstype="list"):
+    """
+    Get list of components for subject in given condition. Information should have been saved in
+    corresponding table. If not: Create this table for all subjects.
+
+    :param subject: subject number
+    :param condition: mov (1), or nomov(2)
+    :param filetype: 'SSD' or 'SPOC'
+    :param selected: True: selected components
+    :param lstype: 'list': [1,2,3,...] or 'string' '1,2,3,...'
+    :return: list of components or nan (if no information)
+    """
+
+    condition = check_condition(cond=condition)
+    filetype = filetype.upper()
+    assert filetype in ["SSD", "SPOC"], "filetype must be either 'SSD' or 'SPOC'"
+
+    # Path to table of number of components
+    path_base = path_ssd if filetype == "SSD" else path_spoc
+    fname_tab_ncomp = path_base + f"{condition}/{filetype}_selected_components_{condition}.csv"
+
+    # If table does not exist, create it
+    if not os.path.isfile(fname_tab_ncomp):
+        raise FileNotFoundError(f"Component information in {fname_tab_ncomp} not found.\n"
+                                "Execute selection process first with SelectSSDcomponents().")
+
+    else:  # Load table if exsits already
+        tab_ncomp = pd.read_csv(fname_tab_ncomp, sep=";")
+        # tab_ncomp = np.genfromtxt(fname_tab_ncomp, delimiter=";", dtype=str)
+
+    # Get list of components in condition from table
+    if selected:
+        comp_ls = tab_ncomp[tab_ncomp["# ID"] == subject]["selected_comps"].item()
+        if pd.isna(comp_ls):
+            comp_ls = np.nan
+        elif lstype == "list":
+            comp_ls = [int(i) for i in comp_ls.split(",")]
+    else:
+        n_all_comps = tab_ncomp[tab_ncomp["# ID"] == subject]["n_all_comps"].item()
+        n_all_comps = np.nan if pd.isna(n_all_comps) else int(n_all_comps)
+        if not np.isnan(n_all_comps):
+            comp_ls = list(range(1, n_all_comps+1))
+            if lstype == "string":
+                comp_ls = ",".join(str(i) for i in comp_ls)   # '1,2,3,...'
+        else:
+            comp_ls = np.nan
+
+    return comp_ls
 
 
 def load_component(subjects, condition, f_type, band_pass, samp_freq=250., sba=True):
