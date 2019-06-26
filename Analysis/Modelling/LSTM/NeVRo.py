@@ -174,6 +174,7 @@ def train_lstm():
 
     # First find best component
     # choose_component(subject, condition, f_type, best, sba=True)
+    # TODO remove deprecated 'best' - component test
     if FLAGS.component in ['best', 'noise']:
         best_comp = best_or_random_component(subject=FLAGS.subject, condition=FLAGS.condition,
                                              f_type=FLAGS.filetype.upper(),
@@ -267,16 +268,15 @@ def train_lstm():
                 # Load Data:
                 if rnd > 0:
                     # Show time passed per fold and estimation of rest time
-                    cprint("Duration of previous fold {} [h:m:s] | {} | {}".format(
-                         duration_fold, FLAGS.path_specificities[:-1], s(FLAGS.subject)), "y")
+                    cprint(f"{s(FLAGS.subject)} | {FLAGS.path_specificities[:-1]}", "y")
+                    cprint(f"Duration of previous fold {duration_fold} [h:m:s]", "y")
                     timer_fold_list.append(duration_fold)
                     # average over previous folds (np.mean(timer_fold_list) not possible in python2)
                     rest_duration_fold = average_time(timer_fold_list,
                                                       in_timedelta=True) * (FLAGS.s_fold - rnd)
                     rest_duration_fold = chop_microseconds(delta=rest_duration_fold)
-                    cprint("Estimated time to train rest {} fold(s): {} [h:m:s] | {} | {}\n".format(
-                         FLAGS.s_fold - rnd, rest_duration_fold, FLAGS.path_specificities[:-1],
-                         s(FLAGS.subject)), "y")
+                    cprint(f"Estimated time to train rest {FLAGS.s_fold - rnd} fold(s): "
+                           f"{rest_duration_fold} [h:m:s]\n", "y")
 
                     nevro_data = get_nevro_data(subject=FLAGS.subject,
                                                 component=input_component,
@@ -411,12 +411,8 @@ def train_lstm():
                         train_writer.add_run_metadata(run_metadata, "step{}".format(str(step).zfill(4)))
                         train_writer.add_summary(summary=summary, global_step=step)
 
-                        print("\nTrain-Loss: \t{:.3f} at step:{} | {} | {}".format(
-                            np.round(train_loss, 3), step + 1, FLAGS.path_specificities[:-1],
-                            s(FLAGS.subject)))
-                        print("Train-Accuracy: {:.3f} at step:{} | {} | {}\n".format(
-                            np.round(train_acc, 3), step + 1, FLAGS.path_specificities[:-1],
-                            s(FLAGS.subject)))
+                        print(f"\nTrain-Loss:\t{train_loss:.3f} at step: {step+1}")
+                        print(f"Train-Accuracy:\t{train_acc:.3f} at step: {step+1}\n")
 
                         # Update Lists
                         train_acc_list.append(train_acc)
@@ -432,12 +428,8 @@ def train_lstm():
                             [optimization, loss, accuracy, infer, y], feed_dict=_feed_dict(training=True))
 
                         if step % 25 == 0:
-                            print("\nTrain-Loss: {:.3f} at step:{} | {} | {}".format(
-                                np.round(train_loss, 3), step + 1, FLAGS.path_specificities[:-1],
-                                s(FLAGS.subject)))
-                            print("Train-Accuracy: {:.3f} at step:{} | {} | {}\n".format(
-                                np.round(train_acc, 3), step + 1, FLAGS.path_specificities[:-1],
-                                s(FLAGS.subject)))
+                            print(f"\nTrain-Loss:\t{train_loss:.3f} at step: {step+1}")
+                            print(f"Train-Accuracy:\t{train_acc:.3f} at step: {step+1}\n")
 
                         # Update Lists
                         train_acc_list.append(train_acc)
@@ -465,12 +457,8 @@ def train_lstm():
                             va_ls_loss.append(val_train_loss)
 
                         if step % 25 == 0:
-                            print("Val-Loss: {:.3f} at step: {} | {} | {}".format(
-                                np.round(np.mean(va_ls_loss), 3), step + 1, FLAGS.path_specificities[:-1],
-                                s(FLAGS.subject)))
-                            print("Val-Accuracy: {:.3f} at step: {} | {} | {}".format(
-                                np.round(np.mean(va_ls_acc), 3), step + 1, FLAGS.path_specificities[:-1],
-                                s(FLAGS.subject)))
+                            print(f"Val-Loss:\t{np.mean(va_ls_loss):.3f} at step: {step+1}")
+                            print(f"Val-Accuracy:\t{np.mean(va_ls_acc):.3f} at step: {step+1}")
 
                         # Update Lists
                         val_acc_training_list.append((np.mean(va_ls_acc), step))  # tuple: val_acc & step
@@ -486,14 +474,10 @@ def train_lstm():
                             test_writer.add_summary(summary=summary, global_step=step)
 
                             if val_step % 5 == 0:
-                                print("Validation-Loss: \t{:.3f} of Fold Nr.{} ({}/{}) | {} | {}".format(
-                                    np.round(val_loss, 3), s_fold_idx, rnd + 1, len(s_fold_idx_list),
-                                    FLAGS.path_specificities[:-1], s(FLAGS.subject)))
-
-                                print("Validation-Accuracy: {:.3f} of Fold Nr.{} ({}/{}) | {} | "
-                                      "{}".format(np.round(val_acc, 3), s_fold_idx, rnd+1,
-                                                  len(s_fold_idx_list), FLAGS.path_specificities[:-1],
-                                                  s(FLAGS.subject)))
+                                print(f"Validation-Loss:\t{val_loss:.3f} of Fold Nr.{s_fold_idx} "
+                                      f"({rnd + 1}/{len(s_fold_idx_list)})")
+                                print(f"Validation-Accuracy:\t{val_acc:.3f} of Fold Nr.{s_fold_idx} "
+                                      f"({rnd+1}/{len(s_fold_idx_list)})")
 
                             # Update Lists
                             val_acc_list.append(val_acc)
@@ -553,19 +537,13 @@ def train_lstm():
                         rest_duration = chop_microseconds(delta=rest_duration)
                         rest_duration_all_folds = chop_microseconds(delta=rest_duration_all_folds)
 
-                        cprint("Time passed to train {} steps: "
-                               "{} [h:m:s] | {} | {}".format(timer_freq, duration,
-                                                             FLAGS.path_specificities[:-1],
-                                                             s(FLAGS.subject)), "y")
-                        cprint("Estimated time to train the rest {} steps in current Fold-Nr.{}: "
-                               "{} [h:m:s] | {} | {}".format(int(max_steps - (step + 1)), s_fold_idx,
-                                                             rest_duration,
-                                                             FLAGS.path_specificities[:-1],
-                                                             s(FLAGS.subject)), "y")
-                        cprint("Estimated time to train the rest steps and {} {}: {} [h:m:s] | {} | "
-                               "{}".format(remaining_folds, "folds" if remaining_folds > 1 else "fold",
-                                           rest_duration_all_folds, FLAGS.path_specificities[:-1],
-                                           s(FLAGS.subject)), "y")
+                        cprint(f"{FLAGS.path_specificities[:-1]} | {s(FLAGS.subject)}", "y")
+                        cprint(f"Time passed to train {timer_freq} steps: {duration} [h:m:s]", "y")
+                        cprint(f"Estimated time to train the rest {int(max_steps - (step + 1))} steps in "
+                               f"current Fold-Nr.{s_fold_idx}: {rest_duration} [h:m:s]", "y")
+                        cprint(f"Estimated time to train the rest steps and {remaining_folds} "
+                               f"{'folds' if remaining_folds > 1 else 'fold'}: {rest_duration_all_folds} "
+                               f"[h:m:s]", "y")
 
                         # Set Start Timer
                         start_timer = datetime.datetime.now().replace(microsecond=0)
