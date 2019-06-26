@@ -126,7 +126,7 @@ def train_lstm():
     max_steps = FLAGS.repet_scalar * (270 - 270 / FLAGS.s_fold) / FLAGS.batch_size
     assert float(max_steps).is_integer(), "max steps must be integer"
     eval_freq = int(((270 - 270 / FLAGS.s_fold) / FLAGS.batch_size) / 2)  # approx. 2 times per epoch
-    checkpoint_freq = int(max_steps)  # int(max_steps)/2 for chechpoint after half the training
+    checkpoint_freq = int(max_steps/2)  # int(max_steps)/2 for chechpoint after half the training
     print_freq = int(max_steps / 8)  # if too low, uses much memory
     assert FLAGS.batch_size % FLAGS.successive == 0, \
         "batch_size must be a multiple of successive (batches)."
@@ -137,7 +137,7 @@ def train_lstm():
     if FLAGS.seed:
         tf.set_random_seed(42)
         np.random.seed(42)
-        print("Seed is turned on")
+        cprint("Seed is turned on", "b")
 
     # Get number of units in each hidden layer specified in the string such as 100,100
     if FLAGS.lstm_size:
@@ -199,7 +199,7 @@ def train_lstm():
         elif FLAGS.component == "all":
             n_comp = get_num_components(subject=FLAGS.subject, condition=FLAGS.condition,
                                         filetype=FLAGS.filetype)
-            input_component = list(range(1, n_comp + 1))
+            input_component = list(range(1, n_comp+1))
 
     else:  # given components are in form of list
         assert np.all([comp.isnumeric() for comp in FLAGS.component.split(",")]), \
@@ -343,7 +343,7 @@ def train_lstm():
 
                 # Saver
                 # https://www.tensorflow.org/versions/r0.11/api_docs/python/state_ops.html#Saver
-                saver = tf.train.Saver(max_to_keep=3)
+                saver = tf.train.Saver(max_to_keep=1)
 
                 # Initialize your model within a tf.Session
                 tf.global_variables_initializer().run()  # or without .run()
@@ -464,7 +464,7 @@ def train_lstm():
                         val_acc_training_list.append((np.mean(va_ls_acc), step))  # tuple: val_acc & step
                         val_loss_training_list.append((np.mean(va_ls_loss), step))
 
-                    if step == max_steps - 1:  # Validation in last round
+                    if step+1 == max_steps:  # Validation in last round
 
                         # for val_step in range(int(val_counter)):
                         for val_step in range(int(val_steps)):
@@ -492,7 +492,7 @@ def train_lstm():
                                                                train=False)
 
                     # Save the variables to disk every checkpoint_freq (=5000) iterations
-                    if (step + 1) % checkpoint_freq == 0:
+                    if (step+1) % checkpoint_freq == 0 or (step+1) == max_steps:
 
                         # Define checkpoint_dir
                         checkpoint_dir = './processed/checkpoints/{}/{}'.format(s(FLAGS.subject),
@@ -503,7 +503,7 @@ def train_lstm():
                         save_path = saver.save(sess=sess,
                                                save_path=checkpoint_dir + "lstmnet_rnd{}.ckpt".format(
                                                    str(rnd).zfill(2)), global_step=step)
-                        print("Model saved in file: %s" % save_path)
+                        cprint("Model saved in file: %s" % save_path, "b")
 
                     # End Timer
                     if step % timer_freq == 0 and step > 0:
@@ -580,17 +580,16 @@ def train_lstm():
 
     # Final Accuracy & Time
     timer_fold_list.append(duration_fold)
-    cprint("Time to train all folds (each {} steps): {} [h:m:s] | {} | {}".format(
-         int(max_steps), np.sum(timer_fold_list), FLAGS.path_specificities[:-1],
-         s(FLAGS.subject)), "y")
+    cprint(f"{FLAGS.path_specificities[:-1]} | {s(FLAGS.subject)}", "y")
+    cprint(f"Time to train all folds (each {int(max_steps)} steps): {np.sum(timer_fold_list)} [h:m:s]",
+           "y")
 
     # Create all_acc_val_binary
     all_acc_val_binary = calc_binary_class_accuracy(prediction_matrix=val_pred_matrix)
     # Calculate mean val accuracy across all folds
     mean_val_acc = np.nanmean(all_acc_val if FLAGS.task == "regression" else all_acc_val_binary)
 
-    print("Average accuracy across all {} validation set: {:.3f} | {} | {}".format(
-        FLAGS.s_fold, mean_val_acc, FLAGS.path_specificities[:-1], s(FLAGS.subject)))
+    cprint(f"Average accuracy across all {FLAGS.s_fold} validation sets: {mean_val_acc:.3f}", "b")
 
     # Save training information in Textfile
     # Define sub_dir
@@ -799,6 +798,7 @@ def str2bool(v):
 if __name__ == '__main__':
     # Command line arguments
     parser = argparse.ArgumentParser()
+
     parser.add_argument('--is_train', type=str2bool, default=True,
                         help='Training or feature extraction')
     parser.add_argument('--seed', type=str2bool, default=False,
