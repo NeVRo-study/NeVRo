@@ -27,7 +27,7 @@ def setwd(new_dir):
 
     cprint("Current working dir:\t{}".format(os.getcwd()), "b")
 
-    found = False if new_dir not in os.getcwd().split("/")[-1] else True
+    found = False if new_dir not in os.getcwd() else True
 
     # First look down the tree
     if not found:
