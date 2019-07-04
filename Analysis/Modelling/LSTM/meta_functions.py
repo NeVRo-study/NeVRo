@@ -24,13 +24,10 @@ def setwd(new_dir):
 
     # Remove '/' if new_dir == 'folder/' OR '/folder'
     new_dir = new_dir[:-1] if new_dir[-1] == "/" else new_dir
-    new_dir = new_dir[1:] if new_dir[0] == "/" else new_dir
-    if "/" in new_dir:
-        new_dir = new_dir.split("/")[-1]
 
     cprint("Current working dir:\t{}".format(os.getcwd()), "b")
 
-    found = False if new_dir != os.getcwd().split("/")[-1] else True
+    found = False if new_dir not in os.getcwd().split("/")[-1] else True
 
     # First look down the tree
     if not found:
