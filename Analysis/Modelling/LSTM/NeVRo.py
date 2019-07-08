@@ -252,18 +252,15 @@ def train_lstm():
 
     # Run through S-Fold-Cross-Validation (take the mean-performance across all validation sets)
     for rnd, s_fold_idx in enumerate(s_fold_idx_list):
-        cprint("\nTrain now on Fold-Nr.{} (fold {}/{}) | {} | {}".format(s_fold_idx, rnd+1,
-                                                                         len(s_fold_idx_list),
-                                                                         FLAGS.path_specificities[:-1],
-                                                                         s(FLAGS.subject)),
-               "b")
+        cprint(f"\nTrain now on Fold-Nr.{s_fold_idx} (fold {rnd+1}/{len(s_fold_idx_list)}) | "
+               f"{FLAGS.path_specificities[:-1]} | {s(FLAGS.subject)}", "b")
         start_timer_fold = datetime.datetime.now().replace(microsecond=0)
 
         # For each fold define new graph to finally compare the validation accuracies of each fold
         with tf.Session(graph=graph_dict[s_fold_idx]) as sess:  # (re-)initialise the model completely
 
-            with tf.variable_scope(name_or_scope="Fold_Nr{}/{}".format(str(rnd).zfill(len(str(
-                    FLAGS.s_fold))), len(s_fold_idx_list))):
+            with tf.variable_scope(name_or_scope=f"Fold_Nr{str(rnd).zfill(len(str(FLAGS.s_fold)))}/"
+                                                 f"{len(s_fold_idx_list)}"):
 
                 # Load Data:
                 if rnd > 0:
@@ -331,7 +328,7 @@ def train_lstm():
                 merged = tf.summary.merge_all()
 
                 # Define logdir
-                logdir = './processed/logs/{}/{}'.format(s(FLAGS.subject), FLAGS.path_specificities)
+                logdir = f'./processed/logs/{s(FLAGS.subject)}/{FLAGS.path_specificities}'
 
                 if not tf.gfile.Exists(logdir):
                     tf.gfile.MakeDirs(logdir)
@@ -394,9 +391,9 @@ def train_lstm():
                         start_timer = datetime.datetime.now().replace(microsecond=0)
 
                     if step % (timer_freq/2) == 0.:
-                        cprint("Step {}/{} in Fold Nr.{} ({}/{}) | {} | {}".format(
-                            step, int(max_steps), s_fold_idx, rnd + 1, len(s_fold_idx_list),
-                            FLAGS.path_specificities[:-1], s(FLAGS.subject)), "b")
+                        cprint(f"Step {step}/{int(max_steps)} in Fold Nr.{s_fold_idx} "
+                               f"({rnd+1}/{len(s_fold_idx_list)}) | {FLAGS.path_specificities[:-1]} | "
+                               f"{s(FLAGS.subject)}", "b")
 
                     # Evaluate on training set every print_freq (=10) iterations
                     if (step + 1) % print_freq == 0:
@@ -408,7 +405,7 @@ def train_lstm():
                             feed_dict=_feed_dict(training=True),  # options=run_options,
                             run_metadata=run_metadata)
 
-                        train_writer.add_run_metadata(run_metadata, "step{}".format(str(step).zfill(4)))
+                        train_writer.add_run_metadata(run_metadata, f"step{str(step).zfill(4)}")
                         train_writer.add_summary(summary=summary, global_step=step)
 
                         print(f"\nTrain-Loss:\t{train_loss:.3f} at step: {step+1}")
@@ -495,15 +492,16 @@ def train_lstm():
                     if (step+1) % checkpoint_freq == 0 or (step+1) == max_steps:
 
                         # Define checkpoint_dir
-                        checkpoint_dir = './processed/checkpoints/{}/{}'.format(s(FLAGS.subject),
-                                                                                FLAGS.path_specificities)
+                        checkpoint_dir = f'./processed/checkpoints/{s(FLAGS.subject)}/' \
+                            f'{FLAGS.path_specificities}'
+
                         if not tf.gfile.Exists(checkpoint_dir):
                             tf.gfile.MakeDirs(checkpoint_dir)
 
                         save_path = saver.save(sess=sess,
-                                               save_path=checkpoint_dir + "lstmnet_rnd{}.ckpt".format(
-                                                   str(rnd).zfill(2)), global_step=step)
-                        cprint("Model saved in file: %s" % save_path, "b")
+                                               save_path=checkpoint_dir + f"lstmnet_rnd"
+                                               f"{str(rnd).zfill(2)}.ckpt", global_step=step)
+                        cprint(f"Model saved in file: {save_path}", "b")
 
                     # End Timer
                     if step % timer_freq == 0 and step > 0:
@@ -564,8 +562,8 @@ def train_lstm():
                                         "val_acc_list", "val_loss_list",
                                         "val_acc_training_list", "val_loss_training_list"]
                 for list_idx, liste in enumerate(loss_acc_lists):
-                    with open(logdir + str(s_fold_idx) + "/{}.txt".format(
-                            loss_acc_lists_names[list_idx]), "w") as list_file:
+                    with open(logdir + str(s_fold_idx) + f"/{loss_acc_lists_names[list_idx]}.txt",
+                              "w") as list_file:
                         for value in liste:
                             list_file.write(str(value) + "\n")
 
@@ -593,13 +591,12 @@ def train_lstm():
 
     # Save training information in Textfile
     # Define sub_dir
-    sub_dir = "./processed/{}/{}".format(s(FLAGS.subject), FLAGS.path_specificities)
+    sub_dir = f"./processed/{s(FLAGS.subject)}/{FLAGS.path_specificities}"
     if not tf.gfile.Exists(sub_dir):
         tf.gfile.MakeDirs(sub_dir)
 
-    with open(sub_dir + "{}S{}_accuracy_across_{}_folds_{}.txt".format(
-            time.strftime('%Y_%m_%d_'), FLAGS.subject, FLAGS.s_fold, FLAGS.path_specificities[:-1]),
-              "w") as file:
+    with open(sub_dir + f"{time.strftime('%Y_%m_%d_')}S{FLAGS.subject}_accuracy_across_{FLAGS.s_fold}"
+                        f"_folds_{FLAGS.path_specificities[:-1]}.txt", "w") as file:
         file.write(f"Subject {FLAGS.subject}\nCondition: {FLAGS.condition}\nSBA: {FLAGS.sba}"
                    f"\nTask: {FLAGS.task}\nShuffle_data: {FLAGS.shuffle}\ndatatype: {FLAGS.filetype}"
                    f"\nband_pass: {FLAGS.band_pass}\nHilbert_z-Power: {FLAGS.hilbert_power}"
@@ -616,8 +613,8 @@ def train_lstm():
                    f"\npath_specificities: {FLAGS.path_specificities}\n")
 
         # rounding for the export
-        rnd_all_acc_val = ["{:.3f}".format(np.round(acc, 3)) for acc in all_acc_val]
-        rnd_all_acc_val_binary = ["{:.3f}".format(np.round(acc, 3)) for acc in all_acc_val_binary]
+        rnd_all_acc_val = [f"{acc:.3f}" for acc in all_acc_val]
+        rnd_all_acc_val_binary = [f"{acc:.3f}" for acc in all_acc_val_binary]
         rnd_all_acc_val = [float(acc) for acc in rnd_all_acc_val]  # cleaning
         rnd_all_acc_val_binary = [float(acc) for acc in rnd_all_acc_val_binary]
 
@@ -637,8 +634,9 @@ def train_lstm():
             file.write(label_export[i] + str(item)+"\n")
 
     # Save Accuracies in Random_Search_Table.csv if applicable
-    table_name = "./processed/Random_Search_Table_{}.csv".format(
-        "BiCl" if FLAGS.task == "classification" else "Reg")
+    table_name = f"./processed/Random_Search_Table_" \
+        f"{'BiCl' if FLAGS.task=='classification' else 'Reg'}.csv"
+
     if os.path.exists(table_name):
         rs_table = np.genfromtxt(table_name, delimiter=";", dtype=str)
 
@@ -661,21 +659,19 @@ def train_lstm():
             np.savetxt(fname=table_name, X=rs_table, delimiter=";", fmt="%s")
 
         else:
-            cprint("There is no entry for this trial in Random_Search_Table_{}.csv".format(
-                 "BiCl" if FLAGS.task == "classification" else "Reg"), "r")
+            cprint(f"There is no entry for this trial in Random_Search_Table_"
+                   f"{'BiCl' if FLAGS.task=='classification' else 'Reg'}.csv", "r")
 
     # Save Prediction Matrices in File
-    np.savetxt(sub_dir + "{}S{}_pred_matrix_{}_folds_{}.csv".format(
-        time.strftime('%Y_%m_%d_'), FLAGS.subject, FLAGS.s_fold, FLAGS.path_specificities[:-1]),
-               pred_matrix, delimiter=",")
+    np.savetxt(sub_dir + f"{time.strftime('%Y_%m_%d_')}S{FLAGS.subject}_pred_matrix_{FLAGS.s_fold}"
+                         f"_folds_{FLAGS.path_specificities[:-1]}.csv", pred_matrix, delimiter=",")
 
-    np.savetxt(sub_dir + "{}S{}_val_pred_matrix_{}_folds_{}.csv".format(
-        time.strftime('%Y_%m_%d_'), FLAGS.subject, FLAGS.s_fold, FLAGS.path_specificities[:-1]),
-               val_pred_matrix, delimiter=",")
+    np.savetxt(sub_dir + f"{time.strftime('%Y_%m_%d_')}S{FLAGS.subject}_val_pred_matrix_{FLAGS.s_fold}"
+                         f"_folds_{FLAGS.path_specificities[:-1]}.csv", val_pred_matrix, delimiter=",")
 
     if FLAGS.shuffle:
-        np.save(sub_dir + "{}S{}_shuffle_order_matrix_{}_folds_{}.npy".format(
-            time.strftime('%Y_%m_%d_'), FLAGS.subject, FLAGS.s_fold, FLAGS.path_specificities[:-1]),
+        np.save(sub_dir + f"{time.strftime('%Y_%m_%d_')}S{FLAGS.subject}_shuffle_order_matrix"
+                          f"_{FLAGS.s_fold}_folds_{FLAGS.path_specificities[:-1]}.npy",
                 shuffle_order_matrix)
 
 
@@ -726,7 +722,7 @@ def fill_pred_matrix(pred, y, current_mat, s_idx, current_batch, sfold, train=Tr
         # Check whether position is already filled
         for pos in fill_pos:
             if not np.isnan(current_mat[pred_idx, pos]):
-                print("Overwrites position ({},{}) in val_pred_matrix".format(pred_idx, pos))
+                print(f"Overwrites position ({pred_idx},{pos}) in val_pred_matrix")
 
     # Update Matrix
     current_mat[pred_idx, fill_pos] = pred  # inference/prediction

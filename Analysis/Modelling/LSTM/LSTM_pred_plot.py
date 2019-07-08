@@ -12,8 +12,10 @@ import sys
 from tensorflow import gfile
 import string
 import shutil
+
 if platform.system() != 'Darwin':
     import matplotlib
+
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
 else:
@@ -46,11 +48,11 @@ def plot_all_there_is(dellog):
         if "S" == folder[0]:
             sub = int(folder.split('S')[1])
             print("subject:", sub)
-            for subfolder in os.listdir("./processed/{}/".format(folder)):
+            for subfolder in os.listdir(f"./processed/{folder}/"):
                 if subfolder != 'already_plotted':
                     subfol = subfolder
                     print("subfolder:", subfol)
-                    if len(os.listdir("./processed/{}/{}/".format(folder, subfol))) == 3:
+                    if len(os.listdir(f"./processed/{folder}/{subfol}/")) == 3:
                         subprocess.Popen(["python3", "LSTM_pred_plot.py", 'True', str(sub), subfol + "/",
                                           str(dellog)])
 
@@ -67,7 +69,6 @@ try:
 except IndexError:
     plots = save_request()
     script_external_exe = True
-
 
 if script_external_exe:
     subject = sys.argv[2]
@@ -105,16 +106,15 @@ if plots:
 else:  # If plots are not saved, do not delete log folders
     delete_log_folder = False
 
-
-wdic = "./LSTM"
+wdic = "./processed"
 wdic_plot = "../../../Results/Plots/LSTM/"
 wdic_lists = wdic + "/logs"
 wdic_checkpoint = wdic + "/checkpoints"
 lw = 0.5  # linewidth
 
-wdic_sub = wdic + "/{}/{}".format(s(subject), path_specificity)
-wdic_lists_sub = wdic_lists + "/{}/{}".format(s(subject), path_specificity)
-wdic_checkpoint_sub = wdic_checkpoint + "/{}/{}".format(s(subject), path_specificity)
+wdic_sub = wdic + f"/{s(subject)}/{path_specificity}"
+wdic_lists_sub = wdic_lists + f"/{s(subject)}/{path_specificity}"
+wdic_checkpoint_sub = wdic_checkpoint + f"/{s(subject)}/{path_specificity}"
 
 # Find correct files (csv-tables)
 shuff_filename = "None"
@@ -137,7 +137,7 @@ for file in os.listdir(wdic_sub):
 # Intermediate step: check whether filenames alreay exist in already_plotted_dic
 abc = ''  # init
 if plots:
-    already_plotted_dic = wdic + "/{}/already_plotted/".format(s(subject))
+    already_plotted_dic = wdic + f"/{s(subject)}/already_plotted/"
     if not gfile.Exists(already_plotted_dic):
         gfile.MakeDirs(already_plotted_dic)
 
@@ -168,7 +168,7 @@ if os.path.exists(wdic_sub + shuff_filename):
     del dub_shuffle_order_matrix
 
 # Number of Folds
-s_fold = int(len(pred_matrix[:, 0])/2)
+s_fold = int(len(pred_matrix[:, 0]) / 2)
 
 # Import accuracies
 acc_date = np.loadtxt(wdic_sub + acc_filename, dtype=str, delimiter=";")  # Check (before ",")
@@ -247,7 +247,7 @@ for info in acc_date:
         for i, item in enumerate(val_acc):
             if i == 0:  # first
                 v.append(float(item[1:]))
-            elif i == (len(val_acc)-1):  # last one
+            elif i == (len(val_acc) - 1):  # last one
                 v.append(float(item[0:-1]))
             else:
                 v.append(float(item))
@@ -292,9 +292,9 @@ if task == "classification":
                                                         bins=False)[str(subject)][sba][cond],
                                 lower_bound=-1, upper_bound=1)  # range [-1, 1]
 
-    tertile = int(len(real_rating)/3)
-    lower_tert_bound = np.sort(real_rating)[tertile]    # np.percentile(a=real_rating, q=33.33)
-    upper_tert_bound = np.sort(real_rating)[tertile*2]  # np.percentile(a=real_rating, q=66.66)
+    tertile = int(len(real_rating) / 3)
+    lower_tert_bound = np.sort(real_rating)[tertile]  # np.percentile(a=real_rating, q=33.33)
+    upper_tert_bound = np.sort(real_rating)[tertile * 2]  # np.percentile(a=real_rating, q=66.66)
 
     no_entries = np.isnan(np.nanmean(a=np.vstack((pred_matrix, val_pred_matrix)), axis=0))
     only_entries_rating = copy.copy(real_rating)
@@ -308,14 +308,13 @@ else:
     # whole_rating = np.nanmean(a=np.delete(arr=pred_matrix, obj=np.arange(0, 2*s_fold-1, 2), axis=0),
     #                           axis=0)
 
-
 # Load Neural/HR Data
 mpsec_eeg_data = []  # init
 if plt_input_data:
     data = get_nevro_data(subject=subject, task=task, cond=cond,
                           component=components, hr_component=hr_comp,
                           filetype=file_type, hilbert_power=hilb, band_pass=bpass,
-                          s_fold_idx=s_fold-1, s_fold=s_fold)
+                          s_fold_idx=s_fold - 1, s_fold=s_fold)
 
     eeg_data = np.concatenate((data["train"].eeg, data["validation"].eeg))
     assert eeg_data.shape[0] == pred_matrix.shape[1], "Shapes differ!"
@@ -340,7 +339,7 @@ def subplot_div(n_s_fold):
 # # Plot predictions 1)
 # open frame
 figsize = (12, s_fold * (3 if s_fold < 4 else 1))
-fig = plt.figure("{}-Folds | {} | {} | mean(val_acc)={} | 1Hz".format(s_fold, s(subject), task, mean_acc),
+fig = plt.figure(f"{s_fold}-Folds | {s(subject)} | {task} | mean(val_acc)={mean_acc} | 1Hz",
                  figsize=figsize)
 
 # Prepare subplot division
@@ -350,10 +349,10 @@ sub_rows, sub_col, sub_n = subplot_div(n_s_fold=s_fold)
 for fold in range(s_fold):
 
     # Vars to plot
-    pred = pred_matrix[fold*2, :]
-    rating = pred_matrix[fold*2 + 1, :]
-    val_pred = val_pred_matrix[fold*2, :]
-    val_rating = val_pred_matrix[fold*2 + 1, :]
+    pred = pred_matrix[fold * 2, :]
+    rating = pred_matrix[fold * 2 + 1, :]
+    val_pred = val_pred_matrix[fold * 2, :]
+    val_rating = val_pred_matrix[fold * 2 + 1, :]
 
     # add subplot
     sub_n += 1
@@ -458,7 +457,7 @@ for fold in range(s_fold):
             # plt.vlines(i, ymin=wr, ymax=real_rating[i], colors=corr_col_train, alpha=.5, lw=lw/1.5)
             if not np.isnan(pred[i]):
                 # set a point at the end of line
-                plt.plot(i, np.sign(wr)*(np.abs(wr)+.01) if corr_class_train[i] == 1 else wr,
+                plt.plot(i, np.sign(wr) * (np.abs(wr) + .01) if corr_class_train[i] == 1 else wr,
                          marker="o", color=corr_col_train, alpha=.5, ms=1)
             # plt.vlines(i, ymin=wr, ymax=val_pred[i], colors=corr_col_val, alpha=.5, lw=lw/1.5)
             # plt.vlines(i, ymin=wr, ymax=real_rating[i], colors=corr_col_val, alpha=.5, lw=lw/1.5)
@@ -467,13 +466,13 @@ for fold in range(s_fold):
                          marker="o", color=corr_col_val, alpha=.5, ms=1)
         corr_class_val = np.delete(corr_class_val, np.where(np.isnan(corr_class_val)))
         if len(corr_class_val) > 0:
-            fold_acc = np.round(sum(corr_class_val[corr_class_val == 1])/len(corr_class_val), 3)
+            fold_acc = np.round(sum(corr_class_val[corr_class_val == 1]) / len(corr_class_val), 3)
             # ==val_class_acc[fold]
         else:
             fold_acc = np.nan
 
     plot_acc = np.round(val_acc[int(np.where(np.array(s_rounds) == fold)[0])], 3)
-    plt.title(label="{}-Fold | val-acc={}".format(fold+1, fold_acc))  # fold_acc
+    plt.title(label=f"{fold+1}-Fold | val-acc={fold_acc}")  # fold_acc
     if fold == 0:
         plt.legend(bbox_to_anchor=(0., 0.90, 1., .102), loc=1, ncol=4, mode="expand", borderaxespad=0.)
 
@@ -486,17 +485,15 @@ plt.tight_layout(pad=2)
 fig.show()
 
 if plots:
-    plot_filename = "{}{}_|{}{}*{}({})_|_{}-Folds_|_{}_|_{}_|_mean(val_acc)_{:.2f}_|_{}.png".format(
-        file_name[0:10], abc, "_Hilbert_" if hilb else "_", int(reps),
-        "rnd-batch" if rnd_batch else "subsequent-batch", batch_size, s_fold, task,
-        s(subject), mean_acc,
-        path_specificity[:-1])
+
+    plot_filename = f"{file_name[0:10]}{abc}_|{'_Hilbert_' if hilb else '_'}{int(reps)}*" \
+        f"{'rnd-batch' if rnd_batch else 'subsequent-batch'}({batch_size})_|_{s_fold}-Folds_|" \
+        f"_{task}_|_{s(subject)}_|_mean(val_acc)_{mean_acc:.2f}_|_{path_specificity[:-1]}.png"
 
     fig.savefig(wdic_plot + plot_filename)
 
 # # Plot accuracy-trajectories 2)
-fig2 = plt.figure("{}-Folds Accuracies | {} | {} | mean(val_acc)={} | 1Hz ".format(s_fold, s(subject),
-                                                                                   task, mean_acc),
+fig2 = plt.figure(f"{s_fold}-Folds Accuracies | {s(subject)} | {task} | mean(val_acc)={mean_acc} | 1Hz",
                   figsize=figsize)
 
 # Prepare subplot division
@@ -505,13 +502,13 @@ sub_rows, sub_col, sub_n = subplot_div(n_s_fold=s_fold)
 for fold in range(s_fold):
 
     # Load Data
-    train_acc_fold = np.loadtxt(wdic_lists_sub + "{}/train_acc_list.txt".format(fold), delimiter=",")
-    val_acc_fold = np.loadtxt(wdic_lists_sub + "{}/val_acc_list.txt".format(fold), delimiter=",")
+    train_acc_fold = np.loadtxt(wdic_lists_sub + f"{fold}/train_acc_list.txt", delimiter=",")
+    val_acc_fold = np.loadtxt(wdic_lists_sub + f"{fold}/val_acc_list.txt", delimiter=",")
     val_acc_training_fold = [eval(line.split("\n")[0]) for line in open(
-        wdic_lists_sub + "{}/val_acc_training_list.txt".format(fold))]
+        wdic_lists_sub + f"{fold}/val_acc_training_list.txt")]
 
     # Attach also last val_acc to list
-    last_acc = (np.nanmean(val_acc_fold), len(train_acc_fold)-1)
+    last_acc = (np.nanmean(val_acc_fold), len(train_acc_fold) - 1)
     val_acc_training_fold.append(last_acc)
 
     vacc, where = zip(*val_acc_training_fold)
@@ -523,7 +520,7 @@ for fold in range(s_fold):
     else:
         x_fold_mean_vacc += np.array(vacc)
         x_fold_mean_tacc += train_acc_fold
-        if fold == s_fold-1:  # when last fold added, divide by s_fold
+        if fold == s_fold - 1:  # when last fold added, divide by s_fold
             x_fold_mean_vacc /= s_fold
             x_fold_mean_tacc /= s_fold
 
@@ -531,15 +528,12 @@ for fold in range(s_fold):
     sub_n += 1
     fig2.add_subplot(sub_rows, sub_col, sub_n)
 
-    plt.plot(train_acc_fold, color="steelblue", linewidth=lw/2, alpha=0.6, label="training set")
-    plt.plot(where, vacc, color="aquamarine", linewidth=2*lw, alpha=0.9, label="validation set")
+    plt.plot(train_acc_fold, color="steelblue", linewidth=lw / 2, alpha=0.6, label="training set")
+    plt.plot(where, vacc, color="aquamarine", linewidth=2 * lw, alpha=0.9, label="validation set")
     plt.hlines(y=mean_line_acc, xmin=0, xmax=train_acc_fold.shape[0], colors="red", linestyles="dashed",
-               lw=2*lw, label="meanline accuracy")
+               lw=2 * lw, label="meanline accuracy")
 
-    plt.title(label="{}-Fold | val-acc={}".format(fold + 1,
-                                                  np.round(
-                                                  val_acc[int(np.where(np.array(s_rounds) == fold)[0])],
-                                                  3)))
+    plt.title(label=f"{fold+1}-Fold | val-acc={val_acc[int(np.where(np.array(s_rounds)==fold)[0])]:.3f}")
 
     # adjust size, add legend
     plt.xlim(0, len(train_acc_fold))
@@ -556,33 +550,30 @@ fig2.show()
 # Plot
 if task == "regression":
     if plots:
-        plot_filename = "{}{}_|{}{}*{}({})_|_{}-Folds_|_Accuracies_|_{}_|_mean(val_acc)_{:.2f}_|_{}" \
-                        ".png".format(file_name[0:10], abc, "_Hilbert_" if hilb else "_",
-                                      int(reps), "rnd-batch" if rnd_batch else "subsequent-batch",
-                                      batch_size, s_fold, s(subject), mean_acc,
-                                      path_specificity[:-1])
+
+        plot_filename = f"{file_name[0:10]}{abc}_|{'_Hilbert_' if hilb else '_'}{int(reps)}*" \
+            f"{'rnd-batch' if rnd_batch else 'subsequent-batch'}({batch_size})_|_{s_fold}-Folds_|" \
+            f"_Accuracies_|_{ s(subject)}_|_mean(val_acc)_{mean_acc:.2f}_|_{mean_acc}.png"
 
         fig2.savefig(wdic_plot + plot_filename)
 
 else:  # task == "classification"
     plt.close()
 
-
 # # Plot loss-trajectories
 
-fig3 = plt.figure("{}-Folds Loss | {} | {} | mean(val_acc)={} | 1Hz ".format(s_fold,
-                                                                             s(subject), task,
-                                                                             mean_acc), figsize=figsize)
+fig3 = plt.figure(f"{s_fold}-Folds Loss | {s(subject)} | {task} | mean(val_acc)={mean_acc} | 1Hz",
+                  figsize=figsize)
 
 # Prepare subplot division
 sub_rows, sub_col, sub_n = subplot_div(n_s_fold=s_fold)
 
 for fold in range(s_fold):
     # Load Data
-    val_loss_fold = np.loadtxt(wdic_lists_sub + "{}/val_loss_list.txt".format(fold), delimiter=",")
-    train_loss_fold = np.loadtxt(wdic_lists_sub + "{}/train_loss_list.txt".format(fold), delimiter=",")
+    val_loss_fold = np.loadtxt(wdic_lists_sub + f"{fold}/val_loss_list.txt", delimiter=",")
+    train_loss_fold = np.loadtxt(wdic_lists_sub + f"{fold}/train_loss_list.txt", delimiter=",")
     val_loss_training_fold = [eval(line.split("\n")[0]) for line in
-                              open(wdic_lists_sub + "{}/val_loss_training_list.txt".format(fold))]
+                              open(wdic_lists_sub + f"{fold}/val_loss_training_list.txt")]
 
     # Attach also last val_loss to list
     last_loss = (np.nanmean(val_loss_fold), len(train_loss_fold) - 1)
@@ -606,11 +597,10 @@ for fold in range(s_fold):
     fig3.add_subplot(sub_rows, sub_col, sub_n)
 
     # plot
-    plt.plot(train_loss_fold, color="steelblue", linewidth=lw/2, alpha=0.6, label="training loss")
-    plt.plot(where_loss, vloss, color="aquamarine", linewidth=2*lw, alpha=0.9, label="validation loss")
+    plt.plot(train_loss_fold, color="steelblue", linewidth=lw / 2, alpha=0.6, label="training loss")
+    plt.plot(where_loss, vloss, color="aquamarine", linewidth=2 * lw, alpha=0.9, label="validation loss")
 
-    plt.title(label="{}-Fold | val-acc={}".format(
-        fold + 1, np.round(val_acc[int(np.where(np.array(s_rounds) == fold)[0])], 3)))
+    plt.title(label=f"{fold+1}-Fold | val-acc={val_acc[int(np.where(np.array(s_rounds)==fold)[0])]:.3f}")
 
     # adjust size, add legend
     plt.xlim(0, len(train_loss_fold))
@@ -627,10 +617,10 @@ fig3.show()
 # Plot
 if task == "regression":
     if plots:
-        plot_filename = "{}{}_|{}{}*{}({})_|_{}-Folds_|_Loss_|_{}_|_mean(val_acc)_{:.2f}_|_{}.png" \
-                        "".format(file_name[0:10], abc, "_Hilbert_" if hilb else "_", int(reps),
-                                  "rnd-batch" if rnd_batch else "subsequent-batch", batch_size, s_fold,
-                                  s(subject), mean_acc, path_specificity[:-1])
+
+        plot_filename = f"{file_name[0:10]}{abc}_|{'_Hilbert_' if hilb else '_'}{int(reps)}*" \
+            f"{'rnd-batch' if rnd_batch else 'subsequent-batch'}({batch_size})_|_{s_fold}-Folds_|" \
+            f"_Loss_|_{s(subject)}_|_mean(val_acc)_{mean_acc:.2f}_|_{path_specificity[:-1]}.png"
 
         fig3.savefig(wdic_plot + plot_filename)
 else:  # task == "classification"
@@ -638,13 +628,13 @@ else:  # task == "classification"
 
 # # Plot i) average training prediction and ii) concatenated val_prediction
 
-fig4 = plt.figure("{}-Folds mean(train)_&_concat(val)_| S{} | {} | mean(val_acc)={} | 1Hz ".format(
-    s_fold, s(subject), task, mean_acc), figsize=(10, 12))
+fig4 = plt.figure(f"{s_fold}-Folds mean(train)_&_concat(val)_| {s(subject)} | {task} | "
+                  f"mean(val_acc)={mean_acc} | 1Hz ", figsize=(10, 12))
 
 # delete ratings out of pred_matrix first and then average across rows
-average_train_pred = np.nanmean(a=np.delete(arr=pred_matrix, obj=np.arange(1, 2*s_fold, 2), axis=0),
+average_train_pred = np.nanmean(a=np.delete(arr=pred_matrix, obj=np.arange(1, 2 * s_fold, 2), axis=0),
                                 axis=0)
-concat_val_pred = np.nanmean(a=np.delete(arr=val_pred_matrix, obj=np.arange(1, 2*s_fold, 2), axis=0),
+concat_val_pred = np.nanmean(a=np.delete(arr=val_pred_matrix, obj=np.arange(1, 2 * s_fold, 2), axis=0),
                              axis=0)
 # whole_rating = np.nanmean(a=np.delete(arr=pred_matrix, obj=np.arange(0, 2*s_fold-1, 2), axis=0), axis=0)
 
@@ -652,13 +642,13 @@ concat_val_pred = np.nanmean(a=np.delete(arr=val_pred_matrix, obj=np.arange(1, 2
 fig4.add_subplot(4, 1, 1)
 if task == "regression":
     # Predictions
-    plt.plot(average_train_pred, color="steelblue", linewidth=2*lw, label="mean train-prediction")
+    plt.plot(average_train_pred, color="steelblue", linewidth=2 * lw, label="mean train-prediction")
     # , style='r-'
     # Ratings
     plt.plot(whole_rating, ls="dotted", color="black", label="rating")
     plt.fill_between(x=np.arange(0, pred_matrix.shape[1], 1), y1=whole_rating, y2=average_train_pred,
                      color="steelblue", alpha='0.2')
-    plt.title(label="Average train prediction | {}-Folds".format(s_fold))
+    plt.title(label=f"Average train prediction | {s_fold}-Folds")
 
     plt.hlines(y=0, xmin=0, xmax=pred_matrix.shape[1], colors="darkgrey", lw=lw, alpha=.8)  # midline
     plt.hlines(y=np.nanmean(average_train_pred), xmin=0, xmax=pred_matrix.shape[1], linestyle="dashed",
@@ -668,7 +658,7 @@ if task == "regression":
 else:  # if task == "classification":
     # Predictions
     plt.plot(average_train_pred, color="steelblue", marker="o", markerfacecolor="None", ms=2,
-             linewidth=2*lw, label="mean_train_prediction")
+             linewidth=2 * lw, label="mean_train_prediction")
     # Ratings
     plt.plot(real_rating, color="darkgrey", alpha=.5)
     plt.plot(only_entries_rating, color="teal", alpha=.3, label="ground-truth rating")
@@ -700,10 +690,10 @@ else:  # if task == "classification":
                      marker="o", color=corr_col, alpha=.5, ms=2)
 
     correct_class_train = np.delete(correct_class_train, np.where(np.isnan(correct_class_train)))
-    mean_train_acc = sum(correct_class_train[correct_class_train == 1])/len(correct_class_train)
+    mean_train_acc = sum(correct_class_train[correct_class_train == 1]) / len(correct_class_train)
     plt.xlabel("time(s)")
-    plt.title(label="Average train prediction | {}-Folds| {} | mean training accuracy={:.3f}".format(
-        s_fold, task, mean_train_acc))
+    plt.title(label=f'Average train prediction | {s_fold}-Folds| {task} | '
+                    f'mean training accuracy={mean_train_acc:.3f}')
 
 # adjust size, add legend
 plt.xlim(0, len(whole_rating))
@@ -714,7 +704,7 @@ plt.tight_layout(pad=2)
 # Plot average train prediction
 fig4.add_subplot(4, 1, 2)
 if task == "regression":
-    plt.plot(concat_val_pred, c="aquamarine", linewidth=2*lw, label="concatenated val-prediction")
+    plt.plot(concat_val_pred, c="aquamarine", linewidth=2 * lw, label="concatenated val-prediction")
     plt.plot(whole_rating, ls="dotted", color="black", label="rating")
     plt.fill_between(x=np.arange(0, pred_matrix.shape[1], 1), y1=whole_rating, y2=concat_val_pred,
                      color="aquamarine", alpha='0.2')
@@ -727,7 +717,7 @@ if task == "regression":
 
 else:  # task == "classification":
 
-    plt.plot(concat_val_pred, marker="o", markerfacecolor="None", ms=2, c="aquamarine", linewidth=2*lw,
+    plt.plot(concat_val_pred, marker="o", markerfacecolor="None", ms=2, c="aquamarine", linewidth=2 * lw,
              label="concatenated val-prediction")
     # Ratings
     plt.plot(real_rating, color="darkgrey", alpha=.5)
@@ -767,8 +757,8 @@ else:  # task == "classification":
         # print(wr, concat_val_pred[i])
 
 plt.xlabel("time(s)")
-plt.title(label="Concatenated val-prediction | {}-Folds | {} | mean validation accuracy={}".format(
-    s_fold, task, np.round(mean_acc, 3)))
+plt.title(label=f"Concatenated val-prediction | {s_fold}-Folds | {task} | "
+                f"mean validation accuracy={mean_acc:.3f}")
 # adjust size, add legend
 plt.xlim(0, len(whole_rating))
 plt.ylim(-1.2, 1.6)
@@ -780,12 +770,12 @@ plt.tight_layout(pad=2)
 # Plot average training & validation accuracy
 fig4.add_subplot(4, 1, 3)
 
-plt.plot(x_fold_mean_tacc, color="steelblue", linewidth=lw/2, alpha=0.6, label="mean training accuracy")
-plt.plot(where, x_fold_mean_vacc, color="aquamarine", linewidth=2*lw, alpha=0.9,
+plt.plot(x_fold_mean_tacc, color="steelblue", linewidth=lw / 2, alpha=0.6, label="mean training accuracy")
+plt.plot(where, x_fold_mean_vacc, color="aquamarine", linewidth=2 * lw, alpha=0.9,
          label="mean validation accuracy")
 if task == "regression":
     plt.hlines(y=mean_line_acc, xmin=0, xmax=train_acc_fold.shape[0], colors="red", linestyles="dashed",
-               lw=2*lw, label="meanline accuracy")
+               lw=2 * lw, label="meanline accuracy")
 else:  # == "classification"
     plt.hlines(y=1.0, xmin=0, xmax=train_acc_fold.shape[0], colors="darkgrey", linestyles="dashed", lw=lw)
     plt.hlines(y=0.5, xmin=0, xmax=train_acc_fold.shape[0], colors="red", linestyles="dashed", lw=lw)
@@ -802,9 +792,9 @@ plt.tight_layout(pad=2)
 # Plot average training & validation loss
 fig4.add_subplot(4, 1, 4)
 
-plt.plot(x_fold_mean_tloss, color="steelblue", linewidth=lw/2, alpha=0.6,
+plt.plot(x_fold_mean_tloss, color="steelblue", linewidth=lw / 2, alpha=0.6,
          label="mean training loss")
-plt.plot(where_loss, x_fold_mean_vloss, color="aquamarine", linewidth=2*lw, alpha=0.9,
+plt.plot(where_loss, x_fold_mean_vloss, color="aquamarine", linewidth=2 * lw, alpha=0.9,
          label="mean validation loss")
 plt.hlines(y=0.0, xmin=0, xmax=x_fold_mean_tloss.shape[0], colors="darkgrey", linestyles="dashed", lw=lw)
 plt.xlabel("Training iterations")
@@ -821,13 +811,10 @@ fig4.show()
 
 # Plot
 if plots:
-    plot_filename = "{}{}_|{}{}*{}({})_|_{}-Folds_|_{}_|_all_train_val_|_S{}_|_" \
-                    "mean(val_acc)_{:.2f}_|_{}.png".format(file_name[0:10], abc,
-                                                           "_Hilbert_" if hilb else "_", int(reps),
-                                                           "rnd-batch" if rnd_batch else
-                                                                               "subsequent-batch",
-                                                           batch_size, s_fold, task, s(subject), mean_acc,
-                                                           path_specificity[:-1])
+    plot_filename = f"{file_name[0:10]}{abc}_|{'_Hilbert_' if hilb else '_'}" \
+        f"{int(reps)}*{'rnd-batch' if rnd_batch else 'subsequent-batch'}({batch_size})_|_{s_fold}-Folds" \
+        f"_|_{task}_|_all_train_val_|_{s(subject)}_|_mean(val_acc)_{mean_acc:.2f}_|_" \
+        f"{path_specificity[:-1]}.png"
 
     fig4.savefig(wdic_plot + plot_filename)
 
@@ -850,7 +837,7 @@ if plots:
 
             while True:
                 try:
-                    gfile.Rename(oldname=wdic_sub+file, newname=already_plotted_dic+new_file_name,
+                    gfile.Rename(oldname=wdic_sub + file, newname=already_plotted_dic + new_file_name,
                                  overwrite=False)
                     break
                 except Exception:
@@ -872,7 +859,7 @@ if plots:
         shutil.rmtree(wdic_lists_sub)
         shutil.rmtree(wdic_checkpoint_sub)
         # Delete also /logs/S.. folder (parent) if empty
-        sub_log_dir = wdic_lists + "/{}/".format(s(subject))
+        sub_log_dir = wdic_lists + f"/{s(subject)}/"
         sub_ckpt_dir = wdic_checkpoint_sub.split("/")
         sub_ckpt_dir.pop(-2)
         sub_ckpt_dir = "/".join(sub_ckpt_dir)
