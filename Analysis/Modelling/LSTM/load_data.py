@@ -634,7 +634,7 @@ def load_ecg_files(subjects, condition, sba=True, interpolate=True):
 
 def mean_line_prediction(subject, condition, sba=True):
     """
-    Returns the accuracy if the all prediction steps would output overall mean
+    Returns the accuracy if all prediction steps would output overall mean
     :param subject: Subject ID
     :param condition: nomov or mov
     :param sba: SBA or SA (False)
