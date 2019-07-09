@@ -645,7 +645,7 @@ def mean_line_prediction(subject, condition, sba=True):
                                sba=sba)[str(subject)]["SBA" if sba else "SA"][condition]
 
     rating = normalization(array=rating, lower_bound=-1, upper_bound=1)
-    mean_line = np.zeros(shape=rating.shape)
+    mean_line = np.mean(rating)
     max_diff = 1.0 - (np.abs(rating) * -1.0)  # chances depending on rating-level
     correct = 1.0 - np.abs((mean_line - rating)) / max_diff
     mean_line_accuracy = np.nanmean(correct)
