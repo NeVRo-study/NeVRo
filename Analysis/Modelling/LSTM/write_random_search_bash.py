@@ -250,7 +250,7 @@ def write_search_bash_files(subs, filetype, condition,
                                      'activation_fct', 'filetype', 'hilbert_power', 'band_pass',
                                      'component', 'hrcomp', 'fixncol', 'summaries',
                                      'path_specificities',
-                                     'mean_val_acc', 'zeroline_acc', 'mean_class_val_acc'],
+                                     'mean_val_acc', 'meanline_acc', 'mean_class_val_acc'],
                                     dtype='<U150')
 
                 rs_table = np.reshape(rs_table, newshape=(-1, rs_table.shape[0]))
@@ -311,7 +311,7 @@ def write_bash_from_table(subs, table_path):
     lside_table = np.concatenate((rounds, subs), 1)
     lside_header = np.reshape(np.array(['round', 'subject'], dtype='<U150'), newshape=(1, 2))
     lside_table = np.concatenate((lside_header, lside_table))
-    rside_header = np.reshape(np.array(['mean_val_acc', 'zeroline_acc', 'mean_class_val_acc'],
+    rside_header = np.reshape(np.array(['mean_val_acc', 'meanline_acc', 'mean_class_val_acc'],
                                        dtype='<U150'), (1, 3))
     rside_table = np.reshape(np.repeat(np.repeat(a="nan", repeats=n_combis*num_sub), 3), newshape=(-1, 3))
     rside_table = np.concatenate((rside_header, rside_table))

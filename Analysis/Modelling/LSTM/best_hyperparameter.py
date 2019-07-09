@@ -109,11 +109,11 @@ def sort_table(task, table=None):
     # acc_col = -1 if task == "classification" else -3
     acc_col = -1
     if task == "regression":
-        # Sort according to difference of mean validation accuracy and zeroline accuracy
-        table[0, -1] = "meanval-zeroline_acc"
+        # Sort according to difference of mean validation accuracy and meanline accuracy
+        table[0, -1] = "meanval-meanline_acc"
         for idx in range(1, table.shape[0]):
             table[idx, -1] = "{:.5}".format(
-                str(float(table[idx, -3]) - float(table[idx, -2])))  # acc - zeroline_acc
+                str(float(table[idx, -3]) - float(table[idx, -2])))  # acc - meanline_acc
 
     sorted_table = copy.copy(table)
     sorted_table[1:, :] = sorted_table[np.argsort(sorted_table[1:, acc_col]) + 1]
@@ -266,9 +266,9 @@ def table_of_best_hp_over_all_subjects(n, task):
 
     else:  # tsk == "Reg"
         mean_val_acc = np.array([float(x) for x in bhp_table[1:, -3]])
-        zeroline_acc = np.array([float(x) for x in bhp_table[1:, -2]])
-        mc = np.mean(mean_val_acc - zeroline_acc)
-        print("Average Above-Zero-Accuracy:", mc)
+        meanline_acc = np.array([float(x) for x in bhp_table[1:, -2]])
+        mc = np.mean(mean_val_acc - meanline_acc)
+        print("Average Above-Meanline-Accuracy:", mc)
 
     # Delete redundant entries
     bhp_table_unique = np.unique(bhp_table[1:, 2:-3], axis=0)

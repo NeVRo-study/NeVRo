@@ -780,7 +780,7 @@ if os.path.exists(table_name):
         sub_idx = np.where(rs_table[:, np.where(rs_table == "subject")[1]] == str(SUBJECT_DEFAULT))[0]
         trial_row = list(set(path_idx[0]) & set(sub_idx))[0]
         mvacc_col = np.where(rs_table == "mean_val_acc")[1][0]
-        zlacc_col = np.where(rs_table == "zeroline_acc")[1][0]
+        zlacc_col = np.where(rs_table == "meanline_acc")[1][0]
         mcvacc_col = np.where(rs_table == "mean_class_val_acc")[1][0]
         # Write in table
         rs_table[trial_row, [mvacc_col, zlacc_col, mcvacc_col]] = np.array(
