@@ -553,7 +553,7 @@ if task == "regression":
 
         plot_filename = f"{file_name[0:10]}{abc}_|{'_Hilbert_' if hilb else '_'}{int(reps)}*" \
             f"{'rnd-batch' if rnd_batch else 'subsequent-batch'}({batch_size})_|_{s_fold}-Folds_|" \
-            f"_Accuracies_|_{ s(subject)}_|_mean(val_acc)_{mean_acc:.2f}_|_{mean_acc}.png"
+            f"_Accuracies_|_{ s(subject)}_|_mean(val_acc)_{mean_acc:.2f}_|_{path_specificity[:-1]}.png"
 
         fig2.savefig(wdic_plot + plot_filename)
 
