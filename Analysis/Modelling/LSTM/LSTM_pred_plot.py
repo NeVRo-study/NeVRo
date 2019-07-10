@@ -828,6 +828,9 @@ if not script_external_exe:  # Check whether script is opened from intern(python
     if close_plots():
         for _ in range(4):
             plt.close()
+else:
+    for _ in range(4):
+        plt.close()
 
 # When saved then move *.csv & *.txt files into folder "Already Plotted"
 if plots:
