@@ -266,6 +266,7 @@ def train_lstm():
                 if rnd > 0:
                     # Show time passed per fold and estimation of rest time
                     cprint(f"{s(FLAGS.subject)} | {FLAGS.path_specificities[:-1]}", "y")
+                    cprint(f"{datetime.datetime.now().replace(microsecond=0)}", "g")
                     cprint(f"Duration of previous fold {duration_fold} [h:m:s]", "y")
                     timer_fold_list.append(duration_fold)
                     # average over previous folds (np.mean(timer_fold_list) not possible in python2)
@@ -536,6 +537,7 @@ def train_lstm():
                         rest_duration_all_folds = chop_microseconds(delta=rest_duration_all_folds)
 
                         cprint(f"{FLAGS.path_specificities[:-1]} | {s(FLAGS.subject)}", "y")
+                        cprint(f"{datetime.datetime.now().replace(microsecond=0)}", "g")
                         cprint(f"Time passed to train {timer_freq} steps: {duration} [h:m:s]", "y")
                         cprint(f"Estimated time to train the rest {int(max_steps - (step + 1))} steps in "
                                f"current Fold-Nr.{s_fold_idx}: {rest_duration} [h:m:s]", "y")
