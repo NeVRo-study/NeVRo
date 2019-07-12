@@ -617,3 +617,29 @@ def delete_dir_and_files(parent_path):
 
     else:
         cprint("Given folder '{}' doesn't exist.".format(parent_path), "r")
+
+
+def try_funct(funct):
+    """
+    try wrapped function, if exception: tell user
+
+    Usage:
+        @try_funct
+        def abc(a, b, c):
+            return a+b+c
+
+        abc(1, 2, 3)  # runs normally
+        abc(1, "no int", 3)  # throws exception
+    """
+    @wraps(funct)
+    def wrapper(*args, **kwds):
+
+        try:
+            output = funct(*args, **kwds)  # == function()
+
+            return output
+
+        except Exception:
+            cprint(f"Function {funct.__name__} couldn't be successfully executed!", "r")
+
+    return wrapper
