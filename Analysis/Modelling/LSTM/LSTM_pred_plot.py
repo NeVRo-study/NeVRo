@@ -26,6 +26,7 @@ else:
 # Add mean input data
 plt_input_data = False  # default value: False TODO revisit
 
+# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
 # Save plot
 @true_false_request
@@ -57,6 +58,9 @@ def plot_all_there_is(dellog):
                                           str(dellog)])
 
 
+# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+
+# # Check from where the script is executed, and adapt arguments accordingly:
 try:
     plots = sys.argv[1]
     try:
@@ -106,6 +110,9 @@ if plots:
 else:  # If plots are not saved, do not delete log folders
     delete_log_folder = False
 
+# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+
+# Set paths
 wdic = "./processed"
 wdic_plot = "../../../Results/Plots/LSTM/"
 wdic_lists = wdic + "/logs"
@@ -134,7 +141,7 @@ for file in os.listdir(wdic_sub):
     elif ".npy" in file:
         shuff_filename = file
 
-# Intermediate step: check whether filenames alreay exist in already_plotted_dic
+# Intermediate step: check whether filenames already exist in already_plotted_dic
 abc = ''  # init
 if plots:
     already_plotted_dic = wdic + f"/{s(subject)}/already_plotted/"
@@ -149,6 +156,8 @@ if plots:
                         + "_S" + new_file_name.split("_S")[1]
         abc = string.ascii_lowercase[abc_counter]
         abc_counter += 1
+
+# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
 # Load data
 pred_matrix = np.loadtxt(wdic_sub + file_name, delimiter=",")
@@ -336,6 +345,8 @@ def subplot_div(n_s_fold):
     return sub_rows_f, sub_col_f, sub_n_f
 
 
+# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+
 # # Plot predictions 1)
 # open frame
 figsize = (12, s_fold * (3 if s_fold < 4 else 1))
@@ -492,6 +503,8 @@ if plots:
 
     fig.savefig(wdic_plot + plot_filename)
 
+# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+
 # # Plot accuracy-trajectories 2)
 fig2 = plt.figure(f"{s_fold}-Folds Accuracies | {s(subject)} | {task} | mean(val_acc)={mean_acc} | 1Hz",
                   figsize=figsize)
@@ -560,6 +573,8 @@ if task == "regression":
 else:  # task == "classification"
     plt.close()
 
+# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+
 # # Plot loss-trajectories
 
 fig3 = plt.figure(f"{s_fold}-Folds Loss | {s(subject)} | {task} | mean(val_acc)={mean_acc} | 1Hz",
@@ -625,6 +640,8 @@ if task == "regression":
         fig3.savefig(wdic_plot + plot_filename)
 else:  # task == "classification"
     plt.close()
+
+# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
 # # Plot i) average training prediction and ii) concatenated val_prediction
 
@@ -818,6 +835,8 @@ if plots:
 
     fig4.savefig(wdic_plot + plot_filename)
 
+
+# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
 @true_false_request
 def close_plots():
