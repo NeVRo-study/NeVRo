@@ -874,7 +874,8 @@ if plots:
         gfile.DeleteRecursively(wdic_sub)
 
     # open folder
-    open_folder(wdic_plot)
+    if not script_external_exe:
+        open_folder(wdic_plot)
 
     # delete log + checkpoint folders and subfolders
     if delete_log_folder:
