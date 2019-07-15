@@ -1015,13 +1015,13 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
 
     for comp_idx, comp in enumerate(component):
 
-        max_comp = get_num_components(subject=subject, condition=cond, filetype=filetype)
+        max_comp = get_num_components(subject=subject, condition=cond, filetype=filetype, selected=False)
 
-        assert comp in range(1, max_comp + 1) or comp in range(91, 90 + max_comp + 1), \
-            "Components must be in range (1, {}).".format(max_comp)
+        assert comp in range(1, max_comp+1) or comp in range(91, 90 + max_comp+1), \
+            f"Components must be in range (1, {max_comp})."
 
         # Check demand for noise component
-        if comp in range(91, 90 + max_comp + 1):
+        if comp in range(91, 90 + max_comp+1):
             component[comp_idx] -= 90  # decode
             noise_comp = True  # switch on noise-mode of given component
 
@@ -1051,7 +1051,7 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
     # 1) and choose specific components
     # eeg_cnt = eeg_data[str(subject)]["SBA"][cond][:, 0:2]  # = first 2 components; or best, or other
 
-    eeg_cnt = eeg_data[str(subject)]["SBA" if sba else "SA"][cond][:, [comp - 1 for comp in component]]
+    eeg_cnt = eeg_data[str(subject)]["SBA" if sba else "SA"][cond][:, [comp-1 for comp in component]]
 
     # If Noise-Mode, shuffle component
     if noise_comp:
@@ -1077,7 +1077,7 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
             to_delete *= s_freq_eeg
             to_cut = int(round(len_test * s_freq_eeg))
 
-            print("EEG data of S{} gets trimmed by {} data points".format(str(subject).zfill(2), to_cut))
+            print(f"EEG data of {s(subject)} gets trimmed by {to_cut} data points")
 
             del_counter = 2
             while len_test > 0.0:
