@@ -64,22 +64,21 @@ class NeVRoNet:
 
             lstm_input = x
 
-            for layer in range(len(self.lstm_size)):
+            for layer in range(1, len(self.lstm_size)+1):
 
                 # LSTM Layer
-                last_layer = False if (layer + 1) < len(self.lstm_size) else True
+                last_layer = False if layer < len(self.lstm_size) else True
 
-                post_lstm = self._create_lstm_layer(x=lstm_input, layer_name="lstm{}".format(layer+1),
-                                                    lstm_size=self.lstm_size[layer],
+                post_lstm = self._create_lstm_layer(x=lstm_input, layer_name=f"lstm{layer}",
+                                                    lstm_size=self.lstm_size[layer-1],
                                                     last_layer=last_layer)
 
                 # For the featuer_extractor:
                 self.lstm_post_activation.append(post_lstm)
 
                 # In case there are more LSTM layer
-                if len(self.lstm_size) > 1 and not last_layer:
-                    lstm_input = tf.stack(post_lstm)
-                    lstm_input = tf.transpose(lstm_input, [1, 0, 2])  # [batch_size, 250, 1]
+                if not last_layer:
+                    lstm_input = post_lstm
 
             # Fully Connected Layer(s)
             # post_lstm = tf.Print(input_=post_lstm, data=[post_lstm.get_shape()], message="post_lstm")
@@ -93,19 +92,19 @@ class NeVRoNet:
             fc_shape = [self.lstm_size[-1], self.fc_hidden_units[0]]
 
             # Build up layers
-            for fc_layer in range(len(self.fc_hidden_units)):
+            for fc_layer in range(1, len(self.fc_hidden_units)+1):
 
-                last_layer = False if fc_layer+1 < len(self.fc_hidden_units) else True
+                last_layer = False if fc_layer < len(self.fc_hidden_units) else True
 
-                if fc_layer > 0:
+                if fc_layer > 1:
                     old_shape = fc_shape
                     # Update shape
                     fc_shape[0] = old_shape[1]
-                    fc_shape[1] = self.fc_hidden_units[fc_layer]
+                    fc_shape[1] = self.fc_hidden_units[fc_layer-1]
                     fc_layer_input = self.fc_post_activation[-1]  # Feed last output in new fc-layer
 
                 fc_activation = self._create_fc_layer(x=fc_layer_input,
-                                                      layer_name="fc{}".format(fc_layer+1),
+                                                      layer_name=f"fc{fc_layer}",
                                                       shape=fc_shape,  # shape=(lstm_size, 1-rating)
                                                       last_layer=last_layer)
 
@@ -152,37 +151,22 @@ class NeVRoNet:
         :return: Layer Output
         """
         with tf.variable_scope(layer_name):
-            # # Unstack to get a list of 'n_steps' tensors of shape (batch_size, n_input)
-            # # x.shape [batch_size, samples-per-second(250), components(1))
-            x = tf.unstack(value=x, num=self.n_steps, axis=1, name="unstack")  # does not work like that
-            # Now: x is list of [250 x (batch_size, 1)]
 
             # # Define LSTM cell (Zaremba et al., 2015)
             lstm_cell = tf.keras.layers.LSTMCell(units=lstm_size)  # units: int+, dimens. of output space
-            # == tf.nn.rnn_cell.LSTMCell(num_units=lstm_size)
-            # == tf.nn.rnn_cell.BasicLSTMCell(num_units=lstm_size)
-            # == tf.contrib.rnn.BasicLSTMCell(lstm_size)
-            # lstm_cell.state_size
 
             # # Initial state of the LSTM memory
             # # (previous state is not taken over in next batch, regardless of zero-state implementation)
             # init_state = lstm_cell.zero_state(batch_size=self.batch_size, dtype=tf.float32)
 
             # # Run LSTM cell
-            self.lstm_output, self.final_state = tf.contrib.rnn.static_rnn(
-                cell=lstm_cell, inputs=x, dtype=tf.float32,  # sequence_length=num_steps,
-                scope=None)  # initial_state=init_state,  # (optional)
-            # TODO new keras implementation (not operational yet)
-            # lstm_layer = tf.keras.layers.RNN(
-            #     cell=lstm_cell, dtype=tf.float32, unroll=True)
-            # self.lstm_output, self.final_state = lstm_layer(inputs=x)
+            lstm_layer = tf.keras.layers.RNN(cell=lstm_cell, dtype=tf.float32, unroll=True,
+                                             return_sequences=True,  # False: return only the last output in sequence
+                                             return_state=True,
+                                             time_major=False)
 
-            # # lstm_output: len(lstm_output) == len(x) == 250
-            # # state (final_state):
-            # # LSTMStateTuple(c=array([[ ...]], dtype=float32),  # C-State
-            # #                h=array([[ ...]], dtype=float32))  # H-State
-            # # state shape: [2, 1, lstm_size]
-
+            self.lstm_output, state_h, state_c = lstm_layer(inputs=x)
+            self.final_state = (state_h, state_c)
             # # rnn.static_rnn calculates basically this:
             # # outputs = []
             # # for input_ in x:
@@ -196,16 +180,15 @@ class NeVRoNet:
             # here option 1)
 
             # Write summaries
-            self._var_summaries(name=layer_name + "/lstm_outputs", var=self.lstm_output[-1])
+            self._var_summaries(name=layer_name + "/lstm_outputs",
+                                var=self.lstm_output[:, -1, :] if last_layer else self.lstm_output)
             self._var_summaries(name=layer_name + "/final_state", var=self.final_state)
 
             # Push through activation function
             with tf.name_scope(layer_name + "_elu"):  # or relu
-                # post_activation = tf.nn.relu(lstm_output, name="post_activation")
-                # lstm_output.shape = (250, batch_size, lstm_size) | lstm_output[-1].shape = (batch_size,
-                #                                                                             lstm_size)
+                # lstm_output.shape: (batch_size, 250, lstm_size) | lstm_output[:, -1, :].shape: (batch_size, lstm_size)
                 # Only do '[-1]' if last lstm-layer
-                pre_activation = self.lstm_output[-1] if last_layer else self.lstm_output
+                pre_activation = self.lstm_output[:, -1, :] if last_layer else self.lstm_output
 
                 post_activation = self.activation_function(features=pre_activation,
                                                            name="post_activation")

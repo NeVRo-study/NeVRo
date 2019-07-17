@@ -284,11 +284,9 @@ def write_search_bash_files(subs, filetype, condition,
 
 
 # TODO continue here
-def write_bash_from_table(subs, table_path):
+def write_bash_from_table(subs, table_path, del_log_folders = True):
 
     # # Following need to be set manually (Default)
-    del_log_folders = True
-
     wd_tables = "./processed/Random Search Tables/"
     table_path = wd_tables + table_path
     # table_path = wd_tables \
@@ -454,7 +452,7 @@ def update_bashfiles(task, subject=None, path_specs=None, all_runs=False):
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
-# # # Adapt here for which subjects bashfiles should be written and in which condition
+# # # Adapt here for which subjects bash files should be written and in which condition
 
 if __name__ == "__main__":
     wb = ask_true_false(question="Do you want to write new bashfiles?")

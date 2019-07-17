@@ -136,7 +136,7 @@ class SelectSSDcomponents:
                 sub_ssd = get_filename(subject=sub, filetype="SSD", band_pass=False, cond=self.condition,
                                        sba=True, check_existence=True)
             except FileExistsError:
-                cprint("No SSD data for {} in {} condition!".format(s(sub), self.condition), "r")
+                cprint(f"No SSD data for {s(sub)} in {self.condition} condition!", "r")
                 continue  # if file doesn't exist, continue with next subject
 
             # columns: components; rows: value per timestep
