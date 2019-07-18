@@ -141,16 +141,13 @@ def train_lstm():
 
     # Get number of units in each hidden layer specified in the string such as 100,100
     if FLAGS.lstm_size:
-        lstm_hidden_states = FLAGS.lstm_size.split(",")
-        lstm_hidden_states = [int(hidden_states_) for hidden_states_ in lstm_hidden_states]
+        lstm_hidden_states = list(eval(FLAGS.lstm_size))
     else:
         lstm_hidden_states = []
 
     # For fully connected layers
     if FLAGS.fc_n_hidden and len(FLAGS.fc_n_hidden) > 0 and FLAGS.fc_n_hidden not in "0":
-        n_hidden_units = FLAGS.fc_n_hidden.split(",")
-        n_hidden_units = [int(hidden_unites_) for hidden_unites_ in n_hidden_units]
-        n_hidden_units.append(1)  # output layer == 1 rating-prediction
+        n_hidden_units = list(eval(FLAGS.fc_n_hidden)) + [1]  # output layer == 1 rating-prediction
     else:
         n_hidden_units = [1]
 
@@ -204,7 +201,7 @@ def train_lstm():
     else:  # given components are in form of list
         assert np.all([comp.isnumeric() for comp in FLAGS.component.split(",")]), \
             "All given components must be numeric"
-        input_component = [int(comp) for comp in FLAGS.component.split(",")]
+        input_component = [int(comp) for comp in FLAGS.component.split(",")]  # == list(eval(FLAGS.component))
 
     print("LSTM model get trained on input_component(s):", input_component)
 
