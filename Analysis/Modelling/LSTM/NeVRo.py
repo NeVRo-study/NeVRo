@@ -141,13 +141,13 @@ def train_lstm():
 
     # Get number of units in each hidden layer specified in the string such as 100,100
     if FLAGS.lstm_size:
-        lstm_hidden_states = list(eval(FLAGS.lstm_size))
+        lstm_hidden_states = [int(lstm_l) for lstm_l in FLAGS.lstm_size.split(",")]
     else:
         lstm_hidden_states = []
 
     # For fully connected layers
     if FLAGS.fc_n_hidden and len(FLAGS.fc_n_hidden) > 0 and FLAGS.fc_n_hidden not in "0":
-        n_hidden_units = list(eval(FLAGS.fc_n_hidden)) + [1]  # output layer == 1 rating-prediction
+        n_hidden_units = [int(fc_l) for fc_l in FLAGS.fc_n_hidden.split(",")] + [1]  # output layer==1 rating-prediction
     else:
         n_hidden_units = [1]
 
