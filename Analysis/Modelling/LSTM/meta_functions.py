@@ -25,13 +25,13 @@ def setwd(new_dir):
     # Remove '/' if new_dir == 'folder/' OR '/folder'
     new_dir = new_dir[:-1] if new_dir[-1] == "/" else new_dir
 
-    cprint("Current working dir:\t{}".format(os.getcwd()), "b")
+    cprint(f"Current working dir:\t{os.getcwd()}", 'b')
 
     found = False if new_dir not in os.getcwd() else True
 
     # First look down the tree
     if not found:
-        for path, j, _ in os.walk('.'):  # _ == files
+        for path, _, _ in os.walk('.'):  # 2. '_' == files
             # print(path, j, files)
             if new_dir in path:
                 os.chdir(path)
@@ -599,24 +599,24 @@ def delete_dir_and_files(parent_path):
     if Path(parent_path).exists():
         print(f"\nFollowing (sub-)folders and files of parent folder '{parent_path}' would be deleted:")
         for file in Path(parent_path).glob("**/*"):
-            cprint(f"{file}", "b")
+            cprint(f"{file}", 'b')
 
         # Double checK: Ask whether to delete
-        delete = ask_true_false("Do you want to delete this tree and corresponding files?", "r")
+        delete = ask_true_false("Do you want to delete this tree and corresponding files?", 'r')
 
         if delete:
             # Delete all folders and files in the tree
-            for dirpath, dirnames, files in os.walk(parent_path, topdown=False):  # start from bottom
+            for dirpath, _, files in os.walk(parent_path, topdown=False):  # start from bottom, _ == dirnames
                 cprint(f"Remove folder: {dirpath}", "r")
                 for file_name in files:
-                    cprint(f"Remove file: {file_name}", "r")  # f style  (for Python > 3.5)
+                    cprint(f"Remove file: {file_name}", 'r')  # f style  (for Python > 3.5)
                     os.remove(os.path.join(dirpath, file_name))
                 os.rmdir(dirpath)
         else:
-            cprint("Tree and files won't be deleted!", "b")
+            cprint("Tree and files won't be deleted!", 'b')
 
     else:
-        cprint("Given folder '{}' doesn't exist.".format(parent_path), "r")
+        cprint(f"Given folder '{parent_path}' doesn't exist.", 'r')
 
 
 def try_funct(funct):

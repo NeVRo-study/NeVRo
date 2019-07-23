@@ -370,9 +370,9 @@ class SelectSSDcomponents:
 
                     # Compare fitting to approach of Haller et al. (2018)
                     if self.test_alt_ffit:
-                        modelhal_opt_param, modelhal_cov_param = curve_fit(f=self.f1_abc,
-                                                                           xdata=_f_fit,
-                                                                           ydata=np.log(_pxx_den_fit))
+                        modelhal_opt_param, _ = curve_fit(f=self.f1_abc,
+                                                          xdata=_f_fit,
+                                                          ydata=np.log(_pxx_den_fit))
                         modelhao_opt_param, _ = curve_fit(f=self.f1_abc,
                                                           xdata=_f_alphout_fit,
                                                           ydata=np.log(_pxx_den_alphout_fit))
@@ -475,10 +475,9 @@ class SelectSSDcomponents:
                     predicted = np.polyval(model3_alphout, f)  # predict on whole! freq-range
 
                 else:
-                    modelfao_opt_param, modelfao_cov_param = curve_fit(
-                        f=self.f1_ab if not self.test_alt_ffit else self.f1_abc,
-                        xdata=_f_alphout_fit,
-                        ydata=np.log(_pxx_den_alphout_fit))
+                    modelfao_opt_param, _ = curve_fit(f=self.f1_ab if not self.test_alt_ffit else self.f1_abc,
+                                                      xdata=_f_alphout_fit,
+                                                      ydata=np.log(_pxx_den_alphout_fit))
 
                     if not self.test_alt_ffit:
                         predicted = self.f1_ab(fr=f,

@@ -758,7 +758,7 @@ class NeVRoPlot:
 
         for cond in conditions:
             # self.SBA["zSBA"][cond]  # shape(nSub, 270=concat_time SBA)
-            for sub_idx, sub in enumerate(self.subjects):
+            for sub_idx, _ in enumerate(self.subjects):
                 start, end = 0, int(self.trimmed_time_space)
                 space = self.SBA["zSBA"][cond][sub_idx][start: end]  # len=148
                 start, end = end,  end + int(self.trimmed_time_break)
