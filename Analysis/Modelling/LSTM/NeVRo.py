@@ -201,7 +201,7 @@ def train_lstm():
     else:  # given components are in form of list
         assert np.all([comp.isnumeric() for comp in FLAGS.component.split(",")]), \
             "All given components must be numeric"
-        input_component = [int(comp) for comp in FLAGS.component.split(",")]  # == list(eval(FLAGS.component))
+        input_component = [int(comp) for comp in FLAGS.component.split(",")]  # list(ast.literal_eval(FLAGS.component))
 
     print("LSTM model get trained on input_component(s):", input_component)
 
@@ -753,7 +753,6 @@ def main(_):
 
     # initialize_folders()
 
-    # if eval(FLAGS.is_train):
     if FLAGS.is_train:
 
         # Run main training

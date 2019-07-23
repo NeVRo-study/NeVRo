@@ -517,7 +517,7 @@ for fold in range(s_fold):
     # Load Data
     train_acc_fold = np.loadtxt(wdic_lists_sub + f"{fold}/train_acc_list.txt", delimiter=",")
     val_acc_fold = np.loadtxt(wdic_lists_sub + f"{fold}/val_acc_list.txt", delimiter=",")
-    val_acc_training_fold = [eval(line.split("\n")[0]) for line in open(
+    val_acc_training_fold = [ast.literal_eval(line.split("\n")[0]) for line in open(
         wdic_lists_sub + f"{fold}/val_acc_training_list.txt")]
 
     # Attach also last val_acc to list
@@ -587,7 +587,7 @@ for fold in range(s_fold):
     # Load Data
     val_loss_fold = np.loadtxt(wdic_lists_sub + f"{fold}/val_loss_list.txt", delimiter=",")
     train_loss_fold = np.loadtxt(wdic_lists_sub + f"{fold}/train_loss_list.txt", delimiter=",")
-    val_loss_training_fold = [eval(line.split("\n")[0]) for line in
+    val_loss_training_fold = [ast.literal_eval(line.split("\n")[0]) for line in
                               open(wdic_lists_sub + f"{fold}/val_loss_training_list.txt")]
 
     # Attach also last val_loss to list
