@@ -281,7 +281,7 @@ def load_component(subjects, condition, f_type, band_pass, samp_freq=250., sba=T
             # Save whole SBA/SA under condition (nomov, mov)
             comp_dic[str(subject)]["SBA" if sba else "SA"][condition] = copy.copy(sub_df)
 
-            for num, coaster in enumerate(roller_coasters(condition, sba)):
+            for coaster in roller_coasters(condition, sba):
 
                 # Fill in Dictionary: comp_dic
                 # Split SBA file in Space-Break-Andes
@@ -306,10 +306,8 @@ def load_component(subjects, condition, f_type, band_pass, samp_freq=250., sba=T
                 # samp_freq = 250.
                 if not (np.round(sum(t_roller_coasters(sba)), 1) == np.round(sub_df.shape[0] / samp_freq,
                                                                              1)):
-                    print("Should be all approx. the same:\nTime of SBA: {}"
-                          "\nLength of sub_df/samp_freq({}): {}".format(sum(t_roller_coasters(sba)),
-                                                                        int(samp_freq),
-                                                                        sub_df.shape[0] / samp_freq))
+                    print(f"Should be all approx. the same:\nTime of SBA: {sum(t_roller_coasters(sba))}\n"
+                          f"Length of sub_df/samp_freq({int(samp_freq)}): {sub_df.shape[0] / samp_freq}")
 
     return comp_dic
 
@@ -990,7 +988,7 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
     cond = check_condition(cond=cond)
     task = task.lower()
     filetype = filetype.upper()
-    if not type(component) is list:  # If int, transform to list
+    if not isinstance(component, list):  # If int, transform to list
         component = [component]
 
     # Check inputs

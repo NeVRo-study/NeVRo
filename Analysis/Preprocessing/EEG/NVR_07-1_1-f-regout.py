@@ -148,11 +148,10 @@ class SelectSSDcomponents:
             # # Get alpha peak information for given subject
             tab_name_alpha_peaks = "alphapeaks/alphapeaks_FOOOF_fres024_813.csv"  # old: "alphapeaks.csv"
             tab_alpha_peaks = pd.read_csv(p2ssd + tab_name_alpha_peaks, index_col=0)
-            sub_apeak = tab_alpha_peaks.loc["NVR_{}".format(s(sub)), self.condition]
+            sub_apeak = tab_alpha_peaks.loc[f"NVR_{s(sub)}", self.condition]
 
             if pd.isna(sub_apeak):
-                cprint("No alpha peak information for {} in {} condition!".format(s(sub), self.condition),
-                       "r")
+                cprint(f"No alpha peak information for {s(sub)} in {self.condition} condition!", 'r')
                 continue  # No alpha peak information go to next subject
 
             # # Plot power spectral density (Welch)
@@ -266,17 +265,17 @@ class SelectSSDcomponents:
                     predicted3 = np.polyval(model3, f)
 
                     # Fit 1/(a*f**b): Find optimal a, b params
-                    modelb_opt_param, modelb_cov_param = curve_fit(f=self.f1_ab,
-                                                                   xdata=f[1:],  # f>0 values, due to 1/f
-                                                                   ydata=np.log(pxx_den)[1:])
+                    modelb_opt_param, _ = curve_fit(f=self.f1_ab,
+                                                    xdata=f[1:],  # f>0 values, due to 1/f
+                                                    ydata=np.log(pxx_den)[1:])
 
                     predicted4 = self.f1_ab(fr=f[1:], a=modelb_opt_param[0], b=modelb_opt_param[1])
 
                     # Compare fitting to approach of Haller et al. (2018): Very little differences
                     if self.test_alt_ffit:
-                        modelhal_opt_param, modelhal_cov_param = curve_fit(f=self.f1_abc,
-                                                                           xdata=f[1:],
-                                                                           ydata=np.log(pxx_den)[1:])
+                        modelhal_opt_param, _ = curve_fit(f=self.f1_abc,  # _ == modelhal_cov_param
+                                                          xdata=f[1:],
+                                                          ydata=np.log(pxx_den)[1:])
 
                         predicted5 = self.f1_abc(fr=f[1:],
                                                  a=modelhal_opt_param[0],
@@ -349,22 +348,22 @@ class SelectSSDcomponents:
                     _pxx_den_fit = pxx_den_fit[lead_peak_idx:]
                     _pxx_den_alphout_fit = pxx_den_alphout_fit[lead_peak_idx:]
 
-                    # Fit polynomial(3)
-                    model3_small = np.polyfit(f_fit, np.log(pxx_den_fit), 3)
-                    predicted3_small = np.polyval(model3_small, f)  # pred on full! freq-range
+                    # # Fit polynomial(3)
+                    # model3_small = np.polyfit(f_fit, np.log(pxx_den_fit), 3)
+                    # predicted3_small = np.polyval(model3_small, f)  # pred on full! freq-range
 
-                    # Fit polynomial(3) to alpha out data
-                    model3_small_alphout = np.polyfit(f_alphout_fit, np.log(pxx_den_alphout_fit), deg=3)
-                    predicted3_small_alphout = np.polyval(model3_small_alphout, f)
+                    # # Fit polynomial(3) to alpha out data
+                    # model3_small_alphout = np.polyfit(f_alphout_fit, np.log(pxx_den_alphout_fit), deg=3)
+                    # predicted3_small_alphout = np.polyval(model3_small_alphout, f)
 
                     # Fit 1/(a*f**b): Find optimal a, b params
-                    modelf_opt_param, modelf_cov_param = curve_fit(f=self.f1_ab,
-                                                                   xdata=_f_fit,
-                                                                   ydata=np.log(_pxx_den_fit))
+                    modelf_opt_param, _ = curve_fit(f=self.f1_ab,
+                                                    xdata=_f_fit,
+                                                    ydata=np.log(_pxx_den_fit))
 
-                    modelfao_opt_param, modelfao_cov_param = curve_fit(f=self.f1_ab,
-                                                                       xdata=_f_alphout_fit,
-                                                                       ydata=np.log(_pxx_den_alphout_fit))
+                    modelfao_opt_param, _ = curve_fit(f=self.f1_ab,
+                                                      xdata=_f_alphout_fit,
+                                                      ydata=np.log(_pxx_den_alphout_fit))
 
                     predicted4 = self.f1_ab(fr=f, a=modelf_opt_param[0], b=modelf_opt_param[1])
                     predicted4ao = self.f1_ab(fr=f, a=modelfao_opt_param[0], b=modelfao_opt_param[1])
@@ -374,10 +373,9 @@ class SelectSSDcomponents:
                         modelhal_opt_param, modelhal_cov_param = curve_fit(f=self.f1_abc,
                                                                            xdata=_f_fit,
                                                                            ydata=np.log(_pxx_den_fit))
-                        modelhao_opt_param, modelhao_cov_param = curve_fit(f=self.f1_abc,
-                                                                           xdata=_f_alphout_fit,
-                                                                           ydata=np.log(
-                                                                               _pxx_den_alphout_fit))
+                        modelhao_opt_param, _ = curve_fit(f=self.f1_abc,
+                                                          xdata=_f_alphout_fit,
+                                                          ydata=np.log(_pxx_den_alphout_fit))
 
                         predicted5 = self.f1_abc(fr=f,
                                                  a=modelhal_opt_param[0],

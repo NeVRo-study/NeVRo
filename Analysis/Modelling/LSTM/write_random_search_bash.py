@@ -53,7 +53,7 @@ def write_search_bash_files(subs, filetype, condition,
     """
 
     # Adjust and test input variables
-    if not type(subs) is int:
+    if not isinstance(subs, int):
         subs = list(subs)
     else:
         subs = [subs]
@@ -111,7 +111,7 @@ def write_search_bash_files(subs, filetype, condition,
 
     # # Randomly Draw
     combi_count = 0
-    for combi in range(n_combinations):
+    for _ in range(n_combinations):
 
         # lstm_size
         n_lstm_layers = np.random.choice([1, 2])  # either 1 or 2 layers

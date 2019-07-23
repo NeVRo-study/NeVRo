@@ -16,8 +16,8 @@ import os.path
 # Function to change array of strings into array of floats
 def to_float(array):
     array_floats = []
-    for j in range(len(array)):
-        cut_array = array[j][2:-1]
+    for arr in array:
+        cut_array = arr[2:-1]
         # print(j, ":", cut_array)
         float_array = float(cut_array)
         array_floats.append(float_array)
