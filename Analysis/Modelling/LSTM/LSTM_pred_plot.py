@@ -12,6 +12,7 @@ import sys
 from tensorflow import gfile
 import string
 import shutil
+import ast
 
 if platform.system() != 'Darwin':
     import matplotlib

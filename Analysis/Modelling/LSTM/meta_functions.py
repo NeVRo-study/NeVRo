@@ -13,7 +13,6 @@ import subprocess
 import platform
 import os
 import psutil
-import ast
 from pathlib import Path
 try:  # local function to send emails from script
     from TEMP.send_mail import *
