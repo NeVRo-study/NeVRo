@@ -469,9 +469,7 @@ def load_rating_files(subjects, condition, sba=True, bins=False, samp_freq=1.):
 
             if not bins:
                 rating_filename = rating_filename + \
-                                  "{}/{}/NVR_S{}_run_{}_{}_rat_z.txt".format(coast_folder, coast,
-                                                                                  str(subject).zfill(2),
-                                                                                  runs, coast)
+                                  f"{coast_folder}/{coast}/NVR_{s(subject)}_run_{runs}_{coast}_rat_z.txt"
 
                 if os.path.isfile(rating_filename):
 

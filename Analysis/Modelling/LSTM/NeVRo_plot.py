@@ -23,7 +23,7 @@ import matplotlib.pyplot as plt
 
 
 class NeVRoPlot:
-    def __init__(self, n_sub=45, dropouts=[1, 12, 32, 35, 40, 42, 45], subject_selection=[],
+    def __init__(self, n_sub=45, dropouts=None, subject_selection=None,
                  smooth_w_size=3,
                  trimmed=True):
         """
@@ -49,9 +49,9 @@ class NeVRoPlot:
         self.n_sub = n_sub  # number of all Subjects
         self.subjects = np.arange(1, n_sub+1)  # Array of all subjects
         # Define array of dropouts (subject ID)
-        self.dropouts = dropouts
+        self.dropouts = [1, 12, 32, 35, 40, 42, 45] if not dropouts else dropouts
         # Select specific subjects of interest
-        self.subject_selection = np.array(subject_selection)
+        self.subject_selection = np.array(subject_selection) if subject_selection else np.array([])
         self.n_sub, self.subjects = self.subjects_request(subjects_array=self.subjects,
                                                           dropouts_array=self.dropouts,
                                                           selected_array=self.subject_selection)
@@ -348,10 +348,7 @@ class NeVRoPlot:
                     r = 1 if (sub_cond == 12 and cond_name == "move") or \
                              (sub_cond == 21 and cond_name == "nomove") else 2
 
-                    file_name = self.wdic_Rating_not_z + \
-                                "alltog/{}/1Hz/NVR_S{}_run_{}_alltog_rat_z.txt".format(cond_name,
-                                                                                       str(sub).zfill(2),
-                                                                                       r)
+                    file_name = self.wdic_Rating_not_z + f"alltog/{cond_name}/1Hz/NVR_{s(sub)}_run_{r}_alltog_rat_z.txt"
 
                     if os.path.isfile(file_name):
                         rating_file = np.genfromtxt(file_name, delimiter=',')[:, 1]
@@ -1059,7 +1056,7 @@ class NeVRoPlot:
 
         fs = 250  # sampling frequency
 
-        roller_coasters = self.roller_coaster
+        # roller_coasters = self.roller_coaster
 
         eeg_data = load_component(subjects=list(self.subjects),
                                   condition=condition.lower(),
@@ -1077,7 +1074,7 @@ class NeVRoPlot:
                     # 3 intersections where values can be removed (instead of cutting only at end/start)
                     to_delete *= fs
                     to_cut = int(round(len_test * fs))
-                    print("EEG data of S{} trimmed by {} data points".format(str(sub).zfill(2), to_cut))
+                    print(f"EEG data of {s(sub)} trimmed by {to_cut} data points")
                     del_counter = 2
                     while len_test > 0.0:
                         if del_counter == -1:
@@ -1102,7 +1099,7 @@ class NeVRoPlot:
                         eeg_data[str(sub)]["SBA"][condition][:, comp] = \
                             calc_hilbert_z_power(array=eeg_data[str(sub)]["SBA"][condition][:, comp])
 
-        fig_eeg = plt.figure("All Subjects | EEG {} | SBA".format(filetype), figsize=(14, 8))
+        fig_eeg = plt.figure(f"All Subjects | EEG {filetype} | SBA", figsize=(14, 8))
 
         comp = 0  # first component
         complete_count = 0
