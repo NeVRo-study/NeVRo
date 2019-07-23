@@ -419,7 +419,7 @@ class NeVRoPlot:
 
         # Update the z-scores in self.SA["zSA"]
         for cond_key in self.SA["SA"].keys():
-            for sub_idx, subject in enumerate(self.subjects):
+            for sub_idx, _ in enumerate(self.subjects):
                 sub_mean = np.nanmean(self.SA["SA"][cond_key][sub_idx, :])
                 sub_std = np.nanstd(self.SA["SA"][cond_key][sub_idx, :])
                 # z-scored
@@ -639,8 +639,8 @@ class NeVRoPlot:
         sba_keys_mov, sba_keys_no_mov = sba_keys_mov_ordered, sba_keys_no_mov_ordered
         # sba_keys_mov = np.flip(np.roll(sba_keys_mov, 2), 0)  # should be right order: Space, Break, Ande
         # sba_keys_no_mov = np.roll(sba_keys_no_mov, 1)
-        for i in range(len(sba_order)):
-            if not sba_order[i] in sba_keys_mov[i] or not sba_order[i] in sba_keys_no_mov[i]:
+        for i, sba_ord in enumerate(sba_order):
+            if sba_ord not in sba_keys_mov[i] or sba_ord not in sba_keys_no_mov[i]:
                 raise ValueError("Order not right")
 
         # Prepare dataframes
