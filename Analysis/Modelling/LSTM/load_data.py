@@ -569,8 +569,8 @@ def load_ecg_files(subjects, condition, sba=True, interpolate=True):
             folder = coaster.split("_")[1]  # either "Mov" or "NoMov" (only needed for sba case)
 
             if sba:
-                file_name = path_ecg_sba + "{}/NVR_S{}_SBA_{}.txt".format(folder, str(subject).zfill(2),
-                                                                          folder)
+                file_name = path_ecg_sba + f"{folder}/NVR_{s(subject)}_SBA_{folder}.txt"
+
                 # "NVR_S02_SBA_NoMov.txt"
             else:
                 raise ValueError("There are no ECG files here (yet) | sba=False case not implemented")
@@ -1008,10 +1008,9 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
         print("s_fold_idx randomly chosen:", s_fold_idx)
 
     noise_comp = False  # init
+    max_comp = get_num_components(subject=subject, condition=cond, filetype=filetype, selected=False)
 
     for comp_idx, comp in enumerate(component):
-
-        max_comp = get_num_components(subject=subject, condition=cond, filetype=filetype, selected=False)
 
         assert comp in range(1, max_comp+1) or comp in range(91, 90 + max_comp+1), \
             f"Components must be in range (1, {max_comp})."
