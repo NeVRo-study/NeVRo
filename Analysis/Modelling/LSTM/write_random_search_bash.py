@@ -193,6 +193,9 @@ def write_search_bash_files(subs, filetype, condition,
 
             # Choose components w.r.t. component_modes
             if component_modes == "one_up":
+                print("sub", sub)  # TEST
+                print("sub_ls_pos_comps", sub_ls_pos_comps)  # TEST
+                print("choose_n_comp", choose_n_comp)  # TEST
                 sub_component = sub_ls_pos_comps[0:choose_n_comp]
                 # works also for ncomp[sidx] < choose_n_comp
 
@@ -480,6 +483,8 @@ if __name__ == "__main__":
 
             # Remove Subjects without any selected component
             dropouts = np.array(ssd_comp_sel_tab[pd.isna(ssd_comp_sel_tab['n_sel_comps'])]["# ID"])
+            dropouts = np.append(dropouts,
+                                 np.array(ssd_comp_sel_tab[ssd_comp_sel_tab['n_sel_comps'] == 0]["# ID"]))
             # # Dropout Criterion can be set to threshold, e.g. here min 4 selected comps:
             # dropouts = np.append(dropouts,
             #                      np.array(ssd_comp_sel_tab[ssd_comp_sel_tab['n_sel_comps']<4]["# ID"]))
