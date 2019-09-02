@@ -464,7 +464,7 @@ def set_path2data():
         path_data = path2_mpi_gpu_hd(disk=1)  # disk=1 contains the NeVRo data
     # MPI-specific >>>>>>>>
 
-    cprint("Data dir: \t\t{}".format(path_data), "y")
+    cprint(f"Data dir: \t\t{path_data}", "y")
 
     return path_data
 

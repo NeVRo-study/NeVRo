@@ -18,6 +18,7 @@ if platform.system() != 'Darwin':
     import matplotlib
 
     matplotlib.use('Agg')
+    # print(matplotlib.rcParams['backend'])
     import matplotlib.pyplot as plt
 else:
     import matplotlib.pyplot as plt
@@ -351,7 +352,7 @@ def subplot_div(n_s_fold):
 # # Plot predictions 1)
 # open frame
 figsize = (12, s_fold * (3 if s_fold < 4 else 1))
-fig = plt.figure(f"{s_fold}-Folds | {s(subject)} | {task} | mean(val_acc)={mean_acc} | 1Hz",
+fig = plt.figure(f"{s_fold}-Folds | {s(subject)} | {cond} | {task} | mean(val_acc)={mean_acc} | 1Hz",
                  figsize=figsize)
 
 # Prepare subplot division
@@ -494,20 +495,21 @@ for fold in range(s_fold):
 
 plt.xlabel("time(s)")
 plt.tight_layout(pad=2)
-fig.show()
+if matplotlib.rcParams['backend'] != 'agg':
+    fig.show()
 
 if plots:
 
     plot_filename = f"{file_name[0:10]}{abc}_|{'_Hilbert_' if hilb else '_'}{int(reps)}*" \
         f"{'rnd-batch' if rnd_batch else 'subsequent-batch'}({batch_size})_|_{s_fold}-Folds_|" \
-        f"_{task}_|_{s(subject)}_|_mean(val_acc)_{mean_acc:.2f}_|_{path_specificity[:-1]}.png"
+        f"_{task}_|_{s(subject)}_|_{cond}_|_mean(val_acc)_{mean_acc:.2f}_|_{path_specificity[:-1]}.png"
 
     fig.savefig(wdic_plot + plot_filename)
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
 # # Plot accuracy-trajectories 2)
-fig2 = plt.figure(f"{s_fold}-Folds Accuracies | {s(subject)} | {task} | mean(val_acc)={mean_acc} | 1Hz",
+fig2 = plt.figure(f"{s_fold}-Folds Accuracies | {s(subject)} | {cond} | {task} | mean(val_acc)={mean_acc} | 1Hz",
                   figsize=figsize)
 
 # Prepare subplot division
@@ -558,8 +560,8 @@ for fold in range(s_fold):
 
 plt.xlabel("Training iterations")
 plt.tight_layout(pad=2)
-
-fig2.show()
+if matplotlib.rcParams['backend'] != 'agg':
+    fig2.show()
 
 # Plot
 if task == "regression":
@@ -567,7 +569,7 @@ if task == "regression":
 
         plot_filename = f"{file_name[0:10]}{abc}_|{'_Hilbert_' if hilb else '_'}{int(reps)}*" \
             f"{'rnd-batch' if rnd_batch else 'subsequent-batch'}({batch_size})_|_{s_fold}-Folds_|" \
-            f"_Accuracies_|_{ s(subject)}_|_mean(val_acc)_{mean_acc:.2f}_|_{path_specificity[:-1]}.png"
+            f"_Accuracies_|_{ s(subject)}_|_{cond}_|_mean(val_acc)_{mean_acc:.2f}_|_{path_specificity[:-1]}.png"
 
         fig2.savefig(wdic_plot + plot_filename)
 
@@ -578,7 +580,7 @@ else:  # task == "classification"
 
 # # Plot loss-trajectories
 
-fig3 = plt.figure(f"{s_fold}-Folds Loss | {s(subject)} | {task} | mean(val_acc)={mean_acc} | 1Hz",
+fig3 = plt.figure(f"{s_fold}-Folds Loss | {s(subject)} | {cond} | {task} | mean(val_acc)={mean_acc} | 1Hz",
                   figsize=figsize)
 
 # Prepare subplot division
@@ -627,8 +629,8 @@ for fold in range(s_fold):
 
 plt.xlabel("Training iterations")
 plt.tight_layout(pad=2)
-
-fig3.show()
+if matplotlib.rcParams['backend'] != 'agg':
+    fig3.show()
 
 # Plot
 if task == "regression":
@@ -636,7 +638,7 @@ if task == "regression":
 
         plot_filename = f"{file_name[0:10]}{abc}_|{'_Hilbert_' if hilb else '_'}{int(reps)}*" \
             f"{'rnd-batch' if rnd_batch else 'subsequent-batch'}({batch_size})_|_{s_fold}-Folds_|" \
-            f"_Loss_|_{s(subject)}_|_mean(val_acc)_{mean_acc:.2f}_|_{path_specificity[:-1]}.png"
+            f"_Loss_|_{s(subject)}_|_{cond}_|_mean(val_acc)_{mean_acc:.2f}_|_{path_specificity[:-1]}.png"
 
         fig3.savefig(wdic_plot + plot_filename)
 else:  # task == "classification"
@@ -646,7 +648,7 @@ else:  # task == "classification"
 
 # # Plot i) average training prediction and ii) concatenated val_prediction
 
-fig4 = plt.figure(f"{s_fold}-Folds mean(train)_&_concat(val)_| {s(subject)} | {task} | "
+fig4 = plt.figure(f"{s_fold}-Folds mean(train)_&_concat(val)_| {s(subject)} | {cond} | {task} | "
                   f"mean(val_acc)={mean_acc} | 1Hz ", figsize=(10, 12))
 
 # delete ratings out of pred_matrix first and then average across rows
@@ -825,13 +827,14 @@ plt.ylim(-0.05, 1.8)
 plt.legend(bbox_to_anchor=(0., 0.90, 1., .102), loc=1, ncol=4, mode="expand", borderaxespad=0.)
 plt.tight_layout(pad=2)
 
-fig4.show()
+if matplotlib.rcParams['backend'] != 'agg':
+    fig4.show()
 
 # Plot
 if plots:
     plot_filename = f"{file_name[0:10]}{abc}_|{'_Hilbert_' if hilb else '_'}" \
         f"{int(reps)}*{'rnd-batch' if rnd_batch else 'subsequent-batch'}({batch_size})_|_{s_fold}-Folds" \
-        f"_|_{task}_|_all_train_val_|_{s(subject)}_|_mean(val_acc)_{mean_acc:.2f}_|_" \
+        f"_|_{task}_|_all_train_val_|_{s(subject)}_|_{cond}_|_mean(val_acc)_{mean_acc:.2f}_|_" \
         f"{path_specificity[:-1]}.png"
 
     fig4.savefig(wdic_plot + plot_filename)

@@ -6,17 +6,16 @@ we find now the best hyperparameters from the processed files.
 Author: Simon Hofmann | <[surname].[lastname][at]pm.me> | 2017, 2019 (Update)
 """
 
-import os
-import subprocess
-import numpy as np
 import copy
+from meta_functions import *
+
+setwd("/Analysis/Modelling/LSTM/")
 
 
-def open_best_params(subjects, rand_search, task, n=5):
+def open_best_params(subjects, task, n=5):
     """
     Print filenames and open plots of best hyperparameters per subjects
     :param subjects: list of subjects
-    :param rand_search: From Random Search: True or False
     :param task: "classification" or "regression"
     :param n: number of settings to print and plot
     :return:
@@ -29,13 +28,8 @@ def open_best_params(subjects, rand_search, task, n=5):
         subjects = [subjects]
 
     for sub in subjects:
-
-        wdic = "./processed/S{}/already_plotted/".format(str(sub).zfill(2))
-        # wdic = "./processed/S02/already_plotted/"
-        if rand_search:
-            wdic_plot = "../../Results/Plots/LSTM/Hyperparameter_Search_C_RndSearch/"
-        else:
-            wdic_plot = "../../Results/Plots/LSTM/Hyperparameter_Search/"
+        wdic = f"./processed/{s(sub)}/already_plotted/"
+        wdic_plot = "../../../Results/Plots/LSTM/" + task + "/"
 
         acc_name_list = []
         acc_list = []
@@ -52,7 +46,7 @@ def open_best_params(subjects, rand_search, task, n=5):
                         #     assert tsk in ["classification", "regression"], "Task is not given."
                         #     classification = True if tsk == "classification" else False
 
-                        if task == "classification":  # and if classification
+                        if task == "classification":
                             if "mean(Classification_Accuracy)" in line:
                                 accuracy = line.split(" ")[1]
                                 # Fill in lists
@@ -75,31 +69,46 @@ def open_best_params(subjects, rand_search, task, n=5):
             print(i, "\t\t\t", j)
 
         for file_n in acc_name_list_sorted[:n]:
-            for plot_file in os.listdir(wdic_plot):
-                try:
-                    identifier = file_n.split("folds_")[1].split(".")[0]
-                except IndexError:
-                    identifier = file_n.split("_S{}".format(sub))[0]
+            try:
+                identifier = file_n.split("folds_")[1][:-4]
+            except IndexError:
+                identifier = file_n.split(f"_S{sub}")[0]
 
+            for plot_file in os.listdir(wdic_plot):
                 if identifier in plot_file and "_all_train_val_" in plot_file:
                     current_plot_file = wdic_plot+plot_file
-                    subprocess.Popen(["open", current_plot_file])  # 'open' only works for Mac
 
-# open_best_params(subjects=[2, 36], rand_search=True, task="classification", n=5)
-# open_best_params(subjects=[2, 36], rand_search=False, task="regression", n=5)
+                    if os.sys.platform == 'darwin':  # for Mac
+                        subprocess.Popen(["open", current_plot_file])
+                    elif 'linux' in os.sys.platform:
+                        subprocess.Popen(["display", current_plot_file])  # feh
+                    else:
+                        subprocess.Popen(["start", current_plot_file])
+
+# open_best_params(subjects=[2, 36], task="classification", n=5)
+# open_best_params(subjects=[14, 25], task="classification", n=5)
 
 
 # Merge Random Search Tables from server and local computer:
 def sort_table(task, table=None):
     save_externally = False
     if table is None:
-        task_fix = "_BiCl_merged.csv" if task.lower() == "classification" else "_Reg_merged.csv"
+        tfix = "_BiCl" if task.lower() == "classification" else "_Reg"
+        task_merg_fix = f"{tfix}_merged.csv"
+
         file_found = False
         for file in os.listdir("./processed/"):
-            if "Random_Search_Table" in file and task_fix in file:
+            if "Random_Search_Table" in file and task_merg_fix in file:
                 table_filename = "./processed/" + file
                 file_found = True
                 save_externally = True
+                break
+            elif "Random_Search_Table" + tfix in file and task_merg_fix not in file:
+                if ask_true_false(f"Does this file: '{file}' contain all processed results?", col="b"):
+                    table_filename = "./processed/" + file
+                    file_found = True
+                    save_externally = True
+                    break
 
         if file_found:
             table = np.genfromtxt(table_filename, delimiter=";", dtype=str)
@@ -133,7 +142,7 @@ def sort_table(task, table=None):
 
 def merge_randsearch_tables(task, sort=True):
     """
-    Merges random search table from server with the one from local computer and saves them
+    Merges random search table from server with the one from local/other computer and saves them
     :param task: either 'classification' or 'regression'
     :param sort: sort table according to accuracy
     """
@@ -143,95 +152,191 @@ def merge_randsearch_tables(task, sort=True):
         "task must be either 'classification' or 'regression'"
 
     tfix = "_BiCl" if task.lower() == "classification" else "_Reg"
+    merge = None  # init
 
     # Find tables
     wd_table = "./processed/"
+    list_of_tables = []
     for file in os.listdir(wd_table):
-        if "Random_Search_Table" in file and tfix in file and "_server.csv" not in file \
-                and ".csv" in file:
-            local_table_filename = wd_table + file
-        elif "Random_Search_Table" in file and tfix in file and "_server.csv" in file:
-            server_table_filename = wd_table + file
+        if "Random_Search_Table" + tfix in file:
+            list_of_tables.append(file)
 
-    try:
-        # merge tables
-        if local_table_filename.split(".")[1] in server_table_filename:
-            rs_table = np.genfromtxt(local_table_filename, delimiter=";", dtype=str)
-            rs_table_server = np.genfromtxt(server_table_filename, delimiter=";", dtype=str)
+    if len(list_of_tables) <= 1:
+        cprint("Not enough tables to merge.", 'r')
+        if len(list_of_tables) == 1:
+            sort = ask_true_false(f"Do you want to sort this one table '{list_of_tables[0]}'", 'b')
+            if sort:
+                prime_tablename = wd_table + list_of_tables[0]
+                rs_table = np.genfromtxt(prime_tablename, delimiter=";", dtype=str)
+            else:
+                return
+        else:  # == 0: no table(s)
+            return
+
+    else:  # len(list_of_tables) > 1:
+        list_of_tables.sort()
+
+        cprint("Following tables were found:", 'b')
+        for tab in list_of_tables:
+            print("\t", tab)
+
+        if ask_true_false("Do you want to merge these tables:", col='b'):
+            # Merge tables
+            merge = True
+            prime_tablename = wd_table + list_of_tables[0]
+            rs_table = np.genfromtxt(prime_tablename, delimiter=";", dtype=str)
+
+            # Load other tables
+            tctn = 1
+            tab_dict = {}  # init to save other tables
+            for table_name in list_of_tables[1:]:
+                tctn += 1
+                pull_table = np.genfromtxt(wd_table+table_name, delimiter=";", dtype=str)
+                # Test whether tables are of same structure
+                if not np.all(pull_table[:, :-3] == rs_table[:, :-3]):
+                    raise ValueError("Except of results, given tables must be same in order to merge them.")
+                tab_dict.update({f"table_{tctn}": pull_table})
+
+            # Write results from pull tables into primary table (rs_table)
             for row in range(rs_table.shape[0]):
-                if rs_table[row, -3] == "nan":
-                    if rs_table_server[row, -3] != "nan":
-                        rs_table[row, -3:] = rs_table_server[row, -3:]
+                if rs_table[row, -3] == "nan":  # if there is no result/value in primary table...
+                    val_found = False
+                    for tkey in tab_dict:
+                        if tab_dict[tkey][row, -3] != "nan":
+                            if not val_found:
+                                rs_table[row, -3:] = tab_dict[tkey][row, -3]  # ... fill information from another table
+                                val_found = True
+                            elif rs_table[row, -3:] != tab_dict[tkey][row, -3]:
+                                cprint("A different result was found in yet another table.", 'y')
+                                print("Previous result is:", rs_table[row, -3:])
+                                print("Current pull-table result is:", tab_dict[tkey][row, -3])
+                                if ask_true_false("Do you want to stop merging in order to inspect tables", 'y'):
+                                    raise StopIteration("Merging was manually stopped.")
+                                elif ask_true_false("Do you want to overwrite previous value", 'b'):
+                                    rs_table[row, -3:] = tab_dict[tkey][row, -3]
 
-            # Sort table
-            if sort:
-                rs_table = sort_table(table=rs_table, task=task)
+    # Sort table
+    if sort:
+        rs_table = sort_table(table=rs_table, task=task)
 
-            # Save file
-            export_filename = "." + local_table_filename.split(".")[1] + "_merged.csv"
-            if sort:
-                export_filename = "." + export_filename.split(".")[1] + "_sorted.csv"
-            np.savetxt(fname=export_filename, X=rs_table, delimiter=";", fmt="%s")
-
-    except NameError:
-        raise FileExistsError("There is no set of tables to merge.")
+    # Save file
+    export_filename = prime_tablename.split(".csv")[0] + ("_merged" if merge else "") + ("_sorted" if sort else "")
+    np.savetxt(fname=export_filename+".csv", X=rs_table, delimiter=";", fmt="%s")
 # merge_randsearch_tables(task="classification", sort=True)
 # merge_randsearch_tables(task="regression", sort=True)
 
 
 # # Save random search tables per subject, extract n best settings per subject
-def rnd_search_table_per_subject(table_name):
+def rnd_search_table_per_subject(table_name, condition):
+    """This function splits given random search table into single sub-tables per subject"""
 
-    wd_tables = "./processed/Random_Search_Tables/"
+    assert "mov" in condition, "condition must be either 'mov' or 'nomov'"
+    cond = "nomov" if "no" in condition.lower() else "mov"
+    task = "classification" if "BiCl" in table_name else "regression"
+
+    wd_tables = f"./processed/Random_Search_Tables/{cond}/"
 
     assert ".csv" in table_name, "Must be a csv file and filename ending with '.csv'"
-    assert os.path.exists(wd_tables+table_name), "File does not exist:\t{}".format(table_name)
+    assert os.path.exists(wd_tables+table_name), f"File does not exist:\t{table_name}"
+
+    if "merged" not in table_name:
+        if not ask_true_false(f"Does the table '{table_name}' contain all (merged) information and "
+                              f"do you want you to split it?", col='b'):
+            cprint("Given table won't be split. Exit function.", 'r')
+            return
 
     rs_table = np.genfromtxt(wd_tables+table_name, delimiter=";", dtype=str)
     subjects = np.unique([int(sub) for sub in rs_table[1:, 1]])  # subjects
     header = np.reshape(rs_table[0, :], newshape=(1, rs_table.shape[1]))
+
+    if "sorted" not in table_name:
+        if ask_true_false(f"Table must be sorted before splitting. Do you want to continue?", col='b'):
+            rs_table = sort_table(task=task, table=rs_table)
+            table_name = table_name.split(".csv")[0] + "_sorted.csv"
+            np.savetxt(fname=wd_tables+table_name, X=rs_table, delimiter=";", fmt="%s")
+            print(f"Sorted version of table is saved under: '{wd_tables+table_name}'")
+        else:
+            cprint("Given table won't be split. Exit function.", 'r')
+            return
 
     for sub in subjects:
         sub_rs_table = rs_table[np.where(rs_table[:, 1] == str(sub))[0], :]  # extract sub-table
         sub_rs_table = np.concatenate((header, sub_rs_table), axis=0)  # attach header
 
         # Save
-        export_filename = "S{}_Ran".format(str(sub).zfill(2)) + table_name.split("Ran")[1].split(
-            "_m")[0] + ".csv"
+        export_filename = f"{s(sub)}_Ran"
+        export_filename += table_name.split("Ran")[1].split("_m" if "merged" in table_name else "_s")[0] + ".csv"
         np.savetxt(fname=wd_tables+export_filename, X=sub_rs_table, delimiter=";", fmt="%s")
-# rnd_search_table_per_subject(table_name='Random_Search_Final_Table_BiCl_merged_sorted.csv')
-# rnd_search_table_per_subject(table_name='Random_Search_Final_Table_Reg_merged_sorted.csv')
-# rnd_search_table_per_subject(table_name='Random_Search_Table_Reg_merged_sorted.csv')
-# rnd_search_table_per_subject(table_name='Random_Search_Final_Table_BiCl_SPOC_merged_sorted.csv')
-# rnd_search_table_per_subject(table_name='Random_Search_Final_Table_Reg_SPOC_merged_sorted.csv')
+# rnd_search_table_per_subject(table_name='Random_Search_Final_Table_BiCl_merged_sorted.csv', condition="nomov")
+# rnd_search_table_per_subject(table_name='Random_Search_Final_Table_Reg_merged_sorted.csv', condition="nomov")
+# rnd_search_table_per_subject(table_name='Random_Search_Table_Reg_merged_sorted.csv', condition="nomov")
+# rnd_search_table_per_subject(table_name='Random_Search_Final_Table_BiCl_SPOC_merged_sorted.csv', condition="nomov")
+# rnd_search_table_per_subject(table_name='Random_Search_Final_Table_Reg_SPOC_merged_sorted.csv', condition="nomov")
 
 
-def table_per_hp_setting(table_name):
+def table_per_hp_setting(table_name, condition, fixed_comps=False):
+    """This function splits given random search table into single subtables per set of hyper-parameters
+    :param table_name: name of parent table
+    :param condition: "mov" or "nomov"
+    :param fixed_comps: True: selection of components is identical for each subject per hyper-parameter set;
+                        False: individual comps per subject, selected under same rules ('random' OR 'one-up') and same N
+    """
+    assert "mov" in condition, "condition must be either 'mov' or 'nomov'"
+    cond = "nomov" if "no" in condition.lower() else "mov"
+    task = "classification" if "BiCl" in table_name else "regression"
 
-    wd_tables = "./processed/Random_Search_Tables/"
+    wd_tables = f"./processed/Random_Search_Tables/{cond}/"
 
     assert ".csv" in table_name, "Must be a csv file and filename ending with '.csv'"
-    assert os.path.exists(wd_tables+table_name), "File does not exist:\t{}".format(table_name)
+    assert os.path.exists(wd_tables+table_name), f"File does not exist:\t{table_name}"
+    # Prepare folder to save files
+    sav_dir = wd_tables + task + "/per_hp_set/"
+    if not os.path.exists(sav_dir):
+        os.makedirs(sav_dir)
 
+    # Load table
     rs_table = np.genfromtxt(wd_tables+table_name, delimiter=";", dtype=str)
     # subjects = np.unique([int(sub) for sub in rs_table[1:, 1]])  # subjects
-    settings = np.unique([str(setting) for setting in rs_table[1:, 23]])  # settings
+    hp_set_col = np.where(rs_table[0, :] == 'path_specificities')[0][0]
+    hp_settings = np.unique([str(setting) for setting in rs_table[1:, hp_set_col]])  # settings
+
     header = np.reshape(rs_table[0, :], newshape=(1, rs_table.shape[1]))
 
-    for setx, setting in enumerate(settings):
-        set_rs_table = rs_table[np.where(rs_table[:, 23] == str(setting))[0], :]  # extract sub-table
-        set_rs_table = np.concatenate((header, set_rs_table), axis=0)  # attach header
+    if fixed_comps:
+        for setx, setting in enumerate(hp_settings):
 
-        # Save
-        export_filename = "Set{}_Ran".format(str(setx+1).zfill(2)) + table_name.split("Ran")[1].split(
-            "_m")[0] + ".csv"
-        np.savetxt(fname=wd_tables+export_filename, X=set_rs_table, delimiter=";", fmt="%s")
-# table_per_hp_setting(table_name='Random_Search_Final_Table_BiCl_merged_sorted.csv')
-# table_per_hp_setting(table_name='Random_Search_Final_Table_Reg_merged_sorted.csv')
-# table_per_hp_setting(table_name='Random_Search_Final_Table_BiCl_SPOC_merged_sorted.csv')
-# table_per_hp_setting(table_name='Random_Search_Final_Table_Reg_SPOC_merged_sorted.csv')
+            set_rs_table = rs_table[np.where(rs_table[:, hp_set_col] == setting)[0], :]  # extract sub-table
+            set_rs_table = np.concatenate((header, set_rs_table), axis=0)  # attach header
+
+            # Save
+            sp = '_merged' if "_merged" in table_name else '_sort' if '_sorted' in table_name else ".csv"  # splitter
+            export_filename = f"Set{str(setx+1).zfill(2)}_Ran{table_name.split('Ran')[1].split(sp)[0]}.csv"
+            np.savetxt(fname=sav_dir+export_filename, X=set_rs_table, delimiter=";", fmt="%s")
+
+    else:
+        # Remove individual component information (per subject) from list of unique hyper-parameter settings
+        hp_settings_without_comps = np.unique(
+            [setting.split("_comp")[0]+"_hrcomp"+setting.split("_hrcomp")[1] for setting in hp_settings])
+
+        for setx, setting in enumerate(hp_settings_without_comps):
+            sel_rows = []
+            for ridx, full_setting in enumerate(rs_table[:, hp_set_col]):
+                if setting.split("_hrc")[0] in full_setting and setting.split("_hrc")[1] in full_setting:
+                    sel_rows.append(ridx)
+            set_rs_table = rs_table[sel_rows, :]  # extract sub-table
+            set_rs_table = np.concatenate((header, set_rs_table), axis=0)  # attach header
+
+            # Save
+            sp = '_merged' if "_merged" in table_name else '_sort' if '_sorted' in table_name else ".csv"  # splitter
+            export_filename = f"Set{str(setx + 1).zfill(2)}_Ran{table_name.split('Ran')[1].split(sp)[0]}.csv"
+            np.savetxt(fname=sav_dir + export_filename, X=set_rs_table, delimiter=";", fmt="%s")
+# table_per_hp_setting(table_name='Random_Search_Final_Table_BiCl_merged_sorted.csv', condition="nomov")
+# table_per_hp_setting(table_name='Random_Search_Final_Table_Reg_merged_sorted.csv', condition="nomov")
+# table_per_hp_setting(table_name='Random_Search_Final_Table_BiCl_SPOC_merged_sorted.csv', condition="nomov")
+# table_per_hp_setting(table_name='Random_Search_Final_Table_Reg_SPOC_merged_sorted.csv', condition="nomov")
 
 
+# TODO continue here
 # first apply rnd_search_table_per_subject() then:
 def table_of_best_hp_over_all_subjects(n, task):
     """
@@ -239,8 +344,7 @@ def table_of_best_hp_over_all_subjects(n, task):
     :param task: 'classification' or 'regression'
     :param n: number of hyper parameter settings to be saved in new table
     """
-    assert task.lower() in ["classification", "regression"], \
-        "task must be either 'classification' or 'regression'"
+    assert task.lower() in ["classification", "regression"], "task must be either 'classification' or 'regression'"
 
     wd_tables = "./processed/Random_Search_Tables/"
 

@@ -205,7 +205,8 @@ def write_search_bash_files(subs, filetype, condition,
             sub_component = ','.join([str(i) for i in sub_component])
 
             # path_specificities
-            path_specificities = f"{'BiCl_' if 'c' in task else 'Reg_'}RndHPS_" \
+            # TODO: Could indicate in comp- which selection criterion was chosen
+            path_specificities = f"{'BiCl' if 'c' in task else 'Reg'}_{cond}_RndHPS_" \
                 f"lstm-{'-'.join(str(lstm_size).split(','))}_" \
                 f"fc-{'-'.join(str(fc_n_hidden).split(','))}_" \
                 f"lr-{learning_rate}_wreg-{weight_reg}-{weight_reg_strength:.2f}_" \
@@ -284,7 +285,7 @@ def write_search_bash_files(subs, filetype, condition,
 
 
 # TODO continue here
-def write_bash_from_table(subs, table_path, del_log_folders = True):
+def write_bash_from_table(subs, table_path, del_log_folders=True):
 
     # # Following need to be set manually (Default)
     wd_tables = "./processed/Random Search Tables/"
@@ -398,12 +399,13 @@ def write_bash_from_table(subs, table_path, del_log_folders = True):
 
 
 def update_bashfiles(task, subject=None, path_specs=None, all_runs=False):
+    """Comment out all lines in bashfile(s) which have been run."""
 
     assert "cl" in task.lower() or "reg" in task.lower(), \
         "task must be either 'regression' or 'classification'"
 
     # Load Random_Search_Table
-    table_name = "./processed/Random_Search_Table_{}.csv".format('BiCl' if "c" in task.lower() else "Reg")
+    table_name = f"./processed/Random_Search_Table_{'BiCl' if 'c' in task.lower() else 'Reg'}.csv"
     if os.path.exists(table_name):
         rs_table = np.genfromtxt(table_name, delimiter=";", dtype=str)
         idx_sub = np.where(rs_table[0, :] == 'subject')[0][0]  # find column "subject"
@@ -442,12 +444,12 @@ def update_bashfiles(task, subject=None, path_specs=None, all_runs=False):
                         if bfile.split(".")[-1] == 'sh':  # check whether bash file
                             for line in fileinput.input("./bashfiles/" + bfile, inplace=True):
                                 if path_specs in line and subject in line and "#" not in line:
-                                    sys.stdout.write('# {}'.format(line))
+                                    sys.stdout.write(f'# {line}')
                                 else:
                                     sys.stdout.write(line)
 
     else:
-        cprint("There is no corresponding table: '{}'".format(table_name), "r")
+        cprint(f"There is no corresponding table: '{table_name}'", "r")
 
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
