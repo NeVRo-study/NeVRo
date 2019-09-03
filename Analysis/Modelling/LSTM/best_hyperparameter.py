@@ -7,6 +7,7 @@ Author: Simon Hofmann | <[surname].[lastname][at]pm.me> | 2017, 2019 (Update)
 """
 
 import copy
+import ast
 from meta_functions import *
 
 setwd("/Analysis/Modelling/LSTM/")
@@ -228,7 +229,11 @@ def merge_randsearch_tables(task, sort=True):
 
 # # Save random search tables per subject, extract n best settings per subject
 def rnd_search_table_per_subject(table_name, condition):
-    """This function splits given random search table into single sub-tables per subject"""
+    """
+    This function splits given random search table into single sub-tables per subject.
+    :param table_name: full table name + .csv, must lie in wd_tables (see below)
+    :param condition: "mov" OR "nomov"
+    """
 
     assert "mov" in condition, "condition must be either 'mov' or 'nomov'"
     cond = "nomov" if "no" in condition.lower() else "mov"
@@ -237,7 +242,12 @@ def rnd_search_table_per_subject(table_name, condition):
     wd_tables = f"./processed/Random_Search_Tables/{cond}/"
 
     assert ".csv" in table_name, "Must be a csv file and filename ending with '.csv'"
-    assert os.path.exists(wd_tables+table_name), f"File does not exist:\t{table_name}"
+    assert os.path.exists(wd_tables+table_name), f"File does not exist:\t{wd_tables+table_name}"
+
+    # Prepare folder to save files
+    sav_dir = wd_tables + task + "/per_subject/"
+    if not os.path.exists(sav_dir):
+        os.makedirs(sav_dir)
 
     if "merged" not in table_name:
         if not ask_true_false(f"Does the table '{table_name}' contain all (merged) information and "
@@ -246,6 +256,9 @@ def rnd_search_table_per_subject(table_name, condition):
             return
 
     rs_table = np.genfromtxt(wd_tables+table_name, delimiter=";", dtype=str)
+    assert np.all(rs_table[1:, np.where(rs_table[0, :] == "cond")[0][0]] == cond), \
+        f"Table contains other conditions than '{cond}'"
+
     subjects = np.unique([int(sub) for sub in rs_table[1:, 1]])  # subjects
     header = np.reshape(rs_table[0, :], newshape=(1, rs_table.shape[1]))
 
@@ -266,16 +279,18 @@ def rnd_search_table_per_subject(table_name, condition):
         # Save
         export_filename = f"{s(sub)}_Ran"
         export_filename += table_name.split("Ran")[1].split("_m" if "merged" in table_name else "_s")[0] + ".csv"
-        np.savetxt(fname=wd_tables+export_filename, X=sub_rs_table, delimiter=";", fmt="%s")
+        np.savetxt(fname=sav_dir+export_filename, X=sub_rs_table, delimiter=";", fmt="%s")
 # rnd_search_table_per_subject(table_name='Random_Search_Final_Table_BiCl_merged_sorted.csv', condition="nomov")
 # rnd_search_table_per_subject(table_name='Random_Search_Final_Table_Reg_merged_sorted.csv', condition="nomov")
 # rnd_search_table_per_subject(table_name='Random_Search_Table_Reg_merged_sorted.csv', condition="nomov")
 # rnd_search_table_per_subject(table_name='Random_Search_Final_Table_BiCl_SPOC_merged_sorted.csv', condition="nomov")
 # rnd_search_table_per_subject(table_name='Random_Search_Final_Table_Reg_SPOC_merged_sorted.csv', condition="nomov")
+# rnd_search_table_per_subject(table_name='Random_Search_Table_BiCl.csv', condition="nomov")
 
 
 def table_per_hp_setting(table_name, condition, fixed_comps=False):
-    """This function splits given random search table into single subtables per set of hyper-parameters
+    """
+    This function splits given random search table into single subtables per set of hyper-parameters
     :param table_name: name of parent table
     :param condition: "mov" or "nomov"
     :param fixed_comps: True: selection of components is identical for each subject per hyper-parameter set;
@@ -288,7 +303,7 @@ def table_per_hp_setting(table_name, condition, fixed_comps=False):
     wd_tables = f"./processed/Random_Search_Tables/{cond}/"
 
     assert ".csv" in table_name, "Must be a csv file and filename ending with '.csv'"
-    assert os.path.exists(wd_tables+table_name), f"File does not exist:\t{table_name}"
+    assert os.path.exists(wd_tables+table_name), f"File does not exist:\t{wd_tables+table_name}"
     # Prepare folder to save files
     sav_dir = wd_tables + task + "/per_hp_set/"
     if not os.path.exists(sav_dir):
@@ -296,6 +311,10 @@ def table_per_hp_setting(table_name, condition, fixed_comps=False):
 
     # Load table
     rs_table = np.genfromtxt(wd_tables+table_name, delimiter=";", dtype=str)
+
+    assert np.all(rs_table[1:, np.where(rs_table[0, :] == "cond")[0][0]] == cond), \
+        f"Table contains other conditions than '{cond}'"
+
     # subjects = np.unique([int(sub) for sub in rs_table[1:, 1]])  # subjects
     hp_set_col = np.where(rs_table[0, :] == 'path_specificities')[0][0]
     hp_settings = np.unique([str(setting) for setting in rs_table[1:, hp_set_col]])  # settings
@@ -334,27 +353,36 @@ def table_per_hp_setting(table_name, condition, fixed_comps=False):
 # table_per_hp_setting(table_name='Random_Search_Final_Table_Reg_merged_sorted.csv', condition="nomov")
 # table_per_hp_setting(table_name='Random_Search_Final_Table_BiCl_SPOC_merged_sorted.csv', condition="nomov")
 # table_per_hp_setting(table_name='Random_Search_Final_Table_Reg_SPOC_merged_sorted.csv', condition="nomov")
+# table_per_hp_setting(table_name='Random_Search_Table_Reg.csv', condition="nomov", fixed_comps=False)
 
 
 # TODO continue here
 # first apply rnd_search_table_per_subject() then:
-def table_of_best_hp_over_all_subjects(n, task):
+def table_of_best_hp_over_all_subjects(n, task, condition, fixed_comps=False):
     """
     Takes from each subject n best hyper parameter settings and writes in new table
-    :param task: 'classification' or 'regression'
     :param n: number of hyper parameter settings to be saved in new table
+    :param task: 'classification' or 'regression'
+    :param condition: 'mov' OR 'nomov'
+    :param fixed_comps: True: selection of components is identical for each subject per hyper-parameter set;
+                        False: individual comps per subject, selected under same rules ('random' OR 'one-up') and same N
     """
-    assert task.lower() in ["classification", "regression"], "task must be either 'classification' or 'regression'"
+    task = task.lower()
+    assert task in ["classification", "regression"], "task must be either 'classification' or 'regression'"
+    tfix = "BiCl" if task == "classification" else "Reg"
+
+    assert "mov" in condition, "condition must be either 'mov' or 'nomov'"
+    cond = "nomov" if "no" in condition.lower() else "mov"
 
     wd_tables = "./processed/Random_Search_Tables/"
+    wd_sub_tables = wd_tables + f"{cond}/{task}/per_subject/"
 
-    tsk = "BiCl" if task.lower() == "classification" else "Reg"
     # count subjects:
     cntr = 0  # == number of subjects
-    for file_name in os.listdir(wd_tables):
-        if file_name[0] == "S" and tsk in file_name:
+    for file_name in os.listdir(wd_sub_tables):
+        if file_name[0] == "S" and tfix in file_name:
             # Load random search table:
-            rs_table = np.genfromtxt(wd_tables + file_name, delimiter=";", dtype=str)
+            rs_table = np.genfromtxt(wd_sub_tables+file_name, delimiter=";", dtype=str)
             if cntr == 0:
                 # init new table
                 header = np.reshape(rs_table[0, :], newshape=(1, rs_table.shape[1]))
@@ -364,7 +392,7 @@ def table_of_best_hp_over_all_subjects(n, task):
             bhp_table = np.concatenate((bhp_table, rs_table[1:n+1, :]))
             exp_filename = file_name
 
-    if tsk == "BiCl":
+    if tfix == "BiCl":
         mc = np.mean([float(x) for x in bhp_table[1:, -1]])
         print("Average Accuracy:", mc)
 
@@ -374,19 +402,73 @@ def table_of_best_hp_over_all_subjects(n, task):
         mc = np.mean(mean_val_acc - meanline_acc)
         print("Average Above-Meanline-Accuracy:", mc)
 
-    # Delete redundant entries
-    bhp_table_unique = np.unique(bhp_table[1:, 2:-3], axis=0)
-    bhp_table_unique = np.concatenate((header[:, 2:-3], bhp_table_unique))
-    print("{} entries repeat each other. ".format(bhp_table.shape[0]-bhp_table_unique.shape[0]))
+    # Delete redundant entries, i.e. 2 or more subjects share n-m best hyperparameter sets, where m in [0,n]
+    if fixed_comps:
+        bhp_table_unique = np.unique(bhp_table[:, 2:-3], axis=0)  # [cond ... path_specificities]
+
+    else:
+        bhp_table_unique = copy.copy(bhp_table[:, 2:])  # init
+
+        idx_path = np.where(bhp_table_unique[0, :] == "path_specificities")[0][0]
+        idx_comp = np.where(bhp_table_unique[0, :] == "component")[0][0]
+        bhp_table_unique = bhp_table_unique[:, :idx_path+1]
+
+        # Create index for table without component and path_specificities
+        idx_wo_comp_path = np.arange(bhp_table_unique.shape[1])
+        idx_wo_comp_path = np.delete(idx_wo_comp_path, [idx_comp, idx_path])
+
+        print("full table", bhp_table_unique.shape)
+
+        # Create table of unique entries ignoring the component information
+        bhp_table_unique_wo_comps = copy.copy(bhp_table_unique)
+        bhp_table_unique_wo_comps[1:,  [idx_comp, idx_path]] = None
+        bhp_table_unique_wo_comps = np.unique(bhp_table_unique_wo_comps, axis=0)
+        # bhp_table_unique_wo_comps = np.unique(bhp_table_unique[:, idx_wo_comp_path], axis=0)  # alternative
+        print("unique without comps", bhp_table_unique_wo_comps.shape)
+
+        # Following is the table of unique entries including the component information
+        bhp_table_unique = np.unique(bhp_table_unique, axis=0)
+        print("unique with comps", bhp_table_unique.shape)
+        # print(bhp_table_unique[0, idx_wo_comp_path])
+
+        for ridx, row in enumerate(bhp_table_unique_wo_comps[1:, idx_wo_comp_path]):
+            print("\nunique_set:\n", row)
+            n_max_comp = 0
+            pctn = 0
+            for row_full in bhp_table_unique[1:, :]:
+                if np.all(row == row_full[idx_wo_comp_path]):
+                    # row_full[idx_path]  # omit, since same information is contained in rest of table
+                    cmps = ast.literal_eval(row_full[idx_comp])
+                    # print(row_full[idx_comp])
+                    print(cmps)
+                    n_cmps = 1 if isinstance(cmps, int) else len(cmps)
+                    print("N =", n_cmps)
+                    n_max_comp = n_cmps if n_cmps > n_max_comp else n_max_comp
+
+                    if pctn == 0:
+                        print(row_full[idx_path])
+                        short_path = row_full[idx_path]
+                        pctn += 1
+
+            print("n_max_comp:", n_max_comp)
+            bhp_table_unique_wo_comps[ridx+1, idx_comp] = f"n_max={n_max_comp}"
+
+            print("short_path:", short_path)
+            short_path = short_path.split("_comp")[0] + f"_comp-nmax-{n_max_comp}_hrc" + short_path.split("_hrc")[1]
+            bhp_table_unique_wo_comps[ridx+1, idx_path] = short_path
+
+        bhp_table_unique = bhp_table_unique_wo_comps
+
+    print(f"{bhp_table.shape[0]-bhp_table_unique.shape[0]} hyperparameter settings are the same.")
 
     # Save
-    export_filename = "Best_{}_HPsets_over_{}_Subjects_mean_acc_{:.3f}_Ran".format(
-        n, cntr, mc) + exp_filename.split("_Ran")[1]
+    export_filename = f"Best_{n}_HPsets_over_{cntr}_Subjects_mean_acc_{mc:.3f}_Ran" + exp_filename.split("_Ran")[1]
     export_filename_unique = "unique_" + export_filename
-    np.savetxt(fname=wd_tables + export_filename, X=bhp_table, delimiter=";", fmt="%s")
-    np.savetxt(fname=wd_tables + export_filename_unique, X=bhp_table_unique, delimiter=";", fmt="%s")
+    np.savetxt(fname=wd_sub_tables+export_filename, X=bhp_table, delimiter=";", fmt="%s")
+    np.savetxt(fname=wd_sub_tables+export_filename_unique, X=bhp_table_unique, delimiter=";", fmt="%s")
 # table_of_best_hp_over_all_subjects(n=2, task="classification")
 # table_of_best_hp_over_all_subjects(n=2, task="regression")
+# table_of_best_hp_over_all_subjects(n=2, task="classification", condition="nomov")
 
 
 def model_performance(over, task, input_type):
@@ -486,3 +568,8 @@ def model_performance(over, task, input_type):
 # model_performance(over="hp-sets", task="classification", input_type="SPOC")
 # model_performance(over="subjects", task="regression", input_type="SPOC")
 # model_performance(over="hp-sets", task="regression", input_type="SPOC")
+
+
+if __name__ == "__main__":
+    # TODO implement the execeution order of fucntions above
+    pass

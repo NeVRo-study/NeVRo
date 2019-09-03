@@ -284,6 +284,9 @@ def write_search_bash_files(subs, filetype, condition,
     print("\nBashfiles and table completed.")
 
 
+# TODO function() to write path_specificities from table-row
+# TODO function() to draw comps from possible list given max-N comps. Pull this partially from write_search_bash_files()
+
 # TODO continue here
 def write_bash_from_table(subs, table_path, del_log_folders=True):
 
