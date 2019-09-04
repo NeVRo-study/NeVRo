@@ -13,7 +13,6 @@ from meta_functions import *
 setwd("/Analysis/Modelling/LSTM/")
 
 
-# TODO adapt
 def open_best_params(subjects, task, condition, n=5):
     """
     Print filenames and open plots of best hyperparameters per subjects
@@ -76,10 +75,11 @@ def open_best_params(subjects, task, condition, n=5):
             print(i, "\t\t\t", j)
 
         for file_n in acc_name_list_sorted[:n]:
-            try:
-                identifier = file_n.split("folds_")[1][:-4]
-            except IndexError:
-                identifier = file_n.split(f"_S{sub}")[0]
+            identifier = file_n.split("folds_")[1][:-4]
+            # try:
+            #     identifier = file_n.split("folds_")[1][:-4]
+            # except IndexError:
+            #     identifier = file_n.split(f"_S{sub}")[0]
 
             for plot_file in os.listdir(wdic_plot):
                 if identifier in plot_file and "_all_train_val_" in plot_file:
@@ -91,8 +91,7 @@ def open_best_params(subjects, task, condition, n=5):
                         subprocess.Popen(["display", current_plot_file])  # feh
                     else:
                         subprocess.Popen(["start", current_plot_file])
-# open_best_params(subjects=[2, 36], task="classification", n=5)
-# open_best_params(subjects=[14, 25], task="classification", n=5)
+# open_best_params(subjects=[9, 31], task="classification", condition="nomov", n=3)
 
 
 # Merge Random Search Tables from server and local computer:
@@ -186,7 +185,7 @@ def merge_randsearch_tables(task, condition, search, sort=True):
                 prime_tablename = wd_table + list_of_tables[0]
                 rs_table = np.genfromtxt(prime_tablename, delimiter=";", dtype=str)
             else:
-                return
+                return  # None
         else:  # == 0: no table(s)
             return
 
@@ -239,12 +238,14 @@ def merge_randsearch_tables(task, condition, search, sort=True):
     # Save file
     export_filename = prime_tablename.split(".csv")[0] + ("_merged" if merge else "") + ("_sorted" if sort else "")
     np.savetxt(fname=export_filename+".csv", X=rs_table, delimiter=";", fmt="%s")
+
+    return export_filename.split(f"{task}/")[1] + ".csv"  # e.g. Random_Search_Table_Reg__merged_sorted.csv
 # merge_randsearch_tables(task="classification", condition="nomov", search="broad", sort=True)
 # merge_randsearch_tables(task="regression", condition="nomov", search="broad", sort=True)
 
 
 # # Save random search tables per subject, extract n best settings per subject
-def rnd_search_table_per_subject(table_name, condition, search):
+def table_per_subject(table_name, condition, search):
     """
     This function splits given random search table into single sub-tables per subject.
     :param table_name: full table name + .csv, must lie in wd_tables (see below)
@@ -301,10 +302,10 @@ def rnd_search_table_per_subject(table_name, condition, search):
         export_filename = f"{s(sub)}_Ran"
         export_filename += table_name.split("Ran")[1].split("_m" if "merged" in table_name else "_s")[0] + ".csv"
         np.savetxt(fname=sav_dir+export_filename, X=sub_rs_table, delimiter=";", fmt="%s")
-# rnd_search_table_per_subject(table_name='Random_Search_Table_Reg_merged_sorted.csv', condition="nomov")
-# rnd_search_table_per_subject(table_name='Random_Search_Final_Table_BiCl_merged_sorted.csv', condition="nomov")
-# rnd_search_table_per_subject(table_name='Random_Search_Table_BiCl.csv', condition="nomov", search="broad")
-# rnd_search_table_per_subject(table_name='Random_Search_Table_Reg.csv', condition="nomov", search="broad")
+# table_per_subject(table_name='Random_Search_Table_Reg_merged_sorted.csv', condition="nomov")
+# table_per_subject(table_name='Random_Search_Final_Table_BiCl_merged_sorted.csv', condition="nomov")
+# table_per_subject(table_name='Random_Search_Table_BiCl.csv', condition="nomov", search="broad")
+# table_per_subject(table_name='Random_Search_Table_Reg.csv', condition="nomov", search="broad")
 
 
 def table_per_hp_setting(table_name, condition, search, fixed_comps=False):
@@ -378,7 +379,7 @@ def table_per_hp_setting(table_name, condition, search, fixed_comps=False):
 # table_per_hp_setting(table_name='Random_Search_Table_Reg.csv', condition="nomov", search="broad", fixed_comps=False)
 
 
-# first apply rnd_search_table_per_subject() then:
+# first apply table_per_subject() then:
 def table_of_best_hp_over_all_subjects(n, task, condition, search, fixed_comps=False):
     """
     Takes from each subject n best hyper parameter settings and writes in new table
@@ -599,5 +600,40 @@ def model_performance(over, task, condition, search, input_type):
 
 
 if __name__ == "__main__":
+
+    # # First run broad random search then narrow search, i.e. run on set of best hyperparameters
+    searches = [["broad"], ["narrow"], ["broad", "narrow"]]
+    conditions = [["mov"], ["nomov"], ["mov", "nomov"]]
+    tasks = [["classification"], ["regression"], ["classification", "regression"]]
+    src = cinput("\nExtract information of [0] broad search, [1] narrow search, or [2] both?\nType 0, 1 or 2", 'b')
+    scr = int(src)
+    cnd = cinput("\nApplied on condition [0] 'mov', [1] 'nomov', or [2] both?\nType 0, 1 or 2", 'b')
+    cnd = int(cnd)
+    tsk = cinput("\nApplied on task [0] 'classification', [1] 'regression', or [2] both?\nType 0, 1 or 2", 'b')
+    tsk = int(tsk)
+    fxcmp = ask_true_false("\nDo the components in one hyperparameter set vary?", "b")
+    d_type = "SSD" if ask_true_false("\nIs 'SSD' the data type? False automatically assumes 'SPoC'", "b") else 'SPOC'
+
     # TODO implement the execeution order of fucntions above
-    pass
+    # TODO check unique tables!
+    for searchi in searches[scr]:
+        print(searchi)
+        for taski in tasks[tsk]:
+            print(taski)
+            for condi in conditions[cnd]:
+                print(condi)
+                # For both conditions: 'mov' and 'nomov' AND for both tasks: 'classification' and 'regression' do:
+                # 1) Merge tables (if necessary)
+                tab_name = merge_randsearch_tables(task=taski, condition=condi, search=searchi, sort=True)
+
+                # 2) Create table per subjects and per hp-setting
+                table_per_subject(table_name=tab_name, condition=condi, search=searchi)
+                table_per_hp_setting(table_name=tab_name, condition=condi, search=searchi, fixed_comps=fxcmp)
+
+                # 3) Then create table of best HPs over all subjects
+                table_of_best_hp_over_all_subjects(n=2, task=taski, condition=condi, search=searchi, fixed_comps=fxcmp)
+
+                # 4) Calculate model performance
+                # (Has to be done after "narrow"-search. Can be done on 'broad'-random search)
+                model_performance(over="subjects", task=taski, condition=condi, search=searchi, input_type=d_type)
+                model_performance(over="hpsets", task=taski, condition=condi, search=searchi, input_type=d_type)
