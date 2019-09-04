@@ -89,38 +89,34 @@ def open_best_params(subjects, task, n=5):
 # open_best_params(subjects=[2, 36], task="classification", n=5)
 # open_best_params(subjects=[14, 25], task="classification", n=5)
 
-# TODO generally: split in 1) broad and 2) narrow search
 
 # Merge Random Search Tables from server and local computer:
-def sort_table(task, table=None):
+def sort_table(task, table=None, table_path=None):
+    """
+    Sort given table, given by python object or via external file.
+    If table comes via an external (csv)-file, the sorted version will be saved next to it.
+    :param task: 'classification' OR 'regression'
+    :param table: numpy 2D-array
+    :param table_path: if no table: then load table from provided path.
+                       Assumes table to be in subfolder of '/processed/Random_Search_Tables/'
+    :return: sorted table (if via 'table' arg) otherwise just saved externally.
+    """
     save_externally = False
     if table is None:
-        tfix = "_BiCl" if task.lower() == "classification" else "_Reg"
-        task_merg_fix = f"{tfix}_merged.csv"
 
-        file_found = False
-        for file in os.listdir("./processed/"):
-            if "Random_Search_Table" in file and task_merg_fix in file:
-                table_filename = "./processed/" + file
-                file_found = True
-                save_externally = True
-                break
-            elif "Random_Search_Table" + tfix in file and task_merg_fix not in file:
-                if ask_true_false(f"Does this file: '{file}' contain all processed results?", col="b"):
-                    table_filename = "./processed/" + file
-                    file_found = True
-                    save_externally = True
-                    break
+        assert table_path, "path to table file (.csv) must be given. " \
+                           "This assumes that table lies in subfolder of '/processed/Random_Search_Tables/'"
 
-        if file_found:
+        table_path = "./processed/Random_Search_Tables/" + table_path
 
-            broad_search = cinput("Is this ")  # TODO continue here
-            table = np.genfromtxt(table_filename, delimiter=";", dtype=str)
+        if os.path.isfile(table_path):
+            save_externally = True
+            table = np.genfromtxt(table_path, delimiter=";", dtype=str)
         else:
-            raise FileNotFoundError("No table given and no table found in './processed/'")
+            raise FileNotFoundError("No table given and no table found in './processed/Random_Search_Tables/'")
 
-    # acc_col = -1 if task == "classification" else -3
-    acc_col = -1
+    # Sort table
+    acc_col = -1  # acc_col = -1 if task == "classification" else -3
     if task == "regression":
         # Sort according to difference of mean validation accuracy and meanline accuracy
         table[0, -1] = "meanval-meanline_acc"
@@ -137,29 +133,37 @@ def sort_table(task, table=None):
     sorted_table[1:nan_start, ] = sorted_table[np.argsort(sorted_table[1:nan_start, acc_col]) + 1, ][::-1]
 
     if save_externally:
-        np.savetxt(fname="." + table_filename.split(".")[1] + "_sorted.csv", X=sorted_table,
-                   delimiter=";", fmt="%s")
+        np.savetxt(fname="." + table_path.split(".")[1] + "_sorted.csv", X=sorted_table, delimiter=";", fmt="%s")
     else:
         return sorted_table
 # sort_table(task="classification")
 
 
-def merge_randsearch_tables(task, sort=True):
+def merge_randsearch_tables(task, condition, search, sort=True):
     """
     Merges random search table from server with the one from local/other computer and saves them
     :param task: either 'classification' or 'regression'
+    :param condition: either 'mov' or 'nomov'
+    :param search: either 'broad' or 'narrow'
     :param sort: sort table according to accuracy
     """
 
     # Check function input
     assert task.lower() in ["classification", "regression"], \
         "task must be either 'classification' or 'regression'"
+    assert "mov" in condition, "condition must be either 'mov' or 'nomov'"
+    cond = "nomov" if "no" in condition.lower() else "mov"
+    search = search.lower()
+    assert search in ['broad', 'narrow'], "search must be either 'broad' or 'narrow'"
 
     tfix = "_BiCl" if task.lower() == "classification" else "_Reg"
     merge = None  # init
 
     # Find tables
-    wd_table = "./processed/"
+    wd_table = f"./processed/Random_Search_Tables/{cond}/{0 if search == 'broad' else 1}_{search}_search/"
+    if not os.path.exists(wd_table):
+        cprint(f"Assumes table to lie in '{wd_table}'.\nThis path wasn't found!", 'r')
+
     list_of_tables = []
     for file in os.listdir(wd_table):
         if "Random_Search_Table" + tfix in file:
@@ -168,7 +172,7 @@ def merge_randsearch_tables(task, sort=True):
     if len(list_of_tables) <= 1:
         cprint("Not enough tables to merge.", 'r')
         if len(list_of_tables) == 1:
-            sort = ask_true_false(f"Do you want to sort this one table '{list_of_tables[0]}'", 'b')
+            sort = ask_true_false(f"Do you want to sort this one table '{wd_table+list_of_tables[0]}'?", 'b')
             if sort:
                 prime_tablename = wd_table + list_of_tables[0]
                 rs_table = np.genfromtxt(prime_tablename, delimiter=";", dtype=str)
@@ -231,18 +235,21 @@ def merge_randsearch_tables(task, sort=True):
 
 
 # # Save random search tables per subject, extract n best settings per subject
-def rnd_search_table_per_subject(table_name, condition):
+def rnd_search_table_per_subject(table_name, condition, search):
     """
     This function splits given random search table into single sub-tables per subject.
     :param table_name: full table name + .csv, must lie in wd_tables (see below)
     :param condition: "mov" OR "nomov"
+    :param search: 'broad' OR 'narrow'
     """
 
     assert "mov" in condition, "condition must be either 'mov' or 'nomov'"
     cond = "nomov" if "no" in condition.lower() else "mov"
     task = "classification" if "BiCl" in table_name else "regression"
+    search = search.lower()
+    assert search in ['broad', 'narrow'], "search must be either 'broad' or 'narrow'"
 
-    wd_tables = f"./processed/Random_Search_Tables/{cond}/"
+    wd_tables = f"./processed/Random_Search_Tables/{cond}/{0 if search == 'broad' else 1}_{search}_search/"
 
     assert ".csv" in table_name, "Must be a csv file and filename ending with '.csv'"
     assert os.path.exists(wd_tables+table_name), f"File does not exist:\t{wd_tables+table_name}"
@@ -291,19 +298,22 @@ def rnd_search_table_per_subject(table_name, condition):
 # rnd_search_table_per_subject(table_name='Random_Search_Table_BiCl.csv', condition="nomov")
 
 
-def table_per_hp_setting(table_name, condition, fixed_comps=False):
+def table_per_hp_setting(table_name, condition, search, fixed_comps=False):
     """
     This function splits given random search table into single subtables per set of hyper-parameters
     :param table_name: name of parent table
     :param condition: "mov" or "nomov"
+    :param search: 'broad' OR 'narrow'
     :param fixed_comps: True: selection of components is identical for each subject per hyper-parameter set;
                         False: individual comps per subject, selected under same rules ('random' OR 'one-up') and same N
     """
     assert "mov" in condition, "condition must be either 'mov' or 'nomov'"
     cond = "nomov" if "no" in condition.lower() else "mov"
     task = "classification" if "BiCl" in table_name else "regression"
+    search = search.lower()
+    assert search in ['broad', 'narrow'], "search must be either 'broad' or 'narrow'"
 
-    wd_tables = f"./processed/Random_Search_Tables/{cond}/"
+    wd_tables = f"./processed/Random_Search_Tables/{cond}/{0 if search == 'broad' else 1}_{search}_search/"
 
     assert ".csv" in table_name, "Must be a csv file and filename ending with '.csv'"
     assert os.path.exists(wd_tables+table_name), f"File does not exist:\t{wd_tables+table_name}"
@@ -360,12 +370,13 @@ def table_per_hp_setting(table_name, condition, fixed_comps=False):
 
 
 # first apply rnd_search_table_per_subject() then:
-def table_of_best_hp_over_all_subjects(n, task, condition, fixed_comps=False):
+def table_of_best_hp_over_all_subjects(n, task, condition, search, fixed_comps=False):
     """
     Takes from each subject n best hyper parameter settings and writes in new table
     :param n: number of hyper parameter settings to be saved in new table
     :param task: 'classification' or 'regression'
     :param condition: 'mov' OR 'nomov'
+    :param search: 'broad' OR 'narrow'
     :param fixed_comps: True: selection of components is identical for each subject per hyper-parameter set;
                         False: individual comps per subject, selected under same rules ('random' OR 'one-up') and same N
     """
@@ -376,8 +387,8 @@ def table_of_best_hp_over_all_subjects(n, task, condition, fixed_comps=False):
     assert "mov" in condition, "condition must be either 'mov' or 'nomov'"
     cond = "nomov" if "no" in condition.lower() else "mov"
 
-    wd_tables = "./processed/Random_Search_Tables/"
-    wd_sub_tables = wd_tables + f"{cond}/{task}/per_subject/"
+    wd_sub_tables = f"./processed/Random_Search_Tables/{cond}/{0 if search == 'broad' else 1}_{search}_search/" \
+                    f"{task}/per_subject/"
 
     # count subjects:
     cntr = 0  # == number of subjects
