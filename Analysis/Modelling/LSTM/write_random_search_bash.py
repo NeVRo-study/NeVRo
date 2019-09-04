@@ -205,7 +205,7 @@ def write_search_bash_files(subs, filetype, condition,
             sub_component = ','.join([str(i) for i in sub_component])
 
             # path_specificities
-            # TODO: Could indicate in comp- which selection criterion was chosen
+            # TODO: Could indicate in comp- which selection criterion applied (update then also best_hyperparameter.py)
             path_specificities = f"{'BiCl' if 'c' in task else 'Reg'}_{cond}_RndHPS_" \
                 f"lstm-{'-'.join(str(lstm_size).split(','))}_" \
                 f"fc-{'-'.join(str(fc_n_hidden).split(','))}_" \

@@ -356,7 +356,6 @@ def table_per_hp_setting(table_name, condition, fixed_comps=False):
 # table_per_hp_setting(table_name='Random_Search_Table_Reg.csv', condition="nomov", fixed_comps=False)
 
 
-# TODO continue here
 # first apply rnd_search_table_per_subject() then:
 def table_of_best_hp_over_all_subjects(n, task, condition, fixed_comps=False):
     """
@@ -387,16 +386,17 @@ def table_of_best_hp_over_all_subjects(n, task, condition, fixed_comps=False):
                 # init new table
                 header = np.reshape(rs_table[0, :], newshape=(1, rs_table.shape[1]))
                 bhp_table = copy.copy(header)
+                exp_filename = file_name  # save file_name for later
             cntr += 1
 
+            # Create one long table
             bhp_table = np.concatenate((bhp_table, rs_table[1:n+1, :]))
-            exp_filename = file_name
 
-    if tfix == "BiCl":
+    if task == "classification":
         mc = np.mean([float(x) for x in bhp_table[1:, -1]])
         print("Average Accuracy:", mc)
 
-    else:  # tsk == "Reg"
+    else:  # task == "regression"
         mean_val_acc = np.array([float(x) for x in bhp_table[1:, -3]])
         meanline_acc = np.array([float(x) for x in bhp_table[1:, -2]])
         mc = np.mean(mean_val_acc - meanline_acc)
@@ -405,6 +405,7 @@ def table_of_best_hp_over_all_subjects(n, task, condition, fixed_comps=False):
     # Delete redundant entries, i.e. 2 or more subjects share n-m best hyperparameter sets, where m in [0,n]
     if fixed_comps:
         bhp_table_unique = np.unique(bhp_table[:, 2:-3], axis=0)  # [cond ... path_specificities]
+        print("Number of unique hyperparameter sets:", bhp_table_unique.shape[0])
 
     else:
         bhp_table_unique = copy.copy(bhp_table[:, 2:])  # init
@@ -417,49 +418,41 @@ def table_of_best_hp_over_all_subjects(n, task, condition, fixed_comps=False):
         idx_wo_comp_path = np.arange(bhp_table_unique.shape[1])
         idx_wo_comp_path = np.delete(idx_wo_comp_path, [idx_comp, idx_path])
 
-        print("full table", bhp_table_unique.shape)
-
         # Create table of unique entries ignoring the component information
         bhp_table_unique_wo_comps = copy.copy(bhp_table_unique)
         bhp_table_unique_wo_comps[1:,  [idx_comp, idx_path]] = None
         bhp_table_unique_wo_comps = np.unique(bhp_table_unique_wo_comps, axis=0)
         # bhp_table_unique_wo_comps = np.unique(bhp_table_unique[:, idx_wo_comp_path], axis=0)  # alternative
-        print("unique without comps", bhp_table_unique_wo_comps.shape)
 
         # Following is the table of unique entries including the component information
         bhp_table_unique = np.unique(bhp_table_unique, axis=0)
-        print("unique with comps", bhp_table_unique.shape)
-        # print(bhp_table_unique[0, idx_wo_comp_path])
 
+        # Fill the max number of components in table (for both columns: 'component', 'path_specificities')
         for ridx, row in enumerate(bhp_table_unique_wo_comps[1:, idx_wo_comp_path]):
-            print("\nunique_set:\n", row)
-            n_max_comp = 0
-            pctn = 0
+            n_max_comp = 0  # init
+            row_path = False  # init
             for row_full in bhp_table_unique[1:, :]:
-                if np.all(row == row_full[idx_wo_comp_path]):
-                    # row_full[idx_path]  # omit, since same information is contained in rest of table
+                if np.all(row == row_full[idx_wo_comp_path]):  # check if rows match (without component-information)
+                    # Find max N components
                     cmps = ast.literal_eval(row_full[idx_comp])
-                    # print(row_full[idx_comp])
-                    print(cmps)
                     n_cmps = 1 if isinstance(cmps, int) else len(cmps)
-                    print("N =", n_cmps)
                     n_max_comp = n_cmps if n_cmps > n_max_comp else n_max_comp
 
-                    if pctn == 0:
-                        print(row_full[idx_path])
-                        short_path = row_full[idx_path]
-                        pctn += 1
+                    # Extract 'path_specificities'
+                    row_path = row_full[idx_path] if not row_path else row_path   # Do only once per row
 
-            print("n_max_comp:", n_max_comp)
+            # Write max N in table per row
             bhp_table_unique_wo_comps[ridx+1, idx_comp] = f"n_max={n_max_comp}"
 
-            print("short_path:", short_path)
-            short_path = short_path.split("_comp")[0] + f"_comp-nmax-{n_max_comp}_hrc" + short_path.split("_hrc")[1]
-            bhp_table_unique_wo_comps[ridx+1, idx_path] = short_path
+            # Write modified path in table (component information exchanged with max N comp) per row
+            row_path = row_path.split("_comp")[0] + f"_comp-nmax-{n_max_comp}_hrc" + row_path.split("_hrc")[1]
+            bhp_table_unique_wo_comps[ridx+1, idx_path] = row_path
 
+        # Contains now unique HP-sets and summary over components.
         bhp_table_unique = bhp_table_unique_wo_comps
+        # (Note: paths need to be modified when read out of this table)
 
-    print(f"{bhp_table.shape[0]-bhp_table_unique.shape[0]} hyperparameter settings are the same.")
+    print(f"Number of unique hyperparameter sets: {bhp_table_unique.shape[0]} (out of {bhp_table.shape[0]})")
 
     # Save
     export_filename = f"Best_{n}_HPsets_over_{cntr}_Subjects_mean_acc_{mc:.3f}_Ran" + exp_filename.split("_Ran")[1]
@@ -471,18 +464,19 @@ def table_of_best_hp_over_all_subjects(n, task, condition, fixed_comps=False):
 # table_of_best_hp_over_all_subjects(n=2, task="classification", condition="nomov")
 
 
+# TODO continue here
 def model_performance(over, task, input_type):
     """
     Calculate the overall performance over subjects or over hyperparameter sets
     :param task: which task: either 'classification' or 'regression'
     :param over: type=str, either 'subjects' or 'hp-sets'
-    :param input_type: either "SSD" for SSD data, or "SPOC" for SPoC data
+    :param input_type: either "SSD" OR "SPOC" for corresponding data type
     :return: performance table
     """
 
     assert task.lower() in ['classification', 'regression'], \
         "task must be either 'regression' or 'classification'"
-    assert input_type.lower() in ['ssd', 'spoc'], "input_type must be either 'SSD' or 'SPOC'"
+    assert input_type.upper() in ['SSD', 'SPOC'], "input_type must be either 'SSD' or 'SPOC'"
     assert over.lower() in ['subjects', 'hp-sets'], "over must be either 'subjects' or 'hp-sets'"
 
     wd_tables = "./processed/Random_Search_Tables/Random_Search_Final_Table{}{}/".format(
