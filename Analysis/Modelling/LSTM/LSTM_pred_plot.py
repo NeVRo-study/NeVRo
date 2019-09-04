@@ -211,9 +211,9 @@ for info in acc_date:
 
     elif "Task:" in info:
         task = info.split(": ")[1]
-        wdic_plot += task + "/"
+        wdic_plot += f"{cond}/{task}/"
         if not gfile.Exists(wdic_plot):
-            gfile.MakeDirs(wdic_plot)
+            gfile.MakeDirs(wdic_plot)  # "../../../Results/Plots/LSTM/nomov/regression/"
 
     elif "Shuffle_data:" in info:
         shuffle = True if info.split(": ")[1] == "True" else False

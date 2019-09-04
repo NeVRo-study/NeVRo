@@ -13,24 +13,30 @@ from meta_functions import *
 setwd("/Analysis/Modelling/LSTM/")
 
 
-def open_best_params(subjects, task, n=5):
+# TODO adapt
+def open_best_params(subjects, task, condition, n=5):
     """
     Print filenames and open plots of best hyperparameters per subjects
     :param subjects: list of subjects
     :param task: "classification" or "regression"
+    :param condition: "mov" or "nomov"
     :param n: number of settings to print and plot
     :return:
     """
 
+    task = task.lower()
     assert task in ["classification", "regression"], \
         "Task must be either 'classification' or 'regression'."
+    condition = condition.lower()
+    assert "mov" in condition, "condition must be either 'mov' or 'nomov'"
+    cond = "nomov" if "no" in condition else "mov"
 
     if not isinstance(subjects, list):
         subjects = [subjects]
 
     for sub in subjects:
-        wdic = f"./processed/{s(sub)}/already_plotted/"
-        wdic_plot = "../../../Results/Plots/LSTM/" + task + "/"
+        wdic = f"./processed/{cond}/{s(sub)}/already_plotted/"
+        wdic_plot = f"../../../Results/Plots/LSTM/{cond}/{task}/"
 
         acc_name_list = []
         acc_list = []
@@ -85,7 +91,6 @@ def open_best_params(subjects, task, n=5):
                         subprocess.Popen(["display", current_plot_file])  # feh
                     else:
                         subprocess.Popen(["start", current_plot_file])
-
 # open_best_params(subjects=[2, 36], task="classification", n=5)
 # open_best_params(subjects=[14, 25], task="classification", n=5)
 
@@ -113,7 +118,7 @@ def sort_table(task, table=None, table_path=None):
             save_externally = True
             table = np.genfromtxt(table_path, delimiter=";", dtype=str)
         else:
-            raise FileNotFoundError("No table given and no table found in './processed/Random_Search_Tables/'")
+            raise FileNotFoundError(f"No table given and no table found in './processed/Random_Search_Tables/'")
 
     # Sort table
     acc_col = -1  # acc_col = -1 if task == "classification" else -3
@@ -136,7 +141,7 @@ def sort_table(task, table=None, table_path=None):
         np.savetxt(fname="." + table_path.split(".")[1] + "_sorted.csv", X=sorted_table, delimiter=";", fmt="%s")
     else:
         return sorted_table
-# sort_table(task="classification")
+# sort_table(task="classification", table_path="nomov/0_broad_search/classification/Random_Search_Table_BiCl.csv")
 
 
 def merge_randsearch_tables(task, condition, search, sort=True):
@@ -149,18 +154,19 @@ def merge_randsearch_tables(task, condition, search, sort=True):
     """
 
     # Check function input
-    assert task.lower() in ["classification", "regression"], \
-        "task must be either 'classification' or 'regression'"
+    task = task.lower()
+    assert task in ["classification", "regression"], "task must be either 'classification' or 'regression'"
+    condition = condition.lower()
     assert "mov" in condition, "condition must be either 'mov' or 'nomov'"
-    cond = "nomov" if "no" in condition.lower() else "mov"
+    cond = "nomov" if "no" in condition else "mov"
     search = search.lower()
     assert search in ['broad', 'narrow'], "search must be either 'broad' or 'narrow'"
 
-    tfix = "_BiCl" if task.lower() == "classification" else "_Reg"
+    tfix = "_BiCl" if task == "classification" else "_Reg"
     merge = None  # init
 
     # Find tables
-    wd_table = f"./processed/Random_Search_Tables/{cond}/{0 if search == 'broad' else 1}_{search}_search/"
+    wd_table = f"./processed/Random_Search_Tables/{cond}/{0 if search == 'broad' else 1}_{search}_search/{task}/"
     if not os.path.exists(wd_table):
         cprint(f"Assumes table to lie in '{wd_table}'.\nThis path wasn't found!", 'r')
 
@@ -172,7 +178,10 @@ def merge_randsearch_tables(task, condition, search, sort=True):
     if len(list_of_tables) <= 1:
         cprint("Not enough tables to merge.", 'r')
         if len(list_of_tables) == 1:
-            sort = ask_true_false(f"Do you want to sort this one table '{wd_table+list_of_tables[0]}'?", 'b')
+            if "sorted" in list_of_tables[0]:
+                sort = False
+            else:
+                sort = ask_true_false(f"Do you want to sort this one table '{wd_table+list_of_tables[0]}'?", 'b')
             if sort:
                 prime_tablename = wd_table + list_of_tables[0]
                 rs_table = np.genfromtxt(prime_tablename, delimiter=";", dtype=str)
@@ -230,8 +239,8 @@ def merge_randsearch_tables(task, condition, search, sort=True):
     # Save file
     export_filename = prime_tablename.split(".csv")[0] + ("_merged" if merge else "") + ("_sorted" if sort else "")
     np.savetxt(fname=export_filename+".csv", X=rs_table, delimiter=";", fmt="%s")
-# merge_randsearch_tables(task="classification", sort=True)
-# merge_randsearch_tables(task="regression", sort=True)
+# merge_randsearch_tables(task="classification", condition="nomov", search="broad", sort=True)
+# merge_randsearch_tables(task="regression", condition="nomov", search="broad", sort=True)
 
 
 # # Save random search tables per subject, extract n best settings per subject
@@ -243,19 +252,21 @@ def rnd_search_table_per_subject(table_name, condition, search):
     :param search: 'broad' OR 'narrow'
     """
 
+    condition = condition.lower()
     assert "mov" in condition, "condition must be either 'mov' or 'nomov'"
-    cond = "nomov" if "no" in condition.lower() else "mov"
-    task = "classification" if "BiCl" in table_name else "regression"
+    cond = "nomov" if "no" in condition else "mov"
     search = search.lower()
     assert search in ['broad', 'narrow'], "search must be either 'broad' or 'narrow'"
 
-    wd_tables = f"./processed/Random_Search_Tables/{cond}/{0 if search == 'broad' else 1}_{search}_search/"
+    task = "classification" if "BiCl" in table_name else "regression"
+
+    wd_tables = f"./processed/Random_Search_Tables/{cond}/{0 if search == 'broad' else 1}_{search}_search/{task}/"
 
     assert ".csv" in table_name, "Must be a csv file and filename ending with '.csv'"
     assert os.path.exists(wd_tables+table_name), f"File does not exist:\t{wd_tables+table_name}"
 
     # Prepare folder to save files
-    sav_dir = wd_tables + task + "/per_subject/"
+    sav_dir = wd_tables + "per_subject/"
     if not os.path.exists(sav_dir):
         os.makedirs(sav_dir)
 
@@ -290,12 +301,10 @@ def rnd_search_table_per_subject(table_name, condition, search):
         export_filename = f"{s(sub)}_Ran"
         export_filename += table_name.split("Ran")[1].split("_m" if "merged" in table_name else "_s")[0] + ".csv"
         np.savetxt(fname=sav_dir+export_filename, X=sub_rs_table, delimiter=";", fmt="%s")
-# rnd_search_table_per_subject(table_name='Random_Search_Final_Table_BiCl_merged_sorted.csv', condition="nomov")
-# rnd_search_table_per_subject(table_name='Random_Search_Final_Table_Reg_merged_sorted.csv', condition="nomov")
 # rnd_search_table_per_subject(table_name='Random_Search_Table_Reg_merged_sorted.csv', condition="nomov")
-# rnd_search_table_per_subject(table_name='Random_Search_Final_Table_BiCl_SPOC_merged_sorted.csv', condition="nomov")
-# rnd_search_table_per_subject(table_name='Random_Search_Final_Table_Reg_SPOC_merged_sorted.csv', condition="nomov")
-# rnd_search_table_per_subject(table_name='Random_Search_Table_BiCl.csv', condition="nomov")
+# rnd_search_table_per_subject(table_name='Random_Search_Final_Table_BiCl_merged_sorted.csv', condition="nomov")
+# rnd_search_table_per_subject(table_name='Random_Search_Table_BiCl.csv', condition="nomov", search="broad")
+# rnd_search_table_per_subject(table_name='Random_Search_Table_Reg.csv', condition="nomov", search="broad")
 
 
 def table_per_hp_setting(table_name, condition, search, fixed_comps=False):
@@ -307,18 +316,20 @@ def table_per_hp_setting(table_name, condition, search, fixed_comps=False):
     :param fixed_comps: True: selection of components is identical for each subject per hyper-parameter set;
                         False: individual comps per subject, selected under same rules ('random' OR 'one-up') and same N
     """
+    condition = condition.lower()
     assert "mov" in condition, "condition must be either 'mov' or 'nomov'"
-    cond = "nomov" if "no" in condition.lower() else "mov"
-    task = "classification" if "BiCl" in table_name else "regression"
+    cond = "nomov" if "no" in condition else "mov"
     search = search.lower()
     assert search in ['broad', 'narrow'], "search must be either 'broad' or 'narrow'"
 
-    wd_tables = f"./processed/Random_Search_Tables/{cond}/{0 if search == 'broad' else 1}_{search}_search/"
+    task = "classification" if "BiCl" in table_name else "regression"
+
+    wd_tables = f"./processed/Random_Search_Tables/{cond}/{0 if search == 'broad' else 1}_{search}_search/{task}/"
 
     assert ".csv" in table_name, "Must be a csv file and filename ending with '.csv'"
     assert os.path.exists(wd_tables+table_name), f"File does not exist:\t{wd_tables+table_name}"
     # Prepare folder to save files
-    sav_dir = wd_tables + task + "/per_hp_set/"
+    sav_dir = wd_tables + "per_hp_set/"
     if not os.path.exists(sav_dir):
         os.makedirs(sav_dir)
 
@@ -348,7 +359,7 @@ def table_per_hp_setting(table_name, condition, search, fixed_comps=False):
     else:
         # Remove individual component information (per subject) from list of unique hyper-parameter settings
         hp_settings_without_comps = np.unique(
-            [setting.split("_comp")[0]+"_hrcomp"+setting.split("_hrcomp")[1] for setting in hp_settings])
+            [setting.split("_comp")[0]+"_hrcomp" + setting.split("_hrcomp")[1] for setting in hp_settings])
 
         for setx, setting in enumerate(hp_settings_without_comps):
             sel_rows = []
@@ -363,10 +374,8 @@ def table_per_hp_setting(table_name, condition, search, fixed_comps=False):
             export_filename = f"Set{str(setx + 1).zfill(2)}_Ran{table_name.split('Ran')[1].split(sp)[0]}.csv"
             np.savetxt(fname=sav_dir + export_filename, X=set_rs_table, delimiter=";", fmt="%s")
 # table_per_hp_setting(table_name='Random_Search_Final_Table_BiCl_merged_sorted.csv', condition="nomov")
-# table_per_hp_setting(table_name='Random_Search_Final_Table_Reg_merged_sorted.csv', condition="nomov")
-# table_per_hp_setting(table_name='Random_Search_Final_Table_BiCl_SPOC_merged_sorted.csv', condition="nomov")
-# table_per_hp_setting(table_name='Random_Search_Final_Table_Reg_SPOC_merged_sorted.csv', condition="nomov")
-# table_per_hp_setting(table_name='Random_Search_Table_Reg.csv', condition="nomov", fixed_comps=False)
+# table_per_hp_setting(table_name='Random_Search_Table_BiCl.csv', condition="nomov", search="broad", fixed_comps=False)
+# table_per_hp_setting(table_name='Random_Search_Table_Reg.csv', condition="nomov", search="broad", fixed_comps=False)
 
 
 # first apply rnd_search_table_per_subject() then:
@@ -384,8 +393,9 @@ def table_of_best_hp_over_all_subjects(n, task, condition, search, fixed_comps=F
     assert task in ["classification", "regression"], "task must be either 'classification' or 'regression'"
     tfix = "BiCl" if task == "classification" else "Reg"
 
+    condition = condition.lower()
     assert "mov" in condition, "condition must be either 'mov' or 'nomov'"
-    cond = "nomov" if "no" in condition.lower() else "mov"
+    cond = "nomov" if "no" in condition else "mov"
 
     wd_sub_tables = f"./processed/Random_Search_Tables/{cond}/{0 if search == 'broad' else 1}_{search}_search/" \
                     f"{task}/per_subject/"
@@ -473,74 +483,86 @@ def table_of_best_hp_over_all_subjects(n, task, condition, search, fixed_comps=F
     export_filename_unique = "unique_" + export_filename
     np.savetxt(fname=wd_sub_tables+export_filename, X=bhp_table, delimiter=";", fmt="%s")
     np.savetxt(fname=wd_sub_tables+export_filename_unique, X=bhp_table_unique, delimiter=";", fmt="%s")
-# table_of_best_hp_over_all_subjects(n=2, task="classification")
-# table_of_best_hp_over_all_subjects(n=2, task="regression")
-# table_of_best_hp_over_all_subjects(n=2, task="classification", condition="nomov")
+# table_of_best_hp_over_all_subjects(n=2, task="classification", condition="nomov", search="broad")
 
 
 # TODO continue here
-def model_performance(over, task, input_type):
+def model_performance(over, task, condition, search, input_type):
     """
     Calculate the overall performance over subjects or over hyperparameter sets
+    :param over: type=str, either 'subjects' or 'hpsets'
     :param task: which task: either 'classification' or 'regression'
-    :param over: type=str, either 'subjects' or 'hp-sets'
+    :param condition: "mov" OR "nomov"
+    :param search: 'broad' OR 'narrow'
     :param input_type: either "SSD" OR "SPOC" for corresponding data type
     :return: performance table
     """
 
-    assert task.lower() in ['classification', 'regression'], \
-        "task must be either 'regression' or 'classification'"
+    over = over.lower()
+    assert over in ['subjects', 'hpsets'], "over must be either 'subjects' or 'hpsets'"
+    task = task.lower()
+    assert task in ['classification', 'regression'], "task must be either 'regression' or 'classification'"
+    condition = condition.lower()
+    assert "mov" in condition, "condition must be either 'mov' or 'nomov'"
+    cond = "nomov" if "no" in condition else "mov"
+    search = search.lower()
+    assert search in ['broad', 'narrow'], "search must be either 'broad' or 'narrow'"
     assert input_type.upper() in ['SSD', 'SPOC'], "input_type must be either 'SSD' or 'SPOC'"
-    assert over.lower() in ['subjects', 'hp-sets'], "over must be either 'subjects' or 'hp-sets'"
 
-    wd_tables = "./processed/Random_Search_Tables/Random_Search_Final_Table{}{}/".format(
-        "_Reg" if task == "regression" else "",
-        "_SPOC" if input_type.lower() == "spoc" else "")
+    wd_tables = f"./processed/Random_Search_Tables/{cond}/{0 if search == 'broad' else 1}_{search}_search/{task}/"
+
     wd_tables += "per_subject/" if over == "subjects" else "per_hp_set/"
 
     count_entries = 0
 
     if over == "subjects":
 
-        head_idx = [1, 23, -1] if task == "classification" else [1, 23, 24, 25, 26]
-
         for file_name in os.listdir(wd_tables):
-            if ".csv" in file_name:
+            if file_name[0] == "S" and ".csv" in file_name:
                 count_entries += 1
                 rs_table = np.genfromtxt(wd_tables + file_name, delimiter=";", dtype=str)
                 if count_entries == 1:
+
+                    # Reduce final table to subject:path:performance
+                    idx_sub = np.where(rs_table[0, :] == "subject")[0][0]  # 1
+                    idx_path = np.where(rs_table[0, :] == "path_specificities")[0][0]  # 26
+                    head_idx = [idx_sub, idx_path]
+                    head_idx += [-1] if task == "classification" else [-3, -2, -1]  # [1, 23,( 24, 25,) 26] : accuracies
+
                     fin_table = np.reshape(rs_table[0, head_idx], newshape=(1, len(head_idx)))  # header
 
+                # Extract best performance per subject, which is in the first row (tables are sorted)
                 perform = [rs_table[1, -1]] if task == "classification" else list(rs_table[1, -3:])
-                setting = rs_table[1, 23]
+                hp_setting = rs_table[1, idx_path]
                 sub = file_name.split("_Random")[0].split("S")[1]  # subject number (str)
 
-                fin_table = np.concatenate((fin_table, np.reshape([sub, setting] + perform,
+                fin_table = np.concatenate((fin_table, np.reshape([sub, hp_setting] + perform,
                                                                   (1, len(fin_table[0])))))
 
         # performances = [float(x) if x != "nan" else np.nan for x in fin_table[1:, 2:]]
         # mean_perform = np.round(np.nanmean(performances), 3)
         performances = np.array(fin_table[1:, -1 if task == "classification" else -3:], dtype=float)
         mean_perform = np.round(np.nanmean(performances, axis=0), 3)
-        fin_table = np.concatenate((fin_table, np.reshape(np.array(["all",
-                                                                    "average_performance",
-                                                                    ] + list(mean_perform.astype(str))),
-                                                          newshape=(1, len(fin_table[0])))))
+        fin_table = np.concatenate((fin_table,
+                                    np.reshape(np.array(["all",
+                                                         "average_performance"] + list(mean_perform.astype(str))),
+                                               newshape=(1, len(fin_table[0])))))
 
         # Save
         export_filename = "AllSub_Ran" + file_name.split("Ran")[1]
         np.savetxt(fname=wd_tables + export_filename, X=fin_table, delimiter=";", fmt="%s")
 
-    else:  # over == "hp-sets"
-
-        head_idx = [23, -1]  # here no differentiation between the tasks
+    else:  # over == "hpsets"
 
         for file_name in os.listdir(wd_tables):
             if "Set" in file_name and ".csv" in file_name:
                 count_entries += 1
                 rs_table = np.genfromtxt(wd_tables + file_name, delimiter=";", dtype=str)
                 if count_entries == 1:
-                    fin_table = np.reshape(np.concatenate((["subjects"], rs_table[0, head_idx], ["SD"])),
+                    # Reduce final table to subject:path:performance
+                    idx_path = np.where(rs_table[0, :] == "path_specificities")[0][0]  # 26
+                    head_idx = [idx_path, -1]  # here no differentiation between the tasks
+                    fin_table = np.reshape(np.concatenate((["subjects"], rs_table[0, head_idx], ["SD"])),  # add SD col
                                            newshape=(1, len(head_idx)+2))  # header
 
                 # performances = [float(x) if x != "nan" else np.nan for x in rs_table[1:, -1]]
@@ -548,9 +570,9 @@ def model_performance(over, task, input_type):
                 performances = np.array(rs_table[1:, -1], dtype=float)
                 mean_perform = np.round(np.nanmean(performances, axis=0), 3)
                 std_perform = np.round(np.nanstd(performances, axis=0), 3)
-                setting = rs_table[1, 23]  # for all the same
+                hp_setting = rs_table[1, idx_path]  # for all the same
 
-                fin_table = np.concatenate((fin_table, np.reshape(np.array(["all", setting, mean_perform,
+                fin_table = np.concatenate((fin_table, np.reshape(np.array(["all", hp_setting, mean_perform,
                                                                             std_perform]),
                                                                   newshape=(1, len(head_idx)+2))))
 
@@ -569,13 +591,11 @@ def model_performance(over, task, input_type):
         export_filename = "AllHPsets_Ran" + file_name.split("Ran")[1]
         np.savetxt(fname=wd_tables + export_filename, X=sorted_fin_table, delimiter=";", fmt="%s")
 # model_performance(over="subjects", task="classification", input_type="SSD")
-# model_performance(over="hp-sets", task="classification", input_type="SSD")
-# model_performance(over="subjects", task="regression", input_type="SSD")
-# model_performance(over="hp-sets", task="regression", input_type="SSD")
-# model_performance(over="subjects", task="classification", input_type="SPOC")
-# model_performance(over="hp-sets", task="classification", input_type="SPOC")
-# model_performance(over="subjects", task="regression", input_type="SPOC")
-# model_performance(over="hp-sets", task="regression", input_type="SPOC")
+# model_performance(over="hpsets", task="regression", input_type="SPOC")
+# model_performance(over="subjects", task="classification", condition="nomov", search="broad", input_type="SSD")
+# model_performance(over="hpsets", task="classification", condition="nomov", search="broad", input_type="SSD")
+# model_performance(over="subjects", task="regression", condition="nomov", search="broad", input_type="SSD")
+# model_performance(over="hpsets", task="regression", condition="nomov", search="broad", input_type="SSD")
 
 
 if __name__ == "__main__":
