@@ -89,6 +89,7 @@ def open_best_params(subjects, task, n=5):
 # open_best_params(subjects=[2, 36], task="classification", n=5)
 # open_best_params(subjects=[14, 25], task="classification", n=5)
 
+# TODO generally: split in 1) broad and 2) narrow search
 
 # Merge Random Search Tables from server and local computer:
 def sort_table(task, table=None):
@@ -112,6 +113,8 @@ def sort_table(task, table=None):
                     break
 
         if file_found:
+
+            broad_search = cinput("Is this ")  # TODO continue here
             table = np.genfromtxt(table_filename, delimiter=";", dtype=str)
         else:
             raise FileNotFoundError("No table given and no table found in './processed/'")
