@@ -21,6 +21,45 @@ if not os.path.exists(p2_bash):
 
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+# TODO adapt script for tables such as 'Narrow_Search_Table_nomov_BiCl.csv'
+def draw_components(n, subject, condition, filetype, select_mode="one_up", dtype=None):
+    """
+
+    :param n: number of components
+    :param subject: subject number
+    :param condition: 'mov' OR 'nomov'
+    :param filetype: 'SSD' OR 'SPOC'
+    :param select_mode: 'one-up' OR 'random_set'
+    :param dtype: None: return np.array; 'str': as string
+    :return: list of components per subject
+    """
+
+    assert select_mode in ["one_up", "random_set"], "component_mode must be either 'one_up' or 'random_set'"
+    filetype = filetype.upper()
+    assert filetype in ['SSD', 'SPOC'], "filetype must be either 'SSD' or 'SPOC'"
+    cond = condition.lower()
+    assert cond in ['mov', 'nomov'], "condition must be either 'mov' or 'nomov'"
+
+    # Number of components to select
+    sub_max_n = get_num_components(subject, cond, filetype)
+    n_comp = n if n <= sub_max_n else sub_max_n
+
+    # Get component list for subject
+    sub_ls_pos_comps = get_list_components(subject, cond, filetype)
+
+    # Choose components
+    if select_mode == "one_up":
+        sub_components = sub_ls_pos_comps[0:n]  # works also for n_comp < n
+
+    else:  # select_mode == 'random_set'
+        sub_components = np.sort(np.random.choice(a=sub_ls_pos_comps, size=n_comp, replace=False))
+
+    # Adapt dytpe of output
+    if isinstance(dtype, str):
+        sub_components = ','.join([str(i) for i in sub_components])
+
+    return sub_components
+
 
 def write_search_bash_files(subs, filetype, condition,
                             task_request=None, component_mode=2, eqcompmat=None,
@@ -58,7 +97,7 @@ def write_search_bash_files(subs, filetype, condition,
     else:
         subs = [subs]
 
-    filetype = filetype.upper()  # filetype (alternatively: np.random.choice(a=['SSD', 'SPOC']))
+    filetype = filetype.upper()
     assert filetype in ['SSD', 'SPOC'], "filetype must be either 'SSD' or 'SPOC'"
     cond = condition.lower()
     assert cond in ['mov', 'nomov'], "condition must be either 'mov' or 'nomov'"
@@ -74,14 +113,14 @@ def write_search_bash_files(subs, filetype, condition,
             "How many random combinations of hyperparameters to test (given value will be multiplied "
             "with n_subjects)): ", "b"))
 
-    tasks = ["regression", "classification"]
+    _tasks = ["regression", "classification"]
     if task_request is None:
         task_request = cinput(
-            "For which task is the random search bash? ['r' for'regression', 'c' for 'classification']: ",
-            "b")
-    assert task_request.lower() in tasks[0] or task_request.lower() in tasks[1], \
+            "For which task is the random search bash? ['r' for'regression', 'c' for 'classification']: ", 'b')
+    assert task_request.lower() in _tasks[0] or task_request.lower() in _tasks[1], \
         "Task input must be eitehr 'r' or 'c'"
-    task = tasks[0] if task_request.lower() in tasks[0] else tasks[1]
+    task = _tasks[0] if task_request.lower() in _tasks[0] else _tasks[1]
+    tfix = "BiCl" if task == "classification" else "Reg"
 
     shuffle = True if task == "classification" else False
     successive = 1 if task == "classification" else successive_default
@@ -93,7 +132,7 @@ def write_search_bash_files(subs, filetype, condition,
     #                        "b"))
 
     # Create bashfile if not there already:
-    bash_file_name = p2_bash + f"bashfile_randomsearch_{'BiCl' if 'c' in task else 'Reg'}.sh"
+    bash_file_name = p2_bash + f"bashfile_randomsearch_{cond}_{tfix}.sh"
     sub_bash_file_names = []
     subbash_suffix = ["_local.sh"] + [f"_{subba}.sh" for subba in range(1, n_subbash)]
 
@@ -188,21 +227,8 @@ def write_search_bash_files(subs, filetype, condition,
         # Prepare to write line in bash file per subject
         for sidx, sub in enumerate(subs):
 
-            # Get component list for subject
-            sub_ls_pos_comps = get_list_components(subject=sub, condition=cond, filetype=filetype)
-
-            # Choose components w.r.t. component_modes
-            if component_modes == "one_up":
-                sub_component = sub_ls_pos_comps[0:choose_n_comp]
-                # works also for ncomp[sidx] < choose_n_comp
-
-            else:  # component_modes == 'random_set'
-                sub_component = np.sort(np.random.choice(a=sub_ls_pos_comps,
-                                                         size=choose_n_comp if choose_n_comp < ncomp[sidx]
-                                                         else ncomp[sidx],
-                                                         replace=False))
-
-            sub_component = ','.join([str(i) for i in sub_component])
+            sub_component = draw_components(n=choose_n_comp, subject=sub, condition=cond, filetype=filetype,
+                                            select_mode=component_modes, dtype='str')
 
             # path_specificities
             # TODO: Could indicate in comp- which selection criterion applied (update then also best_hyperparameter.py)
@@ -284,15 +310,44 @@ def write_search_bash_files(subs, filetype, condition,
     print("\nBashfiles and table completed.")
 
 
-# TODO function() to write path_specificities from table-row
-# TODO function() to draw comps from possible list given max-N comps. Pull this partially from write_search_bash_files()
+def write_bash_from_table(subs, table_path, condition, task=None, n_subbash=4, del_log_folders=True):
+    """
+    Write executable bash scripts for list of subjects (usually full cohort). Corresponding hyperparameters will be
+    extracted from given table (path). This is (usually) done for a 'narrow' search over best hyperparameter settings
+    that are received from a broad random search on a subset of subjects.
+    :param subs: list of subjects
+    :param table_path: path to table. Asserts table to be in subfolder './processed/Random_Search_Tables/...'
+    :param condition: 'mov' OR 'nomov'
+    :param task: 'classification' OR 'regression'; If None: try to extract from path
+    :param n_subbash: Define number of sub-bashfiles (for distributed processing)
+    :param del_log_folders: Whether to delete log files and checkpoints after processing and plotting
+    """
 
-# TODO continue here
-def write_bash_from_table(subs, table_path, del_log_folders=True):
+    # Check given arguments
+    tfixes = ["BiCl", "Reg"]
 
-    # # Following need to be set manually (Default)
-    wd_tables = "./processed/Random Search Tables/"
-    table_path = wd_tables + table_path
+    if task:
+        task = task.lower()
+        assert task in ["classification", "regression"], "task must be either 'classification' or 'regression'"
+        tfix = tfixes[0] if task == "classification" else tfixes[1]
+    else:
+        try:
+            tfix = tfixes[np.where([fix in table_path for fix in tfixes])[0][0]]
+            task = "classification" if tfix == tfixes[0] else "regression"
+        except IndexError:
+            raise TypeError("'task' argument is necessary to proceed. Could not be extracted from path.")
+
+    condition = condition.lower()
+    assert "mov" in condition, "condition must be either 'mov' or 'nomov'"
+    cond = "nomov" if "no" in condition else "mov"
+
+    assert isinstance(n_subbash, int), "n_subbash must be integer"
+    subbash_suffix = ["_local.sh"] + [f"_{subba}.sh" for subba in range(1, n_subbash)]
+
+    # Set full path to table (asserts that table is in '.../0_broad_search/{task}/per_subject/
+    # [write full path implementation if necessary]
+    wd_tables = f"./processed/Random_Search_Tables/{cond}/0_broad_search/{task}/per_subject/"
+    full_table_path = wd_tables + table_path
     # table_path = wd_tables \
     #              + "unique_Best_2_HPsets_over_10_Subjects_mean_acc_0.660_Random_Search_Table_BiCl.csv"
 
@@ -301,8 +356,9 @@ def write_bash_from_table(subs, table_path, del_log_folders=True):
 
     num_sub = len(subs)
 
-    assert os.path.exists(table_path), "Given table path does not exist"
-    hp_table = np.genfromtxt(table_path, delimiter=";", dtype=str)
+    assert os.path.exists(full_table_path), \
+        f"Given table '{table_path}' wasn't found! Asserts table to be in '{wd_tables}'"
+    hp_table = np.genfromtxt(full_table_path, delimiter=";", dtype=str)
 
     # Create new HP-table
     n_combis = hp_table[1:].shape[0]
@@ -323,22 +379,48 @@ def write_bash_from_table(subs, table_path, del_log_folders=True):
 
     new_hp_table = np.concatenate((np.concatenate((lside_table, mid_table), 1), rside_table), 1)
 
+    # Check whether (fixed) components are given or must be generated/drawn
+    idx_sub = 1  # subject
+    idx_comp = np.where(new_hp_table[0, :] == "component")[0][0]
+    idx_path = np.where(new_hp_table[0, :] == "path_specificities")[0][0]
+
+    fix_comp = False if np.any(["n_max" in row for row in new_hp_table[1:, idx_comp]]) else True
+
+    if not fix_comp:
+        # Generate component list for each subject
+        filetype = np.unique(new_hp_table[1:, np.where(new_hp_table[0, :] == "filetype")[0][0]])
+        assert len(filetype) == 1, f"filetype in table must be the same. Found '{filetype}'"
+        filetype = filetype[0]
+
+        for ridx, row in enumerate(new_hp_table[1:, :]):
+            # Get max N components per hyperparameter set (i.e., row)
+            n_max = int(row[idx_comp].split("=")[1])
+            # Draw components for subjects individually
+            sub_comps = draw_components(n=n_max, subject=int(row[idx_sub]), condition=cond, filetype=filetype,
+                                        select_mode="one_up", dtype="str")
+
+            # Overwrite in table: 'component' AND 'path_specificities'
+            new_hp_table[ridx+1, idx_comp] = sub_comps  # 'component'
+
+            pspecs = row[idx_path]  # 'path_specificities'
+            pspecs = pspecs.split("_comp")[0] + f"_comp-{'-'.join(sub_comps.split(','))}_hrc" + pspecs.split("_hrc")[1]
+            new_hp_table[ridx + 1, idx_path] = pspecs
+
     # Save new HP-table
-    new_table_name = "./processed/" + "Ran" + table_path.split("_Ran")[-1]
+    new_table_name = f"./processed/Narrow_Search_Table_{cond}_{tfix}.csv"
     np.savetxt(fname=new_table_name, X=new_hp_table, delimiter=";", fmt="%s")
 
     # Create bashfile if not there already:
-    bash_filename = "bashfile_specific_search_{}.sh".format(table_path.split("_")[-1].split(".")[0])
+    bash_filename = p2_bash + f"bashfile_narrowsearch_{cond}_{tfix}.sh"
     if not os.path.exists(bash_filename):
         with open(bash_filename, "w") as bash_file:  # 'a' for append
-            bash_file.write("#!/usr/bin/env bash\n\n" + "# Specific Search Bashfile:")
+            bash_file.write("#!/usr/bin/env bash\n\n" + "# Narrow Search Bashfile:")
 
-        for subbash in ["_local.sh", "_1.sh", "_2.sh", "_3.sh"]:
-            subbash_filename = bash_filename.split(".")[0] + subbash
+        for subbash in subbash_suffix:
+            subbash_filename = bash_filename.split(".sh")[0] + subbash
             with open(subbash_filename, "w") as bash_file:  # 'a' for append
                 bash_file.write(
-                    "#!/usr/bin/env bash\n\n" + "# Specific Search Bashfile{}:".format(
-                        subbash.split(".")[0]))
+                    "#!/usr/bin/env bash\n\n" + f"# Narrow Search Bashfile{subbash.split('.')[0]}: {task}")
 
     # Write according bashfiles
     combi_count = 0
@@ -356,49 +438,37 @@ def write_bash_from_table(subs, table_path, del_log_folders=True):
             path_specificities = line
 
         # Write line for bashfile (Important: [Space] after each entry)
-
-        bash_line = "python3 NeVRo.py " \
-                    "--subject {} --condition {} --seed {} --task {} --shuffle {} " \
-                    "--repet_scalar {} --s_fold {} --batch_size {} " \
-                    "--successive {} --successive_mode {} --rand_batch {} " \
-                    "--plot {} --dellog {} " \
-                    "--lstm_size {} --fc_n_hidden {} --learning_rate {} " \
-                    "--weight_reg {} --weight_reg_strength {} " \
-                    "--activation_fct {} " \
-                    "--filetype {} --hilbert_power {} --band_pass {} " \
-                    "--component {} --hrcomp {} --eqcompmat {} --summaries {} " \
-                    "--path_specificities {}".format(subject, cond, seed, task, shuffle,
-                                                     repet_scalar, s_fold, batch_size,
-                                                     successive, successive_mode, rand_batch,
-                                                     plot, del_log_folders,
-                                                     lstm_size, fc_n_hidden, learning_rate,
-                                                     weight_reg, weight_reg_strength,
-                                                     activation_fct,
-                                                     filetype, hilbert_power, band_pass,
-                                                     component, hrcomp, eqcompmat, summaries,
-                                                     path_specificities)
+        bash_line = f"python3 NeVRo.py --subject {subject} --condition {cond} --seed {seed} " \
+                    f"--task {task} --shuffle {shuffle} --repet_scalar {repet_scalar} --s_fold {s_fold} " \
+                    f"--batch_size {batch_size} --successive {successive} " \
+                    f"--successive_mode {successive_mode} --rand_batch {rand_batch} --plot {plot} " \
+                    f"--dellog {del_log_folders} --lstm_size {lstm_size} --fc_n_hidden {fc_n_hidden} " \
+                    f"--learning_rate {learning_rate} --weight_reg {weight_reg} " \
+                    f"--weight_reg_strength {weight_reg_strength} --activation_fct {activation_fct} " \
+                    f"--filetype {filetype} --hilbert_power {hilbert_power} --band_pass {band_pass} " \
+                    f"--component {component} --hrcomp {hrcomp} --eqcompmat {eqcompmat} " \
+                    f"--summaries {summaries} --path_specificities {path_specificities}"
 
         # Write in bashfile
         with open(bash_filename, "a") as bashfile:  # 'a' for append
             bashfile.write("\n" + bash_line)
 
         # and in subbashfile
-        subbash = ["_local.sh", "_1.sh", "_2.sh", "_3.sh"][combi_count]
-        sub_bash_file_name = bash_filename.split(".")[0] + subbash
+        subbash = subbash_suffix[combi_count]
+        sub_bash_file_name = bash_filename.split(".sh")[0] + subbash
         with open(sub_bash_file_name, "a") as subbashfile:  # 'a' for append
             subbashfile.write("\n" + bash_line)
 
         # Set Counter
-        combi_count = combi_count + 1 if combi_count < 3 else 0
+        combi_count = combi_count + 1 if combi_count < n_subbash-1 else 0
 
-    print("\nBashfiles and Table completed.")
+    print("\nBashfiles and table completed.")
 
-# write_bash_from_table(
-#     subs=subjects,
-#     table_path='unique_Best_2_HPsets_over_10_Subjects_mean_acc_0.660_Random_Search_Table_BiCl.csv')
-# write_bash_from_table(
-#     subs=subjects,
-#     table_path='unique_Best_2_HPsets_over_10_Subjects_mean_acc_0.046_Random_Search_Table_Reg.csv')
+# write_bash_from_table(subs=subjects,
+#                       table_path='unique_Best_2_HPsets_over_10_Subjects_mean_acc_0.660_Random_Search_Table_BiCl.csv')
+# write_bash_from_table(subs=subjects,
+#                       table_path='unique_Best_2_HPsets_over_10_Subjects_mean_acc_0.717_Random_Search_Table_BiCl.csv',
+#                       condition="nomov", task="classification")
 
 
 def update_bashfiles(task, subject=None, path_specs=None, all_runs=False):
@@ -472,6 +542,8 @@ if __name__ == "__main__":
             condi = "nomov" if "n" in condi else "mov"
         cprint(f"Condition is set to: {condi}", 'y')
 
+        tasks = ["regression", "classification"]
+
         # # Set up subjects
         n_sub = 45  # number of all tested subjects
         all_subjects = np.linspace(start=1, stop=n_sub, num=n_sub, dtype=int)  # np.arange(1, n_sub+1)
@@ -523,25 +595,16 @@ if __name__ == "__main__":
         if brs:
             subsubjects = np.random.choice(a=subjects, size=10, replace=False)
 
-            # Binary classification
-            # Broad random search. Half (20/40) with fix sized input matrix (fixncomp=10)
-            write_search_bash_files(subs=subsubjects, filetype=datatype, condition=condi,
-                                    task_request="c", component_mode=2, eqcompmat=10, n_combinations=20,
-                                    seed=True, repet_scalar=20)
+            for _task in tasks:  # Binary classification & Regression
 
-            write_search_bash_files(subs=subsubjects, filetype=datatype, condition=condi,
-                                    task_request="c", component_mode=2, eqcompmat=0, n_combinations=20,
-                                    seed=True, repet_scalar=20)
+                # Broad random search. Half (20/40) with fix sized input matrix (fixncomp=10)
+                write_search_bash_files(subs=subsubjects, filetype=datatype, condition=condi,
+                                        task_request=_task, component_mode=2, eqcompmat=10, n_combinations=20,
+                                        seed=True, repet_scalar=20)
 
-            # Regression
-            write_search_bash_files(subs=subsubjects, filetype=datatype, condition=condi,
-                                    task_request="r", component_mode=2, eqcompmat=10, n_combinations=20,
-                                    seed=True, repet_scalar=20)
-
-            write_search_bash_files(subs=subsubjects, filetype=datatype, condition=condi,
-                                    task_request="r", component_mode=2, eqcompmat=0, n_combinations=20,
-                                    seed=True, repet_scalar=20)
-
+                write_search_bash_files(subs=subsubjects, filetype=datatype, condition=condi,
+                                        task_request=_task, component_mode=2, eqcompmat=0, n_combinations=20,
+                                        seed=True, repet_scalar=20)
         else:
             if testing:
                 write_search_bash_files(subs=subjects, filetype=datatype, condition=condi,
@@ -553,6 +616,19 @@ if __name__ == "__main__":
 
             else:
                 # Step 2) Run model over pre-selected hyperparameter sets on whole dataset
-                raise NotImplementedError("Fully automated Step 2) not implemented yet.")
+                cprint("\nCreate table and bashfiles for narrow search on pre-selected hp-sets on whole dataset.", "b")
 
+                for _task in tasks:
+                    file_found = False
+                    p2tables = f"./processed/Random_Search_Tables/{condi}/0_broad_search/{_task}/per_subject/"
+                    for tab_name in os.listdir(p2tables):
+                        if "unique" in tab_name:
+                            write_bash_from_table(subs=subjects, table_path=tab_name, condition=condi, task=_task,
+                                                  n_subbash=4, del_log_folders=True)
+                            file_found = True
+
+                    if not file_found:
+                        cprint(f"For {_task} task no corresponding 'unique...'-table found in '{p2tables}'.", 'y')
+
+        end()
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<  END

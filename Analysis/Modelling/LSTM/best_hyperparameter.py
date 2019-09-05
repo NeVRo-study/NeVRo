@@ -10,8 +10,12 @@ import copy
 import ast
 from meta_functions import *
 
+# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+
 setwd("/Analysis/Modelling/LSTM/")
 
+
+# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
 def open_best_params(subjects, task, condition, n=5):
     """
@@ -390,6 +394,7 @@ def table_of_best_hp_over_all_subjects(n, task, condition, search, fixed_comps=F
     :param fixed_comps: True: selection of components is identical for each subject per hyper-parameter set;
                         False: individual comps per subject, selected under same rules ('random' OR 'one-up') and same N
     """
+    # Check given arguments
     task = task.lower()
     assert task in ["classification", "regression"], "task must be either 'classification' or 'regression'"
     tfix = "BiCl" if task == "classification" else "Reg"
@@ -398,6 +403,7 @@ def table_of_best_hp_over_all_subjects(n, task, condition, search, fixed_comps=F
     assert "mov" in condition, "condition must be either 'mov' or 'nomov'"
     cond = "nomov" if "no" in condition else "mov"
 
+    # Set path
     wd_sub_tables = f"./processed/Random_Search_Tables/{cond}/{0 if search == 'broad' else 1}_{search}_search/" \
                     f"{task}/per_subject/"
 
@@ -599,6 +605,8 @@ def model_performance(over, task, condition, search, input_type):
 # model_performance(over="hpsets", task="regression", condition="nomov", search="broad", input_type="SSD")
 
 
+# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+
 if __name__ == "__main__":
 
     # # First run broad random search then narrow search, i.e. run on set of best hyperparameters
@@ -637,3 +645,4 @@ if __name__ == "__main__":
                 model_performance(over="hpsets", task=taski, condition=condi, search=searchi, input_type=d_type)
 
     end()
+    # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<  END
