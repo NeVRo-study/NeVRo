@@ -643,3 +643,7 @@ def try_funct(funct):
             cprint(f"Function {funct.__name__} couldn't be successfully executed!", "r")
 
     return wrapper
+
+
+def end():
+    cprint("\n" + "*<o>*" * 9 + "  END  " + "*<o>*" * 9 + "\n", col='p', fm='bo')

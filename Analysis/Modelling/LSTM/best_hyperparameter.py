@@ -605,23 +605,21 @@ if __name__ == "__main__":
     searches = [["broad"], ["narrow"], ["broad", "narrow"]]
     conditions = [["mov"], ["nomov"], ["mov", "nomov"]]
     tasks = [["classification"], ["regression"], ["classification", "regression"]]
-    src = cinput("\nExtract information of [0] broad search, [1] narrow search, or [2] both?\nType 0, 1 or 2", 'b')
+    src = cinput("\nExtract information of [0] broad search, [1] narrow search, or [2] both?\nType 0, 1 or 2:", 'y')
     scr = int(src)
-    cnd = cinput("\nApplied on condition [0] 'mov', [1] 'nomov', or [2] both?\nType 0, 1 or 2", 'b')
+    cnd = cinput("\nApplied on condition [0] 'mov', [1] 'nomov', or [2] both?\nType 0, 1 or 2:", 'y')
     cnd = int(cnd)
-    tsk = cinput("\nApplied on task [0] 'classification', [1] 'regression', or [2] both?\nType 0, 1 or 2", 'b')
+    tsk = cinput("\nApplied on task [0] 'classification', [1] 'regression', or [2] both?\nType 0, 1 or 2:", 'y')
     tsk = int(tsk)
-    fxcmp = ask_true_false("\nDo the components in one hyperparameter set vary?", "b")
-    d_type = "SSD" if ask_true_false("\nIs 'SSD' the data type? False automatically assumes 'SPoC'", "b") else 'SPOC'
+    fxcmp = ask_true_false("\nAre the components in one hyperparameter set fixed?", 'y')
+    d_type = "SSD" if ask_true_false("\nIs 'SSD' the data type? False automatically assumes 'SPoC'", 'y') else 'SPOC'
 
-    # TODO implement the execeution order of fucntions above
-    # TODO check unique tables!
     for searchi in searches[scr]:
-        print(searchi)
         for taski in tasks[tsk]:
-            print(taski)
             for condi in conditions[cnd]:
-                print(condi)
+
+                cprint(f"\nExtract results from {searchi} random search in {condi} condition ({taski}) ...", 'b')
+
                 # For both conditions: 'mov' and 'nomov' AND for both tasks: 'classification' and 'regression' do:
                 # 1) Merge tables (if necessary)
                 tab_name = merge_randsearch_tables(task=taski, condition=condi, search=searchi, sort=True)
@@ -637,3 +635,5 @@ if __name__ == "__main__":
                 # (Has to be done after "narrow"-search. Can be done on 'broad'-random search)
                 model_performance(over="subjects", task=taski, condition=condi, search=searchi, input_type=d_type)
                 model_performance(over="hpsets", task=taski, condition=condi, search=searchi, input_type=d_type)
+
+    end()

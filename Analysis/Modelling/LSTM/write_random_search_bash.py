@@ -463,14 +463,14 @@ if __name__ == "__main__":
     wb = ask_true_false(question="Do you want to write new bashfiles?")
     if wb:
         # Check for which datatype: SSD or SPoC
-        datatype = cinput("For which datatype: 'SSD' or 'SPOC'", "b").upper()
+        datatype = cinput("For which datatype: 'SSD' or 'SPOC'", 'b').upper()
 
         # Define condition for random search
         # condi = "nomov"  # "mov"  # manually
         if "condi" not in locals():
-            condi = input("Write bash files for 'M'ov or 'N'oMov condition: ")
-            condi = "nomov" if "n" in condi.lower() else "mov"
-        cprint(f"Condition is set to: {condi}", "y")
+            condi = input("Write bash files for 'M'ov or 'N'oMov condition: ").lower()
+            condi = "nomov" if "n" in condi else "mov"
+        cprint(f"Condition is set to: {condi}", 'y')
 
         # # Set up subjects
         n_sub = 45  # number of all tested subjects
