@@ -21,7 +21,7 @@ if not os.path.exists(p2_bash):
 
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
-# TODO adapt script for tables such as 'Narrow_Search_Table_nomov_BiCl.csv'
+
 def draw_components(n, subject, condition, filetype, select_mode="one_up", dtype=None):
     """
 
@@ -232,7 +232,7 @@ def write_search_bash_files(subs, filetype, condition,
 
             # path_specificities
             # TODO: Could indicate in comp- which selection criterion applied (update then also best_hyperparameter.py)
-            path_specificities = f"{'BiCl' if 'c' in task else 'Reg'}_{cond}_RndHPS_" \
+            path_specificities = f"{tfix}_{cond}_RndHPS_" \
                 f"lstm-{'-'.join(str(lstm_size).split(','))}_" \
                 f"fc-{'-'.join(str(fc_n_hidden).split(','))}_" \
                 f"lr-{learning_rate}_wreg-{weight_reg}-{weight_reg_strength:.2f}_" \
@@ -266,7 +266,7 @@ def write_search_bash_files(subs, filetype, condition,
                 sub_bashfile.write("\n"+bash_line)
 
             # Fill in Random_Search_Table.csv
-            table_name = "./processed/Random_Search_Table_{}.csv".format('BiCl' if "c" in task else "Reg")
+            table_name = f"./processed/Random_Search_Table_{cond}_{tfix}.csv"
 
             if not os.path.exists(table_name):
                 rs_table = np.array(['round', 'subject', 'cond', 'seed', 'task',
@@ -471,14 +471,9 @@ def write_bash_from_table(subs, table_path, condition, task=None, n_subbash=4, d
 #                       condition="nomov", task="classification")
 
 
-def update_bashfiles(task, subject=None, path_specs=None, all_runs=False):
+def update_bashfiles(table_name=None, subject=None, path_specs=None, all_runs=False):
     """Comment out all lines in bashfile(s) which have been run."""
 
-    assert "cl" in task.lower() or "reg" in task.lower(), \
-        "task must be either 'regression' or 'classification'"
-
-    # Load Random_Search_Table
-    table_name = f"./processed/Random_Search_Table_{'BiCl' if 'c' in task.lower() else 'Reg'}.csv"
     if os.path.exists(table_name):
         rs_table = np.genfromtxt(table_name, delimiter=";", dtype=str)
         idx_sub = np.where(rs_table[0, :] == 'subject')[0][0]  # find column "subject"
@@ -500,7 +495,7 @@ def update_bashfiles(task, subject=None, path_specs=None, all_runs=False):
                         for line in fileinput.input("./bashfiles/" + bfile, inplace=True):
                             if path_specs in line and str(subject) in line and "#" not in line:
                                 # Note: This doesn't print in console, but overwrites in file
-                                sys.stdout.write('# {}'.format(line))
+                                sys.stdout.write(f'# {line}')
                                 # sys.stdout.write() instead of print() avoids new lines
                             else:
                                 sys.stdout.write(line)
@@ -522,7 +517,7 @@ def update_bashfiles(task, subject=None, path_specs=None, all_runs=False):
                                     sys.stdout.write(line)
 
     else:
-        cprint(f"There is no corresponding table: '{table_name}'", "r")
+        cprint(f"There is no corresponding table: '{table_name}'", 'r')
 
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>

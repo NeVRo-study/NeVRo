@@ -632,22 +632,29 @@ def train_lstm():
         for i, item in enumerate(lists_export):
             file.write(label_export[i] + str(item)+"\n")
 
-    # Save Accuracies in Random_Search_Table.csv if applicable
-    table_name = f"./processed/Random_Search_Table_" \
-        f"{'BiCl' if FLAGS.task=='classification' else 'Reg'}.csv"
+    # Save Accuracies in Random/Narrow_Search_Table.csv if applicable
+    for search in ['Narrow', 'Random']:
+        # Check for narrow or random/broad search.
+        table_name = f"./processed/{search}_Search_Table_{FLAGS.condition}_" \
+                     f"{'BiCl' if FLAGS.task=='classification' else 'Reg'}.csv"
+        # Since condition is given, these two cases (search types) are mutually exclusive.
+        if os.path.exists(table_name):
+            break
 
     if os.path.exists(table_name):
-        rs_table = np.genfromtxt(table_name, delimiter=";", dtype=str)
+        rs_table = np.genfromtxt(table_name, delimiter=";", dtype=str)  # load table
 
         if FLAGS.path_specificities in rs_table:
+
             # Find corresponding indeces
             path_idx = np.where(rs_table == FLAGS.path_specificities)
-            # len(path_idx[0]) > 0 and len(path_idx[1]) > 0
+            # len(path_idx[0]) > 0 and len(path_idx[1]) > 0for
             sub_idx = np.where(rs_table[:, np.where(rs_table == "subject")[1]] == str(FLAGS.subject))[0]
             trial_row = list(set(path_idx[0]) & set(sub_idx))[0]
             mvacc_col = np.where(rs_table == "mean_val_acc")[1][0]
             zlacc_col = np.where(rs_table == "meanline_acc")[1][0]
             mcvacc_col = np.where(rs_table == "mean_class_val_acc")[1][0]
+
             # Write in table
             rs_table[trial_row, [mvacc_col, zlacc_col, mcvacc_col]] = np.array(
                 [np.round(np.mean(all_acc_val), 3), np.round(mean_line_acc, 3),
@@ -658,8 +665,10 @@ def train_lstm():
             np.savetxt(fname=table_name, X=rs_table, delimiter=";", fmt="%s")
 
         else:
-            cprint(f"There is no entry for this trial in Random_Search_Table_"
-                   f"{'BiCl' if FLAGS.task=='classification' else 'Reg'}.csv", "r")
+            cprint(f"There is no entry for this trial in {table_name.split('/')[-1]}", 'r')
+
+    else:
+        cprint(f"There is no Random/Narrow_Search_Table", 'r')
 
     # Save Prediction Matrices in File
     np.savetxt(sub_dir + f"{time.strftime('%Y_%m_%d_')}S{FLAGS.subject}_pred_matrix_{FLAGS.s_fold}"
@@ -672,6 +681,10 @@ def train_lstm():
         np.save(sub_dir + f"{time.strftime('%Y_%m_%d_')}S{FLAGS.subject}_shuffle_order_matrix"
                           f"_{FLAGS.s_fold}_folds_{FLAGS.path_specificities[:-1]}.npy",
                 shuffle_order_matrix)
+
+    # Update bash files
+    update_bashfiles(table_name=table_name, subject=FLAGS.subject, path_specs=FLAGS.path_specificities,
+                     all_runs=False)
 
 
 def fill_pred_matrix(pred, y, current_mat, s_idx, current_batch, sfold, train=True):
@@ -774,10 +787,6 @@ def main(_):
         subprocess.Popen(["python3", "LSTM_pred_plot.py", 'True', str(FLAGS.subject),
                           FLAGS.path_specificities,
                           str(FLAGS.dellog)])
-
-    # Update bash files
-    update_bashfiles(task=FLAGS.task, subject=FLAGS.subject, path_specs=FLAGS.path_specificities,
-                     all_runs=False)
 
 
 def str2bool(v):
