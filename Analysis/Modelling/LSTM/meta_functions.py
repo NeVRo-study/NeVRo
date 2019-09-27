@@ -52,7 +52,7 @@ def setwd(new_dir):
                 found = True
 
         if found:
-            cprint("New working dir:\t\t{os.getcwd()}\n", 'y')
+            cprint(f"New working dir:\t\t{os.getcwd()}\n", 'y')
         else:
             cprint(f"Given folder not found. Working dir remains:\t{os.getcwd()}\n", 'r')
 
