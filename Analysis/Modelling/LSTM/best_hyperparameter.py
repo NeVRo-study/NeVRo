@@ -175,7 +175,7 @@ def merge_randsearch_tables(task, condition, search, sort=True):
 
     list_of_tables = []
     for file in os.listdir(wd_table):
-        if "Random_Search_Table" + tfix in file:
+        if f"Random_Search_Table_{cond}{tfix}" in file:
             list_of_tables.append(file)
 
     if len(list_of_tables) <= 1:
