@@ -493,7 +493,8 @@ def update_bashfiles(table_name=None, subject=None, path_specs=None, all_runs=Fa
                 for bfile in os.listdir("./bashfiles/"):
                     if bfile.split(".")[-1] == 'sh':  # check whether bash file
                         for line in fileinput.input("./bashfiles/" + bfile, inplace=True):
-                            if path_specs in line and str(subject) in line and "#" not in line:
+                            if path_specs in line and str(subject) == line.split("subject ")[1].split(" --")[0] \
+                                    and "#" not in line:
                                 # Note: This doesn't print in console, but overwrites in file
                                 sys.stdout.write(f'# {line}')
                                 # sys.stdout.write() instead of print() avoids new lines
@@ -511,7 +512,8 @@ def update_bashfiles(table_name=None, subject=None, path_specs=None, all_runs=Fa
                     for bfile in os.listdir("./bashfiles/"):
                         if bfile.split(".")[-1] == 'sh':  # check whether bash file
                             for line in fileinput.input("./bashfiles/" + bfile, inplace=True):
-                                if path_specs in line and subject in line and "#" not in line:
+                                if path_specs in line and str(subject) == line.split("subject ")[1].split(" --")[0] \
+                                        and "#" not in line:
                                     sys.stdout.write(f'# {line}')
                                 else:
                                     sys.stdout.write(line)
