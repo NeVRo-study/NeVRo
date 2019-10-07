@@ -537,8 +537,6 @@ def update_bashfiles(table_name=None, subject=None, path_specs=None, all_runs=Fa
                                 else:
                                     sys.stdout.write(line)
 
-
-
     else:
         cprint(f"There is no corresponding table: '{table_name}'", 'r')
 
