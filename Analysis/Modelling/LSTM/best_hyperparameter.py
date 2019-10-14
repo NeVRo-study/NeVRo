@@ -431,7 +431,7 @@ def table_of_best_hp_over_all_subjects(n, task, condition, search, fixed_comps=F
         mean_val_acc = np.array([float(x) for x in bhp_table[1:, -3]])
         meanline_acc = np.array([float(x) for x in bhp_table[1:, -2]])
         mc = np.mean(mean_val_acc - meanline_acc)
-        print("Average Above-Meanline-Accuracy:", mc)
+        print(f"Average Above-Meanline-Accuracy: {mc:.3f}")
 
     # Delete redundant entries, i.e. 2 or more subjects share n-m best hyperparameter sets, where m in [0,n]
     if fixed_comps:
