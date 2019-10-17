@@ -15,7 +15,7 @@ from meta_functions import *
 setwd("/Analysis/Modelling/LSTM/")
 
 
-# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
 def open_best_params(subjects, task, condition, n=5):
     """
@@ -175,7 +175,7 @@ def merge_randsearch_tables(task, condition, search, sort=True):
 
     list_of_tables = []
     for file in os.listdir(wd_table):
-        if "Random_Search_Table" + tfix in file:
+        if f"{'Random' if search == 'broad' else search.title()}_Search_Table_{cond}{tfix}" in file:
             list_of_tables.append(file)
 
     if len(list_of_tables) <= 1:
@@ -303,8 +303,9 @@ def table_per_subject(table_name, condition, search):
         sub_rs_table = np.concatenate((header, sub_rs_table), axis=0)  # attach header
 
         # Save
-        export_filename = f"{s(sub)}_Ran"
-        export_filename += table_name.split("Ran")[1].split("_m" if "merged" in table_name else "_s")[0] + ".csv"
+        tpfix = "Ran" if search == "broad" else "Nar"  # broad search: 'Ran' OR narrow search: Nar
+        export_filename = f"{s(sub)}_{tpfix}"
+        export_filename += table_name.split(tpfix)[1].split("_m" if "merged" in table_name else "_s")[0] + ".csv"
         np.savetxt(fname=sav_dir+export_filename, X=sub_rs_table, delimiter=";", fmt="%s")
 # table_per_subject(table_name='Random_Search_Table_Reg_merged_sorted.csv', condition="nomov")
 # table_per_subject(table_name='Random_Search_Final_Table_BiCl_merged_sorted.csv', condition="nomov")
@@ -375,8 +376,9 @@ def table_per_hp_setting(table_name, condition, search, fixed_comps=False):
             set_rs_table = np.concatenate((header, set_rs_table), axis=0)  # attach header
 
             # Save
+            tpfix = "Ran" if search == "broad" else "Nar"  # broad search: 'Ran' OR narrow search: Nar
             sp = '_merged' if "_merged" in table_name else '_sort' if '_sorted' in table_name else ".csv"  # splitter
-            export_filename = f"Set{str(setx + 1).zfill(2)}_Ran{table_name.split('Ran')[1].split(sp)[0]}.csv"
+            export_filename = f"Set{str(setx+1).zfill(2)}_{tpfix}{table_name.split(tpfix)[1].split(sp)[0]}.csv"
             np.savetxt(fname=sav_dir + export_filename, X=set_rs_table, delimiter=";", fmt="%s")
 # table_per_hp_setting(table_name='Random_Search_Final_Table_BiCl_merged_sorted.csv', condition="nomov")
 # table_per_hp_setting(table_name='Random_Search_Table_BiCl.csv', condition="nomov", search="broad", fixed_comps=False)
@@ -431,7 +433,7 @@ def table_of_best_hp_over_all_subjects(n, task, condition, search, fixed_comps=F
         mean_val_acc = np.array([float(x) for x in bhp_table[1:, -3]])
         meanline_acc = np.array([float(x) for x in bhp_table[1:, -2]])
         mc = np.mean(mean_val_acc - meanline_acc)
-        print("Average Above-Meanline-Accuracy:", mc)
+        print(f"Average Above-Meanline-Accuracy: {mc:.3f}")
 
     # Delete redundant entries, i.e. 2 or more subjects share n-m best hyperparameter sets, where m in [0,n]
     if fixed_comps:
@@ -486,7 +488,8 @@ def table_of_best_hp_over_all_subjects(n, task, condition, search, fixed_comps=F
     print(f"Number of unique hyperparameter sets: {bhp_table_unique.shape[0]} (out of {bhp_table.shape[0]})")
 
     # Save
-    export_filename = f"Best_{n}_HPsets_over_{cntr}_Subjects_mean_acc_{mc:.3f}_Ran" + exp_filename.split("_Ran")[1]
+    tpfix = "Ran" if search == "broad" else "Nar"  # broad search: 'Ran' OR narrow search: Nar
+    export_filename = f"Best_{n}_HPsets_over_{cntr}_Subjects_mean_acc_{mc:.3f}_{tpfix}" + exp_filename.split(tpfix)[1]
     export_filename_unique = "unique_" + export_filename
     np.savetxt(fname=wd_sub_tables+export_filename, X=bhp_table, delimiter=";", fmt="%s")
     np.savetxt(fname=wd_sub_tables+export_filename_unique, X=bhp_table_unique, delimiter=";", fmt="%s")
@@ -519,6 +522,7 @@ def model_performance(over, task, condition, search, input_type):
     wd_tables = f"./processed/Random_Search_Tables/{cond}/{0 if search == 'broad' else 1}_{search}_search/{task}/"
 
     wd_tables += "per_subject/" if over == "subjects" else "per_hp_set/"
+    tpfix = "Ran" if search == "broad" else "Nar"  # broad search: 'Ran' OR narrow search: Nar
 
     count_entries = 0
 
@@ -556,7 +560,7 @@ def model_performance(over, task, condition, search, input_type):
                                                newshape=(1, len(fin_table[0])))))
 
         # Save
-        export_filename = "AllSub_Ran" + file_name.split("Ran")[1]
+        export_filename = f"AllSub_{tpfix}" + file_name.split(tpfix)[1]
         np.savetxt(fname=wd_tables + export_filename, X=fin_table, delimiter=";", fmt="%s")
 
     else:  # over == "hpsets"
@@ -595,7 +599,7 @@ def model_performance(over, task, condition, search, input_type):
                                                                       acc_col])+1, ][::-1]
 
         # Save
-        export_filename = "AllHPsets_Ran" + file_name.split("Ran")[1]
+        export_filename = f"AllHPsets_{tpfix}" + file_name.split(tpfix)[1]
         np.savetxt(fname=wd_tables + export_filename, X=sorted_fin_table, delimiter=";", fmt="%s")
 # model_performance(over="subjects", task="classification", input_type="SSD")
 # model_performance(over="hpsets", task="regression", input_type="SPOC")
@@ -605,7 +609,7 @@ def model_performance(over, task, condition, search, input_type):
 # model_performance(over="hpsets", task="regression", condition="nomov", search="broad", input_type="SSD")
 
 
-# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
 if __name__ == "__main__":
 
@@ -644,5 +648,5 @@ if __name__ == "__main__":
                 model_performance(over="subjects", task=taski, condition=condi, search=searchi, input_type=d_type)
                 model_performance(over="hpsets", task=taski, condition=condi, search=searchi, input_type=d_type)
 
-    end()
-    # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<  END
+end()
+# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<  END

@@ -471,7 +471,7 @@ def write_bash_from_table(subs, table_path, condition, task=None, n_subbash=4, d
 #                       condition="nomov", task="classification")
 
 
-def update_bashfiles(table_name=None, subject=None, path_specs=None, all_runs=False):
+def update_bashfiles(table_name=None, subject=None, path_specs=None, all_runs=False, unhash=False):
     """Comment out all lines in bashfile(s) which have been run."""
 
     if os.path.exists(table_name):
@@ -479,40 +479,61 @@ def update_bashfiles(table_name=None, subject=None, path_specs=None, all_runs=Fa
         idx_sub = np.where(rs_table[0, :] == 'subject')[0][0]  # find column "subject"
         idx_pspec = np.where(rs_table[0, :] == 'path_specificities')[0][0]  # column "path_specificities"
 
-        if not all_runs:
-            subject = int(subject)
-            # Find entry which needs to be updated
-            idx_sub = np.where(rs_table[:, idx_sub] == str(subject))[0]  # rows with respective subject
-            idx_pspec = np.where(rs_table[:, idx_pspec] == path_specs)[0]  # find respective path_specs
-            idx_check = list(set(idx_sub).intersection(idx_pspec))  # find index of case at hand
+        if not unhash:
 
-            # If there is an entry, the run was successful, update bashfile(s)
-            if not np.all(rs_table[idx_check, -3:] == 'nan'):
+            if not all_runs:
+                subject = int(subject)
+                # Find entry which needs to be updated
+                idx_sub = np.where(rs_table[:, idx_sub] == str(subject))[0]  # rows with respective subject
+                idx_pspec = np.where(rs_table[:, idx_pspec] == path_specs)[0]  # find respective path_specs
+                idx_check = list(set(idx_sub).intersection(idx_pspec))  # find index of case at hand
 
-                # Run through all bashfiles and comment out those lines that were successfully executed
-                for bfile in os.listdir("./bashfiles/"):
-                    if bfile.split(".")[-1] == 'sh':  # check whether bash file
-                        for line in fileinput.input("./bashfiles/" + bfile, inplace=True):
-                            if path_specs in line and str(subject) in line and "#" not in line:
-                                # Note: This doesn't print in console, but overwrites in file
-                                sys.stdout.write(f'# {line}')
-                                # sys.stdout.write() instead of print() avoids new lines
-                            else:
-                                sys.stdout.write(line)
+                # If there is an entry, the run was successful, update bashfile(s)
+                if not np.all(rs_table[idx_check, -3:] == 'nan'):
 
-        else:  # check for all runs
+                    # Run through all bashfiles and comment out those lines that were successfully executed
+                    for bfile in os.listdir("./bashfiles/"):
+                        if bfile.split(".")[-1] == 'sh':  # check whether bash file
+                            for line in fileinput.input("./bashfiles/" + bfile, inplace=True):
+                                if path_specs in line and str(subject) == line.split("subject ")[1].split(" --")[0] \
+                                        and "#" not in line:
+                                    # Note: This doesn't print in console, but overwrites in file
+                                    sys.stdout.write(f'# {line}')
+                                    # sys.stdout.write() instead of print() avoids new lines
+                                else:
+                                    sys.stdout.write(line)
 
-            # Run through table and find successfully executed entries
+            else:  # check for all runs
+
+                # Run through table and find successfully executed entries
+                for idx, rs_line in enumerate(rs_table[1:, -3:]):
+                    if not np.all(rs_line == 'nan'):
+                        subject = rs_table[1+idx, idx_sub]
+                        path_specs = rs_table[1+idx, idx_pspec]
+
+                        for bfile in os.listdir("./bashfiles/"):
+                            if bfile.split(".")[-1] == 'sh':  # check whether bash file
+                                for line in fileinput.input("./bashfiles/" + bfile, inplace=True):
+                                    if path_specs in line and str(subject) == line.split("subject ")[1].split(" --")[0] \
+                                            and "#" not in line:
+                                        sys.stdout.write(f'# {line}')
+                                    else:
+                                        sys.stdout.write(line)
+
+        else:
+
+            # If unhash: Remove hash from lines which weren't processed yet according to table
             for idx, rs_line in enumerate(rs_table[1:, -3:]):
-                if not np.all(rs_line == 'nan'):
-                    subject = rs_table[1+idx, idx_sub]
-                    path_specs = rs_table[1+idx, idx_pspec]
+                if np.all(rs_line == 'nan'):
+                    subject = rs_table[1 + idx, idx_sub]
+                    path_specs = rs_table[1 + idx, idx_pspec]
 
                     for bfile in os.listdir("./bashfiles/"):
                         if bfile.split(".")[-1] == 'sh':  # check whether bash file
                             for line in fileinput.input("./bashfiles/" + bfile, inplace=True):
-                                if path_specs in line and subject in line and "#" not in line:
-                                    sys.stdout.write(f'# {line}')
+                                if path_specs in line and str(subject) == line.split("subject ")[1].split(" --")[0] \
+                                        and "#" in line:
+                                    sys.stdout.write(f'{line.split("# ")[-1]}')
                                 else:
                                     sys.stdout.write(line)
 
