@@ -1,6 +1,6 @@
-%% NVR CSP
-% 2017 by Felix Klotzsche* and Alberto Mariola
-% *: main contribution
+%% NVR_08.1_CSP
+% 2019 by Felix Klotzsche
+%
 %
 %This script applies CSP to the data and saves some performance measures.
 %
@@ -8,8 +8,6 @@
 function NVR8_CSP(cropstyle, ssd_freq, keep_filt)
 
 %% 1.Set Variables
-%clc
-%clear all
 
 %1.1 Set different paths:
 
