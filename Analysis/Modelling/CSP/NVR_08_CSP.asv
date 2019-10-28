@@ -68,7 +68,7 @@ nsubs = length(files_eeg);
 ncols = 1;
 nrows = ceil(nsubs/ncols);
 
-for isub = (1:nsubs)
+for isub = (1:3)
     
     %1.3 Launch EEGLAB:
     [ALLEEG EEG CURRENTSET ALLCOM] = eeglab;
@@ -171,13 +171,13 @@ for isub = (1:nsubs)
 %     set(subplot(nrows, ncols * 2, isub*2-1), ...
 %         'Position', [0.05, 0.7 * isub, 0.92, 0.27])
     topoplot(patterns_comb(1,:), EEG.chanlocs);
-    set(gca, 'OuterPosition', [0, 0.02*(isub), 0.018, 0.018])
+    set(gca, 'OuterPosition', [0, 0+0.9*(isub-1), 0.8, 0.8])
     title([thissubject], 'Interpreter', 'none')
     subplot(nrows, ncols * 2, isub*2);
 %     set(subplot(nrows, ncols * 2, isub*2-1), ...
 %         'Position', [0.05+ 0.8, 0.7 * isub, 0.92, 0.27])
     topoplot(patterns_comb(4,:), EEG.chanlocs);
-    set(gca, 'OuterPosition', [0.4, 0.02*(isub), 0.018, 0.018])
+    set(gca, 'OuterPosition', [0.9, 0+0.9*(isub-1), 0.3, 0.8])
     title(['Accuracy: ', num2str(1- trainloss)]);
     
     % saveas(gcf, [path_out_summaries thissubject '.png'], 'png');
