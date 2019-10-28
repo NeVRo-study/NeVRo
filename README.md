@@ -14,7 +14,6 @@ We used virtual reality (VR) to investigate emotional arousal under ecologically
 We tackled the data with three model approaches. The corresponding code can be found in the respective folders.
 
 <h3>SPoC Model</h3> 
-<em>upload coming soon</em><br> 
 <a href="https://doi-org.browser.cbs.mpg.de/10.1016/j.neuroimage.2013.07.079">Source Power Comodulation (SPoC)</a> decomposes the EEG signal such that it maximizes the covariance between the power-band of the frequency of interest (here alpha, 8-12Hz) and the target variable (ratings).
 
 <h3>CSP Model</h3>
