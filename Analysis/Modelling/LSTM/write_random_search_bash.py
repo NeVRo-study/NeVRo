@@ -191,22 +191,25 @@ def write_search_bash_files(subs, filetype, condition,
         weight_reg = np.random.choice(a=['l1', 'l2'])
 
         # weight_reg_strength
-        weight_reg_strength = np.random.choice(a=[1e-5, 0.18, 0.36, 0.72, 1.44])  # .00001 == no regul.
+        weight_reg_strength = np.random.choice(a=[1e-5, 0.18, 0.36, 0.72, 1.44])  # .00001 as no regul.
 
         # activation_fct
         activation_fct = np.random.choice(a=['elu', 'relu'])
 
         # hilbert_power
-        hilbert_power = np.random.choice(a=[True, False])
+        hilbert_power = False
+        # hilbert_power = np.random.choice(a=[True, False])  # had no impact on model performance
 
         # band_pass
         if filetype == "SPOC":
             band_pass = True  # there is no non-band-pass SPOC data (yet).
         else:  # filetype == "SSD"
-            band_pass = np.random.choice(a=[True, False])
+            band_pass = True  # for comparison to CSP
+            # band_pass = np.random.choice(a=[True, False])
 
         # hrcomp
-        hrcomp = np.random.choice(a=[True, False])
+        hrcomp = False
+        # hrcomp = np.random.choice(a=[True, False])
 
         # component
         if component_mode == 1:
@@ -613,18 +616,14 @@ if __name__ == "__main__":
 
             for _task in tasks:  # Binary classification & Regression
 
-                # Broad random search. Half (20/40) with fix sized input matrix (fixncomp=10)
+                # Broad random search
                 write_search_bash_files(subs=subsubjects, filetype=datatype, condition=condi,
-                                        task_request=_task, component_mode=2, eqcompmat=10, n_combinations=20,
-                                        seed=True, repet_scalar=20)
-
-                write_search_bash_files(subs=subsubjects, filetype=datatype, condition=condi,
-                                        task_request=_task, component_mode=2, eqcompmat=0, n_combinations=20,
-                                        seed=True, repet_scalar=20)
+                                        task_request=_task, component_mode=1, eqcompmat=20, n_combinations=20,
+                                        seed=True, repet_scalar=20, n_subbash=8)
         else:
             if testing:
                 write_search_bash_files(subs=subjects, filetype=datatype, condition=condi,
-                                        task_request=None, component_mode=2, eqcompmat=None,
+                                        task_request=None, component_mode=1, eqcompmat=None,
                                         seed=False, repet_scalar=5, s_fold=10,
                                         batch_size=9, successive_mode=1, rand_batch=True, plot=True,
                                         successive_default=3, del_log_folders=True, summaries=False,
@@ -634,13 +633,14 @@ if __name__ == "__main__":
                 # Step 2) Run model over pre-selected hyperparameter sets on whole dataset
                 cprint("\nCreate table and bashfiles for narrow search on pre-selected hp-sets on whole dataset.", "b")
 
+                # Narrow search
                 for _task in tasks:
                     file_found = False
                     p2tables = f"./processed/Random_Search_Tables/{condi}/0_broad_search/{_task}/per_subject/"
                     for tab_name in os.listdir(p2tables):
                         if "unique" in tab_name:
                             write_bash_from_table(subs=subjects, table_path=tab_name, condition=condi, task=_task,
-                                                  n_subbash=4, del_log_folders=True)
+                                                  n_subbash=8, del_log_folders=True)
                             file_found = True
 
                     if not file_found:
