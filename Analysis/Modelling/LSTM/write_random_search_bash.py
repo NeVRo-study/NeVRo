@@ -637,11 +637,12 @@ if __name__ == "__main__":
                 for _task in tasks:
                     file_found = False
                     p2tables = f"./processed/Random_Search_Tables/{condi}/0_broad_search/{_task}/per_subject/"
-                    for tab_name in os.listdir(p2tables):
-                        if "unique" in tab_name:
-                            write_bash_from_table(subs=subjects, table_path=tab_name, condition=condi, task=_task,
-                                                  n_subbash=8, del_log_folders=True)
-                            file_found = True
+                    if os.path.exists(p2tables):
+                        for tab_name in os.listdir(p2tables):
+                            if "unique" in tab_name:
+                                write_bash_from_table(subs=subjects, table_path=tab_name, condition=condi, task=_task,
+                                                      n_subbash=8, del_log_folders=True)
+                                file_found = True
 
                     if not file_found:
                         cprint(f"For {_task} task no corresponding 'unique...'-table found in '{p2tables}'.", 'y')
