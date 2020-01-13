@@ -35,7 +35,7 @@ path_in_eeg = [path_dataeeg '07_SSD/' mov_cond '/' cropstyle '/narrowband/'];
 path_in_SSDcomps = [path_dataeeg '07_SSD/' mov_cond '/'];
 
 % output paths:
-path_out_eeg = [path_dataeeg '08.1_CSP/' mov_cond '/' cropstyle '/'];
+path_out_eeg = [path_dataeeg '08.4_CSP_10f/' mov_cond '/' cropstyle '/'];
 if ~exist(path_out_eeg, 'dir'); mkdir(path_out_eeg); end
 path_out_summaries = [path_out_eeg '/summaries/'];
 if ~exist(path_out_summaries, 'dir'); mkdir(path_out_summaries); end
@@ -61,13 +61,17 @@ end
 
 bcilab;
 
-% prepare main figure:
-figure
-bigFig = gcf;
+% prepare main figures:
+h1 = figure('Visible','Off');
+h2 = figure('Visible','Off');
+
 nsubs = length(files_eeg);
 ncols = 1;
 nrows = ceil(nsubs/ncols);
 
+struct_classAccs = [];
+
+isub_rel = 0;
 for isub = (1:nsubs)
     
     %1.3 Launch EEGLAB:
@@ -142,7 +146,7 @@ for isub = (1:nsubs)
     EEG.etc.CSP.model = model;
     EEG.etc.CSP.stats = stats;
     
-    % pop_saveset(EEG, [filename '_CSP.set'] , path_out_eeg);
+    pop_saveset(EEG, [filename '_CSP.set'] , path_out_eeg);
     
     % Save to global .mat file:
     
@@ -161,28 +165,41 @@ for isub = (1:nsubs)
     CSP_results.results(isub).weights.SSD_A_sel = SSD_W_sel;
     CSP_results.chanlocs = EEG.chanlocs;
 
-    %save([path_out_summaries 'CSP_results.mat'], 'CSP_results');
+    save([path_out_summaries 'CSP_results.mat'], 'CSP_results');
+    
+    struct_classAccs(isub).ID = thissubject;
+    struct_classAccs(isub).acc = 1 - trainloss;
     
     % Plot patterns:
+    isub_rel = isub_rel + 1;
     patterns_comb = CSP_A * SSD_A_sel';
-    
-    set(0, 'CurrentFigure', bigFig);
-    subplot(nrows, ncols * 2, isub*2-1);
-%     set(subplot(nrows, ncols * 2, isub*2-1), ...
-%         'Position', [0.05, 0.7 * isub, 0.92, 0.27])
-    topoplot(patterns_comb(1,:), EEG.chanlocs);
-    set(gca, 'OuterPosition', [0, 0.02*(isub), 0.018, 0.018])
-    title([thissubject], 'Interpreter', 'none')
-    subplot(nrows, ncols * 2, isub*2);
-%     set(subplot(nrows, ncols * 2, isub*2-1), ...
-%         'Position', [0.05+ 0.8, 0.7 * isub, 0.92, 0.27])
-    topoplot(patterns_comb(4,:), EEG.chanlocs);
-    set(gca, 'OuterPosition', [0.4, 0.02*(isub), 0.018, 0.018])
-    title(['Accuracy: ', num2str(1- trainloss)]);
+%     
+     set(0, 'CurrentFigure', h1);
+     subplot(nrows, ncols, isub_rel);
+% %     set(subplot(nrows, ncols * 2, isub*2-1), ...
+% %         'Position', [0.05, 0.7 * isub, 0.92, 0.27])
+     topoplot(patterns_comb(1,:), EEG.chanlocs);
+%     set(gca, 'OuterPosition', [0, 0.02*(isub), 0.018, 0.018])
+     title([thissubject], 'Interpreter', 'none')
+     
+     set(0, 'CurrentFigure', h2);
+     subplot(nrows, ncols, isub_rel);
+% %     set(subplot(nrows, ncols * 2, isub*2-1), ...
+% %         'Position', [0.05+ 0.8, 0.7 * isub, 0.92, 0.27])
+     topoplot(patterns_comb(4,:), EEG.chanlocs);
+%     set(gca, 'OuterPosition', [0.4, 0.02*(isub), 0.018, 0.018])
+     title([thissubject], 'Interpreter', 'none')
+%     title(['Accuracy: ', num2str(1- trainloss)]);
     
     % saveas(gcf, [path_out_summaries thissubject '.png'], 'png');
     % close(gcf);
 end
+
+saveas(h1, [path_out_summaries 'topoplots_comp1.png'], 'png');
+saveas(h2, [path_out_summaries 'topoplots_comp4.png'], 'png');
+
+table_classAccs = struct2table(struct_classAccs);
+writetable(table_classAccs, [path_out_summaries '\_summary.csv']);
 
 % back to old pwd:
 cd(path_orig);
