@@ -545,7 +545,9 @@ def model_performance(over, task, condition, search, input_type):
                 # Extract best performance per subject, which is in the first row (tables are sorted)
                 perform = [rs_table[1, -1]] if task == "classification" else list(rs_table[1, -3:])
                 hp_setting = rs_table[1, idx_path]
-                sub = file_name.split("_Random")[0].split("S")[1]  # subject number (str)
+                # subject number (str):
+                sub = file_name.split(
+                    f"_{'Random' if search == 'broad' else search.title()}")[0].split("S")[1]
 
                 fin_table = np.concatenate((fin_table, np.reshape([sub, hp_setting] + perform,
                                                                   (1, len(fin_table[0])))))
