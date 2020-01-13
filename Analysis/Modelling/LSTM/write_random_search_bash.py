@@ -618,7 +618,7 @@ if __name__ == "__main__":
 
                 # Broad random search
                 write_search_bash_files(subs=subsubjects, filetype=datatype, condition=condi,
-                                        task_request=_task, component_mode=1, eqcompmat=20, n_combinations=20,
+                                        task_request=_task, component_mode=1, eqcompmat=True, n_combinations=20,
                                         seed=True, repet_scalar=20, n_subbash=8)
         else:
             if testing:
