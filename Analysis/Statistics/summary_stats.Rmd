@@ -1,0 +1,68 @@
+---
+title: "Summary analysis NeVRo"
+author: "eioe"
+date: "17 1 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(here)
+
+
+# Set up paths: 
+path_data <- here('Results')
+```
+
+## analysis accuracies:
+
+```{r}
+# Get summary data:
+data_ls <- list()
+conds <- c('mov', 'nomov')
+
+for (cond in conds) {
+  fname <- str_c('results_across_methods_', cond, '.csv')
+  fpath <- file.path(path_data, fname)
+  data_ls[[cond]] <- read_csv2(fpath)
+}
+
+data_df <- bind_rows(data_ls, .id = 'condition')
+
+# select data of binary approaches only and put into long format:
+data_bin <- data_df %>% 
+  select(condition, Subject, LSTM, CSP) %>% 
+  gather('LSTM', 'CSP', key = method, value = accuracy)
+
+# run binomial test:
+## this is quite brutal and I think wrong in multiple aspects.
+## I'll continue working on this, so as a starting point it's ok.
+
+binom_func <- function(n_corr_samps, n_samps_tot, p_guess) {
+  binom.test(n_corr_samps, n_samps_tot, p = p_guess, alternative = "greater")
+}
+
+data_bin %>% 
+  select(accuracy) %>% 
+  na.omit() %>% 
+  mutate(avg_n_corr_samples = round(accuracy * 180)) %>% 
+  rowwise() %>% 
+  mutate(p_val = binom_func(avg_n_corr_samples, 180, 0.5)$p.value) -> he
+  
+
+
+
+dat %>% 
+  select(condition, Subject, LSTM, CSP) %>% 
+  gather('LSTM', 'CSP', key = method, value = accuracy) %>% 
+  group_by(method, condition) %>% 
+  summarise(meanacc = mean(accuracy, na.rm=T)) ->
+  outp
+
+
+
+```
+
+
