@@ -11,6 +11,8 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(here)
 
+# disable scientific notation:
+options(scipen=999)
 
 # Set up paths: 
 path_data <- here('Results')
@@ -36,13 +38,69 @@ data_bin <- data_df %>%
   select(condition, Subject, LSTM, CSP) %>% 
   gather('LSTM', 'CSP', key = method, value = accuracy)
 
-# run binomial test:
-## this is quite brutal and I think wrong in multiple aspects.
-## I'll continue working on this, so as a starting point it's ok.
+#Get single sample data:
+
+data_pred_ls <- list()
+data_targ_ls <- list()
+
+for (cond in conds) {
+  fname <- str_c('predictionTableCSP_', cond, '.csv')
+  fpath <- file.path(path_data, 'CSP', cond, fname)
+  data_pred_ls[[cond]] <- read_csv(fpath, col_names = FALSE)
+  fname <- str_c('targetTableCSP_', cond, '.csv')
+  fpath <- file.path(path_data, 'CSP', cond, fname)
+  data_targ_ls[[cond]] <- read_csv(fpath, col_names = FALSE)
+}
+
+samp_col_names <- sprintf('S%d', 1:180)
+
+data_pred_df <- bind_rows(data_pred_ls, .id = 'condition') %>% 
+  rename_all(~c('Condition', 'Subject', samp_col_names))
+data_targ_df <- bind_rows(data_targ_ls, .id = 'condition') %>% 
+  rename_all(~c('Condition', 'Subject', samp_col_names))
+# translate to 0-1 instead of 1-2 coding:
+data_targ_df[, samp_col_names] <- data_targ_df[, -(1:2)] - 1
+
+
+# combine, calc accuracy, and run binomial test:
 
 binom_func <- function(n_corr_samps, n_samps_tot, p_guess) {
   binom.test(n_corr_samps, n_samps_tot, p = p_guess, alternative = "greater")
 }
+
+
+pred_success <- data_pred_df
+pred_success[, samp_col_names] <- data_targ_df[, samp_col_names] == data_pred_df[, samp_col_names]
+
+pred_success$Ncorrect <- rowSums(pred_success[, samp_col_names], na.rm = T)
+pred_success$Ntot <- rowSums(!is.na(pred_success[, samp_col_names]))
+pred_success$accuracy <- pred_success$Ncorrect/pred_success$Ntot
+pred_success %>% 
+  mutate(accuracy = Ncorrect/Ntot) %>% 
+  rowwise() %>% 
+  mutate(p_val = binom_func(Ncorrect, Ntot, 0.5)$p.value) %>% 
+  select(-one_of(samp_col_names)) -> pred_success
+
+
+# summary stats:
+pred_success %>% 
+  group_by(Subject, Condition) %>% 
+  summarise(Ncorr_avg = round(mean(Ncorrect)), 
+            Ntot_avg = round(mean(Ntot))) %>% 
+  mutate(accuracy = Ncorr_avg/Ntot_avg) %>% 
+  rowwise() %>% 
+  mutate(p_val = binom_func(Ncorr_avg, Ntot_avg, 0.5)$p.value) %>% 
+  accuracy_summary
+
+accuracy_summary %>% 
+  ggplot(aes(x = Subject, y = accuracy, col = Condition)) + geom_point() -> pplot
+
+
+
+
+
+######## old stuff (can probably be deprecated):
+
 
 data_bin %>% 
   select(accuracy) %>% 
