@@ -28,6 +28,7 @@ else:
 # Add mean input data
 plt_input_data = False  # default value: False TODO revisit
 
+
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
 # Save plot
@@ -121,7 +122,7 @@ wdic_lists = wdic + "/logs"
 wdic_checkpoint = wdic + "/checkpoints"
 lw = 0.5  # linewidth
 
-wdic_sub = wdic + f"/{s(subject)}/{path_specificity}"
+wdic_sub = wdic + f"/{s(subject)}/{path_specificity}"  # wdic + f"/nomov/{s(subject)}/already_plotted"
 wdic_lists_sub = wdic_lists + f"/{s(subject)}/{path_specificity}"
 wdic_checkpoint_sub = wdic_checkpoint + f"/{s(subject)}/{path_specificity}"
 
