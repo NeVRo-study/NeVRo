@@ -52,18 +52,18 @@ for cond = {'mov', 'nomov'}
             padIdx = valTab(:,1) ~= 2;
             targetIdx = valTab ~= 2;
             for row = 1:size(targetIdx,1)
-                colIdx(row,:) = find(targetIdx(row,:));
-            end
-            
-            epoch = colIdx(i,folds(f).indices{2} + padIdx(i));
-            target(i,epoch) = folds(f).targ;
+                colIdx[row,:] = find(target
+            [aaa, colIdx] = find(targetIdx);
+            colIdx = reshape(colIdx, [], 180);
+                        
+            target(i,colIdx(i,folds(f).indices{2} + padIdx(i))) = folds(f).targ;
             prediction = folds(f).pred{2}(:,1) < folds(f).pred{2}(:,2);
-            predict(i,epoch) = prediction' ;
+            predict(i,folds(f).indices{2}) = prediction' ;
             prob = folds(f).pred{2}(:,1);
             idx = prob > 0.5;
             prob(idx) = prob(idx) * -1;
             prob(~idx) = 1 - prob(~idx);
-            pred_prob(i,epoch) = prob;
+            pred_prob(i,folds(f).indices{2}) = prob;
         end
     end
 
