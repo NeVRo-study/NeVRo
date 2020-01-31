@@ -5,10 +5,9 @@ Plot predictions made by the LSTM model
 Author: Simon Hofmann | <[surname].[lastname][at]pm.me> | 2017, 2019 (Update)
 """
 
-# import sys
+import sys
 # sys.path.insert(0, './LSTM Model')  # or set the folder as source root
 from load_data import *
-import sys
 from tensorflow import gfile
 import string
 import shutil
