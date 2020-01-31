@@ -27,12 +27,13 @@ for cond in ["mov", "nomov"]:
 
     for isub in range(1, 46):
 
-        wdic_sub = wdic + f"{cond}/{s(isub)}/already_plotted"
+        wdic_sub = wdic + f"{cond}/{s(isub)}/already_plotted/"
 
         if not os.path.exists(wdic_sub):
             continue
 
-        path_specificity = path_specificity_tab[np.where(path_specificity_tab[:, 0] == str(isub)), 1][0][0].rstrip("/")
+        path_specificity = path_specificity_tab[np.where(path_specificity_tab[:, 0] == str(isub).zfill(2)),
+                                                1][0][0].rstrip("/")
 
         # Find correct files (csv-tables)
         shuff_filename = "None"
@@ -53,8 +54,17 @@ for cond in ["mov", "nomov"]:
                 elif ".npy" in file:
                     shuff_filename = file
 
-        # TODO continue here
-        pred_matrix = np.loadtxt(wdic_sub + file_name, delimiter=",")
+
+        # Load validation results
+        # pred_matrix = np.loadtxt(wdic_sub + file_name, delimiter=",")
         val_pred_matrix = np.loadtxt(wdic_sub + val_filename, delimiter=",")
+
+        # Correctly order val_pred_matrix in each fold via shuffle matrix
+        shuffle_order_matrix = np.load(wdic_sub + shuff_filename)
+        dub_shuffle_order_matrix = np.repeat(a=shuffle_order_matrix, repeats=2, axis=0)
+
+        val_pred_matrix = sort_mat_by_mat(mat=val_pred_matrix, mat_idx=dub_shuffle_order_matrix)
+        # TODO continue here
+
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<  END

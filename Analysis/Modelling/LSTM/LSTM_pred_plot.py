@@ -172,7 +172,7 @@ if os.path.exists(wdic_sub + shuff_filename):
     # shuffle_order_fold5 = np.load(wdic_lists + "/S22/test_task-class_shuffle-T/5/5_shuffle_order.npy")
     dub_shuffle_order_matrix = np.repeat(a=shuffle_order_matrix, repeats=2, axis=0)
 
-    # Correct oder of matrices according to shuffle order of each fold (saved in shuffle_order_matrix)
+    # Correct order of matrices according to shuffle order of each fold (saved in shuffle_order_matrix)
     pred_matrix = sort_mat_by_mat(mat=pred_matrix, mat_idx=dub_shuffle_order_matrix)
 
     val_pred_matrix = sort_mat_by_mat(mat=val_pred_matrix, mat_idx=dub_shuffle_order_matrix)
