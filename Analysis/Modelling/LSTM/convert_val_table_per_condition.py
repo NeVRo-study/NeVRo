@@ -12,12 +12,6 @@ import pandas as pd
 
 # # Convert validation results into a table per condition and save
 
-# # Set paths
-wdic = f"./processed/"
-wdic_result = "../../../Results/Tables/LSTM/"
-if not os.path.exists(wdic_result):
-    os.makedirs(wdic_result, exist_ok=True)
-
 # Subjects
 n_subs = 45
 
@@ -32,6 +26,10 @@ for cond in ["mov", "nomov"]:
     ls_subs = []
 
     # # Set paths
+    wdic = f"./processed/"
+    wdic_result =  f"../../../Results/Tables/LSTM/{cond}/"
+    if not os.path.exists(wdic_result):
+        os.makedirs(wdic_result, exist_ok=True)
     wdic_rs_tables = wdic + f"Random_Search_Tables/{cond}/1_narrow_search/classification/per_subject/"
     p2_path_specificity = wdic_rs_tables + f"AllSub_Narrow_Search_Table_{cond}_BiCl.csv"
 
