@@ -5,10 +5,9 @@ Plot predictions made by the LSTM model
 Author: Simon Hofmann | <[surname].[lastname][at]pm.me> | 2017, 2019 (Update)
 """
 
-# import sys
+import sys
 # sys.path.insert(0, './LSTM Model')  # or set the folder as source root
 from load_data import *
-import sys
 from tensorflow import gfile
 import string
 import shutil
@@ -173,7 +172,7 @@ if os.path.exists(wdic_sub + shuff_filename):
     # shuffle_order_fold5 = np.load(wdic_lists + "/S22/test_task-class_shuffle-T/5/5_shuffle_order.npy")
     dub_shuffle_order_matrix = np.repeat(a=shuffle_order_matrix, repeats=2, axis=0)
 
-    # Correct oder of matrices according to shuffle order of each fold (saved in shuffle_order_matrix)
+    # Correct order of matrices according to shuffle order of each fold (saved in shuffle_order_matrix)
     pred_matrix = sort_mat_by_mat(mat=pred_matrix, mat_idx=dub_shuffle_order_matrix)
 
     val_pred_matrix = sort_mat_by_mat(mat=val_pred_matrix, mat_idx=dub_shuffle_order_matrix)
