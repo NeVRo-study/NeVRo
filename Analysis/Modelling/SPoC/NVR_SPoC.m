@@ -21,6 +21,7 @@ master_path = '/Users/Alberto/Documents/PhD/PhD_Side/NeVRo/';
 ssd_path = [master_path 'Data/EEG/07_SSD/'];
 rat_path = [master_path 'Data/ratings/continuous/not_z_scored/']; 
 spoc_path = [master_path 'Data/EEG/08.1_SPOC/']; 
+results_path = [master_path 'Results/EEG/SPOC/']; 
 
 % Folders
 cond = {'nomov','mov'};
@@ -38,8 +39,8 @@ rawDataFiles = dir([ssd_path cond{fold} '/SBA/narrowband/*.set']);  %we specifca
 % Initialize all the SPoC summary tables
 %SPOC_Table_lambda= ones(length(rawDataFiles),2);
 spoc_t = ones(length(rawDataFiles),3);
-SPOC_Table_A= ones(30,length(rawDataFiles)+1);
-SPOC_Table_W= ones(30,length(rawDataFiles)+1);
+SPOC_Table_A= ones(32,length(rawDataFiles)+1);
+SPOC_Table_W= ones(32,length(rawDataFiles)+1);
 %SPOC_Table_TC=ones(67502,24);
 
 % Open up figure for topoplots
@@ -58,19 +59,19 @@ EEG.setname=fileName;
 
 %% Choose the correct ratings and the selected SSD components to be extracted:
 
-    % SSD Selected Components file
-    ssd_tab = readtable([ssd_path cond{fold} '/SSD_selected_components_' cond{fold} '.csv']); %import the selected components table
-    %ssd_sel =  str2num(cell2num(ssd_tab{str2num(fileName(6:end)),2})); all together
+% SSD Selected Components file
+ssd_tab = readtable([ssd_path cond{fold} '/SSD_selected_components_' cond{fold} '.csv']); %import the selected components table
+%ssd_sel =  str2num(cell2num(ssd_tab{str2num(fileName(6:end)),2})); all together
     
-    sel_sub = ssd_tab(str2num(fileName(6:end)),2); %select the correspondent participant's row
-    ssd_sel = str2num(cell2mat(table2array(sel_sub))); %convert selected row to list of numbers (indexes indicating components - Terrible sequence of nested functions but it works)
+sel_sub = ssd_tab(str2num(fileName(6:end)),2); %select the correspondent participant's row
+ssd_sel = str2num(cell2mat(table2array(sel_sub))); %convert selected row to list of numbers (indexes indicating components - Terrible sequence of nested functions but it works)
     
-    % Ratings
-    if exist([rat_path 'nomov/SBA/' fileName '_run_1_alltog_rat_z.txt'], 'file')
+% Ratings
+if exist([rat_path 'nomov/SBA/' fileName '_run_1_alltog_rat_z.txt'], 'file')
     rat_tab=readtable([rat_path 'nomov/SBA/' fileName '_run_1_alltog_rat_z.txt']);
-    else
+else
     rat_tab=readtable([rat_path 'nomov/SBA/' fileName '_run_2_alltog_rat_z.txt']);
-    end
+end
     
 % Select the correct ratings
 rat=rat_tab{:,2}; %Take the right coloumn of the (non) z-scored ratings
@@ -116,73 +117,109 @@ EEG = pop_epoch( EEG, {'1','2','3'}, [-0.5 0.5], 'newname', EEG.setname, 'epochi
 
 % 2.Original spoc function 
 X = permute(EEG.data, [2, 1, 3]);
+
+% Define parameters of X that we will need for further processing
+Te = length(X(:,:,1));  % number of samples per epoch
+Nx = length(X(1,:,1));  % number of sensors
+
 [W, A, lambda_values, p_values_lambda, Cxx, Cxxz, Cxxe] = spoc(X, z, 'n_bootstrapping_iterations',500);
-
-%% Extract the best component(s) for each participant (pop_spoc)  - double check the location of the final A,W matrices in the EEGlab structure
-
-%If you use pop_spoc:
-%First, let's sort the resulting SPoC structure in every single field
-% Sfields = fieldnames(EEG.dipfit.model);
-% Scell = struct2cell(EEG.dipfit.model);
-% sz = size(Scell);
-% 
-% % Convert to a matrix
-% Scell = reshape(Scell, sz(1), []);      % Px(MxN)
-% % Make each field a column
-% Scell = Scell';                         % (MxN)xP
-% % Sort by second field "p.value"
-% Scell = sortrows(Scell, 2);
-% 
-% % Save lambdas and p.value
-% spoc_t(isub,1) = str2num(fileName(6:7));
-% spoc_t(isub,2) = Scell{1,1}; %lambda
-% spoc_t(isub,3) = Scell{1,2}; %p.value
-% 
-% % Extract the z-scored behavioural target variable
-% target_z = zscore(EEG.SPoC_z');
-% 
-% % Save the respective A matrix (EEG.icawinv) and put it in the general table
-% A=EEG.icawinv;
-% dlmwrite([spoc_path cond{fold} '/' fileName '_A.csv'],A);  %spatial patterns
-% % Save also the best time course and put i
-% comp_tc=EEG.icaact;
-% dlmwrite([spoc_path cond{fold} '/' fileName '_A.csv'],comp_tc); %time course
 
 %%  Extract the best component(s) for each participant (spoc)
 
-spoc_res = [lambda_values p_values_lambda' A'];
-spoc_res = sortrows(spoc_res, 1, 'ascend');
+%spoc_res = [lambda_values p_values_lambda' A' R'];
+spoc_res = [lambda_values p_values_lambda' A', W'];
+[spoc_res, index] = sortrows(spoc_res, 1, 'ascend');
 
-spoc_t(isub,1) = str2num(fileName(6:7));
-spoc_t(isub,2) = spoc_res(1,1); %lambda
-spoc_t(isub,3) = spoc_res(1,2); %p.value
+%% Compute z_est (the estimated time course of the behavioural data - the univariate variable z - with the best set of weights W)
 
-dlmwrite([spoc_path cond{fold} '/SBA/' fileName '_A.csv'], A);
+s_est = zeros(Te, length(z));
+
+for k=1:length(z)
+    s_est(:,k) = squeeze(X(:,:,k)) * W(:,index(1));
+end
+
+p_est = var(s_est);
+
+%% Compute correlation between z_est and z (in this case there's no training/test separation - might be overfitted)
+
+r_tot = corrcoef(p_est', z');
+r = r_tot(1,2:end);
+
+%% Save Spatial Patterns
+dlmwrite([spoc_path cond{fold} '/SBA/' fileName '_A.csv'], A); % save spatial patterns
 save([spoc_path cond{fold} '/SBA/' fileName '_A.mat'], 'A'); %spatial patterns
-save([spoc_path cond{fold} '/SBA/' fileName '_spoc_res.mat'], 'spoc_res'); 
+
 %dlmwrite([spoc_path cond{fold} '/SBA/' fileName '_A.csv'],comp_tc); %time course
+
+%% Add everything to the general SPOC_results structure (one per condition - only considering the best SPOC component)
+
+SPOC_results.chanlocs = EEG.chanlocs;
+SPOC_results.results(isub).participant = fileName;
+SPOC_results.results(isub).preprocessing = EEG.etc;
+%SPOC_results.results(isub).SPOC_model.data = X;
+SPOC_results.results(isub).SPOC_model.Cov = Cxx ;
+SPOC_results.results(isub).SPOC_model.Covz = Cxxz;
+SPOC_results.results(isub).SPOC_model.Covtr = Cxxe;
+SPOC_results.results(isub).SPOC_model.z_original = z;
+SPOC_results.results(isub).SPOC_model.z = (z-mean(z(:)))./std(z(:));
+SPOC_results.results(isub).SPOC_model.z_est = p_est;
+SPOC_results.results(isub).SPOC_model.corr = r;
+SPOC_results.results(isub).SPOC_model.lambda = lambda_values;
+SPOC_results.results(isub).SPOC_model.p_values_lambda = p_values_lambda;
+SPOC_results.results(isub).stats = p_values_lambda;
+SPOC_results.results(isub).weights.SPOC_A = A(:,index(1));
+SPOC_results.results(isub).weights.SPOC_W = W(:,index(1));
+SPOC_results.results(isub).weights.SSD_W_sel = W_ssd;
+SPOC_results.results(isub).weights.SSD_A_sel = A_ssd;
+
+%% Update summary structure
+
+struct_summ(isub).ID = fileName;
+struct_summ(isub).lambda = spoc_res(1,1);
+struct_summ(isub).pval = spoc_res(1,2);
+struct_summ(isub).r = r;
+
+% Update z_est structure
+struct_zest(isub).ID = fileName;
+struct_zest(isub).z_est = p_est;
+
+% Update z structure
+struct_z(isub).ID = fileName;
+struct_z(isub).z =(z-mean(z(:)))./std(z(:));
 
 %% Plotting
 
 %h(isub) = subplot_tight(6,6,isub, 0.06)
 h(isub) = subplot(6,6,isub)
-title({[fileName] ; ['p: ' num2str(spoc_res(1,2)) ' - l: ' num2str(spoc_res(1,1))]});
-% if spoc_res(1,2) <0.05
-%     xlabel(['p: ' num2str(spoc_res(1,2))], 'Color','r')
-% else 
-%     xlabel(['p: ' num2str(spoc_res(1,2))])
-% end 
+ if spoc_res(1,2) <0.05
+     title({[fileName] ; ['p: ' num2str(spoc_res(1,2)) ' - l: ' num2str(spoc_res(1,1)) ' - r: ' num2str(r)]},'Color','r');
+     %xlabel(['p: ' num2str(spoc_res(1,2))], 'Color','r')
+ else 
+     title({[fileName] ; ['p: ' num2str(spoc_res(1,2)) ' - l: ' num2str(spoc_res(1,1)) ' - r: ' num2str(r)]});
+    % xlabel(['p: ' num2str(spoc_res(1,2))])
+ end 
 topoplot(A(:,1),EEG.chanlocs);
+colormap('viridis');  %from here: https://github.com/moffat/matlab
 set(gca,'visible','off')
 hold on;
-%sgtitle(['Topographies (spatial patterns) of the ' cond{fold} ' condition'])
-%saveas(gcf,[spoc_path 'SPoC_topo_' cond{fold} '.png']);
 
 end
 
-csvwrite([spoc_path 'SPoC_pvals_' cond{fold} '.csv'],spoc_t);  %time course
-%sgtitle(['Topographies (spatial patterns) of the ' cond{fold} ' condition'])
-saveas(gcf,[spoc_path 'SPoC_topo_lambda_' cond{fold} '.png']);
+% Save the current figure
+%sgtitle(['Spatial patterns of the ' cond{fold} ' condition'])
+saveas(gcf,[spoc_path cond{fold} '/SBA/summaries/SPoC_topo_' cond{fold} '.png']);
+
+% Save the general summary structure
+%save([spoc_path cond{fold} '/SBA/summaries/SPOC_results_'  cond{fold} '.mat'], 'SPOC_results');
+
+table_summ = struct2table(struct_summ);
+table_z = struct2table(struct_z);
+table_zest = struct2table(struct_zest);
+
+save([spoc_path cond{fold} '/SBA/summaries/SPOC_results_'  cond{fold} '.mat'], 'SPOC_results');  % results summary .mat structure
+writetable(table_summ,[spoc_path cond{fold} '/SBA/summaries/_summary.csv']);  % lambda, p.values and corr. coeff summary
+
+clear SPOC_results;
 close all;
 
 end 
