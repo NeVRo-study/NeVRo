@@ -35,12 +35,16 @@ cond = "nomov"
 
 # Set paths
 
-wdic_plot = f"../../../Results/Plots/{model}/"
+wdic_results = f"../../../Results/"
+wdic_plot = wdic_results + f"Plots/{model}/"
 
 # For "LSTM"
 wdic = "./processed"
 wdic_sub = wdic + f"/{cond}/{s(subject)}/already_plotted/"
-path_specificity = "BiCl_nomov_RndHPS_lstm-80-50_fc-0_lr-5e-4_wreg-l2-1.44_actfunc-relu_ftype-SSD_hilb-F_bpass-T_comp-1-2-3-4-5-6-7-8_hrcomp-F_fixncol-10."
+
+wdic_val_pred = wdic_results + f"Tables/{model}/{cond}/"
+
+path_specificity = "BiCl_nomov_RndHPS_lstm-20-15_fc-0_lr-1e-3_wreg-l2-0.36_actfunc-relu_ftype-SSD_hilb-F_bpass-T_comp-1_hrcomp-F_fixncol-10"
 
 # Find correct files (csv-tables)
 shuff_filename = "None"
@@ -256,73 +260,23 @@ for idx, ele in enumerate(whole_rating):
     elif ele == -1.:
         whole_rating_shift[idx] = ele - .1
 
+
+# Get concatenated validation predictions for given subject
+concat_val_pred_lstm = pd.read_csv(wdic_val_pred + f"predictionTableProbabilities{model}_{cond}.csv",
+                                   header=None, index_col=0).loc[f"NVR_{s(subject)}"].to_numpy()
+
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
-# Plotting
+# # # Plotting
+fig = plt.figure(f"{s_fold}-Folds concat(val) | {s(subject)} | {cond} | {task} | mean(val_acc)={mean_acc} | 1Hz ",
+                 figsize=(10, 12))
 
-fig4 = plt.figure(f"{s_fold}-Folds mean(train)_&_concat(val)_| {s(subject)} | {cond} | {task} | "
-                  f"mean(val_acc)={mean_acc} | 1Hz ", figsize=(10, 12))
+fig.add_subplot(3, 1, 1)
 
-# delete ratings out of pred_matrix first and then average across rows
-average_train_pred = np.nanmean(a=np.delete(arr=pred_matrix, obj=np.arange(1, 2 * s_fold, 2), axis=0),
-                                axis=0)
-concat_val_pred = np.nanmean(a=np.delete(arr=val_pred_matrix, obj=np.arange(1, 2 * s_fold, 2), axis=0),
-                             axis=0)
-# whole_rating = np.nanmean(a=np.delete(arr=pred_matrix, obj=np.arange(0, 2*s_fold-1, 2), axis=0), axis=0)
-
-# Plot average train prediction
-fig4.add_subplot(3, 1, 1)
-
-# Predictions
-plt.plot(average_train_pred, color="steelblue", marker="o", markerfacecolor="None", ms=2,
-         linewidth=2 * lw, label="mean_train_prediction")
-# Ratings
-plt.plot(real_rating, color="darkgrey", alpha=.5)
-plt.plot(only_entries_rating, color="teal", alpha=.3, label="ground-truth rating")
-plt.plot(whole_rating_shift, ls="None", marker="s", markerfacecolor="None", ms=3, color="black",
-         label="arousal classes: low=-1 | high=1")
-# midline and tertile borders
-plt.hlines(y=0, xmin=0, xmax=pred_matrix.shape[1], colors="darkgrey", lw=lw, alpha=.8)
-plt.hlines(y=lower_tert_bound, xmin=0, xmax=pred_matrix.shape[1], linestyle="dashed",
-           colors="darkgrey", lw=lw, alpha=.8)
-plt.hlines(y=upper_tert_bound, xmin=0, xmax=pred_matrix.shape[1], linestyle="dashed",
-           colors="darkgrey", lw=lw, alpha=.8)
-# Correct classified
-correct_class_train = np.sign(average_train_pred * whole_rating)
-
-plt.fill_between(x=np.arange(0, correct_class_train.shape[0], 1), y1=average_train_pred,
-                 y2=real_rating, where=correct_class_train == 1, color="green", alpha='0.2')
-
-plt.fill_between(x=np.arange(0, correct_class_train.shape[0], 1), y1=average_train_pred,
-                 y2=real_rating, where=correct_class_train == -1, color="red", alpha='0.2')
-
-for i in range(correct_class_train.shape[0]):
-    corr_col = "green" if correct_class_train[i] == 1 else "red"
-    # wr = whole_rating[i]
-    wr = whole_rating_shift[i]
-    # plt.vlines(i, ymin=wr, ymax=average_train_pred[i], colors=corr_col, alpha=.5, lw=lw/1.5)
-    if not np.isnan(average_train_pred[i]):
-        # set a point at the end of line
-        plt.plot(i, np.sign(wr) * (np.abs(wr) + .01) if correct_class_train[i] == 1 else wr,
-                 marker="o", color=corr_col, alpha=.5, ms=2)
-
-correct_class_train = np.delete(correct_class_train, np.where(np.isnan(correct_class_train)))
-mean_train_acc = sum(correct_class_train[correct_class_train == 1]) / len(correct_class_train)
-plt.xlabel("time(s)")
-plt.title(label=f'Average train prediction | {s_fold}-Folds| {task} | '
-                f'mean training accuracy={mean_train_acc:.3f}')
-
-# adjust size, add legend
-plt.xlim(0, len(whole_rating))
-plt.ylim(-1.2, 1.6)
-plt.legend(bbox_to_anchor=(0., 0.90, 1., .102), loc=1, ncol=4, mode="expand", borderaxespad=0.)
-plt.tight_layout(pad=2)
-
-# Plot average train prediction
-fig4.add_subplot(3, 1, 2)
-
-plt.plot(concat_val_pred, marker="o", markerfacecolor="None", ms=2, c="aquamarine", linewidth=2 * lw,
+# Plot val predictions
+plt.plot(concat_val_pred_lstm, marker="o", markerfacecolor="None", ms=2, c="aquamarine", linewidth=2 * lw,
          label="concatenated val-prediction")
+
 # Ratings
 plt.plot(real_rating, color="darkgrey", alpha=.5)
 plt.plot(only_entries_rating, color="teal", alpha=.3, label="ground-truth rating")
@@ -335,14 +289,14 @@ plt.hlines(y=lower_tert_bound, xmin=0, xmax=pred_matrix.shape[1], linestyle="das
 plt.hlines(y=upper_tert_bound, xmin=0, xmax=pred_matrix.shape[1], linestyle="dashed",
            colors="darkgrey", lw=lw, alpha=.8)
 # Correct classified
-correct_class = np.sign(concat_val_pred * whole_rating)
+correct_class = np.sign(concat_val_pred_lstm * whole_rating)
 
-plt.fill_between(x=np.arange(0, correct_class.shape[0], 1), y1=concat_val_pred, y2=real_rating,
+plt.fill_between(x=np.arange(0, correct_class.shape[0], 1), y1=concat_val_pred_lstm, y2=real_rating,
                  where=correct_class == 1,
                  color="lime",
                  alpha='0.2')
 
-plt.fill_between(x=np.arange(0, correct_class.shape[0], 1), y1=concat_val_pred, y2=real_rating,
+plt.fill_between(x=np.arange(0, correct_class.shape[0], 1), y1=concat_val_pred_lstm, y2=real_rating,
                  where=correct_class == -1,
                  color="orangered",
                  alpha='0.2')
@@ -352,7 +306,7 @@ for i in range(correct_class.shape[0]):
     # wr = whole_rating[i]
     wr = whole_rating_shift[i]
     # plt.vlines(i, ymin=wr, ymax=concat_val_pred[i], colors=corr_col, alpha=.5, lw=lw/1.5)
-    if not np.isnan(concat_val_pred[i]):
+    if not np.isnan(concat_val_pred_lstm[i]):
         # set a point at the end of line
         plt.plot(i, np.sign(wr) * (np.abs(wr) + .01) if correct_class[i] == 1 else wr,
                  marker="o", color=corr_col, alpha=.5, ms=2)
@@ -373,12 +327,18 @@ plt.tight_layout(pad=2)
 # TODO CSP data
 
 # For "CSP"
+model = "CSP"
 wdic_csp = f"../../../Results/CSP/{cond}/"
+wdic_val_pred = wdic_results + f"Tables/{model}/{cond}/"
+
+concat_val_pred = pd.read_csv(wdic_val_pred + f"predictionTableProbabilities{model}_{cond}.csv",
+                              header=None, index_col=0).loc[f"NVR_{s(subject)}"].to_numpy()  # (270,)
 
 
-fig4.add_subplot(3, 1, 3)
+# Plot average val prediction of CSP
+fig.add_subplot(3, 1, 2)
 plt.plot(concat_val_pred, marker="o", markerfacecolor="None", ms=2, c="aquamarine", linewidth=2 * lw,
-         label="concatenated val-prediction")
+         label="CSP concatenated val-prediction ")
 # Ratings
 plt.plot(real_rating, color="darkgrey", alpha=.5)
 plt.plot(only_entries_rating, color="teal", alpha=.3, label="ground-truth rating")
@@ -425,8 +385,11 @@ plt.ylim(-1.2, 1.6)
 plt.legend(bbox_to_anchor=(0., 0.90, 1., .102), loc=1, ncol=4, mode="expand", borderaxespad=0.)
 plt.tight_layout(pad=2)
 
+
+# TODO SPoC: fig.add_subplot(3, 1, 3)
+
 if matplotlib.rcParams['backend'] != 'agg':
-    fig4.show()
+    fig.show()
 
 # Plot
 if plots:
@@ -435,4 +398,5 @@ if plots:
         f"_|_{task}_|_all_train_val_|_{s(subject)}_|_{cond}_|_mean(val_acc)_{mean_acc:.2f}_|_" \
         f"{path_specificity[:-1]}.png"
 
-    # fig4.savefig(wdic_plot + plot_filename)
+    # fig.savefig(wdic_plot + plot_filename)
+
