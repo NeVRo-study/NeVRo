@@ -53,15 +53,22 @@ load([rawDataFiles(isub).folder '/' rawDataFiles(isub).name]);
 
 % Select the A matrix of the best SPoC component
 A = spoc_res(1,3:end)'; %invert it into col form
-A_abs = abs(A); %is it correct? 
+%A_abs = abs(A); %is it correct? NO NEED TO DO IT WITH THE MAGNITUDE
+
+%A/magnitude(A) aka:
+A_mag = A/norm(A);
+%then Average of all the single subject A
+%plot it!
 
 A_group(:,isub) = A;
-A_group_abs(:,isub) = A_abs;
+%A_group_abs(:,isub) = A_abs;
 
+A_group_mag(:,isub) = A_mag;
 end 
 
-A_avg_abs = mean(A_group_abs,2); %mean with absolute values
+%A_avg_abs = mean(A_group_abs,2); %mean with absolute values
 A_avg = mean(A_group,2); %mean with all values
+A_avg_mag = mean(A_group_mag,2);
 end 
 
 
@@ -74,6 +81,6 @@ title({'Average Spatial Patterns'})
 colorbar;
 
 subplot(1,2,2);
-topoplot(A_avg_abs,chans);
-title({'Average Spatial Patterns (Absolute Values)'})
+topoplot(A_avg_mag,chans);
+title({'Average Spatial Patterns (with magnitude ratio)'})
 colorbar;
