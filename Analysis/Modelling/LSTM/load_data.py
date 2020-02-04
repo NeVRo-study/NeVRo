@@ -1148,10 +1148,19 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
     # then do shuffle:
     idx = np.arange(len(rating_cnt))  # init
     if shuffle:
-        np.random.shuffle(idx)
         if task == "regression":
             cprint("Note: Shuffling data for regression task leads to more difficult interpretation of "
                    "results/plots and makes successive batches redundant (if applied).", col='y')
+            raise ValueError("Do not use shuffle=True for 'regression'")
+        else:
+            # Shuffle index until balanced validation set is found (also leads to balanced train set)
+            while True:
+                np.random.shuffle(idx)
+                temp_val_set = splitter(array_to_split=rating_cnt[idx], n_splits=s_fold)[s_fold_idx]
+                if (len(temp_val_set[temp_val_set != 0]) == int(len(temp_val_set)*2/3)) and \
+                        (len(temp_val_set[temp_val_set < 0]) == int(len(temp_val_set)*1/3)):
+                    # del temp_val_set  # Now: n(-1)==n(1) (==n(0), will be ignored during training/testing)
+                    break
 
     # eeg_concat_split[0][0:] first to  250th value in time
     # eeg_concat_split[1][0:] 250...500th value in time
