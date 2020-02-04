@@ -1161,6 +1161,7 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
                         (len(temp_val_set[temp_val_set < 0]) == int(len(temp_val_set)*1/3)):
                     # del temp_val_set  # Now: n(-1)==n(1) (==n(0), will be ignored during training/testing)
                     break
+    # TODO implement fully-balanced approach for binary classification
 
     # eeg_concat_split[0][0:] first to  250th value in time
     # eeg_concat_split[1][0:] 250...500th value in time
