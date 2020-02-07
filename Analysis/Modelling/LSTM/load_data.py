@@ -958,7 +958,7 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
                    equal_comp_matrix=None,
                    s_fold_idx=None, s_fold=10,
                    sba=True, s_freq_eeg=250.,
-                   shuffle=False, testmode=False):
+                   shuffle=False, shuffle_order=None, semi_balanced_cv=True, testmode=False):
     """
     Prepares NeVRo dataset and returns the s-fold-prepared dataset.
     S-Fold Validation, S=5: [ |-Train-|-Train-|-Train-|-Valid-|-Train-|] Dataset
@@ -978,6 +978,9 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
         sba: Whether to use SBA-data
         s_freq_eeg: Sampling Frequency of EEG
         shuffle: shuffle data (for classific. task to have balance low/high arousal in all folds/valsets)
+        shuffle_order: None: indeces for data vector gets shuffled (if True: shuffle): index order array (len(rating),)
+        semi_balanced_cv: True: at each iteration/fold data gets shuffled (can lead to overlapping samples in valset);
+                          False: all folds are fixed before start of training (no overlap of samples in valset)
         testmode: Whether to load data for testmode
     Returns:
         Train, Validation Datasets
@@ -1146,21 +1149,39 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
 
     # If semi-balanced low-high-arousal values for validation set is required (in binary classi.)
     # then do shuffle:
-    idx = np.arange(len(rating_cnt))  # init
-    if shuffle:
+    idx = np.arange(len(rating_cnt)) if (shuffle_order is None) else np.array(shuffle_order)  # init
+    if shuffle and (shuffle_order is None):
         if task == "regression":
             cprint("Note: Shuffling data for regression task leads to more difficult interpretation of "
                    "results/plots and makes successive batches redundant (if applied).", col='y')
             raise ValueError("Do not use shuffle=True for 'regression'")
         else:
-            # Shuffle index until balanced validation set is found (also leads to balanced train set)
-            while True:
-                np.random.shuffle(idx)
-                temp_val_set = splitter(array_to_split=rating_cnt[idx], n_splits=s_fold)[s_fold_idx]
-                if (len(temp_val_set[temp_val_set != 0]) == int(len(temp_val_set)*2/3)) and \
-                        (len(temp_val_set[temp_val_set < 0]) == int(len(temp_val_set)*1/3)):
-                    # del temp_val_set  # Now: n(-1)==n(1) (==n(0), will be ignored during training/testing)
-                    break
+            if semi_balanced_cv:
+                # Shuffle index until balanced validation set is found (also leads to balanced train set)
+                while True:
+                    np.random.shuffle(idx)
+                    temp_val_set = splitter(array_to_split=rating_cnt[idx], n_splits=s_fold)[s_fold_idx]
+                    if (len(temp_val_set[temp_val_set != 0]) == int(len(temp_val_set)*2/3)) and \
+                            (len(temp_val_set[temp_val_set < 0]) == int(len(temp_val_set)*1/3)):
+                        # del temp_val_set  # Now: n(-1)==n(1) (==n(0), will be ignored during training/testing)
+                        break
+            else:
+                temp_idx = idx.copy()
+                len_val = int(len(rating_cnt)/s_fold)
+                # Successively go through each fold and balance class-ratio
+                for fi in range(s_fold):
+                    while True:
+                        np.random.shuffle(temp_idx)
+                        idx[fi * len_val:(fi + 1) * len_val] = temp_idx[:len_val]  # overwrite index for each fold
+                        temp_val_set = splitter(array_to_split=rating_cnt[idx], n_splits=s_fold)[fi]
+
+                        if (len(temp_val_set[temp_val_set != 0]) == int(len(temp_val_set) * 2 / 3)) and \
+                                (len(temp_val_set[temp_val_set < 0]) == int(len(temp_val_set) * 1 / 3)):
+                            # del temp_val_set  # Now: n(-1)==n(1) (==n(0), will be ignored during training/testing)
+
+                            temp_idx = temp_idx[len_val:]
+                            break
+
     # TODO implement fully-balanced approach for binary classification
 
     # eeg_concat_split[0][0:] first to  250th value in time

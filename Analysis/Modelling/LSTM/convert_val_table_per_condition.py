@@ -140,4 +140,5 @@ for cond in ["mov", "nomov"]:
         path_or_buf=wdic_result + f"predictionTableMappingIndicesLSTM_{cond}_concat.csv", sep=",", header=False,
         na_rep="NaN")
 
+    end()
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<  END
