@@ -38,7 +38,7 @@ from write_random_search_bash import update_bashfiles
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
-TASK_DEFAULT = 'regression'  # prediction via 'regression' (continuous) or 'classification' (low-high)
+TASK_DEFAULT = 'classification'  # prediction via 'regression' (continuous) or 'classification' (low-high)
 LEARNING_RATE_DEFAULT = 1e-3  # 1e-4
 BATCH_SIZE_DEFAULT = 9  # or bigger, batch_size must be a multiple of 'successive batches'
 SUCCESSIVE_BATCHES_DEFAULT = 1  # (time-)length per sample is hyperparameter in form of successive batches
@@ -243,6 +243,7 @@ def train_lstm():
     # In case data was shuffled save corresponding order per fold in matrix and save later
     shuffle_order_matrix = np.zeros(shape=(FLAGS.s_fold, pred_matrix.shape[1]))
     shuffle_order_matrix[s_fold_idx_list[0], :] = nevro_data["order"]
+    global_shuffle_order = nevro_data["order"] if FLAGS.balanced_cv else None
 
     # Set Variables for timer
     timer_fold_list = []  # list of duration(time) of each fold
@@ -289,6 +290,8 @@ def train_lstm():
                                                 hilbert_power=FLAGS.hilbert_power,
                                                 task=FLAGS.task,
                                                 shuffle=FLAGS.shuffle,
+                                                shuffle_order=global_shuffle_order,  # is None if not FLAGS.balanced_cv
+                                                balanced_cv=FLAGS.balanced_cv,
                                                 testmode=FLAGS.testmodel)
 
                     # Save order in shuffle_order_matrix: shuffle=False:(1,2,...,270);

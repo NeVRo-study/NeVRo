@@ -63,7 +63,7 @@ def draw_components(n, subject, condition, filetype, select_mode="one_up", dtype
 
 def write_search_bash_files(subs, filetype, condition,
                             task_request=None, component_mode=2, eqcompmat=None,
-                            seed=False, repet_scalar=30, s_fold=10,
+                            seed=False, repet_scalar=30, s_fold=10, balanced_cv=True,
                             batch_size=9, successive_mode=1, rand_batch=True, plot=True,
                             successive_default=3, del_log_folders=True, summaries=False,
                             n_combinations=None, n_subbash=4):
@@ -77,6 +77,7 @@ def write_search_bash_files(subs, filetype, condition,
     :param seed: regarding randomization of folds, batches etc.
     :param repet_scalar: how many times it runs through whole set (can be also fraction)
     :param s_fold: number (s) of folds
+    :param balanced_cv: non-overlapping, equal class-sized data splits at each fold
     :param batch_size: Batch size
     :param successive_mode: 1 or 2 (see load_data.py in next_batch())
     :param rand_batch: Should remain True
@@ -123,6 +124,7 @@ def write_search_bash_files(subs, filetype, condition,
     tfix = "BiCl" if task == "classification" else "Reg"
 
     shuffle = True if task == "classification" else False
+    balanced_cv = False if task == "regression" else balanced_cv
     successive = 1 if task == "classification" else successive_default
 
     if eqcompmat is None:
@@ -241,11 +243,17 @@ def write_search_bash_files(subs, filetype, condition,
                 f"lr-{learning_rate}_wreg-{weight_reg}-{weight_reg_strength:.2f}_" \
                 f"actfunc-{activation_fct}_ftype-{filetype}_hilb-{'T' if hilbert_power else 'F'}_" \
                 f"bpass-{'T' if band_pass else 'F'}_comp-{'-'.join(str(sub_component).split(','))}_" \
-                f"hrcomp-{'T' if hrcomp else 'F'}_fixncol-{eqcompmat}/"
+                f"hrcomp-{'T' if hrcomp else 'F'}_fixncol-{eqcompmat}"
 
-            # Write line for bashfile
+            if task == "classification":
+                path_specificities += f"shuf-{'T' if shuffle else 'F'}_balcv-{'T' if balanced_cv else 'F'}/"
+            else:
+                path_specificities += "/"
+
+                # Write line for bashfile
             bash_line = f"python3 NeVRo.py --subject {sub} --condition {cond} --seed {seed} " \
-                f"--task {task} --shuffle {shuffle} --repet_scalar {repet_scalar} --s_fold {s_fold} " \
+                f"--task {task} --shuffle {shuffle} --balanced_cv {balanced_cv} " \
+                f"--repet_scalar {repet_scalar} --s_fold {s_fold} " \
                 f"--batch_size {batch_size} --successive {successive} " \
                 f"--successive_mode {successive_mode} --rand_batch {rand_batch} --plot {plot} " \
                 f"--dellog {del_log_folders} --lstm_size {lstm_size} --fc_n_hidden {fc_n_hidden} " \
@@ -273,7 +281,7 @@ def write_search_bash_files(subs, filetype, condition,
 
             if not os.path.exists(table_name):
                 rs_table = np.array(['round', 'subject', 'cond', 'seed', 'task',
-                                     'shuffle', 'repet_scalar', 's_fold', 'batch_size',
+                                     'shuffle', 'repet_scalar', 's_fold', 'balanced_cv', 'batch_size',
                                      'successive', 'successive_mode', 'rand_batch', 'plot',
                                      'lstm_size', 'fc_n_hidden', 'learning_rate',
                                      'weight_reg', 'weight_reg_strength',
@@ -292,7 +300,7 @@ def write_search_bash_files(subs, filetype, condition,
             rnd = int(rs_table[-1, 0]) + 1 if rs_table[-1, 0].isnumeric() else 0
 
             exp_data = [rnd, sub, cond, seed, task,
-                        shuffle, repet_scalar, s_fold, batch_size,
+                        shuffle, repet_scalar, s_fold, balanced_cv, batch_size,
                         successive, successive_mode, rand_batch, plot,
                         lstm_size, fc_n_hidden, learning_rate,
                         weight_reg, weight_reg_strength,
@@ -430,7 +438,7 @@ def write_bash_from_table(subs, table_path, condition, task=None, n_subbash=4, d
     for line in new_hp_table[1:, 1:-3]:
 
         subject, cond, seed, task, shuffle, \
-            repet_scalar, s_fold, batch_size, \
+            repet_scalar, s_fold, balanced_cv, batch_size, \
             successive, successive_mode, rand_batch, \
             plot, \
             lstm_size, fc_n_hidden, learning_rate, \
@@ -442,7 +450,8 @@ def write_bash_from_table(subs, table_path, condition, task=None, n_subbash=4, d
 
         # Write line for bashfile (Important: [Space] after each entry)
         bash_line = f"python3 NeVRo.py --subject {subject} --condition {cond} --seed {seed} " \
-                    f"--task {task} --shuffle {shuffle} --repet_scalar {repet_scalar} --s_fold {s_fold} " \
+                    f"--task {task} --shuffle {shuffle} --balanced_cv {balanced_cv} " \
+                    f"--repet_scalar {repet_scalar} --s_fold {s_fold} " \
                     f"--batch_size {batch_size} --successive {successive} " \
                     f"--successive_mode {successive_mode} --rand_batch {rand_batch} --plot {plot} " \
                     f"--dellog {del_log_folders} --lstm_size {lstm_size} --fc_n_hidden {fc_n_hidden} " \
@@ -617,14 +626,14 @@ if __name__ == "__main__":
             for _task in tasks:  # Binary classification & Regression
 
                 # Broad random search
-                write_search_bash_files(subs=subsubjects, filetype=datatype, condition=condi,
+                write_search_bash_files(subs=subsubjects, filetype=datatype, condition=condi, balanced_cv=True,
                                         task_request=_task, component_mode=1, eqcompmat=True, n_combinations=20,
                                         seed=True, repet_scalar=20, n_subbash=8)
         else:
             if testing:
                 write_search_bash_files(subs=subjects, filetype=datatype, condition=condi,
                                         task_request=None, component_mode=1, eqcompmat=None,
-                                        seed=False, repet_scalar=5, s_fold=10,
+                                        seed=False, repet_scalar=5, s_fold=10, balanced_cv=True,
                                         batch_size=9, successive_mode=1, rand_batch=True, plot=True,
                                         successive_default=3, del_log_folders=True, summaries=False,
                                         n_combinations=None, n_subbash=4)
