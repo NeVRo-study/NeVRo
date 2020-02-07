@@ -845,7 +845,7 @@ if __name__ == '__main__':
                         help="Which condition: 'nomov' (no movement) or 'mov'")
     parser.add_argument('--lstm_size', type=str, default=LSTM_SIZE_DEFAULT,
                         help='Comma separated list of size of hidden states in each LSTM layer')
-    parser.add_argument('--balanced_cv', type=str2bool, default=False,
+    parser.add_argument('--balanced_cv', type=str2bool, default=True,
                         help='Balanced CV. False: at each iteration/fold data gets shuffled (semi-balanced). '
                              '(This can lead to overlapping samples in validation set)')
     parser.add_argument('--s_fold', type=int, default=S_FOLD_DEFAULT,
