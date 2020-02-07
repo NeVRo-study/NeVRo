@@ -117,17 +117,21 @@ else:  # If plots are not saved, do not delete log folders
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
 # Get condition
-cond = path_specificity.split("_")[1]  # 'BiCl_nomov_RndHPS_lstm-20-....'
+try:
+    cond = path_specificity.split("_")[1]  # 'BiCl_nomov_RndHPS_lstm-20-....'
+except IndexError:
+    cond = input("Indicate condition: 'M'ov or 'N'oMov : ").lower()
+    cond = "nomov" if "n" in cond else "mov"
 assert cond in ["mov", "nomov"], "condition must be indicated 'mov', 'nomov'!"
 
 # Set paths
-wdic = f"./processed/{cond}"
+wdic = f"./processed"
 wdic_plot = "../../../Results/Plots/LSTM/"
 wdic_lists = wdic + f"/logs/{cond}"
-wdic_checkpoint = wdic + "/checkpoints"
+wdic_checkpoint = wdic + f"/checkpoints/{cond}"
 lw = 0.5  # linewidth
 
-wdic_sub = wdic + f"/{s(subject)}/{path_specificity}"  # wdic + f"/nomov/{s(subject)}/already_plotted"
+wdic_sub = wdic + f"/{cond}/{s(subject)}/{path_specificity}"  # wdic+f"/nomov/{s(subject)}/already_plotted"
 wdic_lists_sub = wdic_lists + f"/{s(subject)}/{path_specificity}"
 wdic_checkpoint_sub = wdic_checkpoint + f"/{s(subject)}/{path_specificity}"
 
@@ -152,7 +156,7 @@ for file in os.listdir(wdic_sub):
 # Intermediate step: check whether filenames already exist in already_plotted_dic
 abc = ''  # init
 if plots:
-    already_plotted_dic = wdic + f"/{s(subject)}/already_plotted/"
+    already_plotted_dic = wdic + f"/{cond}/{s(subject)}/already_plotted/"
     if not gfile.Exists(already_plotted_dic):
         gfile.MakeDirs(already_plotted_dic)
 

@@ -498,8 +498,8 @@ def train_lstm():
                     if (step+1) % checkpoint_freq == 0 or (step+1) == max_steps:
 
                         # Define checkpoint_dir
-                        checkpoint_dir = f'./processed/checkpoints/{s(FLAGS.subject)}/' \
-                            f'{FLAGS.path_specificities}'
+                        checkpoint_dir = f'./processed/checkpoints/{FLAGS.condition}/' \
+                                         f'{s(FLAGS.subject)}/{FLAGS.path_specificities}'
 
                         if not tf.gfile.Exists(checkpoint_dir):
                             tf.gfile.MakeDirs(checkpoint_dir)
@@ -598,7 +598,7 @@ def train_lstm():
 
     # Save training information in Textfile
     # Define sub_dir
-    sub_dir = f"./processed/{s(FLAGS.subject)}/{FLAGS.path_specificities}"
+    sub_dir = f"./processed/{FLAGS.condition}/{s(FLAGS.subject)}/{FLAGS.path_specificities}"
     if not tf.gfile.Exists(sub_dir):
         tf.gfile.MakeDirs(sub_dir)
 
