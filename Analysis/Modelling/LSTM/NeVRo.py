@@ -123,9 +123,10 @@ def train_lstm():
 
     # # Parameters
     # runs max_steps-times through set
-    max_steps = FLAGS.repet_scalar * (270 - 270 / FLAGS.s_fold) / FLAGS.batch_size
+    num_samples = 270 if FLAGS.task == "regression" else 180
+    max_steps = FLAGS.repet_scalar * (num_samples - num_samples / FLAGS.s_fold) / FLAGS.batch_size
     assert float(max_steps).is_integer(), "max steps must be integer"
-    eval_freq = int(((270 - 270 / FLAGS.s_fold) / FLAGS.batch_size) / 2)  # approx. 2 times per epoch
+    eval_freq = int(((num_samples - num_samples / FLAGS.s_fold) / FLAGS.batch_size) / 2)  # approx. 2 times per epoch
     checkpoint_freq = int(max_steps/2)  # int(max_steps)/2 for chechpoint after half the training
     print_freq = int(max_steps / 8)  # if too low, uses much memory
     assert FLAGS.batch_size % FLAGS.successive == 0, \
@@ -227,7 +228,7 @@ def train_lstm():
 
     # Define graph using class NeVRoNet and its methods:
     ddims = list(nevro_data["train"].eeg.shape[1:])  # [250, n_comp]
-    full_length = len(nevro_data["validation"].ratings) * FLAGS.s_fold
+    full_length = len(nevro_data["validation"].ratings) * FLAGS.s_fold  # 270
 
     # Prediction Matrix for each fold
     # 1 Fold predic [0.156, ..., 0.491]
@@ -372,7 +373,7 @@ def train_lstm():
                 if FLAGS.task == "classification":
                     val_steps = len(nevro_data["validation"].remaining_slices)  # 18
                 else:  # for regression
-                    val_steps = int(270 / FLAGS.s_fold)  # 27
+                    val_steps = int(total_length / FLAGS.s_fold)  # 27
 
                 # Init Lists of Accuracy and Loss
                 train_loss_list = []
