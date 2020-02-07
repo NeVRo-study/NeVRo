@@ -19,10 +19,15 @@ n_subs = 45
 for cond in ["mov", "nomov"]:
 
     # # Init tables
-    # val_pred_table_per_cond_probs[np.where(val_pred_table_per_cond_probs == 0.)] = np.nan
     val_pred_table_per_cond_probs = np.zeros(shape=(n_subs, 270))  # write probabilities
     val_pred_table_per_cond = copy.copy(val_pred_table_per_cond_probs)  # take sign
     target_table_per_cond = copy.copy(val_pred_table_per_cond_probs)  # take sign
+
+    concat_val_pred_table_per_cond = val_pred_table_per_cond.copy()
+    concat_val_pred_table_per_cond[np.where(concat_val_pred_table_per_cond == 0.)] = np.nan
+    concat_val_targets_table_per_cond = concat_val_pred_table_per_cond.copy()
+    concat_val_indices_table_per_cond = concat_val_targets_table_per_cond.copy()
+
     ls_subs = []
 
     # # Set paths
@@ -81,22 +86,39 @@ for cond in ["mov", "nomov"]:
         dub_shuffle_order_matrix = np.repeat(a=shuffle_order_matrix, repeats=2, axis=0)
 
         val_pred_matrix = sort_mat_by_mat(mat=val_pred_matrix, mat_idx=dub_shuffle_order_matrix)  # (20, 270)
-        val_pred_matrix = val_pred_matrix[np.arange(0, 20, 2), :]  # without ground truth, shape (10, 270)
+        val_pred_matrix_wot = val_pred_matrix[np.arange(0, 20, 2), :]  # without ground truth, shape (10, 270)
+        val_targ_matrix_wop = val_pred_matrix[np.arange(1, 20, 2), :]  # without ground predictions, (10, 270)
 
         # Fill pred vector with predictions (in binary form)
-        concat_val_pred = np.nanmean(a=val_pred_matrix, axis=0)
+        mean_val_pred_across_folds = np.nanmean(a=val_pred_matrix_wot, axis=0)
         # could be also majority vote for steps with > 1 entries
 
         # Validation Predictions
-        val_pred_table_per_cond_probs[isub-1, :] = concat_val_pred
-        val_pred_table_per_cond[isub-1, :] = np.sign(concat_val_pred)
+        val_pred_table_per_cond_probs[isub-1, :] = mean_val_pred_across_folds
+        val_pred_table_per_cond[isub-1, :] = np.sign(mean_val_pred_across_folds)
         # Targets
         target_table_per_cond[isub-1, :] = load_rating_files(subjects=isub, condition=cond,
                                                              bins=True)[str(isub)]["SBA"][cond]
 
-    # Save table
-    sub_idx = np.array(["NVR_"+s(sub) for sub in ls_subs])
+        # Concatenate val pred of all folds, accordingly also targets, and indices (for mapping)
+        concat_val_pred = np.concatenate(val_pred_matrix_wot, axis=0)
+        concat_val_targ = np.concatenate(val_targ_matrix_wop, axis=0)
 
+        # Remove NaNs
+        concat_val_pred = concat_val_pred[~np.isnan(concat_val_pred)]
+        concat_val_targ = concat_val_targ[~np.isnan(concat_val_targ)]
+        concat_val_index = np.where(~np.isnan(val_pred_matrix_wot))[1]
+
+        concat_val_pred_table_per_cond[isub-1, 0:len(concat_val_pred)] = np.sign(concat_val_pred)
+        concat_val_targets_table_per_cond[isub-1, 0:len(concat_val_targ)] = concat_val_targ
+        concat_val_indices_table_per_cond[isub-1, 0:len(concat_val_index)] = concat_val_index
+
+# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+
+    # # Save table
+    sub_idx = np.array(["NVR_"+s(sub) for sub in ls_subs])  # index
+
+    # Save mean tables
     pd.DataFrame(val_pred_table_per_cond[np.array(ls_subs)-1, :], index=sub_idx).to_csv(
         path_or_buf=wdic_result + f"predictionTableLSTM_{cond}.csv", sep=",", header=False, na_rep="NaN")
 
@@ -106,5 +128,16 @@ for cond in ["mov", "nomov"]:
 
     pd.DataFrame(target_table_per_cond[np.array(ls_subs)-1, :], index=sub_idx).to_csv(
         path_or_buf=wdic_result + f"targetTableLSTM_{cond}.csv", sep=",", header=False, na_rep="NaN")
+
+    # Save concatenated tables
+    pd.DataFrame(concat_val_pred_table_per_cond[np.array(ls_subs) - 1, :], index=sub_idx).to_csv(
+        path_or_buf=wdic_result + f"predictionTableLSTM_{cond}_concat.csv", sep=",", header=False, na_rep="NaN")
+
+    pd.DataFrame(concat_val_targets_table_per_cond[np.array(ls_subs) - 1, :], index=sub_idx).to_csv(
+        path_or_buf=wdic_result + f"targetTableLSTM_{cond}_concat.csv", sep=",", header=False, na_rep="NaN")
+
+    pd.DataFrame(concat_val_indices_table_per_cond[np.array(ls_subs) - 1, :], index=sub_idx).to_csv(
+        path_or_buf=wdic_result + f"predictionTableMappingIndicesLSTM_{cond}_concat.csv", sep=",", header=False,
+        na_rep="NaN")
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<  END
