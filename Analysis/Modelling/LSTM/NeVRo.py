@@ -369,7 +369,10 @@ def train_lstm():
 
                 # RUN
                 # val_counter = 0  # Needed when validation should only be run in the end of training
-                val_steps = int(270 / FLAGS.s_fold)
+                if FLAGS.task == "classification":
+                    val_steps = len(nevro_data["validation"].remaining_slices)  # 18
+                else:  # for regression
+                    val_steps = int(270 / FLAGS.s_fold)  # 27
 
                 # Init Lists of Accuracy and Loss
                 train_loss_list = []
@@ -602,7 +605,8 @@ def train_lstm():
     with open(sub_dir + f"{time.strftime('%Y_%m_%d_')}S{FLAGS.subject}_accuracy_across_{FLAGS.s_fold}"
                         f"_folds_{FLAGS.path_specificities[:-1]}.txt", "w") as file:
         file.write(f"Subject {FLAGS.subject}\nCondition: {FLAGS.condition}\nSBA: {FLAGS.sba}"
-                   f"\nTask: {FLAGS.task}\nShuffle_data: {FLAGS.shuffle}\ndatatype: {FLAGS.filetype}"
+                   f"\nTask: {FLAGS.task}\nShuffle_data: {FLAGS.shuffle}"
+                   f"\nBalanced CV: {FLAGS.balanced_cv}\ndatatype: {FLAGS.filetype}"
                    f"\nband_pass: {FLAGS.band_pass}\nHilbert_z-Power: {FLAGS.hilbert_power}"
                    f"\ns-Fold: {FLAGS.s_fold}\nmax_step: {int(max_steps)}"
                    f"\nrepetition_set: {FLAGS.repet_scalar}\nlearning_rate: {FLAGS.learning_rate}"
@@ -846,8 +850,8 @@ if __name__ == '__main__':
     parser.add_argument('--lstm_size', type=str, default=LSTM_SIZE_DEFAULT,
                         help='Comma separated list of size of hidden states in each LSTM layer')
     parser.add_argument('--balanced_cv', type=str2bool, default=True,
-                        help='Balanced CV. False: at each iteration/fold data gets shuffled (semi-balanced). '
-                             '(This can lead to overlapping samples in validation set)')
+                        help='Balanced CV. False: at each iteration/fold data gets shuffled '
+                             '(semi-balanced, this can lead to overlapping samples in validation set)')
     parser.add_argument('--s_fold', type=int, default=S_FOLD_DEFAULT,
                         help='Number of folds in S-Fold-Cross Validation')
     parser.add_argument('--rand_batch', type=str, default=True,

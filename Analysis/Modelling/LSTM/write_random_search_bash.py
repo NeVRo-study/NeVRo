@@ -246,7 +246,7 @@ def write_search_bash_files(subs, filetype, condition,
                 f"hrcomp-{'T' if hrcomp else 'F'}_fixncol-{eqcompmat}"
 
             if task == "classification":
-                path_specificities += f"shuf-{'T' if shuffle else 'F'}_balcv-{'T' if balanced_cv else 'F'}/"
+                path_specificities += f"_shuf-{'T' if shuffle else 'F'}_balcv-{'T' if balanced_cv else 'F'}/"
             else:
                 path_specificities += "/"
 
