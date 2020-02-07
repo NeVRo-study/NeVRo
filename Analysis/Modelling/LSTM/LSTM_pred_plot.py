@@ -123,7 +123,7 @@ assert cond in ["mov", "nomov"], "condition must be indicated 'mov', 'nomov'!"
 # Set paths
 wdic = f"./processed/{cond}"
 wdic_plot = "../../../Results/Plots/LSTM/"
-wdic_lists = wdic + "/logs"
+wdic_lists = wdic + f"/logs/{cond}"
 wdic_checkpoint = wdic + "/checkpoints"
 lw = 0.5  # linewidth
 

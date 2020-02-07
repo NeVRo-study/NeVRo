@@ -331,7 +331,7 @@ def train_lstm():
                 merged = tf.summary.merge_all()
 
                 # Define logdir
-                logdir = f'./processed/logs/{s(FLAGS.subject)}/{FLAGS.path_specificities}'
+                logdir = f'./processed/logs/{FLAGS.condition}/{s(FLAGS.subject)}/{FLAGS.path_specificities}'
 
                 if not tf.gfile.Exists(logdir):
                     tf.gfile.MakeDirs(logdir)
