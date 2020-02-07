@@ -219,6 +219,8 @@ def train_lstm():
                                 s_fold=FLAGS.s_fold,
                                 sba=FLAGS.sba,
                                 shuffle=FLAGS.shuffle,
+                                shuffle_order=None,
+                                balanced_cv=FLAGS.balanced_cv,
                                 testmode=FLAGS.testmodel)
 
     mean_line_acc = mean_line_prediction(subject=FLAGS.subject, condition=FLAGS.condition, sba=FLAGS.sba)
@@ -840,6 +842,9 @@ if __name__ == '__main__':
                         help="Which condition: 'nomov' (no movement) or 'mov'")
     parser.add_argument('--lstm_size', type=str, default=LSTM_SIZE_DEFAULT,
                         help='Comma separated list of size of hidden states in each LSTM layer')
+    parser.add_argument('--balanced_cv', type=str2bool, default=False,
+                        help='Balanced CV. False: at each iteration/fold data gets shuffled (semi-balanced). '
+                             '(This can lead to overlapping samples in validation set)')
     parser.add_argument('--s_fold', type=int, default=S_FOLD_DEFAULT,
                         help='Number of folds in S-Fold-Cross Validation')
     parser.add_argument('--rand_batch', type=str, default=True,

@@ -958,7 +958,7 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
                    equal_comp_matrix=None,
                    s_fold_idx=None, s_fold=10,
                    sba=True, s_freq_eeg=250.,
-                   shuffle=False, shuffle_order=None, semi_balanced_cv=True, testmode=False):
+                   shuffle=False, shuffle_order=None, balanced_cv=False, testmode=False):
     """
     Prepares NeVRo dataset and returns the s-fold-prepared dataset.
     S-Fold Validation, S=5: [ |-Train-|-Train-|-Train-|-Valid-|-Train-|] Dataset
@@ -979,8 +979,8 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
         s_freq_eeg: Sampling Frequency of EEG
         shuffle: shuffle data (for classific. task to have balance low/high arousal in all folds/valsets)
         shuffle_order: None: indeces for data vector gets shuffled (if True: shuffle): index order array (len(rating),)
-        semi_balanced_cv: True: at each iteration/fold data gets shuffled (can lead to overlapping samples in valset);
-                          False: all folds are fixed before start of training (no overlap of samples in valset)
+        balanced_cv: False: at each iteration/fold data gets shuffled (can lead to overlapping samples in valset);
+                          True: all folds are fixed before start of training (no overlap of samples in valset)
         testmode: Whether to load data for testmode
     Returns:
         Train, Validation Datasets
@@ -1156,7 +1156,7 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
                    "results/plots and makes successive batches redundant (if applied).", col='y')
             raise ValueError("Do not use shuffle=True for 'regression'")
         else:
-            if semi_balanced_cv:
+            if not balanced_cv:
                 # Shuffle index until balanced validation set is found (also leads to balanced train set)
                 while True:
                     np.random.shuffle(idx)
@@ -1165,10 +1165,11 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
                             (len(temp_val_set[temp_val_set < 0]) == int(len(temp_val_set)*1/3)):
                         # del temp_val_set  # Now: n(-1)==n(1) (==n(0), will be ignored during training/testing)
                         break
-            else:
+            else:  # fully-balanced approach for binary classification
                 temp_idx = idx.copy()
                 len_val = int(len(rating_cnt)/s_fold)
                 # Successively go through each fold and balance class-ratio
+                # Note: this shuffle_idx must be passed on at each fold in NeVRo.py (activate via FLAG)
                 for fi in range(s_fold):
                     while True:
                         np.random.shuffle(temp_idx)
@@ -1181,8 +1182,6 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
 
                             temp_idx = temp_idx[len_val:]
                             break
-
-    # TODO implement fully-balanced approach for binary classification
 
     # eeg_concat_split[0][0:] first to  250th value in time
     # eeg_concat_split[1][0:] 250...500th value in time
