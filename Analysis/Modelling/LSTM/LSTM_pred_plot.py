@@ -48,16 +48,18 @@ def plot_all_there_is(dellog):
     """
 
     for folder in os.listdir("./processed/"):
-        if "S" == folder[0]:
-            sub = int(folder.split('S')[1])
-            print("subject:", sub)
-            for subfolder in os.listdir(f"./processed/{folder}/"):
-                if subfolder != 'already_plotted':
-                    subfol = subfolder
-                    print("subfolder:", subfol)
-                    if len(os.listdir(f"./processed/{folder}/{subfol}/")) == 3:
-                        subprocess.Popen(["python3", "LSTM_pred_plot.py", 'True', str(sub), subfol + "/",
-                                          str(dellog)])
+        if "mov" in folder:
+            for cond_folder in os.listdir(f"./processed/{folder}/"):
+                if "S" == cond_folder[0]:
+                    sub = int(cond_folder.split('S')[1])
+                    print("subject:", sub)
+                    for subfolder in os.listdir(f"./processed/{folder}/{cond_folder}"):
+                        if subfolder != 'already_plotted':
+                            subfol = subfolder
+                            print("subfolder:", subfol)
+                            if len(os.listdir(f"./processed/{folder}/{cond_folder}/{subfol}/")) >= 3:
+                                subprocess.Popen(["python3", "LSTM_pred_plot.py", 'True', str(sub),
+                                                  subfol + "/", str(dellog)])
 
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
@@ -114,8 +116,12 @@ else:  # If plots are not saved, do not delete log folders
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
+# Get condition
+cond = path_specificity.split("_")[1]  # 'BiCl_nomov_RndHPS_lstm-20-....'
+assert cond in ["mov", "nomov"], "condition must be indicated 'mov', 'nomov'!"
+
 # Set paths
-wdic = "./processed"
+wdic = f"./processed/{cond}"
 wdic_plot = "../../../Results/Plots/LSTM/"
 wdic_lists = wdic + "/logs"
 wdic_checkpoint = wdic + "/checkpoints"
