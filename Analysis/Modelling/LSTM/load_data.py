@@ -978,7 +978,7 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
         sba: Whether to use SBA-data
         s_freq_eeg: Sampling Frequency of EEG
         shuffle: shuffle data (for classific. task to have balance low/high arousal in all folds/valsets)
-        shuffle_order: None: indeces for data vector gets shuffled (if True: shuffle): index order array (len(rating),)
+        shuffle_order: None: indices for data vector gets shuffled (if True: shuffle): index order array (len(rating),)
         balanced_cv: False: at each iteration/fold data gets shuffled (can lead to overlapping samples in valset);
                           True: all folds are fixed before start of training (no overlap of samples in valset)
         testmode: Whether to load data for testmode
