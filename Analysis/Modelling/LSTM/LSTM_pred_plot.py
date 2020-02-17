@@ -843,8 +843,8 @@ if matplotlib.rcParams['backend'] != 'agg':
 # Plot
 if plots:
     plot_filename = f"{file_name[0:10]}{abc}_|{'_Hilbert_' if hilb else '_'}" \
-        f"{int(reps)}*{'rnd-batch' if rnd_batch else 'subsequent-batch'}({batch_size})_|_{s_fold}-Folds" \
-        f"_|_{task[0:5]}_|_all_train_val_|_{s(subject)}_|_{cond}_|_mean(val_acc)_{mean_acc:.2f}_|_" \
+        f"{int(reps)}*{'rnd-btch' if rnd_batch else 'subsequent-batch'}({batch_size})_|_{s_fold}-Fold" \
+        f"_|_{task[0:5]}_|_alltrainval_|_{s(subject)}_|_{cond}_|_mean(valacc)_{mean_acc:.2f}_|_" \
         f"{path_specificity[:-1]}.png"
 
     fig4.savefig(wdic_plot + plot_filename)
