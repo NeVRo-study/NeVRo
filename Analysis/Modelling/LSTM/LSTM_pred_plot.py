@@ -48,7 +48,7 @@ def plot_all_there_is(dellog):
     """
 
     for folder in os.listdir("./processed/"):
-        if "mov" in folder:
+        if (folder == "mov") or (folder == "nomov"):
             for cond_folder in os.listdir(f"./processed/{folder}/"):
                 if "S" == cond_folder[0]:
                     sub = int(cond_folder.split('S')[1])
@@ -512,7 +512,7 @@ if plots:
 
     plot_filename = f"{file_name[0:10]}{abc}_|{'_Hilbert_' if hilb else '_'}{int(reps)}*" \
         f"{'rnd-batch' if rnd_batch else 'subsequent-batch'}({batch_size})_|_{s_fold}-Folds_|" \
-        f"_{task}_|_{s(subject)}_|_{cond}_|_mean(val_acc)_{mean_acc:.2f}_|_{path_specificity[:-1]}.png"
+        f"_{task[0:5]}_|_{s(subject)}_|_{cond}_|_mean(val_acc)_{mean_acc:.2f}_|_{path_specificity[:-1]}.png"
 
     fig.savefig(wdic_plot + plot_filename)
 
@@ -844,7 +844,7 @@ if matplotlib.rcParams['backend'] != 'agg':
 if plots:
     plot_filename = f"{file_name[0:10]}{abc}_|{'_Hilbert_' if hilb else '_'}" \
         f"{int(reps)}*{'rnd-batch' if rnd_batch else 'subsequent-batch'}({batch_size})_|_{s_fold}-Folds" \
-        f"_|_{task}_|_all_train_val_|_{s(subject)}_|_{cond}_|_mean(val_acc)_{mean_acc:.2f}_|_" \
+        f"_|_{task[0:5]}_|_all_train_val_|_{s(subject)}_|_{cond}_|_mean(val_acc)_{mean_acc:.2f}_|_" \
         f"{path_specificity[:-1]}.png"
 
     fig4.savefig(wdic_plot + plot_filename)
