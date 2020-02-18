@@ -38,7 +38,7 @@ from write_random_search_bash import update_bashfiles
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
-TASK_DEFAULT = 'regression'  # prediction via 'regression' (continuous) or 'classification' (low-high)
+TASK_DEFAULT = 'classification'  # prediction via 'regression' (continuous) or 'classification' (low-high)
 LEARNING_RATE_DEFAULT = 1e-3  # 1e-4
 BATCH_SIZE_DEFAULT = 9  # or bigger, batch_size must be a multiple of 'successive batches'
 SUCCESSIVE_BATCHES_DEFAULT = 1  # (time-)length per sample is hyperparameter in form of successive batches
@@ -123,9 +123,10 @@ def train_lstm():
 
     # # Parameters
     # runs max_steps-times through set
-    max_steps = FLAGS.repet_scalar * (270 - 270 / FLAGS.s_fold) / FLAGS.batch_size
+    num_samples = 270 if FLAGS.task == "regression" else 180
+    max_steps = FLAGS.repet_scalar * (num_samples - num_samples / FLAGS.s_fold) / FLAGS.batch_size
     assert float(max_steps).is_integer(), "max steps must be integer"
-    eval_freq = int(((270 - 270 / FLAGS.s_fold) / FLAGS.batch_size) / 2)  # approx. 2 times per epoch
+    eval_freq = int(((num_samples - num_samples / FLAGS.s_fold) / FLAGS.batch_size) / 2)  # approx. 2 times per epoch
     checkpoint_freq = int(max_steps/2)  # int(max_steps)/2 for chechpoint after half the training
     print_freq = int(max_steps / 8)  # if too low, uses much memory
     assert FLAGS.batch_size % FLAGS.successive == 0, \
@@ -219,13 +220,15 @@ def train_lstm():
                                 s_fold=FLAGS.s_fold,
                                 sba=FLAGS.sba,
                                 shuffle=FLAGS.shuffle,
+                                shuffle_order=None,
+                                balanced_cv=FLAGS.balanced_cv,
                                 testmode=FLAGS.testmodel)
 
     mean_line_acc = mean_line_prediction(subject=FLAGS.subject, condition=FLAGS.condition, sba=FLAGS.sba)
 
     # Define graph using class NeVRoNet and its methods:
     ddims = list(nevro_data["train"].eeg.shape[1:])  # [250, n_comp]
-    full_length = len(nevro_data["validation"].ratings) * FLAGS.s_fold
+    full_length = len(nevro_data["validation"].ratings) * FLAGS.s_fold  # 270
 
     # Prediction Matrix for each fold
     # 1 Fold predic [0.156, ..., 0.491]
@@ -241,6 +244,7 @@ def train_lstm():
     # In case data was shuffled save corresponding order per fold in matrix and save later
     shuffle_order_matrix = np.zeros(shape=(FLAGS.s_fold, pred_matrix.shape[1]))
     shuffle_order_matrix[s_fold_idx_list[0], :] = nevro_data["order"]
+    global_shuffle_order = nevro_data["order"] if FLAGS.balanced_cv else None
 
     # Set Variables for timer
     timer_fold_list = []  # list of duration(time) of each fold
@@ -287,6 +291,8 @@ def train_lstm():
                                                 hilbert_power=FLAGS.hilbert_power,
                                                 task=FLAGS.task,
                                                 shuffle=FLAGS.shuffle,
+                                                shuffle_order=global_shuffle_order,  # is None if not FLAGS.balanced_cv
+                                                balanced_cv=FLAGS.balanced_cv,
                                                 testmode=FLAGS.testmodel)
 
                     # Save order in shuffle_order_matrix: shuffle=False:(1,2,...,270);
@@ -326,7 +332,7 @@ def train_lstm():
                 merged = tf.summary.merge_all()
 
                 # Define logdir
-                logdir = f'./processed/logs/{s(FLAGS.subject)}/{FLAGS.path_specificities}'
+                logdir = f'./processed/logs/{FLAGS.condition}/{s(FLAGS.subject)}/{FLAGS.path_specificities}'
 
                 if not tf.gfile.Exists(logdir):
                     tf.gfile.MakeDirs(logdir)
@@ -364,7 +370,10 @@ def train_lstm():
 
                 # RUN
                 # val_counter = 0  # Needed when validation should only be run in the end of training
-                val_steps = int(270 / FLAGS.s_fold)
+                if FLAGS.task == "classification":
+                    val_steps = len(nevro_data["validation"].remaining_slices)  # 18
+                else:  # for regression
+                    val_steps = int(total_length / FLAGS.s_fold)  # 27
 
                 # Init Lists of Accuracy and Loss
                 train_loss_list = []
@@ -490,8 +499,8 @@ def train_lstm():
                     if (step+1) % checkpoint_freq == 0 or (step+1) == max_steps:
 
                         # Define checkpoint_dir
-                        checkpoint_dir = f'./processed/checkpoints/{s(FLAGS.subject)}/' \
-                            f'{FLAGS.path_specificities}'
+                        checkpoint_dir = f'./processed/checkpoints/{FLAGS.condition}/' \
+                                         f'{s(FLAGS.subject)}/{FLAGS.path_specificities}'
 
                         if not tf.gfile.Exists(checkpoint_dir):
                             tf.gfile.MakeDirs(checkpoint_dir)
@@ -590,14 +599,15 @@ def train_lstm():
 
     # Save training information in Textfile
     # Define sub_dir
-    sub_dir = f"./processed/{s(FLAGS.subject)}/{FLAGS.path_specificities}"
+    sub_dir = f"./processed/{FLAGS.condition}/{s(FLAGS.subject)}/{FLAGS.path_specificities}"
     if not tf.gfile.Exists(sub_dir):
         tf.gfile.MakeDirs(sub_dir)
 
     with open(sub_dir + f"{time.strftime('%Y_%m_%d_')}S{FLAGS.subject}_accuracy_across_{FLAGS.s_fold}"
                         f"_folds_{FLAGS.path_specificities[:-1]}.txt", "w") as file:
         file.write(f"Subject {FLAGS.subject}\nCondition: {FLAGS.condition}\nSBA: {FLAGS.sba}"
-                   f"\nTask: {FLAGS.task}\nShuffle_data: {FLAGS.shuffle}\ndatatype: {FLAGS.filetype}"
+                   f"\nTask: {FLAGS.task}\nShuffle_data: {FLAGS.shuffle}"
+                   f"\nBalanced CV: {FLAGS.balanced_cv}\ndatatype: {FLAGS.filetype}"
                    f"\nband_pass: {FLAGS.band_pass}\nHilbert_z-Power: {FLAGS.hilbert_power}"
                    f"\ns-Fold: {FLAGS.s_fold}\nmax_step: {int(max_steps)}"
                    f"\nrepetition_set: {FLAGS.repet_scalar}\nlearning_rate: {FLAGS.learning_rate}"
@@ -840,6 +850,9 @@ if __name__ == '__main__':
                         help="Which condition: 'nomov' (no movement) or 'mov'")
     parser.add_argument('--lstm_size', type=str, default=LSTM_SIZE_DEFAULT,
                         help='Comma separated list of size of hidden states in each LSTM layer')
+    parser.add_argument('--balanced_cv', type=str2bool, default=True,
+                        help='Balanced CV. False: at each iteration/fold data gets shuffled '
+                             '(semi-balanced, this can lead to overlapping samples in validation set)')
     parser.add_argument('--s_fold', type=int, default=S_FOLD_DEFAULT,
                         help='Number of folds in S-Fold-Cross Validation')
     parser.add_argument('--rand_batch', type=str, default=True,

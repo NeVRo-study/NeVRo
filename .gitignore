@@ -5,7 +5,6 @@
 /Literature
 
 # Subfolders to be ignored 
-/Analysis/Statistics
 /Analysis/Modelling/LSTM/bashfiles
 /Analysis/Modelling/LSTM/processed
 /Analysis/Modelling/LSTM/TEMP
