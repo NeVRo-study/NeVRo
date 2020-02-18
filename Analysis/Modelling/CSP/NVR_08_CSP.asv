@@ -146,9 +146,7 @@ for isub = (1:nsubs)
     % ~0.3% in our tests).
     % BUT YOU WILL END UP WITH SOME FOLDS THAT HAVE <18 SAMPLES IN THE TEST
     % SET. TO EASEN FURTHER STATISTICAL ANALYSES AND THE UNDERSTANDING OF
-    % THE READERS, WE DECIDED TO DROP THE MARGINS TO END UP WITH 10x18 TEST
-    % SAMPLES. IN OUR CASE DROPPING THE MARGINS SHOULD BE UNPROBLEMATIC AS
-    % NO FILTERING IS APPLIED BY BCILAB. 
+    % THE READERS, WE DECIDED TO DROP THE 
     [trainloss,model,stats] = bci_train('Data',isub_data, ...
         'Approach',approach_CSP, ...
         'EvaluationScheme',[10], ... %[3 10]: 3x10-fold CV;  'loo': leave-one-out
