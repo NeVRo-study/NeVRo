@@ -576,7 +576,8 @@ if __name__ == "__main__":
             condi = "nomov" if "n" in condi else "mov"
         cprint(f"Condition is set to: {condi}", 'y')
 
-        tasks = ["regression", "classification"]
+        tasks = ["classification"]
+        # tasks = ["regression", "classification"]
 
         # # Set up subjects
         n_sub = 45  # number of all tested subjects
