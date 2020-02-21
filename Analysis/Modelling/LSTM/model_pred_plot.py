@@ -289,8 +289,8 @@ for midx, model in enumerate(models):
 
     # Set title
     if model != "SPoC":  # LSTM, CSP:
-        plt.title(label=f"{model} | Concatenated val-prediction| {task} | "
-                        f"mean validation accuracy={mean_acc:.3f}")
+        plt.title(label=f"{model} | concatenated predictions on validation sets | "
+                        f"mean {task}-accuracy={mean_acc:.3f}")
     else:  # for SPoC:
         plt.title(label=f"{model} | {'W*X'} | max-correlation | "
                         f"r={mean_acc:.3f}")  # TODO read max.corr
@@ -307,7 +307,6 @@ for midx, model in enumerate(models):
 
     # Plot
     if plots:
-        plot_filename = f"Prediction across models |_all-val_|_{s(subject)}_|_{cond}.png"
-
-        # fig.savefig(wdic_plot + plot_filename)
-
+        plot_filename = f"Prediction across models |_{s(subject)}_|_{cond}.png"
+        fig.savefig(wdic_results + plot_filename)
+        plt.close()
