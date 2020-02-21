@@ -48,16 +48,18 @@ def plot_all_there_is(dellog):
     """
 
     for folder in os.listdir("./processed/"):
-        if "S" == folder[0]:
-            sub = int(folder.split('S')[1])
-            print("subject:", sub)
-            for subfolder in os.listdir(f"./processed/{folder}/"):
-                if subfolder != 'already_plotted':
-                    subfol = subfolder
-                    print("subfolder:", subfol)
-                    if len(os.listdir(f"./processed/{folder}/{subfol}/")) == 3:
-                        subprocess.Popen(["python3", "LSTM_pred_plot.py", 'True', str(sub), subfol + "/",
-                                          str(dellog)])
+        if (folder == "mov") or (folder == "nomov"):
+            for cond_folder in os.listdir(f"./processed/{folder}/"):
+                if "S" == cond_folder[0]:
+                    sub = int(cond_folder.split('S')[1])
+                    print("subject:", sub)
+                    for subfolder in os.listdir(f"./processed/{folder}/{cond_folder}"):
+                        if subfolder != 'already_plotted':
+                            subfol = subfolder
+                            print("subfolder:", subfol)
+                            if len(os.listdir(f"./processed/{folder}/{cond_folder}/{subfol}/")) >= 3:
+                                subprocess.Popen(["python3", "LSTM_pred_plot.py", 'True', str(sub),
+                                                  subfol + "/", str(dellog)])
 
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
@@ -114,14 +116,22 @@ else:  # If plots are not saved, do not delete log folders
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
+# Get condition
+try:
+    cond = path_specificity.split("_")[1]  # 'BiCl_nomov_RndHPS_lstm-20-....'
+except IndexError:
+    cond = input("Indicate condition: 'M'ov or 'N'oMov : ").lower()
+    cond = "nomov" if "n" in cond else "mov"
+assert cond in ["mov", "nomov"], "condition must be indicated 'mov', 'nomov'!"
+
 # Set paths
-wdic = "./processed"
+wdic = f"./processed"
 wdic_plot = "../../../Results/Plots/LSTM/"
-wdic_lists = wdic + "/logs"
-wdic_checkpoint = wdic + "/checkpoints"
+wdic_lists = wdic + f"/logs/{cond}"
+wdic_checkpoint = wdic + f"/checkpoints/{cond}"
 lw = 0.5  # linewidth
 
-wdic_sub = wdic + f"/{s(subject)}/{path_specificity}"  # wdic + f"/nomov/{s(subject)}/already_plotted"
+wdic_sub = wdic + f"/{cond}/{s(subject)}/{path_specificity}"  # wdic+f"/nomov/{s(subject)}/already_plotted"
 wdic_lists_sub = wdic_lists + f"/{s(subject)}/{path_specificity}"
 wdic_checkpoint_sub = wdic_checkpoint + f"/{s(subject)}/{path_specificity}"
 
@@ -146,7 +156,7 @@ for file in os.listdir(wdic_sub):
 # Intermediate step: check whether filenames already exist in already_plotted_dic
 abc = ''  # init
 if plots:
-    already_plotted_dic = wdic + f"/{s(subject)}/already_plotted/"
+    already_plotted_dic = wdic + f"/{cond}/{s(subject)}/already_plotted/"
     if not gfile.Exists(already_plotted_dic):
         gfile.MakeDirs(already_plotted_dic)
 
@@ -502,7 +512,7 @@ if plots:
 
     plot_filename = f"{file_name[0:10]}{abc}_|{'_Hilbert_' if hilb else '_'}{int(reps)}*" \
         f"{'rnd-batch' if rnd_batch else 'subsequent-batch'}({batch_size})_|_{s_fold}-Folds_|" \
-        f"_{task}_|_{s(subject)}_|_{cond}_|_mean(val_acc)_{mean_acc:.2f}_|_{path_specificity[:-1]}.png"
+        f"_{task[0:5]}_|_{s(subject)}_|_{cond}_|_mean(val_acc)_{mean_acc:.2f}_|_{path_specificity[:-1]}.png"
 
     fig.savefig(wdic_plot + plot_filename)
 
@@ -833,8 +843,8 @@ if matplotlib.rcParams['backend'] != 'agg':
 # Plot
 if plots:
     plot_filename = f"{file_name[0:10]}{abc}_|{'_Hilbert_' if hilb else '_'}" \
-        f"{int(reps)}*{'rnd-batch' if rnd_batch else 'subsequent-batch'}({batch_size})_|_{s_fold}-Folds" \
-        f"_|_{task}_|_all_train_val_|_{s(subject)}_|_{cond}_|_mean(val_acc)_{mean_acc:.2f}_|_" \
+        f"{int(reps)}*{'rnd-btch' if rnd_batch else 'subsequent-batch'}({batch_size})_|_{s_fold}-Fold" \
+        f"_|_{task[0:5]}_|_alltrainval_|_{s(subject)}_|_{cond}_|_mean(valacc)_{mean_acc:.2f}_|_" \
         f"{path_specificity[:-1]}.png"
 
     fig4.savefig(wdic_plot + plot_filename)

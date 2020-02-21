@@ -25,6 +25,7 @@ for cond in ["mov", "nomov"]:
 
     concat_val_pred_table_per_cond = val_pred_table_per_cond.copy()
     concat_val_pred_table_per_cond[np.where(concat_val_pred_table_per_cond == 0.)] = np.nan
+    concat_val_pred_table_per_cond_probs = concat_val_pred_table_per_cond.copy()
     concat_val_targets_table_per_cond = concat_val_pred_table_per_cond.copy()
     concat_val_indices_table_per_cond = concat_val_targets_table_per_cond.copy()
 
@@ -32,7 +33,7 @@ for cond in ["mov", "nomov"]:
 
     # # Set paths
     wdic = f"./processed/"
-    wdic_result =  f"../../../Results/Tables/LSTM/{cond}/"
+    wdic_result = f"../../../Results/Tables/LSTM/{cond}/"
     if not os.path.exists(wdic_result):
         os.makedirs(wdic_result, exist_ok=True)
     wdic_rs_tables = wdic + f"Random_Search_Tables/{cond}/1_narrow_search/classification/per_subject/"
@@ -85,9 +86,10 @@ for cond in ["mov", "nomov"]:
         shuffle_order_matrix = np.load(wdic_sub + shuff_filename)
         dub_shuffle_order_matrix = np.repeat(a=shuffle_order_matrix, repeats=2, axis=0)
 
-        val_pred_matrix = sort_mat_by_mat(mat=val_pred_matrix, mat_idx=dub_shuffle_order_matrix)  # (20, 270)
-        val_pred_matrix_wot = val_pred_matrix[np.arange(0, 20, 2), :]  # without ground truth, shape (10, 270)
-        val_targ_matrix_wop = val_pred_matrix[np.arange(1, 20, 2), :]  # without ground predictions, (10, 270)
+        val_pred_matrix = sort_mat_by_mat(mat=val_pred_matrix,
+                                          mat_idx=dub_shuffle_order_matrix)                     # (20,270)
+        val_pred_matrix_wot = val_pred_matrix[np.arange(0, 20, 2), :]  # without ground truth,    (10,270)
+        val_targ_matrix_wop = val_pred_matrix[np.arange(1, 20, 2), :]  # without grnd predictions (10,270)
 
         # Fill pred vector with predictions (in binary form)
         mean_val_pred_across_folds = np.nanmean(a=val_pred_matrix_wot, axis=0)
@@ -109,6 +111,7 @@ for cond in ["mov", "nomov"]:
         concat_val_targ = concat_val_targ[~np.isnan(concat_val_targ)]
         concat_val_index = np.where(~np.isnan(val_pred_matrix_wot))[1]
 
+        concat_val_pred_table_per_cond_probs[isub-1, 0:len(concat_val_pred)] = concat_val_pred
         concat_val_pred_table_per_cond[isub-1, 0:len(concat_val_pred)] = np.sign(concat_val_pred)
         concat_val_targets_table_per_cond[isub-1, 0:len(concat_val_targ)] = concat_val_targ
         concat_val_indices_table_per_cond[isub-1, 0:len(concat_val_index)] = concat_val_index
@@ -130,14 +133,21 @@ for cond in ["mov", "nomov"]:
         path_or_buf=wdic_result + f"targetTableLSTM_{cond}.csv", sep=",", header=False, na_rep="NaN")
 
     # Save concatenated tables
+    pd.DataFrame(concat_val_pred_table_per_cond_probs[np.array(ls_subs) - 1, :], index=sub_idx).to_csv(
+        path_or_buf=wdic_result + f"predictionTableProbabilitiesLSTM_{cond}_concat.csv", sep=",",
+        header=False, na_rep="NaN")
+
     pd.DataFrame(concat_val_pred_table_per_cond[np.array(ls_subs) - 1, :], index=sub_idx).to_csv(
-        path_or_buf=wdic_result + f"predictionTableLSTM_{cond}_concat.csv", sep=",", header=False, na_rep="NaN")
-
-    pd.DataFrame(concat_val_targets_table_per_cond[np.array(ls_subs) - 1, :], index=sub_idx).to_csv(
-        path_or_buf=wdic_result + f"targetTableLSTM_{cond}_concat.csv", sep=",", header=False, na_rep="NaN")
-
-    pd.DataFrame(concat_val_indices_table_per_cond[np.array(ls_subs) - 1, :], index=sub_idx).to_csv(
-        path_or_buf=wdic_result + f"predictionTableMappingIndicesLSTM_{cond}_concat.csv", sep=",", header=False,
+        path_or_buf=wdic_result + f"predictionTableLSTM_{cond}_concat.csv", sep=",", header=False,
         na_rep="NaN")
 
+    pd.DataFrame(concat_val_targets_table_per_cond[np.array(ls_subs) - 1, :], index=sub_idx).to_csv(
+        path_or_buf=wdic_result + f"targetTableLSTM_{cond}_concat.csv", sep=",", header=False,
+        na_rep="NaN")
+
+    pd.DataFrame(concat_val_indices_table_per_cond[np.array(ls_subs) - 1, :], index=sub_idx).to_csv(
+        path_or_buf=wdic_result + f"predictionTableMappingIndicesLSTM_{cond}_concat.csv", sep=",",
+        header=False, na_rep="NaN")
+
+    end()
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<  END
