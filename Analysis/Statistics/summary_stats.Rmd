@@ -6,8 +6,11 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
 library(tidyverse)
 library(here)
 
@@ -20,6 +23,7 @@ path_data <- here('Results')
 
 ## analysis accuracies:
 
+This reads in the summaries spit out from the respective models by averaging over the folds of the CV procedure. 
 ```{r}
 # Get summary data:
 data_ls <- list()
@@ -35,21 +39,33 @@ data_df <- bind_rows(data_ls, .id = 'condition')
 
 # select data of binary approaches only and put into long format:
 data_bin <- data_df %>% 
-  select(condition, Subject, LSTM, CSP) %>% 
-  gather('LSTM', 'CSP', key = method, value = accuracy)
+  dplyr::rename("Condition" = "condition") %>% 
+  select(Condition, Subject, LSTM, CSP) %>% 
+  gather('LSTM', 'CSP', key = Model, value = Accuracy)
+
+data_bin_summary <- data_bin %>% 
+  group_by(Condition, Model) %>% 
+  summarise(meanAccuracy = mean(Accuracy, na.rm = TRUE)) 
+data_bin_summary
+```
 
 
+Now we read in the data from the single samples/epochs/seconds. Namely their actual ratings (= labels, ground truth) and the binary predictions of each model:
+```{r message=FALSE, warning=FALSE}
 
 #Get single sample data:
 
 model_pred_ls <- list()
 model_targ_ls <- list()
+model_prob_ls <- list()
 
 data_pred_ls <- list()
 data_targ_ls <- list()
+data_prob_ls <- list()
 
 data_pred_df <- NULL
 data_targ_df <- NULL
+data_pred_df <- NULL
 
 samp_col_names <- sprintf('S%d', 1:270)
 
@@ -60,38 +76,54 @@ for (model in list('CSP', 'LSTM')) {
     tmpstr <- ifelse(model == 'LSTM', '_concat', '') #Fit different naming convention
     fname <- str_c('predictionTable', model, '_', cond, tmpstr, '.csv')
     fpath <- file.path(path_data, model, cond, fname)
-    dat <- read_csv(fpath, col_names = FALSE)
+    dat <- read_csv(fpath, col_names = FALSE, na = c("", "NaN"))
     # Recode CSP data to [-1,1]:
     if (model == 'CSP') {
       dat <- dat %>% 
+        mutate_at(vars(X2:X271), as.numeric) %>% 
          mutate_at(vars(X2:X271), list(~recode(.,`0` = -1)))
     }
     data_pred_ls[[cond]] <- dat
+    dat <- NULL # better be sure
+    
     # Get target data:
     fname <- str_c('targetTable', model, '_', cond, tmpstr, '.csv')
     fpath <- file.path(path_data, model, cond, fname)
-    dat <- read_csv(fpath, col_names = FALSE)
+    dat <- read_csv(fpath, col_names = FALSE, na = c("", "NaN"))
     # Recode CSP data to [-1,1]:
     if (model == 'CSP') {
       dat <- dat %>% 
+        mutate_at(vars(X2:X271), as.numeric) %>% 
          mutate_at(vars(X2:X271), list(~recode(.,`1` = -1, `2`= 1)))
     }
     data_targ_ls[[cond]] <- dat
+    dat <- NULL
+    
+    # Get probability data:
+    tmpstr <- '' # different naming convention
+    fname <- str_c('predictionTableProbabilities', model, '_', cond, tmpstr, '.csv')
+    fpath <- file.path(path_data, model, cond, fname)
+    dat <- read_csv(fpath, col_names = FALSE, na = c("", "NaN"))
+    data_prob_ls[[cond]] <- dat
+    dat <- NULL
   }
   
   data_pred_df <- bind_rows(data_pred_ls, .id = 'condition') %>% 
     rename_all(~c('Condition', 'Subject', samp_col_names))
   data_targ_df <- bind_rows(data_targ_ls, .id = 'condition') %>% 
     rename_all(~c('Condition', 'Subject', samp_col_names))
+  data_prob_df <- bind_rows(data_prob_ls, .id = 'condition') %>% 
+    rename_all(~c('Condition', 'Subject', samp_col_names))
+  
   
   model_pred_ls[[model]] <- data_pred_df
   model_targ_ls[[model]] <- data_targ_df
+  model_prob_ls[[model]] <- data_prob_df
 }
-  
-
 
 data_pred_df_full <- bind_rows(model_pred_ls, .id = 'Model') 
 data_targ_df_full <- bind_rows(model_targ_ls, .id = 'Model') 
+data_prob_df_full <- bind_rows(model_prob_ls, .id = 'Model')
 
 # combine, calc accuracy, and run binomial test:
 
@@ -122,6 +154,53 @@ pred_success %>%
   mutate(p_val = binom_func(Ncorr_avg, Ntot_avg, 0.5)$p.value) -> 
   accuracy_summary
 
+accuracy_summary
+
+coll <- list()
+
+for (i in 1:45) {
+  pred_probs <- data_prob_df_full %>% 
+    filter(Model == 'CSP') %>% # Remove this line once LSTM data is there
+    slice(i) %>% 
+    pivot_longer(samp_col_names) %>% 
+    drop_na()
+  labels <- data_targ_df_full %>% 
+    filter(Model == 'CSP') %>% # Remove this line once LSTM data is there
+    slice(i) %>% 
+    pivot_longer(samp_col_names) %>% 
+    drop_na()
+  
+  pred <- prediction(pred_probs$value, 
+                     labels$value)
+  perf <- performance(pred, "auc")
+  
+  #coll[[i]] <- perf@y.values
+    
+  #cat(i, ' --- ', perf@y.values[[1]], '\n')
+  
+  pp <- perf@y.values[[1]]
+  vara <- ((pp *(1-pp)) + (90-1)*(pp/(2-pp)-pp^2) + (90-1)*(2*pp^2/(1+pp)))/(90^2)
+  zz <- (pp-0.5)/sqrt(vara)
+  cat(i, ' --- ', zz, '\n')
+  
+  perf <- performance(pred, "tpr", "fpr")
+  
+  if (i==1) {
+      plot(perf, lwd = 0.01, col = 'grey')
+  } else {
+    cc <- ifelse(zz>1.6, 'green', 'red')
+    lines(as_vector(perf@y.values) ~ as_vector(perf@x.values), lwd = 0.01, col = cc)
+  }
+  lines(0:1, 0:1, lwd = 3)
+
+}
+```
+
+
+### Plot the results:
+
+Plot accuracies for both binary approaches per movement condition (ordered by CSP accuracy):
+```{r}
 pred_success %>% 
   rownames_to_column() %>% 
   arrange(Model, Condition, accuracy) %>%
@@ -142,8 +221,48 @@ pred_success %>%
   scale_color_brewer(palette="Paired") +
   scale_shape_manual(values=c(13, 16, 17)) + 
   xlab('Subjects') + 
-  theme(axis.text.x=element_blank()) -> pplot
-pplot
+  theme(axis.text.x=element_blank()) 
+```
+
+
+Plot accuracies of the two binary approaches against each other (per movement condition):
+```{r}
+pred_success %>%
+  mutate(Condition = recode(Condition, mov = 'Movement', nomov = 'No Movement'))  %>% 
+  select(Condition, Subject, Model, accuracy) %>% 
+  spread(Model, accuracy, ) %>% 
+  ggplot(aes(x = CSP, y = LSTM)) + 
+  facet_wrap(~Condition, scales = 'free') +
+  geom_point(size = 3, color = 'darkblue', shape = 3) +
+  stat_smooth(method = 'lm', size = 0.2, alpha = 0.1, xmax = 0) +
+  theme_bw() + 
+  scale_color_brewer(palette="Paired") +
+  scale_shape_manual(values=c(13, 16, 17)) + 
+  xlab('accuracy CSP') + 
+  ylab('accuracy LSTM') + 
+  ylim(c(0.449, 0.77)) + 
+  xlim(c(0.449, 0.77)) 
+```
+
+Plot the accuracies in the two movement conditions against each other (per model) to see whether there were subject specific trends:
+```{r}
+pred_success %>%
+  mutate(Condition = recode(Condition, mov = 'Movement', nomov = 'NoMovement'))  %>% 
+  select(Condition, Subject, Model, accuracy) %>% 
+  spread(Condition, accuracy) %>% 
+  ggplot(aes(x = Movement, y = NoMovement)) +
+  facet_wrap(~Model, scales = 'free') +
+  geom_point(aes(shape = Model), size = 3, color = 'darkblue') +
+  stat_smooth(method = 'lm', size = 0.2, alpha = 0.1) +
+  theme_bw() + 
+  scale_color_brewer(palette="Paired") +
+  scale_shape_manual(values=c(13, 16, 17)) + 
+  xlab('Movement') + 
+  ylab('No Movement') + 
+  ylim(c(0.449, 0.71)) + 
+  xlim(c(0.449, 0.71)) 
+
+
 
 # check correlation:
 summary(lm(pred_success$accuracy[1:45]~pred_success$accuracy[46:90]))
@@ -153,25 +272,25 @@ summary(lm(pred_success$accuracy[1:45]~pred_success$accuracy[46:90]))
 ```{r}
 ######## old stuff (can probably be deprecated):
 
-
-data_bin %>% 
-  select(accuracy) %>% 
-  na.omit() %>% 
-  mutate(avg_n_corr_samples = round(accuracy * 180)) %>% 
-  rowwise() %>% 
-  mutate(p_val = binom_func(avg_n_corr_samples, 180, 0.5)$p.value) -> he
-  
-
-
-
-dat %>% 
-  select(condition, Subject, LSTM, CSP) %>% 
-  gather('LSTM', 'CSP', key = method, value = accuracy) %>% 
-  group_by(method, condition) %>% 
-  summarise(meanacc = mean(accuracy, na.rm=T)) ->
-  outp
-
-
+# 
+# data_bin %>% 
+#   select(accuracy) %>% 
+#   na.omit() %>% 
+#   mutate(avg_n_corr_samples = round(accuracy * 180)) %>% 
+#   rowwise() %>% 
+#   mutate(p_val = binom_func(avg_n_corr_samples, 180, 0.5)$p.value) -> he
+#   
+# 
+# 
+# 
+# dat %>% 
+#   select(condition, Subject, LSTM, CSP) %>% 
+#   gather('LSTM', 'CSP', key = method, value = accuracy) %>% 
+#   group_by(method, condition) %>% 
+#   summarise(meanacc = mean(accuracy, na.rm=T)) ->
+#   outp
+# 
+# 
 
 ```
 

@@ -59,15 +59,13 @@ for cond = {'mov', 'nomov'}
             subIdx = [contains({ratings.ID}, subjects)];
             valTab = [ratings(subIdx).values]';
             
-            if size(folds(f).targ, 1) < 18
+            if (size(folds(f).targ < 18)
                 padIdx = valTab(:,1) ~= 2; % pad problematic rows
-            elseif size(folds(f).targ, 1) == 18
-                padIdx = zeros(size(valTab(:,1))); % no padding required if length correct 
+            elseif size(folds(f).targ == 18
+                padIdx = zeros(valTab(:,1)); % no padding required if length correct 
             else
-                error("Invalid length of target vector in at least one fold: %i", ...
-                       size(folds(f).targ, 1));
-            end
-            
+                msg = sprintf(
+                error();
             targetIdx = valTab ~= 2;
             for row = 1:size(targetIdx,1)
                 colIdx(row,:) = find(targetIdx(row,:));
@@ -93,10 +91,10 @@ for cond = {'mov', 'nomov'}
     writetable(targ_table, [dirOut, cond{1}, '/targetTableCSP_' cond{1} '.csv'], ...
         'WriteRowNames',true, ...
         'WriteVariableNames',false);
-    writetable(pred_table, [dirOut, cond{1}, '/predictionTableCSP_' cond{1} '.csv'], ...
+    writetable(pred_table, [dirOut, cond{1}, 'predictionTableCSP_' cond{1} '.csv'], ...
         'WriteRowNames',true, ...
         'WriteVariableNames',false);
-    writetable(predProbs_table, [dirOut, cond{1}, '/predictionTableProbabilitiesCSP_' cond{1} '.csv'], ...
+    writetable(predProbs_table, [dirOut, cond{1}, 'predictionTableProbabilitiesCSP_' cond{1} '.csv'], ...
         'WriteRowNames',true, ...
         'WriteVariableNames',false);
 end
