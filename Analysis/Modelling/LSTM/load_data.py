@@ -1219,6 +1219,27 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
     return {"train": train, "validation": validation, "test": test, "order": idx}
 
 
+def filnames_processed_models(wdic_of_subject, path_specificity):
+    _shuff_filename = "None"
+    _file_name = ''  # init
+    _acc_filename = ''  # init
+    _val_filename = ''  # init
+    for file in os.listdir(wdic_of_subject):
+        if path_specificity in file:
+            if ".csv" in file:
+                if "val_" in file:
+                    _val_filename = file
+                else:
+                    _file_name = file
+
+            elif ".txt" in file:
+                _acc_filename = file
+
+            elif ".npy" in file:
+                _shuff_filename = file
+
+    return _file_name, _val_filename, _acc_filename, _shuff_filename
+
 # # Testing
 # nevro_data = get_nevro_data(subject=36, task="regression", cond="NoMov",
 #                             component=5, hr_component=True,

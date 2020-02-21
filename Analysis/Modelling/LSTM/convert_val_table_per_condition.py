@@ -60,23 +60,8 @@ for cond in ["mov", "nomov"]:
         path_specificity = path_specificity_tab[sidx, 1][0].rstrip("/")
 
         # # Find correct files (csv-tables)
-        shuff_filename = "None"
-        file_name = ''  # init
-        acc_filename = ''  # init
-        val_filename = ''  # init
-        for file in os.listdir(wdic_sub):
-            if path_specificity in file:
-                if ".csv" in file:
-                    if "val_" in file:
-                        val_filename = file
-                    else:
-                        file_name = file
-
-                elif ".txt" in file:
-                    acc_filename = file
-
-                elif ".npy" in file:
-                    shuff_filename = file
+        file_name, val_filename, acc_filename, shuff_filename = filnames_processed_models(
+            wdic_of_subject=wdic_sub, path_specificity=path_specificity)
 
         # # Load validation results
         val_pred_matrix = np.loadtxt(wdic_sub + val_filename, delimiter=",")
