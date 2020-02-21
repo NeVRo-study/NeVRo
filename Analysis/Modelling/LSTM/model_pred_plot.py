@@ -13,7 +13,6 @@ import matplotlib.pyplot as plt
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
-lw = 0.5  # line-width
 plots = False
 
 # Subjects
@@ -35,27 +34,13 @@ for midx, model in enumerate(models):
     if model == "LSTM":
         wdic = "./processed"
         wdic_sub = wdic + f"/{cond}/{s(subject)}/already_plotted/"
+        # TODO path_specificity needs to be extracted from ... AllSub_Random_Search_Table_(no)mov_BiCl:
         path_specificity = "BiCl_nomov_RndHPS_lstm-50-40_fc-10_lr-5e-4_wreg-l2-0.00_actfunc-relu_" \
                            "ftype-SSD_hilb-F_bpass-T_comp-1-2-3-4_hrcomp-F_fixncol-10_shuf-T_balcv-T"
 
         # Find correct files (csv-tables)
-        shuff_filename = "None"
-        file_name = ''  # init
-        acc_filename = ''  # init
-        val_filename = ''  # init
-        for file in os.listdir(wdic_sub):
-            if path_specificity in file:
-                if ".csv" in file:
-                    if "val_" in file:
-                        val_filename = file
-                    else:
-                        file_name = file
-
-                elif ".txt" in file:
-                    acc_filename = file
-
-                elif ".npy" in file:
-                    shuff_filename = file
+        file_name, val_filename, acc_filename, shuff_filename = filnames_processed_models(
+            wdic_of_subject=wdic_sub, path_specificity=path_specificity)
 
         # Load data
         pred_matrix = np.loadtxt(wdic_sub + file_name, delimiter=",")
@@ -219,8 +204,13 @@ for midx, model in enumerate(models):
                 whole_rating_shift[idx] = ele - .1
 
     # Get concatenated validation predictions for given subject and model
-    concat_val_pred = pd.read_csv(wdic_val_pred + f"predictionTableProbabilities{model}_{cond}.csv",
-                                  header=None, index_col=0).loc[f"NVR_{s(subject)}"].to_numpy()
+    model_prediction = pd.read_csv(wdic_val_pred + f"predictionTableProbabilities{model}_{cond}.csv",
+                                   header=None, index_col=0).loc[f"NVR_{s(subject)}"].to_numpy()
+
+    # Normalize for plotting
+    if model == "SPoC":
+        model_prediction = z_score(model_prediction)  # before only >= 0, now zero-centred
+    model_prediction /= np.nanmax(np.abs(model_prediction))  # keep in range [-1,1]
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
@@ -232,54 +222,62 @@ for midx, model in enumerate(models):
     ax = fig.add_subplot(3, 1, midx+1)
 
     # Plot val predictions
-    plt.plot(concat_val_pred, marker="o", markerfacecolor="None", ms=2, c="aquamarine",
+    lw = 0.5  # line-width
+    plt.plot(model_prediction, marker="o", markerfacecolor="None", ms=2, c="aquamarine",
              linewidth=2 * lw, label="concatenated val-prediction")
 
     # Ratings
     plt.plot(real_rating, color="darkgrey", alpha=.5)
-    plt.plot(only_entries_rating, color="teal", alpha=.3, label="ground-truth rating")
-    plt.plot(whole_rating_shift, ls="None", marker="s", markerfacecolor="None", ms=3, color="black",
-             label="arousal classes: low=-1 | high=1")
+    if model != "SPoC":
+        plt.plot(only_entries_rating, color="teal", alpha=.3, label="ground-truth rating")
+        plt.plot(whole_rating_shift, ls="None", marker="s", markerfacecolor="None", ms=3, color="black",
+                 label="arousal classes: low=-1 | high=1")
 
     # midline and tertile borders
     plt.hlines(y=0, xmin=0, xmax=pred_matrix.shape[1], colors="darkgrey", lw=lw, alpha=.8)
-    plt.hlines(y=lower_tert_bound, xmin=0, xmax=pred_matrix.shape[1], linestyle="dashed",
-               colors="darkgrey", lw=lw, alpha=.8)
-    plt.hlines(y=upper_tert_bound, xmin=0, xmax=pred_matrix.shape[1], linestyle="dashed",
-               colors="darkgrey", lw=lw, alpha=.8)
+    if model != "SPoC":
+        plt.hlines(y=lower_tert_bound, xmin=0, xmax=pred_matrix.shape[1], linestyle="dashed",
+                   colors="darkgrey", lw=lw, alpha=.8)
+        plt.hlines(y=upper_tert_bound, xmin=0, xmax=pred_matrix.shape[1], linestyle="dashed",
+                   colors="darkgrey", lw=lw, alpha=.8)
 
     # Correct classified
-    correct_class = np.sign(concat_val_pred * whole_rating)
-    mean_acc2 = correct_class[correct_class == 1].sum() / np.sum(~np.isnan(correct_class))
-    if (np.round(mean_acc2, 3) != mean_acc) and model == "LSTM":
-        # for LSTM: there is the balanced_cv=False (in load_data.py), which leads to possible differences
-        # of the calculation of mean_acc. In that case, mean_acc2 is to be ignored.
-        pass
+    if model != "SPoC":
+        correct_class = np.sign(model_prediction * whole_rating)
+        mean_acc2 = correct_class[correct_class == 1].sum() / np.sum(~np.isnan(correct_class))
+        print(f"Calculated {model} accuracy: {mean_acc2:.2f}")
+        if (np.round(mean_acc2, 3) != mean_acc) and model == "LSTM":
+            # for LSTM: there is the balanced_cv=False (in load_data.py), which leads to possible
+            # differences of the calculation of mean_acc. In that case, mean_acc2 is to be ignored.
+            pass
+        else:
+            mean_acc = mean_acc2
+
+        plt.fill_between(x=np.arange(0, correct_class.shape[0], 1), y1=model_prediction, y2=real_rating,
+                         where=correct_class == 1,
+                         color="lime",
+                         alpha='0.2')
+
+        plt.fill_between(x=np.arange(0, correct_class.shape[0], 1), y1=model_prediction, y2=real_rating,
+                         where=correct_class == -1,
+                         color="orangered",
+                         alpha='0.2')
+
+        for i in range(correct_class.shape[0]):
+            corr_col = "lime" if correct_class[i] == 1 else "orangered"
+            # wr = whole_rating[i]
+            wr = whole_rating_shift[i]
+            # plt.vlines(i, ymin=wr, ymax=model_prediction[i], colors=corr_col, alpha=.5, lw=lw/1.5)
+            if not np.isnan(model_prediction[i]):
+                # set a point at the end of line
+                plt.plot(i, np.sign(wr) * (np.abs(wr) + .01) if correct_class[i] == 1 else wr,
+                         marker="o", color=corr_col, alpha=.5, ms=2)
+
     else:
-        mean_acc = mean_acc2
-
-    plt.fill_between(x=np.arange(0, correct_class.shape[0], 1), y1=concat_val_pred, y2=real_rating,
-                     where=correct_class == 1,
-                     color="lime",
-                     alpha='0.2')
-
-    plt.fill_between(x=np.arange(0, correct_class.shape[0], 1), y1=concat_val_pred, y2=real_rating,
-                     where=correct_class == -1,
-                     color="orangered",
-                     alpha='0.2')
-
-    for i in range(correct_class.shape[0]):
-        corr_col = "lime" if correct_class[i] == 1 else "orangered"
-        # wr = whole_rating[i]
-        wr = whole_rating_shift[i]
-        # plt.vlines(i, ymin=wr, ymax=concat_val_pred[i], colors=corr_col, alpha=.5, lw=lw/1.5)
-        if not np.isnan(concat_val_pred[i]):
-            # set a point at the end of line
-            plt.plot(i, np.sign(wr) * (np.abs(wr) + .01) if correct_class[i] == 1 else wr,
-                     marker="o", color=corr_col, alpha=.5, ms=2)
-
-        # plt.vlines(i, ymin=concat_val_pred[i], ymax=wr, colors=corr_col, alpha=.5, lw=lw)
-        # print(wr, concat_val_pred[i])
+        plt.fill_between(x=np.arange(0, model_prediction.shape[0], 1), y1=model_prediction, y2=real_rating,
+                         # where=correct_class == -1,
+                         color="gray",
+                         alpha='0.2')
 
     # Adapt y-axis ticks
     ax.set_yticks([-1, 0, 1])
@@ -290,24 +288,26 @@ for midx, model in enumerate(models):
         plt.xlabel("time(s)")
 
     # Set title
-    plt.title(label=f"{model} | Concatenated val-prediction | {task} | "
-                    f"mean validation accuracy={mean_acc:.3f}")
+    if model != "SPoC":  # LSTM, CSP:
+        plt.title(label=f"{model} | Concatenated val-prediction| {task} | "
+                        f"mean validation accuracy={mean_acc:.3f}")
+    else:  # for SPoC:
+        plt.title(label=f"{model} | {'W*X'} | max-correlation | "
+                        f"r={mean_acc:.3f}")  # TODO read max.corr
 
     # adjust size, add legend
     plt.xlim(0, len(whole_rating))
-    plt.ylim(-1.2, 1.6)
+    plt.ylim(-1.2, 1.6 if midx == 0 else 1.2)
     if midx == 0:
         plt.legend(bbox_to_anchor=(0., 0.90, 1., .102), loc=1, ncol=4, mode="expand", borderaxespad=0.)
     plt.tight_layout(pad=2)
-
-    # TODO SPoC: fig.add_subplot(3, 1, 3), do seperately if necessary
 
     if matplotlib.rcParams['backend'] != 'agg':
         fig.show()
 
     # Plot
     if plots:
-        plot_filename = f"Prediction across models |_{task}_|_alltrainval_|_{s(subject)}_|_{cond}.png"
+        plot_filename = f"Prediction across models |_all-val_|_{s(subject)}_|_{cond}.png"
 
         # fig.savefig(wdic_plot + plot_filename)
 
