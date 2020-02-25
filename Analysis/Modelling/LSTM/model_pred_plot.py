@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 plots = False
 
 # Subjects
-subject = 2
+subject = 34
 
 # Condition
 cond = "nomov"
@@ -293,7 +293,8 @@ for midx, model in enumerate(models):
                         f"mean {task}-accuracy={mean_acc:.3f}")
     else:  # for SPoC:
         plt.title(label=f"{model} | {'W*X'} | max-correlation | "
-                        f"r={mean_acc:.3f}")  # TODO read max.corr
+                        f"r={-.527:.3f}")  # TODO S34
+                        # f"r={mean_acc:.3f}")  # TODO read max.corr
 
     # adjust size, add legend
     plt.xlim(0, len(whole_rating))
