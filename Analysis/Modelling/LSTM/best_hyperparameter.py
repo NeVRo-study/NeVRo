@@ -361,9 +361,10 @@ def table_per_hp_setting(table_name, condition, search, fixed_comps=False):
             set_rs_table = np.concatenate((header, set_rs_table), axis=0)  # attach header
 
             # Save (use splitter)
+            tpfix = "Ran" if search == "broad" else "Nar"  # broad search: 'Ran' OR narrow search: Nar
             sp = '_merged' if "_merged" in table_name else '_sort' if '_sorted' in table_name else ".csv"
             export_filename = f"Set{str(setx+1).zfill(2)}_" \
-                              f"Ran{table_name.split('Ran')[1].split(sp)[0]}.csv"
+                              f"{tpfix}{table_name.split(tpfix)[1].split(sp)[0]}.csv"
             np.savetxt(fname=sav_dir+export_filename, X=set_rs_table, delimiter=";", fmt="%s")
 
     else:
