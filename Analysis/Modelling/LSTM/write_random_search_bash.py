@@ -34,7 +34,8 @@ def draw_components(n, subject, condition, filetype, select_mode="one_up", dtype
     :return: list of components per subject
     """
 
-    assert select_mode in ["one_up", "random_set"], "component_mode must be either 'one_up' or 'random_set'"
+    assert select_mode in ["one_up", "random_set"], \
+        "component_mode must be either 'one_up' or 'random_set'"
     filetype = filetype.upper()
     assert filetype in ['SSD', 'SPOC'], "filetype must be either 'SSD' or 'SPOC'"
     cond = condition.lower()
@@ -456,6 +457,9 @@ def write_bash_from_table(subs, table_path, condition, task=None, n_subbash=4, d
             filetype, hilbert_power, band_pass, \
             component, hrcomp, eqcompmat, summaries, \
             path_specificities = line
+
+        if lstm_size == '100100':  # probably due to np.savetxt: 100,100 => 100100
+            lstm_size = '100,100'
 
         # Write line for bashfile (Important: [Space] after each entry)
         bash_line = f"python3 NeVRo.py --subject {subject} --condition {cond} --seed {seed} " \
