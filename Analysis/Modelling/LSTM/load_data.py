@@ -1220,6 +1220,8 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
 
 
 def filnames_processed_models(wdic_of_subject, path_specificity):
+    path_specificity = path_specificity.rstrip("/")
+
     _shuff_filename = "None"
     _file_name = ''  # init
     _acc_filename = ''  # init
