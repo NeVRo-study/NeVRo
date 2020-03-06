@@ -157,6 +157,8 @@ pred_success %>%
 accuracy_summary
 
 coll <- list()
+varas <- rep(0,45)
+means <- rep(0,45)
 
 for (i in 1:45) {
   pred_probs <- data_prob_df_full %>% 
@@ -180,16 +182,23 @@ for (i in 1:45) {
   
   pp <- perf@y.values[[1]]
   vara <- ((pp *(1-pp)) + (90-1)*(pp/(2-pp)-pp^2) + (90-1)*(2*pp^2/(1+pp)))/(90^2)
+  
+  varas[i] <- vara
+  means[i] <- pp
+  
   zz <- (pp-0.5)/sqrt(vara)
   cat(i, ' --- ', zz, '\n')
   
   perf <- performance(pred, "tpr", "fpr")
   
+  cc <- ifelse(zz>1.6, 'green', 'red')
   if (i==1) {
-      plot(perf, lwd = 0.01, col = 'grey')
+      plot(perf, lwd = 0.01, col = cc)
   } else {
-    cc <- ifelse(zz>1.6, 'green', 'red')
-    lines(as_vector(perf@y.values) ~ as_vector(perf@x.values), lwd = 0.01, col = cc)
+    
+    lines(as_vector(perf@y.values) ~ as_vector(perf@x.values), 
+          lwd = 0.01, 
+          col = cc)
   }
   lines(0:1, 0:1, lwd = 3)
 
@@ -201,6 +210,13 @@ for (i in 1:45) {
 
 Plot accuracies for both binary approaches per movement condition (ordered by CSP accuracy):
 ```{r}
+
+# Plot histograms/freqpolys:
+ggplot(pred_success, aes(accuracy, linetype = Condition)) +
+  geom_freqpoly(binwidth = 0.03) + scale_color_brewer(palette="Paired") + 
+  theme_bw() + facet_wrap(~Model, scales = 'free')
+
+
 pred_success %>% 
   rownames_to_column() %>% 
   arrange(Model, Condition, accuracy) %>%
