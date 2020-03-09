@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
-plots = True
+save_plots = True
 
 task = "classification"
 
@@ -132,21 +132,20 @@ for cond in ["nomov", "mov"]:  # Conditions
 
             # Ratings
             plt.plot(real_rating, color="darkgrey", alpha=.5)
+            # midline and tertile borders
+            plt.hlines(y=0, xmin=0, xmax=pred_matrix.shape[1], colors="darkgrey", lw=lw, alpha=.8)
+
             if model != "SPoC":
                 plt.plot(only_entries_rating, color="teal", alpha=.3, label="ground-truth rating")
                 plt.plot(whole_rating_shift, ls="None", marker="s", markerfacecolor="None", ms=3,
                          color="black", label="arousal classes: low=-1 | high=1")
 
-            # midline and tertile borders
-            plt.hlines(y=0, xmin=0, xmax=pred_matrix.shape[1], colors="darkgrey", lw=lw, alpha=.8)
-            if model != "SPoC":
                 plt.hlines(y=lower_tert_bound, xmin=0, xmax=pred_matrix.shape[1], linestyle="dashed",
                            colors="darkgrey", lw=lw, alpha=.8)
                 plt.hlines(y=upper_tert_bound, xmin=0, xmax=pred_matrix.shape[1], linestyle="dashed",
                            colors="darkgrey", lw=lw, alpha=.8)
 
-            # Correct classified
-            if model != "SPoC":
+                # Correct classified
                 correct_class = np.sign(model_prediction * whole_rating)
                 # mean_acc2 = correct_class[correct_class == 1].sum() / np.sum(~np.isnan(correct_class))
                 mean_acc = float(result_tab.loc[f"NVR_{s(subject)}"][model])
@@ -213,7 +212,7 @@ for cond in ["nomov", "mov"]:  # Conditions
             fig.show()
 
         # Plot
-        if plots:
+        if save_plots:
             plot_filename = f"Prediction across models |_{s(subject)}_|_{cond}.png"
             fig.savefig(wdic_results + f"Plots/Across_Models/{cond}/" + plot_filename)
             plt.close()
