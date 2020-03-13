@@ -118,6 +118,9 @@ class NeVRoPlot:
             plt.close()
 
     def save_plot(self, filename, fm="png"):
+        if ".eps" in filename or fm == "eps":
+            print("For '*.eps'-export use fig./ax.set_rasterized(True). Alternatievly use '*.pdf'")
+
         plt.savefig(self.wdic_plots + (filename + f".{fm}" if ("." not in filename) else filename))
         plt.close()
 
