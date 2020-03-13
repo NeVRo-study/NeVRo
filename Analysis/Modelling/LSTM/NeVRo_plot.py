@@ -8,7 +8,7 @@ Plot ECG (RR and HR), EEG, and Rating Trajectories
     • plot subjective Ratings
     • save plots
 
-Author: Simon Hofmann | <[surname].[lastname][at]pm.me> | 2017
+Author: Simon Hofmann | <[surname].[lastname][at]pm.me> | 2017, 2020 (Update)
 """
 
 # import sys
@@ -21,6 +21,8 @@ import copy
 # matplotlib.use('TkAgg')  # 'Agg', 'Qt5Agg'
 import matplotlib.pyplot as plt
 
+
+# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
 class NeVRoPlot:
     def __init__(self, n_sub=45, dropouts=None, subject_selection=None,
@@ -36,14 +38,14 @@ class NeVRoPlot:
         """
 
         # Change to folder which contains files
-        self.wdic = "../../Data/"
-        self.wdic_plots = "../../Results/Plots/"
-        self.wdic_cropRR = "../../Data/ECG/TR_cropped/"
-        self.wdic_SBA = "../../Data/ECG/SBA/"
-        self.wdic_SA = "../../Data/ECG/SA/"
-        self.wdic_Rating = "../../Data/ratings/preprocessed/z_scored_alltog/"
-        self.wdic_Rating_not_z = "../../Data/ratings/preprocessed/not_z_scored/"
-        self.wdic_cropTR_trim = "../../Data/ECG/TR_cropped/trimmed/"
+        self.wdic = "../../../Data/"
+        self.wdic_plots = "../../../Results/Plots/"
+        self.wdic_cropRR = "../../../Data/ECG/TR_cropped/"
+        self.wdic_SBA = "../../../Data/ECG/SBA/"
+        self.wdic_SA = "../../../Data/ECG/SA/"
+        self.wdic_Rating = "../../../Data/ratings/continuous/z_scored/"
+        self.wdic_Rating_not_z = "../../../Data/ratings/continuous/not_z_scored/"
+        self.wdic_cropTR_trim = "../../../Data/ECG/TR_cropped/trimmed/"
 
         # Set variables
         self.n_sub = n_sub  # number of all Subjects
@@ -115,8 +117,8 @@ class NeVRoPlot:
         for _ in range(n):
             plt.close()
 
-    def save_plot(self, filename):
-        plt.savefig(self.wdic_plots+filename)
+    def save_plot(self, filename, fm="png"):
+        plt.savefig(self.wdic_plots + (filename + f".{fm}" if ("." not in filename) else filename))
         plt.close()
 
     def smooth(self, array_to_smooth, sliding_mode="ontop"):
@@ -308,18 +310,16 @@ class NeVRoPlot:
         conditions = [key for key in self.SBA_ratings["zSBA"].keys()]
         for cond in conditions:
             for sub_idx, sub in enumerate(self.subjects):
-                cond_name = "move" if cond == "Mov" else "nomove"
 
                 try:
                     sub_cond = self.subject_condition(subject_id=sub)  # cond of sub
                 except Exception:
                     sub_cond = "NaN"  # in case of S12
 
-                r = 1 if (sub_cond == 12 and cond_name == "move") or \
-                         (sub_cond == 21 and cond_name == "nomove") else 2
+                r = 1 if (sub_cond == 12 and cond.lower() == "mov") or \
+                         (sub_cond == 21 and cond.lower() == "nomov") else 2
 
-                file_name = self.wdic_Rating + "alltog/{}/1Hz/NVR_S{}_run_{}_alltog_rat_z.txt".format(
-                    cond_name, str(sub).zfill(2), r)
+                file_name = self.wdic_Rating+f"/{cond.lower()}/SBA/NVR_{s(sub)}_run_{r}_alltog_rat_z.txt"
 
                 if os.path.isfile(file_name):
                     rating_file = np.genfromtxt(file_name, delimiter=',')[:, 1]
@@ -338,17 +338,16 @@ class NeVRoPlot:
         for key in self.SA_ratings.keys():
             for cond in self.SA_ratings[key].keys():
                 for sub_idx, sub in enumerate(self.subjects):
-                    cond_name = "move" if cond == "Mov" else "nomove"
 
                     try:
                         sub_cond = self.subject_condition(subject_id=sub)  # cond of sub
                     except ValueError:  # or NameError
                         sub_cond = "NaN"  # in case of S12
 
-                    r = 1 if (sub_cond == 12 and cond_name == "move") or \
-                             (sub_cond == 21 and cond_name == "nomove") else 2
+                    r = 1 if (sub_cond == 12 and cond.lower() == "mov") or \
+                             (sub_cond == 21 and cond.lower() == "nomov") else 2
 
-                    file_name = self.wdic_Rating_not_z + f"alltog/{cond_name}/1Hz/NVR_{s(sub)}_run_{r}_alltog_rat_z.txt"
+                    file_name = self.wdic_Rating+f"/{cond.lower()}/SA/NVR_{s(sub)}_run_{r}_alltog_rat_z.txt"
 
                     if os.path.isfile(file_name):
                         rating_file = np.genfromtxt(file_name, delimiter=',')[:, 1]
@@ -372,7 +371,6 @@ class NeVRoPlot:
         for key in self.SA.keys():
             for cond_key in self.SA[key].keys():
                 # self.SA[key][cond_key].shape  # = (Nsub, 270)
-
                 # Update SA
                 self.SA[key][cond_key] = np.delete(arr=self.SA[key][cond_key],
                                                    obj=range(del_start, del_end), axis=1)
@@ -824,7 +822,7 @@ class NeVRoPlot:
         """Plot ratings for each subject over all phases (SBA)"""
         # self.SBA_ratings["zSBA"]["NoMov"].shape
 
-        fig_rat = plt.figure("All Subjects | Rating | SBA", figsize=(14, 8))
+        fig_rat = plt.figure(f"All Subjects | Rating | SBA | {condition}", figsize=(14, 8))
         for sub in range(self.n_sub):
             plt.plot(self.SBA_ratings["zSBA"][condition][sub], alpha=.5)
 
@@ -884,18 +882,19 @@ class NeVRoPlot:
             plt.vlines(line, ymin=int(rat_min), ymax=rat_max, linestyles="--", alpha=0.5, lw=.8)
             plt.text(x=line - lines, y=rat_max, s=phase_names[num], size=10)
         # fig_rat.suptitle("Ratings of all Subjects ({} condition, SBA)".format(condition))
-        fig_rat.suptitle("Ratings of all Subjects")
+        fig_rat.suptitle(f"Ratings of all Subjects in {condition}")
         plt.xlabel("in sec")
         plt.ylabel("z-scored rating")
 
         fig_rat.tight_layout(pad=0.6)
 
         if save_plot:
-            self.save_plot(filename="All_Subjects_|_Ratingd_|_SBA.png")
+            self.save_plot(filename=f"All_Subjects_|_Rating_|_SBA_|_{condition}")
 
         # # Classification bins
         if class_bins:
-            fig_rat_bins = plt.figure("All Subjects | Rating 2-Class Bins | SBA", figsize=(14, 8))
+            fig_rat_bins = plt.figure(f"All Subjects | Rating 2-Class Bins | SBA | {condition}",
+                                      figsize=(14, 8))
             plt.plot(mean_rating, alpha=.8, c="black", lw=3, label="mean rating")
 
             tertile = int(len(mean_rating) / 3)
@@ -966,14 +965,14 @@ class NeVRoPlot:
                 plt.vlines(line, ymin=int(rat_min), ymax=rat_max, linestyles="--", alpha=0.5, lw=.8)
                 plt.text(x=line - lines, y=rat_max, s=phase_names[num], size=10)
             # fig_rat_bins.suptitle("Ratings of all Subjects ({} condition, SBA) ".format(condition))
-            fig_rat_bins.suptitle("Ratings of all Subjects")
+            fig_rat_bins.suptitle(f"Ratings of all Subjects in {condition}")
             plt.xlabel("in sec")
             plt.ylabel("z-scored rating")
 
             fig_rat_bins.tight_layout(pad=0.6)
 
             if save_plot:
-                self.save_plot(filename="All Subjects | Rating 2-Class Bins | SBA")
+                self.save_plot(filename=f"All_Subjects_|_Rating_2-Class_Bins_|_SBA_|_{condition}")
 
     def plot_sba_hr(self, condition="NoMov", save_plot=False):
         """Plot heart rate vectors for each subject over all phases (SBA)"""
@@ -1586,6 +1585,9 @@ ec = NeVRoPlot(n_sub=45,
                subject_selection=[6, 11, 14, 17, 20, 27, 31, 34, 36],
                smooth_w_size=21)
 
+
+# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+
 # dropouts = [1, 12, 32, 33, 35, 38, 41, 42, 45]  # more conservative
 # dropouts = np.array([1, 12, 32, 33, 38, 40, 45])
 
@@ -1624,3 +1626,5 @@ ec = NeVRoPlot(n_sub=45,
 # ec.save_sba()
 # ec.save_sa()
 # ec.save_sba_split()
+
+# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<  END
