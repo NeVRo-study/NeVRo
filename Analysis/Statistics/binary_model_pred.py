@@ -18,7 +18,7 @@ import seaborn as sns
 # %% ><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<
 
 # Set variables
-save_plot_individual_cm = False
+save_plot_individual_cm = True
 verbose = False
 
 # Fixed vars
@@ -60,6 +60,8 @@ for cond in ["nomov", "mov"]:  # Conditions
             model_pred = pd.read_csv(wdic_val_pred + f"predictionTable{model}_{cond}.csv",
                                      header=None, index_col=0).loc[f"NVR_{s(subject)}"].to_numpy()
             pred_y = model_pred[~np.isnan(model_pred)]  # remove NaNs
+            if model == "CSP":
+                pred_y[pred_y == 0] = -1  # due to different coding
 
             # Test two arrays:
             assert np.all(np.isnan(model_pred) == np.isnan(true_rating)) & (len(pred_y) == len(true_y)), \
@@ -83,27 +85,28 @@ for cond in ["nomov", "mov"]:  # Conditions
 
                 # Create plot and save
                 df_confmat = pd.DataFrame(data=confmat, columns=classes, index=classes)
-                df_confmat.index.name = 'True Report'
+                df_confmat.index.name = 'True'
                 df_confmat.columns.name = f'Predicted'
                 fig = plt.figure(figsize=(10, 7))
                 sns.set(font_scale=1.4)  # for label size
                 ax = sns.heatmap(df_confmat, cmap="Blues", annot=True,
                                  annot_kws={"size": 16})  # "ha": 'center', "va": 'center'})
                 ax.set_ylim([0, 2])  # because labelling is off otherwise, OR downgrade matplotlib==3.1.0
+                ax.set_title(f"{s(subject)} Confusion Matrix of {model} in {cond}-condition")
                 fig.savefig(p2_predplots_individ + f"{s(subject)}_{model}_confusion-matrix.png")
                 plt.close()
 
         # # Plot mean confusion matrix per model per condition
-        # TODO add title
         mean_model_confmats = np.mean(model_confmats, axis=0)
         df_confmat = pd.DataFrame(data=mean_model_confmats, columns=classes, index=classes)
-        df_confmat.index.name = 'True Report'
+        df_confmat.index.name = 'True'
         df_confmat.columns.name = f'Predicted'
         fig = plt.figure(figsize=(10, 7))
         sns.set(font_scale=1.4)  # for label size
         ax = sns.heatmap(df_confmat, cmap="Blues", annot=True,
                          annot_kws={"size": 16})  # "ha": 'center', "va": 'center'})
         ax.set_ylim([0, 2])  # because labelling is off otherwise, OR downgrade matplotlib==3.1.0
+        ax.set_title(f"Average Confusion Matrix of {model} in {cond}-condition")
         fig.savefig(p2_predplots + f"{model}_confusion-matrix_{cond}.png")
         plt.close()
 
