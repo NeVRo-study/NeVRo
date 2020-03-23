@@ -2,7 +2,9 @@
 /Data
 /Results
 /Publication
+/Presentation
 /Literature
+/Experimental_Setup
 
 # Subfolders to be ignored 
 /Analysis/Modelling/LSTM/bashfiles
@@ -12,6 +14,14 @@
 # Pycharm related files
 *__pycache__*
 
+# R related files & folders
+**/*/.Rproj.user
+*.RData
+.Rhistory
+
 # Ignore MATLAB autosaves:
 *.asv  # Windows
 *.m~   # OSX
+
+# Others
+*.DS_Store
