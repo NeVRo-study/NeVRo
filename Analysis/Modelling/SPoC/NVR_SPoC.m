@@ -29,19 +29,17 @@ cond = {'nomov','mov'};
 %% Load Data
 
 for fold = 1:length(cond)
-    
-    
+     
 rawDataFiles = dir([ssd_path cond{fold} '/SBA/narrowband/*.set']);  %we specifcally use SBA data
 
-%NB: for the mov condition, S09, S24 and S27 are problematic because none of
-%their SSD components passed our selection criteria 
+% NB: for the mov condition, S09, S24 and S27 are problematic because none of
+% their SSD components passed our selection criteria 
 
 % Initialize all the SPoC summary tables
 %SPOC_Table_lambda= ones(length(rawDataFiles),2);
 spoc_t = ones(length(rawDataFiles),3);
 SPOC_Table_A= ones(32,length(rawDataFiles)+1);
 SPOC_Table_W= ones(32,length(rawDataFiles)+1);
-%SPOC_Table_TC=ones(67502,24);
 
 % Open up figure for topoplots
 figure('units','normalized','outerposition',[0 0 1 1]);
@@ -65,7 +63,13 @@ ssd_tab = readtable([ssd_path cond{fold} '/SSD_selected_components_' cond{fold} 
     
 sel_sub = ssd_tab(str2num(fileName(6:end)),2); %select the correspondent participant's row
 ssd_sel = str2num(cell2mat(table2array(sel_sub))); %convert selected row to list of numbers (indexes indicating components - Terrible sequence of nested functions but it works)
-    
+
+% Break the loop and start with a new participants if selected ssd
+% components are less than <4
+if (length(ssd_sel)<4) 
+    continue 
+end 
+
 % Ratings
 if exist([rat_path 'nomov/SBA/' fileName '_run_1_alltog_rat_z.txt'], 'file')
     rat_tab=readtable([rat_path 'nomov/SBA/' fileName '_run_1_alltog_rat_z.txt']);
@@ -104,16 +108,17 @@ for i=1:270
     
 end 
 
+% 1. First approach: SPoC via EEGLAB (currently not in use)
 % Import events on the EEG file to allow spoc (currently using 1,2,3 -
 % Felix's CSP events)
 %[EEG, eventnumbers] = pop_importevent(EEG, 'append','no','event',epochs,'fields',{'latency','type'},'skipline',0,'timeunit',1,'align',1,'optimalign','on');
 
-% Create 1 second epochs
-EEG = pop_epoch( EEG, {'1','2','3'}, [-0.5 0.5], 'newname', EEG.setname, 'epochinfo', 'yes');
-
-% Run SPOC:
-% 1.Via EEGLAB function (need to adapt the epoch size 
+% Run SPOC(need to adapt the epoch size):
 %EEG = pop_spoc(EEG,['z.mat'],'500','-0.5 0.496'); %SBA
+
+% 2. Second (actual) approach: "raw" code
+%Create 1 second epochs
+EEG = pop_epoch( EEG, {'1','2','3'}, [-0.5 0.5], 'newname', EEG.setname, 'epochinfo', 'yes');
 
 % 2.Original spoc function 
 X = permute(EEG.data, [2, 1, 3]);
@@ -187,6 +192,23 @@ struct_zest(isub).z_est = p_est;
 struct_z(isub).ID = fileName;
 struct_z(isub).z =(z-mean(z(:)))./std(z(:));
 
+
+% Remove empty fields
+struct_z = struct_z(~cellfun(@isempty,{struct_z.ID}));
+struct_zest = struct_zest(~cellfun(@isempty,{struct_zest.ID}));
+struct_summ = struct_summ(~cellfun(@isempty,{struct_summ.ID}));
+
+%% Group-level stats
+
+% Compute a one-sample, one-sided t.test to assess whether the mean
+% correlation value between z and z_est is sig. lower than 0 (aka
+% negative - coherently with our hypothesis). 
+
+[stats.h,stats.p,stats.ci,stats.stats] = ttest([struct_summ.r],0,'Tail','left')
+
+% Save struct
+save([spoc_path cond{fold} '/SBA/summaries/SPOC_groupstats_'  cond{fold} '.mat'], 'stats');
+
 %% Plotting
 
 %h(isub) = subplot_tight(6,6,isub, 0.06)
@@ -209,7 +231,7 @@ end
 %sgtitle(['Spatial patterns of the ' cond{fold} ' condition'])
 saveas(gcf,[spoc_path cond{fold} '/SBA/summaries/SPoC_topo_' cond{fold} '.png']);
 
-% Save the general summary structure
+%%  Save the general summary structure
 %save([spoc_path cond{fold} '/SBA/summaries/SPOC_results_'  cond{fold} '.mat'], 'SPOC_results');
 
 table_summ = struct2table(struct_summ);
@@ -219,7 +241,12 @@ table_zest = struct2table(struct_zest);
 save([spoc_path cond{fold} '/SBA/summaries/SPOC_results_'  cond{fold} '.mat'], 'SPOC_results');  % results summary .mat structure
 writetable(table_summ,[spoc_path cond{fold} '/SBA/summaries/_summary.csv']);  % lambda, p.values and corr. coeff summary
 
-clear SPOC_results;
+% Save the 2 tables needed for Results/
+writetable(table_z,[results_path cond{fold} '/targetTableSPoC_' cond{fold} '.csv'],'WriteVariableNames',0);  % target z
+writetable(table_zest,[results_path cond{fold} '/predictionTableSPoC_' cond{fold} '.csv'],'WriteVariableNames',0);  % estimated z
+
+%% Clear all the summary structures and tables and close figures
+clear SPOC_results struct_summ table_summ struct_z struct_zest table_z table_zest;
 close all;
 
 end 
