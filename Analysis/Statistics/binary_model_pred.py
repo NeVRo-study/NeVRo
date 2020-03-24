@@ -43,9 +43,12 @@ def plot_cm(cm, model_name, condi, title, path2save=None):
     # Plot
     fig = plt.figure(figsize=(10, 7))
     sns.set(font_scale=1.4)  # for label size
-    ax = sns.heatmap(df_confmat, cmap="Blues", annot=True,
+    ax = sns.heatmap(df_confmat,
+                     cmap="RdBu_r",  # or: "Blues"
+                     annot=True,
+                     vmin=.1, vmax=.9,  # equal col-bar for each plot
                      annot_kws={"size": 16})  # "ha": 'center', "va": 'center'})
-    ax.set_ylim([0, 2])  # because labelling is off otherwise, OR downgrade matplotlib==3.1.0
+    # ax.set_ylim([0, 2])  # switch on if labelling is off, OR downgrade matplotlib==3.1.0
     ax.set_title(f"{title} Confusion Matrix of {model_name} in {condi}-condition")
     if path2save:
         fig.savefig(path2save + f"{title}_{model_name}_ConfusionMatrix_{condi}.png")
