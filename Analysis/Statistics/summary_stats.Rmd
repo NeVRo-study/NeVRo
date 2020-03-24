@@ -13,12 +13,14 @@ knitr::opts_chunk$set(
 )
 library(tidyverse)
 library(here)
+library(rstatix)
 
 # disable scientific notation:
 options(scipen=999)
 
 # Set up paths: 
 path_data <- here('Results')
+path_results <- here('Results')
 ```
 
 ## analysis accuracies:
@@ -32,7 +34,7 @@ conds <- c('mov', 'nomov')
 for (cond in conds) {
   fname <- str_c('results_across_methods_', cond, '.csv')
   fpath <- file.path(path_data, fname)
-  data_ls[[cond]] <- read_csv2(fpath)
+  data_ls[[cond]] <- read_csv(fpath)
 }
 
 data_df <- bind_rows(data_ls, .id = 'condition')
@@ -73,8 +75,7 @@ for (model in list('CSP', 'LSTM')) {
 
   for (cond in conds) {
     # Get prediction data:
-    tmpstr <- ifelse(model == 'LSTM', '_concat', '') #Fit different naming convention
-    fname <- str_c('predictionTable', model, '_', cond, tmpstr, '.csv')
+    fname <- str_c('predictionTable', model, '_', cond, '.csv')
     fpath <- file.path(path_data, model, cond, fname)
     dat <- read_csv(fpath, col_names = FALSE, na = c("", "NaN"))
     # Recode CSP data to [-1,1]:
@@ -87,7 +88,7 @@ for (model in list('CSP', 'LSTM')) {
     dat <- NULL # better be sure
     
     # Get target data:
-    fname <- str_c('targetTable', model, '_', cond, tmpstr, '.csv')
+    fname <- str_c('targetTable', model, '_', cond, '.csv')
     fpath <- file.path(path_data, model, cond, fname)
     dat <- read_csv(fpath, col_names = FALSE, na = c("", "NaN"))
     # Recode CSP data to [-1,1]:
@@ -100,8 +101,7 @@ for (model in list('CSP', 'LSTM')) {
     dat <- NULL
     
     # Get probability data:
-    tmpstr <- '' # different naming convention
-    fname <- str_c('predictionTableProbabilities', model, '_', cond, tmpstr, '.csv')
+    fname <- str_c('predictionTableProbabilities', model, '_', cond, '.csv')
     fpath <- file.path(path_data, model, cond, fname)
     dat <- read_csv(fpath, col_names = FALSE, na = c("", "NaN"))
     data_prob_ls[[cond]] <- dat
@@ -124,37 +124,92 @@ for (model in list('CSP', 'LSTM')) {
 data_pred_df_full <- bind_rows(model_pred_ls, .id = 'Model') 
 data_targ_df_full <- bind_rows(model_targ_ls, .id = 'Model') 
 data_prob_df_full <- bind_rows(model_prob_ls, .id = 'Model')
+```
 
+
+Now we have 3 big data frames:  
+- Target (behavioral ratings, ground truth)  
+- Model Prediction (binary) 
+- Preiction probability  
+
+
+
+```{r}
 # combine, calc accuracy, and run binomial test:
 
 binom_func <- function(n_corr_samps, n_samps_tot, p_guess) {
-  binom.test(n_corr_samps, n_samps_tot, p = p_guess, alternative = "greater")
+  binom.test(n_corr_samps, n_samps_tot, p = p_guess, alternative = "two.sided")
 }
 
+# Compare preditions to target:
 pred_success <- data_pred_df_full
-pred_success[, samp_col_names] <- data_targ_df_full[, samp_col_names] == data_pred_df_full[, samp_col_names]
+pred_success[, samp_col_names] <- data_targ_df_full[, samp_col_names] ==
+  data_pred_df_full[, samp_col_names]
 
-pred_success$Ncorrect <- rowSums(pred_success[, samp_col_names], na.rm = T)
-pred_success$Ntot <- rowSums(!is.na(pred_success[, samp_col_names]))
-pred_success$accuracy <- pred_success$Ncorrect/pred_success$Ntot
+# Calculate accuracy & run bionomial test on single subjects:
 pred_success %>% 
-  mutate(accuracy = Ncorrect/Ntot) %>% 
+  mutate(Ncorrect = rowSums(select(., samp_col_names), na.rm = T), 
+         Ntot = rowSums(!is.na(select(., samp_col_names))), 
+         accuracy = Ncorrect/Ntot) %>% 
   rowwise() %>% 
   mutate(p_val = binom_func(Ncorrect, Ntot, 0.5)$p.value) %>% 
   select(-one_of(samp_col_names)) -> pred_success
 
-
 # summary stats:
 pred_success %>% 
+  mutate(pval_sign = p_val < 0.05, acc_imp = round(accuracy,1)) %>% 
   group_by(Model, Condition) %>% 
-  summarise(Ncorr_avg = round(mean(Ncorrect)), 
-            Ntot_avg = round(mean(Ntot))) %>% 
-  mutate(accuracy = Ncorr_avg/Ntot_avg) %>% 
-  rowwise() %>% 
-  mutate(p_val = binom_func(Ncorr_avg, Ntot_avg, 0.5)$p.value) -> 
-  accuracy_summary
+  summarise(n = n(),
+            Ncorr_median = median(Ncorrect), 
+            Ntot_median = median(Ntot),
+            mean_accuracy = mean(accuracy),
+            se_accuracy = sd(accuracy)/sqrt(n),
+            min_accuracy = min(accuracy), 
+            max_accuracy = max(accuracy),
+            n_sig_pval = sum(pval_sign)) %>% 
+  mutate(prop_sign_pval = n_sig_pval/n)  -> accuracy_summary
 
-accuracy_summary
+print(accuracy_summary)
+
+# Run t tests against chance level:
+pwc <- pred_success %>%
+  #filter(Model == mod) %>% 
+  group_by(Model, Condition) %>% 
+  summarise(t     = t.test(accuracy, mu = 0.5)$statistic, 
+            p_val = t.test(accuracy, mu = 0.5)$p.value, 
+            df    = t.test(accuracy, mu = 0.5)$parameter)
+print(pwc)
+
+## Write out result tables:
+fpath <- file.path(path_results, 'Stats', 'results_binomTest_allsubjects.csv')
+write_csv2(pred_success, fpath)
+
+fpath <- file.path(path_results, 'Stats', 'results_binomTest_summary.csv')
+write_csv2(accuracy_summary, fpath)
+
+```
+
+
+To further compare, we can now put the accuracies into an ANOVA:
+```{r}
+
+pred_success_completecases <- pred_success %>% 
+  group_by(Subject) %>% 
+  mutate(n = n()) %>% 
+  filter(n == 4)  #only use full cases (data for both conditions)
+  
+aov.acc <- aov(accuracy ~ Model * Condition + Error(Subject/(Model * Condition)),
+               data = pred_success_completecases)
+
+summary(aov.acc)
+
+```
+
+
+
+```{r, include=F}
+
+
 
 coll <- list()
 varas <- rep(0,45)
@@ -162,7 +217,6 @@ means <- rep(0,45)
 
 for (i in 1:45) {
   pred_probs <- data_prob_df_full %>% 
-    filter(Model == 'CSP') %>% # Remove this line once LSTM data is there
     slice(i) %>% 
     pivot_longer(samp_col_names) %>% 
     drop_na()
@@ -172,35 +226,35 @@ for (i in 1:45) {
     pivot_longer(samp_col_names) %>% 
     drop_na()
   
-  pred <- prediction(pred_probs$value, 
-                     labels$value)
-  perf <- performance(pred, "auc")
+  #pred <- prediction(pred_probs$value, 
+  #                   labels$value)
+  #perf <- performance(pred, "auc")
   
   #coll[[i]] <- perf@y.values
     
   #cat(i, ' --- ', perf@y.values[[1]], '\n')
   
-  pp <- perf@y.values[[1]]
-  vara <- ((pp *(1-pp)) + (90-1)*(pp/(2-pp)-pp^2) + (90-1)*(2*pp^2/(1+pp)))/(90^2)
+  #pp <- perf@y.values[[1]]
+  #vara <- ((pp *(1-pp)) + (90-1)*(pp/(2-pp)-pp^2) + (90-1)*(2*pp^2/(1+pp)))/(90^2)
   
-  varas[i] <- vara
-  means[i] <- pp
-  
-  zz <- (pp-0.5)/sqrt(vara)
-  cat(i, ' --- ', zz, '\n')
-  
-  perf <- performance(pred, "tpr", "fpr")
-  
-  cc <- ifelse(zz>1.6, 'green', 'red')
-  if (i==1) {
-      plot(perf, lwd = 0.01, col = cc)
-  } else {
-    
-    lines(as_vector(perf@y.values) ~ as_vector(perf@x.values), 
-          lwd = 0.01, 
-          col = cc)
-  }
-  lines(0:1, 0:1, lwd = 3)
+  # varas[i] <- vara
+  # means[i] <- pp
+  # 
+  # zz <- (pp-0.5)/sqrt(vara)
+  # cat(i, ' --- ', zz, '\n')
+  # 
+  # perf <- performance(pred, "tpr", "fpr")
+  # 
+  # cc <- ifelse(zz>1.6, 'green', 'red')
+  # if (i==1) {
+  #     plot(perf, lwd = 0.01, col = cc)
+  # } else {
+  #   
+  #   lines(as_vector(perf@y.values) ~ as_vector(perf@x.values), 
+  #         lwd = 0.01, 
+  #         col = cc)
+  # }
+  # lines(0:1, 0:1, lwd = 3)
 
 }
 ```
