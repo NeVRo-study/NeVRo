@@ -13,7 +13,7 @@ Author: Simon Hofmann | <[surname].[lastname][at]pm.me> | 2017, 2020 (Update)
 
 # import sys
 # sys.path.insert(0, './LSTM Model')  # or set the folder as source root
-from meta_functions import *
+from utils import *
 from load_data import load_component, t_roller_coasters
 import os.path
 import copy
