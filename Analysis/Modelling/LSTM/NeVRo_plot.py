@@ -25,9 +25,7 @@ import matplotlib.pyplot as plt
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
 class NeVRoPlot:
-    def __init__(self, n_sub=45, dropouts=None, subject_selection=None,
-                 smooth_w_size=3,
-                 trimmed=True):
+    def __init__(self, n_sub=45, dropouts=None, subject_selection=None, smooth_w_size=3, trimmed=True):
         """
         :param n_sub: number of all subjects
         :param dropouts: dropouts=[1, 12, 32, 33, 35, 38, 40, 41, 42, 43, 45]  # conservative
@@ -101,14 +99,14 @@ class NeVRoPlot:
         self.roller_coaster = np.array(['Space_NoMov', 'Space_Mov', 'Ande_Mov', 'Ande_NoMov'])
 
         # "Space", "Break" and "Ande" (SBA) concatenated. Raw and z-scored
-        self.SBA = self._create_sba()
-        self.SBA_split = self._create_sba_split()
-        self._split_sba()  # Updates self.SBA_split dictionary with splitted z-scored sba data
-        self.SBA_ratings = copy.deepcopy(self.SBA)
+        self.SBA_ecg = self._create_sba()
+        self.SBA_ecg_split = self._create_sba_split()
+        self._split_sba()  # Updates self.SBA_ecg_split dictionary with splitted z-scored sba data
+        self.SBA_ratings = copy.deepcopy(self.SBA_ecg)
         self._update_sba_ratings_dic()
 
         # "Space" and "Ande" (SA) concatenated. Raw and z-scored
-        self.SA = copy.deepcopy(self.SBA)
+        self.SA = copy.deepcopy(self.SBA_ecg)
         self.SA_ratings = copy.deepcopy(self.SBA_ratings)
         self._update_sa_dics()
 
@@ -261,7 +259,7 @@ class NeVRoPlot:
                             "Ande_NoMov": copy.copy(ande_init)}
 
         r_coasters = ["space", "break", "andes"]
-        condition = ["move", "nomove"]
+        condition = ["mov", "nomov"]
 
         for sub_idx, sub in enumerate(self.subjects):
             for num, coaster in enumerate(r_coasters):
@@ -270,11 +268,11 @@ class NeVRoPlot:
                         sub_cond = self.subject_condition(subject_id=sub)  # cond of sub
                     except Exception:
                         sub_cond = "NaN"  # in case of S12
-                    r = 1 if (sub_cond == 12 and cond == "move") or \
-                             (sub_cond == 21 and cond == "nomove") else 2  # run
-                    rating_filename = self.wdic_Rating + "{}/{}/1Hz/NVR_S{}_run_{}_{}_rat_z.txt".format(
-                        coaster,
+                    r = 1 if (sub_cond == 12 and cond == "mov") or \
+                             (sub_cond == 21 and cond == "nomov") else 2  # run
+                    rating_filename = self.wdic_Rating + "{}/{}/NVR_S{}_run_{}_{}_rat_z.txt".format(
                         cond,
+                        coaster,
                         str(sub).zfill(2),
                         str(r),
                         coaster)
@@ -309,28 +307,31 @@ class NeVRoPlot:
                         print(rating_filename, " does not exist")
 
     def _update_sba_ratings_dic(self):
-        self.SBA_ratings.pop("SBA")
-        conditions = [key for key in self.SBA_ratings["zSBA"].keys()]
-        for cond in conditions:
-            for sub_idx, sub in enumerate(self.subjects):
 
-                try:
-                    sub_cond = self.subject_condition(subject_id=sub)  # cond of sub
-                except Exception:
-                    sub_cond = "NaN"  # in case of S12
+        for tfs in self.SBA_ratings.keys():  # ["SBA", "zSBA"]
+            conditions = [key for key in self.SBA_ratings[tfs].keys()]
+            for cond in conditions:
+                for sub_idx, sub in enumerate(self.subjects):
 
-                r = 1 if (sub_cond == 12 and cond.lower() == "mov") or \
-                         (sub_cond == 21 and cond.lower() == "nomov") else 2
+                    try:
+                        sub_cond = self.subject_condition(subject_id=sub)  # cond of sub
+                    except Exception:
+                        sub_cond = "NaN"  # in case of S12
 
-                file_name = self.wdic_Rating+f"/{cond.lower()}/SBA/NVR_{s(sub)}_run_{r}_alltog_rat_z.txt"
+                    r = 1 if (sub_cond == 12 and cond.lower() == "mov") or \
+                             (sub_cond == 21 and cond.lower() == "nomov") else 2
 
-                if os.path.isfile(file_name):
-                    rating_file = np.genfromtxt(file_name, delimiter=',')[:, 1]
-                    # only load col with ratings
-                else:
-                    rating_file = np.repeat(np.nan, self.SBA_ratings["zSBA"][cond].shape[1])
+                    file_name = (self.wdic_Rating if tfs == "zSBA" else
+                                 self.wdic_Rating_not_z) + f"/{cond.lower()}/SBA/NVR_{s(sub)}_run_{r}_" \
+                                                           f"alltog_rat_z.txt"
 
-                self.SBA_ratings["zSBA"][cond][sub_idx] = rating_file
+                    if os.path.isfile(file_name):
+                        rating_file = np.genfromtxt(file_name, delimiter=',')[:, 1]
+                        # only load col with ratings
+                    else:
+                        rating_file = np.repeat(np.nan, self.SBA_ratings[tfs][cond].shape[1])
+
+                    self.SBA_ratings[tfs][cond][sub_idx] = rating_file
 
     def _update_sa_ratings_dic(self):
         """
@@ -673,10 +674,9 @@ class NeVRoPlot:
 
                 # Check length
                 if not mov_sba.shape[0] == total_trim_len:
-                    print("For Sub{} in mov-cond does the concatenated file "
-                          "diverge from expected length".format(sub))
-                    print("mov_sba.shape[0]={}, total_trim_len={}".format(mov_sba.shape[0],
-                                                                          total_trim_len))
+                    print(f"For Sub{sub} in mov-cond does the concatenated file diverge from expected "
+                          f"length")
+                    print(f"mov_sba.shape[0]={mov_sba.shape[0]}, total_trim_len={total_trim_len}")
                 else:
                     # Create z-score
                     z_mov_sba = self._z_score_hr(hr_array=mov_sba)
@@ -687,8 +687,8 @@ class NeVRoPlot:
                 # For No-Movement condition
                 no_mov_sba = np.array([])
                 for kdx, no_mov_key in enumerate(sba_keys_no_mov):
-                    no_mov_file_name = self.wdic_cropTR_trim + "NVR_S{}_{}_T_R.txt".format(
-                        str(sub).zfill(2), no_mov_key)
+                    no_mov_file_name = self.wdic_cropTR_trim + f"NVR_S{str(sub).zfill(2)}_{no_mov_key}_" \
+                                                               f"T_R.txt"
 
                     if os.path.isfile(no_mov_file_name):
                         no_mov_file = np.loadtxt(no_mov_file_name)
@@ -696,9 +696,9 @@ class NeVRoPlot:
                         no_mov_hr_file_ds = self._tr_to_hr(tr_array=no_mov_file, exp_time=all_trims[kdx])
                         # Check length:
                         if not len(no_mov_hr_file_ds) == all_trims[kdx]:
-                            print("Length Problem with S{} in {}".format(sub, no_mov_key))
-                            print("len(no_mov_hr_file_ds)={}, all_trims[kdx]={}".format(
-                                len(no_mov_hr_file_ds), all_trims[kdx]))
+                            print(f"Length Problem with S{sub} in {no_mov_key}")
+                            print(f"len(no_mov_hr_file_ds)={len(no_mov_hr_file_ds)}, "
+                                  f"all_trims[kdx]={all_trims[kdx]}")
                             # raise ValueError("no_mov_hr_file_ds and actual trim length differ")
 
                         # Concatenate
@@ -708,8 +708,7 @@ class NeVRoPlot:
                 if not no_mov_sba.shape[0] == total_trim_len:
                     print("For Sub{} in nomov-cond does the concatenated file diverge "
                           "from expected length".format(sub))
-                    print("no_mov_sba.shape[0]={}, total_trim_len={}".format(no_mov_sba.shape[0],
-                                                                             total_trim_len))
+                    print(f"no_mov_sba.shape[0]={no_mov_sba.shape[0]}, total_trim_len={total_trim_len}")
                 else:
                     # Create z-score
                     z_no_mov_sba = self._z_score_hr(hr_array=no_mov_sba)
@@ -727,9 +726,9 @@ class NeVRoPlot:
         return sba
 
     def _create_sba_split(self):
-        sba_split_dic = copy.deepcopy(self.SBA)
+        sba_split_dic = copy.deepcopy(self.SBA_ecg)
         sba_split_dic.pop("SBA", None)  # removes "SBA" key from dic
-        conditions = [key for key in self.SBA["zSBA"].keys()]  # ['NoMov', 'Mov']
+        conditions = [key for key in self.SBA_ecg["zSBA"].keys()]  # ['NoMov', 'Mov']
 
         space_df = np.reshape(np.repeat(np.nan, self.n_sub * int(self.trimmed_time_space)),
                               newshape=(self.n_sub, int(self.trimmed_time_space)))
@@ -751,36 +750,36 @@ class NeVRoPlot:
     def _split_sba(self):
         """
         Separates the zSBA trials in single phases: Space, Break, Ande
-        And updates the self.SBA dictionary
+        And updates the self.SBA_ecg dictionary
         """
 
-        conditions = [key for key in self.SBA["zSBA"].keys()]  # ['NoMov', 'Mov']
+        conditions = [key for key in self.SBA_ecg["zSBA"].keys()]  # ['NoMov', 'Mov']
         phases = ["space", "break", "ande"]
 
         for cond in conditions:
-            # self.SBA["zSBA"][cond]  # shape(nSub, 270=concat_time SBA)
+            # self.SBA_ecg["zSBA"][cond]  # shape(nSub, 270=concat_time SBA)
             for sub_idx, _ in enumerate(self.subjects):
                 start, end = 0, int(self.trimmed_time_space)
-                space = self.SBA["zSBA"][cond][sub_idx][start: end]  # len=148
+                space = self.SBA_ecg["zSBA"][cond][sub_idx][start: end]  # len=148
                 start, end = end,  end + int(self.trimmed_time_break)
-                breaks = self.SBA["zSBA"][cond][sub_idx][start: end]  # len=30
+                breaks = self.SBA_ecg["zSBA"][cond][sub_idx][start: end]  # len=30
                 start, end = end, end + int(self.trimmed_time_ande)
-                ande = self.SBA["zSBA"][cond][sub_idx][start: end]  # len=92
+                ande = self.SBA_ecg["zSBA"][cond][sub_idx][start: end]  # len=92
 
                 phase_data = [space, breaks, ande]
 
                 for num, phase in enumerate(phases):
-                    self.SBA_split["zSBA"][cond][phase][sub_idx, :] = phase_data[num]
+                    self.SBA_ecg_split["zSBA"][cond][phase][sub_idx, :] = phase_data[num]
 
     def save_sba(self):
-        sba_keys = [key for key in self.SBA.keys()]  # ['zSBA', 'SBA']
-        cond_keys = [key for key in self.SBA[sba_keys[0]].keys()]  # ['NoMov', 'Mov']
+        sba_keys = [key for key in self.SBA_ecg.keys()]  # ['zSBA', 'SBA']
+        cond_keys = [key for key in self.SBA_ecg[sba_keys[0]].keys()]  # ['NoMov', 'Mov']
 
         for key in sba_keys:
             for sub_idx, sub in enumerate(self.subjects):
                 for cond in cond_keys:
                     # extract file to save
-                    file_to_save = self.SBA[key][cond][sub_idx, :]  # takes file per subject
+                    file_to_save = self.SBA_ecg[key][cond][sub_idx, :]  # takes file per subject
                     # Define file_name for specific folder
                     subfolder = "z_scored_alltog/" if "z" in key else "not_z_scored/"
                     file_name = self.wdic_SBA + subfolder + cond + "/NVR_S{}_SBA_{}.txt".format(
@@ -807,8 +806,8 @@ class NeVRoPlot:
                             file.write("{}\n".format(item))
 
     def save_sba_split(self):
-        condition = [key for key in self.SBA_split["zSBA"].keys()]  # ['NoMov', 'Mov']
-        phases = [key for key in self.SBA_split["zSBA"][condition[0]].keys()]
+        condition = [key for key in self.SBA_ecg_split["zSBA"].keys()]  # ['NoMov', 'Mov']
+        phases = [key for key in self.SBA_ecg_split["zSBA"][condition[0]].keys()]
         # ['space', 'ande', 'break']
 
         for cond in condition:
@@ -818,7 +817,7 @@ class NeVRoPlot:
                     file_name = w_dict + "NVR_S{}_SBA_{}_{}.txt".format(str(sub).zfill(2), phase, cond)
 
                     with open(file_name, "w") as file:
-                        for item in self.SBA_split["zSBA"][cond][phase][sub_idx, :]:
+                        for item in self.SBA_ecg_split["zSBA"][cond][phase][sub_idx, :]:
                             file.write("{}\n".format(item))
 
     def plot_sba_ratings(self, condition="NoMov", save_plot=False, class_bins=True):
@@ -987,22 +986,22 @@ class NeVRoPlot:
 
     def plot_sba_hr(self, condition="NoMov", save_plot=False):
         """Plot heart rate vectors for each subject over all phases (SBA)"""
-        # self.SBA["zSBA"]["NoMov"].shape
+        # self.SBA_ecg["zSBA"]["NoMov"].shape
 
         fig_hr = plt.figure("All Subjects | Heart Rate | SBA", figsize=(14, 8))
         for sub in range(self.n_sub):
-            plt.plot(interpolate_nan(arr_with_nan=self.SBA["zSBA"][condition][sub]), alpha=.5)
-            # Note: this automat. overwrites self.SBA["zSBA"][condition][sub] with interpolated data
+            plt.plot(interpolate_nan(arr_with_nan=self.SBA_ecg["zSBA"][condition][sub]), alpha=.5)
+            # Note: this automat. overwrites self.SBA_ecg["zSBA"][condition][sub] with interpolated data
             # Normalization range(-1,1), Note: does not overwrite automatically
-            # plt.plot(normalization(interpolate_nan(arr_with_nan=self.SBA["zSBA"][condition][sub]),
+            # plt.plot(normalization(interpolate_nan(arr_with_nan=self.SBA_ecg["zSBA"][condition][sub]),
             #                        -1, 1), alpha=.5)
-            # self.SBA["zSBA"][condition][sub] = normalization(self.SBA["zSBA"][condition][sub], -1, 1)
+            # self.SBA_ecg["zSBA"][condition][sub] = normalization(self.SBA_ecg["zSBA"][condition][sub], -1, 1)
 
-        mean_hr = np.nanmean(self.SBA["zSBA"][condition], axis=0)  # of interpolated data
+        mean_hr = np.nanmean(self.SBA_ecg["zSBA"][condition], axis=0)  # of interpolated data
         plt.plot(mean_hr, alpha=.8, c="black", lw=3, label="mean hr")
 
-        hr_min = np.nanmin(self.SBA["zSBA"][condition])
-        hr_max = np.nanmax(self.SBA["zSBA"][condition])
+        hr_min = np.nanmin(self.SBA_ecg["zSBA"][condition])
+        hr_max = np.nanmax(self.SBA_ecg["zSBA"][condition])
         ylims = np.max(np.abs((hr_min, hr_max)))
 
         for coaster in ["Space", "Andes"]:
@@ -1062,7 +1061,7 @@ class NeVRoPlot:
                      sba=True,
                      save_plot=False):
         """Plot heart rate vectors for each subject over all phases (SBA)"""
-        # self.SBA["zSBA"]["NoMov"].shape
+        # self.SBA_ecg["zSBA"]["NoMov"].shape
 
         fs = 250  # sampling frequency
 
@@ -1362,12 +1361,12 @@ class NeVRoPlot:
 
             if sba:  # z-scored over "space-break-ande" (SBA)
                 # z-score heart rate as was done for ratings (concatenate two coasters+break then z-score)
-                conditions = [key for key in self.SBA["zSBA"].keys()]  # ['NoMov', 'Mov']
+                conditions = [key for key in self.SBA_ecg["zSBA"].keys()]  # ['NoMov', 'Mov']
                 for cond in conditions:
-                    if np.abs(int(np.nanmin(self.SBA["zSBA"][cond])-1)) > ylims:
-                        ylims = np.abs(int(np.nanmin(self.SBA["zSBA"][cond])) - 1)
-                    if np.int(np.nanmax(self.SBA["zSBA"][cond])) + 1 > ylims:
-                        ylims = np.int(np.nanmax(self.SBA["zSBA"][cond])) + 1
+                    if np.abs(int(np.nanmin(self.SBA_ecg["zSBA"][cond])-1)) > ylims:
+                        ylims = np.abs(int(np.nanmin(self.SBA_ecg["zSBA"][cond])) - 1)
+                    if np.int(np.nanmax(self.SBA_ecg["zSBA"][cond])) + 1 > ylims:
+                        ylims = np.int(np.nanmax(self.SBA_ecg["zSBA"][cond])) + 1
 
             else:  # z-scored for single phases (Caution: so far Ratings are SBA-z-scored)
                 # Found min/max values over all roller coasters of zHR
@@ -1384,12 +1383,12 @@ class NeVRoPlot:
                         print("Data length not the same | {} | S{}.".format(coaster, str(sub).zfill(2)))
 
                 if sba:
-                    # Create keys for self.SBA_split["zSBA][cond][phase]
+                    # Create keys for self.SBA_ecg_split["zSBA][cond][phase]
                     phase, cond = coaster.split("_")  # e.g., ['Space', 'NoMov']
                     phase = phase.lower()  # e.g., "Space" ==> "space"
 
                 var1 = copy.copy(self.ratings_dic[coaster][sub_idx])
-                var2 = copy.copy(self.SBA_split["zSBA"][cond][phase][sub_idx, :]) if sba \
+                var2 = copy.copy(self.SBA_ecg_split["zSBA"][cond][phase][sub_idx, :]) if sba \
                     else copy.copy(self.each_phases_z[coaster][sub_idx])
                 var1[np.isnan(var2)] = 0.  # x-corr does not work with nan, so set nan = zero
                 var2[np.isnan(var2)] = 0.
@@ -1479,20 +1478,20 @@ class NeVRoPlot:
 
             # z-scored over "space-break-ande" (SBA)
             # Finding the max ylims
-            conditions = [key for key in self.SBA["zSBA"].keys()]  # ['NoMov', 'Mov']
+            conditions = [key for key in self.SBA_ecg["zSBA"].keys()]  # ['NoMov', 'Mov']
             for cond in conditions:
-                if np.abs(int(np.nanmin(self.SBA["zSBA"][cond]) - 1)) > ylims:
-                    ylims = np.abs(int(np.nanmin(self.SBA["zSBA"][cond])) - 1)
-                if np.int(np.nanmax(self.SBA["zSBA"][cond])) + 1 > ylims:
-                    ylims = np.int(np.nanmax(self.SBA["zSBA"][cond])) + 1
+                if np.abs(int(np.nanmin(self.SBA_ecg["zSBA"][cond]) - 1)) > ylims:
+                    ylims = np.abs(int(np.nanmin(self.SBA_ecg["zSBA"][cond])) - 1)
+                if np.int(np.nanmax(self.SBA_ecg["zSBA"][cond])) + 1 > ylims:
+                    ylims = np.int(np.nanmax(self.SBA_ecg["zSBA"][cond])) + 1
 
-            # Create keys for self.SBA_split["zSBA][cond][phase]
+            # Create keys for self.SBA_ecg_split["zSBA][cond][phase]
 
             for cond in conditions:
-                # self.SBA["zSBA"][cond].shape
+                # self.SBA_ecg["zSBA"][cond].shape
 
                 var1 = copy.copy(self.SBA_ratings["zSBA"][cond][sub_idx, :])
-                var2 = copy.copy(self.SBA["zSBA"][cond][sub_idx, :])
+                var2 = copy.copy(self.SBA_ecg["zSBA"][cond][sub_idx, :])
                 var1[np.isnan(var2)] = 0.  # x-corr does not work with nan, so set nan = zero
                 var2[np.isnan(var2)] = 0.
 
@@ -1596,14 +1595,45 @@ mov_dropouts = [1, 3, 5, 7, 9, 10, 11, 12, 13, 15, 16, 17, 19, 20, 23, 24, 26, 2
                 32, 33, 38, 40, 41, 43, 45]  # mov
 nomov_dropouts = [1, 7, 9, 10, 12, 16, 19, 20, 23, 24, 27, 31, 32, 33, 38, 40, 41, 43, 45]  # nomov
 
-
-for idx, drops in enumerate([mov_dropouts, nomov_dropouts]):
-
-    ec = NeVRoPlot(n_sub=45,
-                   dropouts=drops,
-                   subject_selection=[6, 11, 14, 17, 20, 27, 31, 34, 36],
-                   smooth_w_size=21)
-
-    ec.plot_sba_ratings(condition=["Mov", "NoMov"][idx], save_plot=True, class_bins=False)
+# for idx, drops in enumerate([mov_dropouts, nomov_dropouts]):
+#
+#     ec = NeVRoPlot(n_sub=45,
+#                    dropouts=drops,
+#                    subject_selection=[6, 11, 14, 17, 20, 27, 31, 34, 36],
+#                    smooth_w_size=21)
+#
+#     # # Some descriptive stats on non-z-scored ratings:
+#     mean_rat_across_subs = np.nanmean(ec.SBA_ratings["SBA"][["Mov", "NoMov"][idx]], axis=0)
+#     print(f"\nRating in {['Mov', 'NoMov'][idx]}-Condition:\n"
+#           f"Mean:\t\t {np.nanmean(mean_rat_across_subs):.2f}\n"
+#           f"STD:\t\t {np.nanstd(mean_rat_across_subs):.2f}\n"
+#           f"MIN-MAX:\t {np.nanmin(mean_rat_across_subs):.2f} – {np.nanmax(mean_rat_across_subs):.2f}")
+#
+#     plt.figure()
+#     for rat in ec.SBA_ratings["SBA"][["Mov", "NoMov"][idx]]:
+#         plt.plot(rat)
+#     plt.plot(mean_rat_across_subs, color="black", lw=2)
+#     plt.title(f"Rating in {['Mov', 'NoMov'][idx]}")
+#
+#     # Center around subject-average-rating
+#     plt.figure()
+#     sba_rating = ec.SBA_ratings["SBA"][["Mov", "NoMov"][idx]].copy()
+#     sba_rating[sba_rating > 0] = 0
+#
+#     for ridx, rat in enumerate(ec.SBA_ratings["SBA"][["Mov", "NoMov"][idx]]):
+#         plt.plot(rat - np.nanmean(rat))
+#         sba_rating[ridx] = rat - np.nanmean(rat)
+#     plt.plot(mean_rat_across_subs - np.nanmean(mean_rat_across_subs), color="darkgrey", lw=2)
+#     plt.plot(np.nanmean(sba_rating, axis=0), color="black", lw=2)
+#     plt.title(f"Zero-centred per subject Rating in {['Mov', 'NoMov'][idx]}")
+#
+#     plt.figure()
+#     for rat in ec.SBA_ratings["zSBA"][["Mov", "NoMov"][idx]]:
+#         plt.plot(rat-np.nanmean(rat))
+#     plt.plot(np.nanmean(ec.SBA_ratings["zSBA"][["Mov", "NoMov"][idx]], axis=0), color="black", lw=2)
+#     plt.title(f"zscored Rating in {['Mov', 'NoMov'][idx]}")
+#
+#     # # Plots of z-scored ratings:
+#     # ec.plot_sba_ratings(condition=["Mov", "NoMov"][idx], save_plot=True, class_bins=False)
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<  END
