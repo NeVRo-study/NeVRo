@@ -1588,52 +1588,93 @@ class NeVRoPlot:
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
-# dropouts = [1, 12, 32, 33, 35, 38, 41, 45]  # recording time
+if __name__ == "__main__":
 
-# Dropouts recording time + ICA prep + SSD selected (< 4)
-mov_dropouts = [1, 3, 5, 7, 9, 10, 11, 12, 13, 15, 16, 17, 19, 20, 23, 24, 26, 27, 30,
-                32, 33, 38, 40, 41, 43, 45]  # mov
-nomov_dropouts = [1, 7, 9, 10, 12, 16, 19, 20, 23, 24, 27, 31, 32, 33, 38, 40, 41, 43, 45]  # nomov
+    # dropouts = [1, 12, 32, 33, 35, 38, 41, 45]  # recording time
 
-# for idx, drops in enumerate([mov_dropouts, nomov_dropouts]):
-#
-#     ec = NeVRoPlot(n_sub=45,
-#                    dropouts=drops,
-#                    subject_selection=[6, 11, 14, 17, 20, 27, 31, 34, 36],
-#                    smooth_w_size=21)
-#
-#     # # Some descriptive stats on non-z-scored ratings:
-#     mean_rat_across_subs = np.nanmean(ec.SBA_ratings["SBA"][["Mov", "NoMov"][idx]], axis=0)
-#     print(f"\nRating in {['Mov', 'NoMov'][idx]}-Condition:\n"
-#           f"Mean:\t\t {np.nanmean(mean_rat_across_subs):.2f}\n"
-#           f"STD:\t\t {np.nanstd(mean_rat_across_subs):.2f}\n"
-#           f"MIN-MAX:\t {np.nanmin(mean_rat_across_subs):.2f} – {np.nanmax(mean_rat_across_subs):.2f}")
-#
-#     plt.figure()
-#     for rat in ec.SBA_ratings["SBA"][["Mov", "NoMov"][idx]]:
-#         plt.plot(rat)
-#     plt.plot(mean_rat_across_subs, color="black", lw=2)
-#     plt.title(f"Rating in {['Mov', 'NoMov'][idx]}")
-#
-#     # Center around subject-average-rating
-#     plt.figure()
-#     sba_rating = ec.SBA_ratings["SBA"][["Mov", "NoMov"][idx]].copy()
-#     sba_rating[sba_rating > 0] = 0
-#
-#     for ridx, rat in enumerate(ec.SBA_ratings["SBA"][["Mov", "NoMov"][idx]]):
-#         plt.plot(rat - np.nanmean(rat))
-#         sba_rating[ridx] = rat - np.nanmean(rat)
-#     plt.plot(mean_rat_across_subs - np.nanmean(mean_rat_across_subs), color="darkgrey", lw=2)
-#     plt.plot(np.nanmean(sba_rating, axis=0), color="black", lw=2)
-#     plt.title(f"Zero-centred per subject Rating in {['Mov', 'NoMov'][idx]}")
-#
-#     plt.figure()
-#     for rat in ec.SBA_ratings["zSBA"][["Mov", "NoMov"][idx]]:
-#         plt.plot(rat-np.nanmean(rat))
-#     plt.plot(np.nanmean(ec.SBA_ratings["zSBA"][["Mov", "NoMov"][idx]], axis=0), color="black", lw=2)
-#     plt.title(f"zscored Rating in {['Mov', 'NoMov'][idx]}")
-#
-#     # # Plots of z-scored ratings:
-#     # ec.plot_sba_ratings(condition=["Mov", "NoMov"][idx], save_plot=True, class_bins=False)
+    # Dropouts recording time + ICA prep + SSD selected (< 4)
+    mov_dropouts = [1, 3, 5, 7, 9, 10, 11, 12, 13, 15, 16, 17, 19, 20, 23, 24, 26, 27, 30,
+                    32, 33, 38, 40, 41, 43, 45]  # mov
+    nomov_dropouts = [1, 7, 9, 10, 12, 16, 19, 20, 23, 24, 27, 31, 32, 33, 38, 40, 41, 43, 45]  # nomov
+
+    for idx, drops in enumerate([mov_dropouts, nomov_dropouts]):
+
+        ec = NeVRoPlot(n_sub=45,
+                       dropouts=drops,
+                       subject_selection=[6, 11, 14, 17, 20, 27, 31, 34, 36],
+                       smooth_w_size=21)
+
+        # # Some descriptive stats on non-z-scored ratings:
+        if idx == 0:
+            mean_rat_across_subs_mov = np.nanmean(ec.SBA_ratings["SBA"][["Mov", "NoMov"][idx]], axis=0)
+        else:
+            mean_rat_across_subs_nomov = np.nanmean(ec.SBA_ratings["SBA"][["Mov", "NoMov"][idx]], axis=0)
+
+        mean_rat_across_subs = np.nanmean(ec.SBA_ratings["SBA"][["Mov", "NoMov"][idx]], axis=0)
+        print(f"\nRating in {['Mov', 'NoMov'][idx]}-Condition:\n"
+              f"Mean:\t\t {np.nanmean(mean_rat_across_subs):.2f}\n"
+              f"STD:\t\t {np.nanstd(mean_rat_across_subs):.2f}\n"
+              f"MIN-MAX:\t {np.nanmin(mean_rat_across_subs):.2f} – {np.nanmax(mean_rat_across_subs):.2f}")
+
+
+        # # Plot different types of rating normalization
+        # plt.figure()
+        # for rat in ec.SBA_ratings["SBA"][["Mov", "NoMov"][idx]]:
+        #     plt.plot(rat)
+        # plt.plot(mean_rat_across_subs, color="black", lw=2)
+        # plt.title(f"Rating in {['Mov', 'NoMov'][idx]}")
+        #
+        # # Center around subject-average-rating
+        # plt.figure()
+        # sba_rating = ec.SBA_ratings["SBA"][["Mov", "NoMov"][idx]].copy()
+        # sba_rating[sba_rating > 0] = 0
+        #
+        # for ridx, rat in enumerate(ec.SBA_ratings["SBA"][["Mov", "NoMov"][idx]]):
+        #     plt.plot(rat - np.nanmean(rat))
+        #     sba_rating[ridx] = rat - np.nanmean(rat)
+        # plt.plot(mean_rat_across_subs - np.nanmean(mean_rat_across_subs), color="darkgrey", lw=2)
+        # plt.plot(np.nanmean(sba_rating, axis=0), color="black", lw=2)
+        # plt.title(f"Zero-centred per subject Rating in {['Mov', 'NoMov'][idx]}")
+        #
+        # plt.figure()
+        # for rat in ec.SBA_ratings["zSBA"][["Mov", "NoMov"][idx]]:
+        #     plt.plot(rat-np.nanmean(rat))
+        # plt.plot(np.nanmean(ec.SBA_ratings["zSBA"][["Mov", "NoMov"][idx]], axis=0), color="black", lw=2)
+        # plt.title(f"zscored Rating in {['Mov', 'NoMov'][idx]}")
+
+        # # Plots of z-scored ratings:
+        # ec.plot_sba_ratings(condition=["Mov", "NoMov"][idx], save_plot=True, class_bins=False)
+
+    # # Explore difference of ratings between conditions
+    from scipy.stats import ttest_rel
+    pt = ttest_rel(a=mean_rat_across_subs_mov, b=mean_rat_across_subs_nomov, nan_policy="omit")
+    dgf = (len(mean_rat_across_subs_mov) + len(mean_rat_across_subs_nomov))/2 - 1  # degress of freedom
+    # # for all subjects (consider different dropouts per conditions)
+    # pt2 = ttest_rel(a=ec.SBA_ratings["SBA"]["Mov"], b=ec.SBA_ratings["SBA"]["NoMov"],
+    #                 axis=1, nan_policy="omit")
+
+    fig, (ax1, ax2) = plt.subplots(ncols=2, figsize=(12, 6))
+    fig.suptitle(f"Difference of mean-ratings (mov - nomov),  "
+                 f"t({int(dgf)})={pt.statistic:.3f}, p={pt.pvalue:.2e}")
+
+    # Difference at each time point
+    ax1.plot(mean_rat_across_subs_mov - mean_rat_across_subs_nomov, lw=2, color="red",
+             label="mean rating (mov-nomov)")
+    ax1.hlines(y=0, xmin=0, xmax=len(mean_rat_across_subs_mov), alpha =.5, linestyles="-.")
+    ax1.legend()
+    [ax1.spines[corner].set_visible(False) for corner in ax1.spines.keys()]
+
+    # Histograms
+    ax2.hist(mean_rat_across_subs_mov, bins=100, color="orange")  # , label="mov")
+    ax2.hist(mean_rat_across_subs_nomov, bins=100, color="lightblue", alpha=.8)  # , label="nomov")
+    ax2.vlines(x=np.nanmean(mean_rat_across_subs_mov), ymin=0, ymax=16, color="darkorange", lw=2,
+               linestyles="--", label="mean(mov)")
+    ax2.vlines(x=np.nanmean(mean_rat_across_subs_nomov), ymin=0, ymax=16, color="cornflowerblue", lw=2,
+               linestyles="--", label="mean(nomov)")
+    ax2.legend()
+    # ax2.axis('off')
+    ax2.tick_params(top='off', bottom='off', left='off', right='off', labelleft='off', labelbottom='on')
+    [ax2.spines[corner].set_visible(False) for corner in ax2.spines.keys()]  # plt.box(on=False)
+    fig.tight_layout()
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<  END
