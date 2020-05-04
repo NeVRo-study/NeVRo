@@ -894,6 +894,8 @@ class NeVRoPlot:
         plt.xlabel("Time (seconds)")
         plt.ylabel("Emotional arousal rating (z-scored)")
 
+        fig_rat.axes[0].set_xticks(np.arange(0, 270 + 1, 30))
+
         fig_rat.tight_layout(pad=0.6)
 
         if save_plot:
@@ -1615,7 +1617,6 @@ if __name__ == "__main__":
               f"Mean:\t\t {np.nanmean(mean_rat_across_subs):.2f}\n"
               f"STD:\t\t {np.nanstd(mean_rat_across_subs):.2f}\n"
               f"MIN-MAX:\t {np.nanmin(mean_rat_across_subs):.2f} – {np.nanmax(mean_rat_across_subs):.2f}")
-
 
         # # Plot different types of rating normalization
         # plt.figure()
