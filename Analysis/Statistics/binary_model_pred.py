@@ -33,7 +33,7 @@ p2_predplots = f"../../../Results/Plots/ConfusionMatrix/"
 # %% ><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<
 # Define plotting function
 
-def plot_cm(cm, model_name, condi, title, path2save=None):
+def plot_cm(cm, model_name, condi, title, path2save=None, fm="png"):
     """Create plot of confusion matrix and save if path is given."""
     # Prepare matrix
     df_confmat = pd.DataFrame(data=cm, columns=classes, index=classes)
@@ -52,7 +52,7 @@ def plot_cm(cm, model_name, condi, title, path2save=None):
     ax.set_title(f"{title} Confusion Matrix of {model_name} in {condi}-condition")
 
     if path2save:
-        fig.savefig(path2save + f"{title}_{model_name}_ConfusionMatrix_{condi}.png")
+        fig.savefig(path2save + f"{title}_{model_name}_ConfusionMatrix_{condi}.{fm}")
         plt.close()
 
 
@@ -120,7 +120,7 @@ if __name__ == "__main__":
             # # Plot mean confusion matrix per model per condition
             mean_model_confmats = np.mean(model_confmats, axis=0)
             plot_cm(cm=mean_model_confmats, model_name=model, condi=cond, title="Average",
-                    path2save=p2_predplots)
+                    path2save=p2_predplots, fm="pdf")
 
     end()
 
