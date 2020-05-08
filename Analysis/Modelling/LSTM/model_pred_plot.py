@@ -9,7 +9,7 @@ from load_data import *
 # from tensorflow import gfile
 import matplotlib
 import matplotlib.pyplot as plt
-
+from scipy.signal import savgol_filter
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
@@ -28,6 +28,7 @@ for cond in ["nomov", "mov"]:  # Conditions
 
     # Subjects
     subjects = [int(sub.lstrip("NVR_S")) for sub in result_tab.index.to_list()]
+    # subjects = [25]
 
     for subject in subjects:
 
@@ -108,15 +109,22 @@ for cond in ["nomov", "mov"]:  # Conditions
 
             # Get concatenated validation predictions for given subject and model
             model_prediction = pd.read_csv(
-                wdic_val_pred + f"predictionTableProbabilities{model}_{cond}.csv",
+                wdic_val_pred + f"predictionTable{'' if model=='SPoC' else 'Probabilities'}{model}_"
+                                f"{cond}.csv",
                 header=None, index_col=0).loc[f"NVR_{s(subject)}"].to_numpy()
 
             # Normalize for plotting
             if model == "SPoC":
-                model_prediction = z_score(model_prediction)  # before only >= 0, now zero-centred
-            model_prediction /= np.nanmax(np.abs(model_prediction))  # keep in range [-1,1]
+                # z_est only >= 0, now zero-centred (adapt to visually compare to fluctuation in rating
+                model_prediction = z_score(-np.sqrt(model_prediction))  # alternatively to sqrt: np.log()
+                model_prediction = savgol_filter(model_prediction, window_length=7, polyorder=3)  # smooth
+                real_rating = z_score(array=load_rating_files(  # to have same normalization
+                    subjects=subject,
+                    condition=cond,
+                    sba="SBA",
+                    bins=False)[str(subject)]["SBA"][cond])
 
-        # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >
+                # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >
 
             # # # Plotting
             if midx == 0:
@@ -125,8 +133,9 @@ for cond in ["nomov", "mov"]:  # Conditions
 
             ax = fig.add_subplot(3, 1, midx+1)
 
-            # Plot val predictions
             lw = 0.5  # line-width
+
+            # Plot val predictions
             plt.plot(model_prediction, marker="o", markerfacecolor="None", ms=2, c="aquamarine",
                      linewidth=2 * lw, label="concatenated val-prediction")
 
@@ -136,6 +145,7 @@ for cond in ["nomov", "mov"]:  # Conditions
             plt.hlines(y=0, xmin=0, xmax=pred_matrix.shape[1], colors="darkgrey", lw=lw, alpha=.8)
 
             if model != "SPoC":
+
                 plt.plot(only_entries_rating, color="teal", alpha=.3, label="ground-truth rating")
                 plt.plot(whole_rating_shift, ls="None", marker="s", markerfacecolor="None", ms=3,
                          color="black", label="arousal classes: low=-1 | high=1")
@@ -174,21 +184,15 @@ for cond in ["nomov", "mov"]:  # Conditions
                         plt.plot(i, np.sign(wr) * (np.abs(wr) + .01) if correct_class[i] == 1 else wr,
                                  marker="o", color=corr_col, alpha=.5, ms=2)
 
+                # Adapt y-axis ticks
+                ax.set_yticks([-1, 0, 1])
+                ax.set_yticklabels(["low", "0", "high"])
+                plt.ylim(-1.2, 1.6 if midx == 0 else 1.2)
+
             else:
-                pass
-                # plt.fill_between(x=np.arange(0, model_prediction.shape[0], 1),
-                #                  y1=model_prediction,
-                #                  y2=real_rating,
-                #                  # where=correct_class == -1,
-                #                  color="gray",
-                #                  alpha='0.2')
-
-            # Adapt y-axis ticks
-            ax.set_yticks([-1, 0, 1])
-            ax.set_yticklabels([-1, 0, 1])
-
-            # Set x-label
-            if midx == len(models)-1:
+                # Adapt y-axis ticks
+                ax.set_yticks([0])
+                # Set x-label
                 plt.xlabel("time(s)")
 
             # Set title
@@ -197,11 +201,11 @@ for cond in ["nomov", "mov"]:  # Conditions
                                 f"mean {task}-accuracy={mean_acc:.3f}")
             else:  # for SPoC:
                 r = float(result_tab.loc[f"NVR_{s(subject)}"][model.upper()+"_CORR"])
-                plt.title(label=f"{model} | {'W*X'} | max-correlation | r={r:.3f}")
+                plt.title(label=f"{model} | " + r'$-\sqrt{z_{est}}$' + f" | max-correlation | r={r:.3f}")
 
             # adjust size, add legend
             plt.xlim(0, len(whole_rating))
-            plt.ylim(-1.2, 1.6 if midx == 0 else 1.2)
+            # plt.ylim(-1.2, 1.6 if midx == 0 else 1.2)
             if midx == 0:
                 plt.legend(bbox_to_anchor=(0., 0.90, 1., .102), loc=1, ncol=4, mode="expand",
                            borderaxespad=0.)
@@ -214,7 +218,10 @@ for cond in ["nomov", "mov"]:  # Conditions
         # Plot
         if save_plots:
             plot_filename = f"Prediction across models |_{s(subject)}_|_{cond}.png"
-            fig.savefig(wdic_results + f"Plots/Across_Models/{cond}/" + plot_filename)
+            save_folder = wdic_results + f"Plots/Across_Models/{cond}/"
+            if not os.path.exists(save_folder):
+                os.makedirs(save_folder)
+            fig.savefig(save_folder + plot_filename)
             plt.close()
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<  END
