@@ -2,11 +2,11 @@
 /Data
 /Results
 /Publication
-/Presentation
+/Presentations
 /Literature
 /Experimental_Setup
 
-# Subfolders to be ignored 
+# Subfolders to be ignored
 /Analysis/Modelling/LSTM/bashfiles
 /Analysis/Modelling/LSTM/processed
 /Analysis/Modelling/LSTM/TEMP

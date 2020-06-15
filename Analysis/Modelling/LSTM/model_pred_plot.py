@@ -200,8 +200,8 @@ if __name__ == "__main__":
                              np.nanmax(whole_rating_shift) + (.4 if midx == 0 else .1))
 
                     # Set title
-                    plt.title(label=f"{model} | " + r"$accuracy_{mean}=$" + f"{mean_acc:.3f}".lstrip("0"),
-                              fontdict={"fontsize": fs + 2})
+                    plt.title(label=f"{model} | " + r"$accuracy=$" + f"{mean_acc:.3f}".lstrip("0"),
+                              fontdict={"fontsize": fs + 2})  # r"$accuracy_{mean}=$"
                     # | concatenated predictions on validation sets |
 
                 else:  # for SPoC:
