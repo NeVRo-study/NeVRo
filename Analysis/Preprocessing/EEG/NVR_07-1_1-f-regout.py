@@ -10,7 +10,7 @@ Selection of SSD components
 Author: Simon M. Hofmann | <[surname].[lastname][at]pm.me> | 2019
 """
 
-from meta_functions import *
+from utils import *
 from load_data import get_filename
 import pandas as pd
 from scipy.signal import welch

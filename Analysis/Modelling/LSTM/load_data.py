@@ -30,7 +30,7 @@ Author: Simon Hofmann | <[surname].[lastname][at]pm.me> | 2017, 2019 (Update)
 # import sys
 # sys.path.insert(0, './LSTM Model')  # or set the folder as source root
 import copy
-from meta_functions import *
+from utils import *
 import pandas as pd
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>

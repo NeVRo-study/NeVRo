@@ -8,7 +8,7 @@ Author: Simon Hofmann | <[surname].[lastname][at]pm.me> | 2017, 2019-2020 (Updat
 
 import copy
 import ast
-from meta_functions import *
+from utils import *
 
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 

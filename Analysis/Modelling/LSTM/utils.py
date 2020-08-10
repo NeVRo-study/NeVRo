@@ -2,7 +2,7 @@
 """
 Some meta functions
 
-Author: Simon Hofmann | <[surname].[lastname][at]pm.me> | 2017, 2019 (Update)
+Author: Simon Hofmann | <[surname].[lastname][at]pm.me> | 2017, 2019-2020 (Update)
 """
 
 import datetime

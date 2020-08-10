@@ -22,7 +22,7 @@ save_plot_individual_cm = True
 verbose = False
 
 # # Fixed vars
-classes = ["low arousal", "high arousal"]
+classes = ["low", "high"]
 models = ["LSTM", "CSP"]
 conditions = ["nomov", "mov"]
 # Set Paths
@@ -33,25 +33,26 @@ p2_predplots = f"../../../Results/Plots/ConfusionMatrix/"
 # %% ><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<
 # Define plotting function
 
-def plot_cm(cm, model_name, condi, title, path2save=None):
+def plot_cm(cm, model_name, condi, title, path2save=None, fm="png"):
     """Create plot of confusion matrix and save if path is given."""
     # Prepare matrix
     df_confmat = pd.DataFrame(data=cm, columns=classes, index=classes)
-    df_confmat.index.name = 'True'
-    df_confmat.columns.name = f'Predicted'
+    df_confmat.index.name = 'Subjective arousal rating'
+    df_confmat.columns.name = f'Predicted arousal rating'
 
     # Plot
     fig = plt.figure(figsize=(10, 7))
-    sns.set(font_scale=1.4)  # for label size
+    sns.set(font_scale=1.7)  # for label size
     ax = sns.heatmap(df_confmat,
                      cmap="RdBu_r",  # or: "Blues"
                      annot=True,
                      vmin=.1, vmax=.9,  # equal col-bar for each plot
-                     annot_kws={"size": 16})  # "ha": 'center', "va": 'center'})
+                     annot_kws={"size": 24})  # "ha": 'center', "va": 'center'})
     # ax.set_ylim([0, 2])  # switch on if labelling is off, OR downgrade matplotlib==3.1.0
     ax.set_title(f"{title} Confusion Matrix of {model_name} in {condi}-condition")
+
     if path2save:
-        fig.savefig(path2save + f"{title}_{model_name}_ConfusionMatrix_{condi}.png")
+        fig.savefig(path2save + f"{title}_{model_name}_ConfusionMatrix_{condi}.{fm}")
         plt.close()
 
 
@@ -71,7 +72,7 @@ if __name__ == "__main__":
         for model in models:
 
             wdic_val_pred = wdic_results + f"Tables/{model}/{cond}/"  # set path
-            model_confmats = np.zeros(4 * len(subjects)).reshape((-1, 2, 2))  # init list of all confusion mats
+            model_confmats = np.zeros(4 * len(subjects)).reshape((-1, 2, 2))  # init list of all conf.mats
 
             for sidx, subject in enumerate(subjects):
 
@@ -119,7 +120,7 @@ if __name__ == "__main__":
             # # Plot mean confusion matrix per model per condition
             mean_model_confmats = np.mean(model_confmats, axis=0)
             plot_cm(cm=mean_model_confmats, model_name=model, condi=cond, title="Average",
-                    path2save=p2_predplots)
+                    path2save=p2_predplots, fm="pdf")
 
     end()
 
