@@ -14,6 +14,10 @@ knitr::opts_chunk$set(
 library(tidyverse)
 library(here)
 library(rstatix)
+library(ggpubr)
+library(grDevices)
+library(ggsci) # sci color palettes
+library("RColorBrewer")
 
 # disable scientific notation:
 options(scipen=999)
@@ -37,11 +41,11 @@ for (cond in conds) {
   data_ls[[cond]] <- read_csv(fpath)
 }
 
-data_df <- bind_rows(data_ls, .id = 'condition')
+data_df <- bind_rows(data_ls, .id = 'Condition')
 
 # select data of binary approaches only and put into long format:
 data_bin <- data_df %>% 
-  dplyr::rename("Condition" = "condition") %>% 
+  dplyr::rename("Condition" = "Condition") %>% 
   select(Condition, Subject, LSTM, CSP) %>% 
   gather('LSTM', 'CSP', key = Model, value = Accuracy)
 
@@ -163,6 +167,7 @@ pred_success %>%
             Ncorr_median = median(Ncorrect), 
             Ntot_median = median(Ntot),
             mean_accuracy = mean(accuracy),
+            sd_accuracy = sd(accuracy),
             se_accuracy = sd(accuracy)/sqrt(n),
             min_accuracy = min(accuracy), 
             max_accuracy = max(accuracy),
@@ -196,8 +201,10 @@ To further compare, we can now put the accuracies into an ANOVA:
 pred_success_completecases <- pred_success %>% 
   group_by(Subject) %>% 
   mutate(n = n()) %>% 
-  filter(n == 4)  #only use full cases (data for both conditions)
-  
+  filter(n == 4) %>%   #only use full cases (data for both conditions) 
+  mutate(Model = as_factor(Model), 
+         Condition = as_factor(Condition))
+
 aov.acc <- aov(accuracy ~ Model * Condition + Error(Subject/(Model * Condition)),
                data = pred_success_completecases)
 
@@ -271,6 +278,9 @@ ggplot(pred_success, aes(accuracy, linetype = Condition)) +
   theme_bw() + facet_wrap(~Model, scales = 'free')
 
 
+ggplot(data_df, aes(SPOC_LAMBDA, linetype = condition)) + 
+  geom_freqpoly(binwidth = 0.3)
+
 pred_success %>% 
   rownames_to_column() %>% 
   arrange(Model, Condition, accuracy) %>%
@@ -297,22 +307,423 @@ pred_success %>%
 
 Plot accuracies of the two binary approaches against each other (per movement condition):
 ```{r}
-pred_success %>%
+
+## Create corr plot across conditions and methods:
+
+data_df <- data_df %>% 
+  mutate(Condition = condition) 
+
+p1 <- pred_success %>%
   mutate(Condition = recode(Condition, mov = 'Movement', nomov = 'No Movement'))  %>% 
   select(Condition, Subject, Model, accuracy) %>% 
-  spread(Model, accuracy, ) %>% 
+  spread(Model, accuracy) %>% 
+  left_join(data_df[, c("Condition", "Subject", "SPOC_LAMBDA")], by = c("Condition", "Subject"))  %>% 
   ggplot(aes(x = CSP, y = LSTM)) + 
   facet_wrap(~Condition, scales = 'free') +
-  geom_point(size = 3, color = 'darkblue', shape = 3) +
-  stat_smooth(method = 'lm', size = 0.2, alpha = 0.1, xmax = 0) +
+  geom_point(size = 1, color = 'darkblue') +
+  stat_smooth(aes(y = LSTM), method = 'lm', size = 0.2, alpha = 0.1, xmax = 0, color = 'darkblue') +
+  #stat_smooth(aes(y = SPOC_LAMBDA * -1), method = 'lm', size = 0.2, alpha = 0.1, xmax = 0, color = 'green') +
   theme_bw() + 
+  theme(axis.title.x = element_blank()) +
   scale_color_brewer(palette="Paired") +
   scale_shape_manual(values=c(13, 16, 17)) + 
   xlab('accuracy CSP') + 
   ylab('accuracy LSTM') + 
-  ylim(c(0.449, 0.77)) + 
+  #ylim(c(0.449, 0.77)) + 
   xlim(c(0.449, 0.77)) 
+
+p2 <- pred_success %>%
+  #mutate(Condition = recode(Condition, mov = 'Movement', nomov = 'No Movement'))  %>% 
+  select(Condition, Subject, Model, accuracy) %>% 
+  spread(Model, accuracy) %>% 
+  left_join(data_df[, c("Condition", "Subject", "SPOC_LAMBDA")], by = c("Condition", "Subject"))  %>% 
+  ggplot(aes(x = CSP, y = SPOC_LAMBDA)) + 
+  facet_wrap(~Condition, scales = 'free', labeller = ) +
+  geom_point(size = 1, color = 'darkgreen') +
+  stat_smooth(method = 'lm', size = 0.2, alpha = 0.1, xmax = 0, color = 'darkgreen') + 
+  theme_bw() + theme(strip.text.x = element_blank()) + 
+  scale_color_brewer(palette="Paired") +
+  scale_shape_manual(values=c(13, 16, 17)) + 
+  xlab('accuracy CSP') + 
+  ylab('lambda SPoC') + 
+  ylim(c(-1.7, 0.3)) + 
+  xlim(c(0.449, 0.77)) 
+
+p3 <- pred_success %>%
+  #mutate(Condition = recode(Condition, mov = 'Movement', nomov = 'No Movement'))  %>% 
+  select(Condition, Subject, Model, accuracy) %>% 
+  spread(Model, accuracy) %>% 
+  left_join(data_df[, c("Condition", "Subject", "SPOC_LAMBDA")], by = c("Condition", "Subject"))  %>% 
+  ggplot(aes(x = LSTM, y = SPOC_LAMBDA)) + 
+  facet_wrap(~Condition, scales = 'free', labeller = ) +
+  geom_point(size = 1, color = 'darkred') +
+  stat_smooth(method = 'lm', size = 0.2, alpha = 0.1, xmax = 0, color = 'darkred') + 
+  theme_bw() + theme(strip.text.x = element_blank()) + 
+  scale_color_brewer(palette="Paired") +
+  scale_shape_manual(values=c(13, 16, 17)) + 
+  xlab('accuracy LSTM') + 
+  ylab('lambda SPoC') + 
+  ylim(c(-1.7, 0.3)) + 
+  xlim(c(0.449, 0.77)) 
+
+
+
+ggarrange(p1,p2,p3, 
+          #labels = c("A", "B"),
+          ncol = 1, nrow = 3)
+
+
 ```
+
+```{r}
+## Create corr plot across conditions and methods:
+## (fancy version): 
+
+
+data_acc <- pred_success %>%
+  select(Condition, Subject, Model, accuracy) %>% 
+  spread(Model, accuracy) %>% 
+  left_join(data_df[, c("Condition", "Subject", "SPOC_LAMBDA", "SPOC_CORR")], by = c("Condition", "Subject")) %>% 
+  mutate(SPoC = SPOC_CORR)
+
+models_l <- c('SPoC', 'CSP', 'LSTM')
+lims_l <- list(SPoC = c(-0.7, 0.25), 
+               # Use c(-0.7, 0.25) for SPOC_CORR and c(-1.7, 0.25) for SPOC_LAMBDA 
+               CSP = c(0.44, 0.8), 
+               LSTM = c(0.44, 0.8))
+cols_l <- list()
+for (i in 1:3) {
+  cols_l[[i]] <- list()
+  for (j in 1:3) {
+    cols_l[[i]][[j]] <- "black"
+  }
+}
+
+
+# Color coding :
+cols_paired <- brewer.pal(12, "Paired")
+
+cols_cond <- list(mov = cols_paired[[1]], 
+                  nomov = cols_paired[[11]])
+
+cols_l[[1]][[2]] <- cols_paired[[4]]
+cols_l[[1]][[3]] <- cols_paired[[6]]
+cols_l[[2]][[3]] <- cols_paired[[8]]
+
+
+pplots <- list()
+pplots[[1]] = list()
+pplots[[2]] = list()
+pplots[[3]] = list()
+
+for (i in 1:3) {
+  for (j in 1:3 ) {
+    
+      color_ <- cols_l[[min(i,j)]][[max(i,j)]]
+      ylims_ <- lims_l[[models_l[i]]]
+      xlims_ <- lims_l[[models_l[j]]]
+      range_x <- xlims_[2] - xlims_[1]
+      range_y <- ylims_[2] - ylims_[1]
+      relation_xy <- range_x / range_y
+    
+    if (i == 3) {
+          x_lab <- element_text(size = rel(1.5), angle = 0)
+          x_ticks <- element_text()
+        } else {
+          x_lab <- element_blank()
+          x_ticks <- element_blank()
+        }
+        if (j == 1) {
+          y_lab <- element_text(size = rel(1.5), angle = 90)
+          y_ticks <- element_text()
+        } else {
+          y_lab <- element_blank()
+          y_ticks <- element_blank()
+        }
+    
+    if (! (i == j)) {
+      cat("Doing ", models_l[j], " ~ ", models_l[i], "\n")
+      cond_ <- ifelse(i < j, 'nomov', 'mov')
+      #x_lab <- ifelse(i == 3, element_text(size = rel(1.5), angle = 90), xx)
+      #y_lab <- ifelse(i == 3, element_text(size = rel(1.5), angle = 90), element_blank())
+
+      
+      pplots[[i]][[j]] <- local({
+        i <- i
+        j <- j
+        
+        # Calculate correlation info:
+        cordat <- data_acc %>% 
+          filter(Condition == cond_)  
+        v1 <- as_vector(cordat[, models_l[i]])
+        v2 <- as_vector(cordat[, models_l[j]])
+        cor.res <- cor.test(v1, v2, method = 'pearson')
+        cor.res <- tidy(cor.res)
+        txt_estim <- paste0("italic(r)(",cor.res$parameter,") ==", round(cor.res$estimate, 2))
+        pval <- round(cor.res$p.value, 3)
+        pval_sign <- ifelse(pval == 0, '<', '==')
+        pval_formatted <- str_remove(ifelse(pval == 0, 0.001, pval), '0')
+        txt_pval <- sprintf('italic(p) %s "%s"', pval_sign, pval_formatted)
+        #txt_pval <- "paste(italic(R) ^ 2, \" = .75\")"
+                             
+        pp <- data_acc %>% 
+          filter(Condition == cond_) %>% 
+          ggplot(aes(x = get(models_l[j]), y = get(models_l[i]))) + 
+          #facet_wrap(~Condition, scales = 'free', labeller = ) +
+          
+          # Print colored boxes for condition axis labels: 
+          annotate(geom = "polygon", 
+                   x = c(min(xlims_) - 0.06 * (xlims_[2] - xlims_[1]), 
+                         max(xlims_) + 1, 
+                         max(xlims_) + 1, 
+                         min(xlims_) + 0.06 * (xlims_[2] - xlims_[1])), 
+                   y = c(min(ylims_)- 0.06 * abs(min(ylims_)), 
+                         min(ylims_)- 0.06 * abs(min(ylims_)), 
+                         min(ylims_)+ 0.06 * abs(min(ylims_)), 
+                         min(ylims_)+ 0.06 * abs(min(ylims_))), 
+                   fill = cols_cond[[cond_]], 
+                   alpha = 0.8) + 
+          annotate(geom = "polygon",
+                   x = c(min(xlims_) - 0.06 * (xlims_[2] - xlims_[1]), 
+                         min(xlims_) + 0.06 * (xlims_[2] - xlims_[1]), 
+                         min(xlims_) + 0.06 * (xlims_[2] - xlims_[1]), 
+                         min(xlims_) - 0.06 * (xlims_[2] - xlims_[1])), 
+                   y = c(min(ylims_)- 0.06 * abs(min(ylims_)), 
+                         min(ylims_)+ 0.06 * abs(min(ylims_)), 
+                         min(ylims_)+ 10 * abs(min(ylims_)),
+                         min(ylims_)+ 10 * abs(min(ylims_))), 
+                   fill = cols_cond[[cond_]], 
+                   alpha = 0.8) + 
+          
+          #Print cond axis labels:
+          annotate(geom = "text", 
+                   label = cond_,
+                   #fontface = 'italic',
+                   x = mean(xlims_),
+                   y = min(ylims_) + 0.02 * abs(min(ylims_)), 
+                   size = 3) +
+          annotate(geom = "text", 
+                   label = cond_,
+                   #fontface = 'italic',
+                   x = min(xlims_),
+                   y = mean(ylims_), 
+                   size = 3, 
+                   angle = 90) +        
+          
+          
+          annotate(geom = 'text', 
+                   label = c(txt_estim, txt_pval),
+                   parse = TRUE, 
+                   size = 2.5,
+                   x = min(xlims_) + (max(xlims_) - min(xlims_)) * 0.1,
+                   y = c(max(ylims_) - (max(ylims_) - min(ylims_)) * 0.05, 
+                         max(ylims_) - (max(ylims_) - min(ylims_)) * 0.1), 
+                   hjust = 'left') +
+          
+          geom_point(size = 1, color = color_) +
+          stat_smooth(method = 'lm', size = 0.2, alpha = 0.1, xmax = 0, color = color_) + 
+          
+          xlab(models_l[j]) +
+          ylab(models_l[i]) + 
+          theme_bw() + 
+          theme(strip.text.x = element_blank(), 
+                axis.title.x = x_lab, 
+                axis.title.y = y_lab, 
+                axis.text.x = x_ticks,
+                axis.text.y = y_ticks,
+                aspect.ratio = 1, 
+                plot.margin = unit(c(0.03, 0.3, 0.03, 0.3)*0.2, "cm")) +
+          coord_cartesian(xlim = lims_l[[models_l[j]]], 
+                          ylim = lims_l[[models_l[i]]])
+        
+          #ylab(models_l[i])
+          #xlab('accuracy CSP') + 
+          #ylab('lambda SPoC') #+ 
+          #ylim(ylims_) + 
+          #xlim(xlims_) 
+          #coord_cartesian(xlim = lims_l[[models_l[j]]], 
+          #        ylim = lims_l[[models_l[i]]])
+        
+        print(pp)
+      })
+    
+    } else {
+      pplots[[i]][[j]] <- local({
+        i <- i
+        j <- j
+        
+        
+        # Calculate correlation info:
+        cordat <- data_acc %>% 
+          pivot_wider(id_cols = Subject, names_from = Condition, values_from = models_l[i])  
+        v1 <- as_vector(cordat[, 'mov'])
+        v2 <- as_vector(cordat[, 'nomov'])
+        cor.res <- cor.test(v1, v2, method = 'pearson')
+        cor.res <- tidy(cor.res)
+        txt_estim <- paste0("italic(r)(",cor.res$parameter,") ==", round(cor.res$estimate, 2))
+        pval <- round(cor.res$p.value, 3)
+        pval_sign <- ifelse(pval == 0, '<', '==')
+        pval_formatted <- str_remove(ifelse(pval == 0, 0.001, pval), '0')
+        txt_pval <- sprintf('italic(p) %s "%s"', pval_sign, pval_formatted) 
+        
+        
+        pp <- data_acc %>% 
+          select(Subject, Condition, models_l[i]) %>% 
+          pivot_wider(id_cols = Subject, 
+                      names_from = Condition, 
+                      values_from = models_l[i]) %>%  
+          ggplot(aes(x = nomov, y = mov)) + 
+          
+          # Print colored boxes for condition axis labels: 
+          annotate(geom = "polygon", 
+                   x = c(min(xlims_) - 0.06 * (xlims_[2] - xlims_[1]), 
+                         max(xlims_) + 1, 
+                         max(xlims_) + 1, 
+                         min(xlims_) + 0.06 * (xlims_[2] - xlims_[1])), 
+                   y = c(min(ylims_)- 0.06 * abs(min(ylims_)), 
+                         min(ylims_)- 0.06 * abs(min(ylims_)), 
+                         min(ylims_)+ 0.06 * abs(min(ylims_)), 
+                         min(ylims_)+ 0.06 * abs(min(ylims_))), 
+                   fill = cols_cond[['nomov']], 
+                   alpha = 0.8) + 
+          annotate(geom = "polygon",
+                   x = c(min(xlims_) - 0.06 * (xlims_[2] - xlims_[1]), 
+                         min(xlims_) + 0.06 * (xlims_[2] - xlims_[1]), 
+                         min(xlims_) + 0.06 * (xlims_[2] - xlims_[1]), 
+                         min(xlims_) - 0.06 * (xlims_[2] - xlims_[1])), 
+                   y = c(min(ylims_)- 0.06 * abs(min(ylims_)), 
+                         min(ylims_)+ 0.06 * abs(min(ylims_)), 
+                         min(ylims_)+ 10 * abs(min(ylims_)),
+                         min(ylims_)+ 10 * abs(min(ylims_))), 
+                   fill = cols_cond[['mov']], 
+                   alpha = 0.8) + 
+          
+          # Print condition axis labels: 
+          annotate(geom = "text", 
+                   label = 'nomov',
+                   #fontface = 'italic',
+                   x = mean(xlims_),
+                   y = min(ylims_)+ 0.02 * abs(min(ylims_)), 
+                   size = 3) +
+          annotate(geom = "text", 
+                   label = 'mov',
+                   #fontface = 'italic',
+                   x = min(xlims_),
+                   y = mean(ylims_), 
+                   size = 3, 
+                   angle = 90) + 
+          
+          annotate(geom = 'text', 
+                   label = c(txt_estim, txt_pval),
+                   parse = TRUE, 
+                   size = 2.5,
+                   x = min(xlims_) + (max(xlims_) - min(xlims_)) * 0.1,
+                   y = c(max(ylims_) - (max(ylims_) - min(ylims_)) * 0.05, 
+                         max(ylims_) - (max(ylims_) - min(ylims_)) * 0.1), 
+                   hjust = 'left') + 
+          
+          geom_point(size = 1, color = 'black') +
+          stat_smooth(method = 'lm', size = 0.2, alpha = 0.1, color = 'black') + 
+          
+          theme_bw() + 
+          theme(strip.text.x = element_blank(), 
+                axis.title.x = x_lab, 
+                axis.title.y = y_lab, 
+                axis.text.x = x_ticks,
+                axis.text.y = y_ticks,
+                aspect.ratio = 1, 
+                plot.margin = unit(c(0.03, 0.3, 0.03, 0.3)*0.2, "cm")) +
+          scale_fill_jco() + 
+          #ylim(lims_l[[models_l[i]]]) + 
+          #xlim(lims_l[[models_l[j]]]) +
+          coord_cartesian(lims_l[[models_l[i]]], lims_l[[models_l[i]]]) + 
+          xlab(models_l[i]) +
+          ylab(models_l[j])
+          
+        
+        print(pp)
+          
+      })
+    }
+  }
+}
+
+
+fig <- ggarrange(
+          pplots[[1]][[1]],
+          pplots[[1]][[2]], 
+          pplots[[1]][[3]], 
+          pplots[[2]][[1]], 
+          pplots[[2]][[2]], 
+          pplots[[2]][[3]], 
+          pplots[[3]][[1]], 
+          pplots[[3]][[2]], 
+          pplots[[3]][[3]], 
+          ncol = 3, 
+          nrow = 3, 
+          label.x = c(0.5, 0.5, 0.5), 
+          hjust = 0.5, 
+          vjust = 10, 
+          align = 'hv')#, 
+          #heights = c(1,1,1.32), 
+          #widths =  c(1))
+          
+
+fig
+ggsave(file="C:/Users/Felix/Downloads/pp_cor.svg", plot=fig, width=8, height=8)
+
+
+# annotate_figure(fig,
+#                 top = text_grob("Visualizing len", color = "red", face = "bold", size = 14),
+#                 bottom = text_grob(c("hans", "SPoC CSP LSTM"), color = c("red", "blue"), hjust = c(-12, 0)),
+#                                     #face = "italic", size = 10),
+#                 left = text_grob("Tooth length", color = "green", rot = 90),
+#                 right = "I'm done, thanks :-)!",
+#                 fig.lab = "Figure 1", fig.lab.face = "bold"
+#)
+```
+
+```{r}
+pp <- pplots[[i]][[j]] + 
+  annotate(geom = "polygon", 
+                   x = c(min(xlims_) - 0.05 * (xlims_[2] - xlims_[1]), 
+                         max(xlims_) + 1, 
+                         max(xlims_) + 1, 
+                         min(xlims_) + 0.05 * (xlims_[2] - xlims_[1])), 
+                   y = c(min(ylims_)- 0.04 * abs(min(ylims_)), 
+                         min(ylims_)- 0.04 * abs(min(ylims_)), 
+                         min(ylims_)+ 0.04 * abs(min(ylims_)), 
+                         min(ylims_)+ 0.04 * abs(min(ylims_))), 
+           fill = 'red', 
+           alpha = 0.1) + 
+  annotate(geom = "polygon",
+           x = c(min(xlims_) - 0.05 * (xlims_[2] - xlims_[1]), 
+                 min(xlims_) + 0.05 * (xlims_[2] - xlims_[1]), 
+                 min(xlims_) + 0.05 * (xlims_[2] - xlims_[1]), 
+                 min(xlims_) - 0.05 * (xlims_[2] - xlims_[1])), 
+           y = c(min(ylims_)- 0.04 * abs(min(ylims_)), 
+                 min(ylims_)+ 0.04 * abs(min(ylims_)), 
+                 min(ylims_)+ 10 * abs(min(ylims_)),
+                 min(ylims_)+ 10 * abs(min(ylims_))), 
+           fill = 'blue', 
+           alpha = 0.1) + 
+          annotate(geom = "text", 
+                   label = 'mov',
+                   fontface = 'italic',
+                   x = min(xlims_),
+                   y = mean(ylims_), 
+                   size = 3, 
+                   angle = 90) + 
+  # ylim(lims_l[[models_l[i]]]) + 
+  # xlim(lims_l[[models_l[j]]]) 
+  coord_cartesian(xlim = lims_l[[models_l[j]]], 
+                  ylim = lims_l[[models_l[i]]])
+    
+pp
+```
+
+
+
 
 Plot the accuracies in the two movement conditions against each other (per model) to see whether there were subject specific trends:
 ```{r}

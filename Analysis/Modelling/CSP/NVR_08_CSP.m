@@ -175,7 +175,7 @@ for isub = (1:nsubs)
     CSP_results.results(isub).weights.CSP_A = CSP_A;
     CSP_results.results(isub).weights.CSP_W = CSP_W;
     CSP_results.results(isub).weights.SSD_A_sel = SSD_A_sel;
-    CSP_results.results(isub).weights.SSD_A_sel = SSD_W_sel;
+    CSP_results.results(isub).weights.SSD_W_sel = SSD_W_sel;
     CSP_results.chanlocs = EEG.chanlocs;
 
     save([path_out_summaries 'CSP_results.mat'], 'CSP_results');
