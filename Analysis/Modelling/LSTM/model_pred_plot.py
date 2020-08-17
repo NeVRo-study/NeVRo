@@ -138,10 +138,12 @@ if __name__ == "__main__":
                     fig = plt.figure(f"Predictions of all models | {s(subject)} | {cond} | 1Hz ",
                                      figsize=(10, 12))
 
-                ax = fig.add_subplot(3, 1, midx+1)
+                ax = fig.add_subplot(3, 1, -1*midx + 3)  # turn order to [SPoC, CSP, LSTM]
+                ax2 = ax.twinx()
 
                 # Ratings
-                plt.plot(real_rating, color="darkgrey", alpha=.5, lw=lw*2)
+                ax2.plot(real_rating, color="darkgrey", alpha=.5, lw=lw*2)
+                # plt.plot(real_rating, color="darkgrey", alpha=.5, lw=lw*2)
 
                 # midline and tertile borders
                 plt.hlines(y=0, xmin=0, xmax=pred_matrix.shape[1], colors="darkgrey", lw=lw, alpha=.8)
@@ -149,17 +151,17 @@ if __name__ == "__main__":
                 if model != "SPoC":
 
                     # Plot val predictions
-                    plt.plot(model_prediction, marker="o", markerfacecolor="None", ms=2, c="aquamarine",
-                             lw=2 * lw, label="concatenated val-prediction")
+                    ax.plot(model_prediction, marker="o", markerfacecolor="None", ms=2, c="aquamarine",
+                            lw=2 * lw, label="concatenated val-prediction")
 
-                    plt.plot(only_entries_rating, color="teal", alpha=.3, lw=lw * 2,
-                             label="ground-truth rating")
-                    plt.plot(whole_rating_shift, ls="None", marker="s", markerfacecolor="None", ms=3,
+                    ax2.plot(only_entries_rating, color="teal", alpha=.3, lw=lw * 2)
+                    #  , label="ground-truth rating")
+                    ax.plot(whole_rating_shift, ls="None", marker="s", markerfacecolor="None", ms=3,
                              color="black", label="arousal classes: low & high")
 
-                    plt.hlines(y=lower_tert_bound, xmin=0, xmax=pred_matrix.shape[1], linestyle="dashed",
+                    ax2.hlines(y=lower_tert_bound, xmin=0, xmax=pred_matrix.shape[1], linestyle="dashed",
                                colors="darkgrey", lw=lw, alpha=.8)
-                    plt.hlines(y=upper_tert_bound, xmin=0, xmax=pred_matrix.shape[1], linestyle="dashed",
+                    ax2.hlines(y=upper_tert_bound, xmin=0, xmax=pred_matrix.shape[1], linestyle="dashed",
                                colors="darkgrey", lw=lw, alpha=.8)
 
                     # Correct classified
@@ -187,7 +189,7 @@ if __name__ == "__main__":
                         #            lw=lw/1.5)
                         if not np.isnan(model_prediction[i]):
                             # set a point at the end of line
-                            plt.plot(i, wr, marker="o", color=corr_col, alpha=.5, ms=2)
+                            ax.plot(i, wr, marker="o", color=corr_col, alpha=.5, ms=2)
 
                     # Adapt y-axis ticks
                     ax.set_yticks([np.nanmin(whole_rating_shift),
@@ -196,39 +198,68 @@ if __name__ == "__main__":
                     ax.set_yticklabels(["low",
                                         "db",  # decision boundary
                                         "high"], fontdict={"fontsize": fs})
-                    plt.ylim(np.nanmin(whole_rating_shift) - .1,
-                             np.nanmax(whole_rating_shift) + (.4 if midx == 0 else .1))
+
+                    ax.set_ylabel("prediction", color="black",  # color="lime")
+                                  fontdict={"fontsize": fs + 2})
+
+                    ax.set_ylim(np.nanmin(whole_rating_shift) - .1,
+                                np.nanmax(whole_rating_shift) + (.4 if midx == 1 else .1))
+                    ax2.set_ylim(np.nanmin(whole_rating_shift) - .1,
+                                 np.nanmax(whole_rating_shift) + (.4 if midx == 1 else .1))
+
+                    # Set rating axes
+                    ax2.set_yticks([np.nanmin(real_rating), 0, np.nanmax(real_rating)])
+                    ax2.set_yticklabels([f"min",
+                                         "0",  # decision boundary
+                                         f"max"], fontdict={"fontsize": fs})
+                    ax2.tick_params(axis="y", labelcolor="darkgrey")
+                    ax2.set_ylabel("subjective rating", color="darkgrey", fontdict={"fontsize": fs + 2})
 
                     # Set title
-                    plt.title(label=f"{model} | " + r"$accuracy=$" + f"{mean_acc:.3f}".lstrip("0"),
+                    plt.title(label=f"{'CSP + LDA' if model == 'CSP' else model} ("
+                                    f"" + r"$accuracy=$" + f"{mean_acc:.3f})".lstrip("0"),
                               fontdict={"fontsize": fs + 2})  # r"$accuracy_{mean}=$"
                     # | concatenated predictions on validation sets |
+
+                    if midx == 0:  # == "LSTM" (here last)
+                        ax.set_xlabel("time (s)", fontdict={"fontsize": fs})
 
                 else:  # for SPoC:
 
                     plt.plot(model_prediction, marker="o", markerfacecolor="None", ms=2, c="aquamarine",
                              lw=2 * lw, label=r"$-\sqrt{z_{est}}$")
+                    # plt.plot(...)
 
                     # Adapt y-axis ticks
-                    ax.set_yticks([np.nanmedian(real_rating)])
-                    ax.set_yticklabels(["0"], fontdict={"fontsize": fs})
+                    ax.set_yticks([])
+                    # ax.set_yticks([0])
+                    # ax.set_yticklabels(["0"], fontdict={"fontsize": fs})
+
+                    ax2.set_yticks([0])
+                    ax2.set_yticklabels(["0"], fontdict={"fontsize": fs})
+                    ax2.tick_params(axis="y", labelcolor="darkgrey")
+                    ax2.set_ylabel("z-scored rating", color="darkgrey", fontdict={"fontsize": fs + 2})
+
                     # Set x-label
-                    plt.xlabel("time(s)", fontdict={"fontsize": fs})
+                    ax.set_ylabel("comodulation", color="black",  # color="lime")
+                                  fontdict={"fontsize": fs + 2})
 
                     # Set title
                     r = float(result_tab.loc[f"NVR_{s(subject)}"][model.upper()+"_CORR"])
                     neg = np.sign(r) == -1
-                    plt.title(label=f"{model} | " + r"$r_{max}=$" + f"{'-' if neg else ''}" +
-                                    f"{r:.3f}".lstrip(f"{'-' if neg else ''}0"),
+                    plt.title(label=f"{model} (" + r"$r_{max}=$" + f"{'-' if neg else ''}" +
+                                    f"{r:.3f})".lstrip(f"{'-' if neg else ''}0"),
                               fontdict={"fontsize": fs+2})
                     plt.legend(fontsize=fs - 1)
 
                 # adjust size, add legend
                 plt.xlim(0, len(whole_rating))
                 # plt.ylim(-1.2, 1.6 if midx == 0 else 1.2)
-                if midx == 0:
-                    plt.legend(bbox_to_anchor=(0., 0.90, 1., .102), loc=1, ncol=4, mode="expand",
-                               borderaxespad=0., fontsize=fs-1)
+
+                if midx == 1:
+                    ax.legend(bbox_to_anchor=(0., 0.90, 1., .102), loc=1, ncol=4, mode="expand",
+                              borderaxespad=0., fontsize=fs-1)
+
                 plt.tight_layout(pad=2)
 
             # # Show & save plot
