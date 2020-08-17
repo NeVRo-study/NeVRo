@@ -1,7 +1,20 @@
-# Topographies ------------------------------------------------------------
+---
+title: "create_topoplots"
+author: "Felix Klotzsche"
+date: "17 8 2020"
+output: html_document
+---
+Based on: 
+https://www.mattcraddock.com/blog/2017/02/25/erp-visualization-creating-topographical-scalp-maps-part-1/   
+# thanks to Sandra Naumann for introducing me to this ressource
 
-# Based on: https://www.mattcraddock.com/blog/2017/02/25/erp-visualization-creating-topographical-scalp-maps-part-1/   
-# thanks to Sandra Naumann
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r load libs, set up paths}
 
 # Get libs:
 library(tidyverse)
@@ -11,14 +24,17 @@ library(grid)
 library(gtable)
 library(here)
 
+# Load helpers:
 source(here('Analysis', 
             'Modelling', 
             'CSP', 
             'utils_R', 
             'plot_fig4.R'))
 
+
 norm_vec <- function(x) sqrt(sum(x^2))
 
+# set up plotting params:
 plt <- NULL
 plt$palette <- 'viridis'
 plt$palette_dir <- 1
@@ -26,18 +42,25 @@ plt$wid_heigth_ssd  <- c(20, 10)
 plt$wid_heigth_csp  <- c(10, 10)
 plt$wid_heigth_spoc <- c(20, 10)
 plt$size_topo <- 1.5
-  
+
 write_out <- NULL
 write_out$csp_avg  <- TRUE
 write_out$spoc_avg <- TRUE
 write_out$ssd_avg  <- TRUE
 
+# Set paths:
 path_data <- here('Results', 'Patterns')
 path_out <- here('Results', 'Plots', 'Patterns', plt$palette)
 if (!dir.exists(path_out)) {
   print(str_glue('Created folder:\n{path_out}\n'))
   dir.create(path_out)
 }
+
+
+```
+
+
+```{r, load data}
 
 data_conds <- NULL
 data_ID <- NULL
@@ -70,7 +93,24 @@ for (cond in c('mov', 'nomov')) {
 df_full <- bind_rows(data_conds)
   
 
+```
+
+
+
+## Create topoplots for Figure 4:
+
+We plot the ingredients (topoplots) for Figure 4 in the paper. 
+
+```{r, plot topos for CSP}
+
 fig4_csp <- plot_fig4_csp(df_full, plt, path_out)
+plot(fig4_csp)
+
+```
+
+
+
+```{r}
 
 
 ## Plot SPoC:
@@ -289,3 +329,5 @@ aa
 # 
 # # Plot topoplots for neutral
 # Topo_Emo_Neu = subset(Topo_Emo, Condition == 1)
+
+```
