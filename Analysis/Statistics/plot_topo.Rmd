@@ -1,7 +1,20 @@
-# Topographies ------------------------------------------------------------
+---
+title: "create_topoplots"
+author: "Felix Klotzsche"
+date: "17 8 2020"
+output: html_document
+---
+Based on: 
+https://www.mattcraddock.com/blog/2017/02/25/erp-visualization-creating-topographical-scalp-maps-part-1/   
+# thanks to Sandra Naumann for introducing me to this ressource
 
-# Based on: https://www.mattcraddock.com/blog/2017/02/25/erp-visualization-creating-topographical-scalp-maps-part-1/   
-# thanks to Sandra Naumann
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r load libs, message=FALSE, warning=FALSE}
 
 # Get libs:
 library(tidyverse)
@@ -11,33 +24,43 @@ library(grid)
 library(gtable)
 library(here)
 
+# Load helpers:
 source(here('Analysis', 
             'Modelling', 
             'CSP', 
             'utils_R', 
             'plot_fig4.R'))
 
+
 norm_vec <- function(x) sqrt(sum(x^2))
 
+# set up plotting params:
 plt <- NULL
 plt$palette <- 'viridis'
 plt$palette_dir <- 1
 plt$wid_heigth_ssd  <- c(20, 10) 
 plt$wid_heigth_csp  <- c(10, 10)
 plt$wid_heigth_spoc <- c(20, 10)
-plt$size_topo <- 1.5
-  
+plt$size_topo <- 2
+
 write_out <- NULL
 write_out$csp_avg  <- TRUE
 write_out$spoc_avg <- TRUE
 write_out$ssd_avg  <- TRUE
 
+# Set paths:
 path_data <- here('Results', 'Patterns')
 path_out <- here('Results', 'Plots', 'Patterns', plt$palette)
 if (!dir.exists(path_out)) {
   print(str_glue('Created folder:\n{path_out}\n'))
   dir.create(path_out)
 }
+
+
+```
+
+
+```{r message=FALSE, warning=FALSE}
 
 data_conds <- NULL
 data_ID <- NULL
@@ -58,9 +81,15 @@ for (cond in c('mov', 'nomov')) {
       filter(!electrode %in% c('HEOG', 'VEOG')) %>% 
       mutate(CSP_max_norm = CSP_max/norm_vec(CSP_max), 
              CSP_min_norm = CSP_min/norm_vec(CSP_min), 
-             SPOC_norm = SPOC/norm_vec(SPOC), 
-             SSD_norm = SSD/norm_vec(SSD)) 
-    
+             SPOC_norm = SPOC/norm_vec(SPOC)) %>% 
+      mutate_at(.vars = vars(matches('SSD')), 
+                .funs = list(norm = ~(./norm_vec(.)))) %>% 
+      # to keep the code flexible enough to also work if there's 
+      # only a single SSD column: 
+      mutate_at(.vars = vars(matches('^norm')), 
+                .funs = list(SSD_norm = ~(.))) %>% 
+      select(-matches('^norm'))
+      
       data_ID[[ID_str]] <- topo_nvr
   
   }
@@ -70,81 +99,72 @@ for (cond in c('mov', 'nomov')) {
 df_full <- bind_rows(data_conds)
   
 
-fig4_csp <- plot_fig4_csp(df_full, plt, path_out)
+```
 
 
-## Plot SPoC:
-f <- df_full %>% 
-  mutate_at(.vars = vars(electrode, Condition), funs(factor)) %>%
-  select(ID, electrode, Condition, SPOC_norm) %>% 
-  group_by(ID, electrode, Condition) %>% 
-  summarise(SPOC = mean(abs(SPOC_norm))) %>% 
-  electrode_locations() %>% 
-  ungroup() %>% 
-  mutate(Condition = fct_reorder(Condition, as.numeric(Condition), .desc = T))
 
-  
+## Create topoplots for Figure 4:
 
-plt_spoc <- ggplot(f,
-               aes(x = x,
-                   y = y,
-                   fill = SPOC,
-                   label = electrode)) +
-          geom_topo(grid_res = 200,
-                    interp_limit = "head",
-                    chan_markers = "point",
-                    chan_size = 0.25, 
-                    head_size = 1) +
-  scale_fill_viridis_c(#breaks = c(0), 
-                       #labels = c('0'),
-                       #limits = c(0,0.3),
-                       guide = guide_colorbar(label = TRUE, 
-                                              ticks = TRUE))+        
-  #scale_fill_viridis_c() +
-          # scale_fill_distiller(palette = plt$palette, 
-          #                      direction = plt$palette_dir) + 
-          theme_void() +
-          theme(strip.text.x = element_text(size = plt$wid_heigth_spoc[1] * 2.5)) +
-          theme(legend.position = 'None', 
-            panel.grid = element_blank(),
-            axis.line = element_blank(),
-            panel.background = element_rect(fill = "transparent",colour = NA),
-            plot.background = element_rect(fill = "transparent",colour = NA)) + 
-          coord_equal() + 
-          facet_grid(~Condition) +
-          labs(fill = expression(paste("Absolute weight (a.u.)"))) 
+We plot the ingredients (topoplots) for Figure 4 in the paper. 
 
-# gtable_show_layout(gt)
+```{r, plot topos for CSP}
 
-# format printable:
-gt <- ggplot_gtable(ggplot_build(plt_spoc))
-# fix size of topoplots:
-gt$heights[c(8)] <- unit(plt$size_topo, 'cm')
-gt$widths[c(5,7)] <- unit(plt$size_topo, 'cm')
+fig4_csp <- plot_fig4_csp(df_full, plt, path_out, show_legend = T)
+plot(fig4_csp)
 
-h = grid::convertHeight(sum(gt$heights), "cm", TRUE)
-w = grid::convertWidth(sum(gt$widths), "cm", TRUE)
+```
 
 
-if (write_out$spoc_avg) {
-  ggsave(file = file.path(path_out, 'SPOC_avg.png'), 
-         plot = gt, 
-         device = 'png', 
-         width = unit(w, 'cm'), #unit(plt$wid_heigth_spoc[1], 'cm'), 
-         height = unit(h, 'cm'), #unit(plt$wid_heigth_spoc[2], 'cm'), 
-         units = 'cm', 
-         bg = 'transparent')
-}
+
+```{r}
+
+fig4_spoc <- plot_fig4_spoc(df_full, plt, path_out)
+plot(fig4_spoc)
+```
+
+
+```{r}
 
 ## Plot SSD:
+
+fig4_ssd <- plot_fig4_ssd(df_full, plt, path_out)
+plot(fig4_ssd)
+
+
+```
+
+```{r}
+# Supp fig4 (topos per subject):
+
+# nomov condition:
+
+fig4_supp_nomov <- plot_fig4_supp(df_full, 'nomov', plt, path_out)
+fig4_supp_mov <- plot_fig4_supp(df_full, 'mov', plt, path_out)
+
+```
+
+
+```{r}
+
+
+
 f <- df_full %>% 
-  mutate_at(.vars = vars(electrode, Condition), funs(factor)) %>%
-  select(ID, electrode, Condition, SSD_norm) %>% 
-  group_by(electrode, Condition) %>% 
-  summarise(SSD = mean(abs(SSD_norm))) %>% 
+  mutate_at(.vars = vars(electrode, Condition), list(factor)) %>%
+  select(ID, electrode, Condition, matches('SSD.*_norm')) %>% 
+  pivot_longer(cols = matches('^SSD'), 
+                 names_to = c("kick", "ssd_comp_nr", "me"),
+                 names_sep = "_",
+                 values_to = "SSD") %>% 
+  select(-c('kick', 'me')) %>% 
+  group_by(electrode, Condition, ssd_comp_nr) %>% 
+  # summarise_at(.vars = vars(matches('SSD.*_norm')), 
+  #              .funs = ~mean(abs(.))) %>% 
+  dplyr::summarise(SSD = mean(abs(SSD))) %>% 
   electrode_locations() %>% 
   ungroup() %>% 
-  mutate(Condition = fct_reorder(Condition, as.numeric(Condition), .desc = T))
+  mutate(Condition = fct_reorder(Condition, 
+                                 as.numeric(Condition), 
+                                 .desc = T))
 
   
 
@@ -179,7 +199,7 @@ plt_ssd <- ggplot(f,
         panel.background = element_rect(fill = "transparent",colour = NA),
         plot.background = element_rect(fill = "transparent",colour = NA)) +
   coord_equal() + 
-  facet_grid(~Condition) +
+  facet_grid(ssd_comp_nr~Condition) +
   labs(fill = expression(paste("Absolute\nweight\n(a.u.)"))) #+ 
   #theme(legend.position = 'none')
 
@@ -289,3 +309,5 @@ aa
 # 
 # # Plot topoplots for neutral
 # Topo_Emo_Neu = subset(Topo_Emo, Condition == 1)
+
+```
