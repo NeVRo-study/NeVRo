@@ -1,15 +1,8 @@
 
-%% Prelim script to write out tables with the paatern weights to later read
-%% them into R
+%% Prelim script to write out predi vs target tables
 
 % Run from NeVRo repo main folder.
-% This is a pure helper script to transform data and therefore not 
-% sufficiently documented. It's probably more useful to directly work 
-% with the outputs directly (./Data/Results/Patterns). 
-% In case you want to run this script nevertheless and you run into
-% trouble, please get in touch with me. 
-
-% 2020, Felix Klotzsche (klotzsche@cbs.mpg.de)
+% This is a 
 
 % load results:
 
@@ -34,7 +27,7 @@ for cond = {'mov', 'nomov'}
     end
     
     % load model output:
-    load([dirData, 'EEG/08.6_CSP_10f/' cond{1} '/SBA/summaries/CSP_results.mat'])
+    load([dirData, 'EEG/08.6_CSP_10f/' cond{1} '/SBA/summaries/CSP_results_' cond{1} '.mat'])
     load([dirData, 'EEG/08.1_SPOC/' cond{1} '/SBA/summaries/SPOC_results_' cond{1} '.mat'])
  
     res_CSP = CSP_results.results;
@@ -66,12 +59,6 @@ for cond = {'mov', 'nomov'}
         A_CSP = res_CSP(i).weights.CSP_A;
         A_SSD = res_SPOC(i).weights.SSD_A_sel;
         
-        % just to make sure everything is in order:
-        A_SSD_2 = res_CSP(i).weights.SSD_A_sel;
-        err_msg = sprintf(['There was a mismatch for the infos from SPOC and CSP ' ...
-            'for %s. Check manually!'], subject);
-        assert(all(all(A_SSD == A_SSD_2)), err_msg) 
-        
         A_CSP_tot = transpose(A_CSP * A_SSD');
         A_SPOC = res_SPOC(i).weights.SPOC_A;
         
@@ -84,7 +71,7 @@ for cond = {'mov', 'nomov'}
             'RowNames', chan_names, ...
             'VariableNames', col_names);
         
-        dirOut_cond = [dirOut, cond{1}];
+        dirOut_cond = [dirOut, cond{1}]
         if ~exist(dirOut_cond, 'dir'); mkdir(dirOut_cond); end
         writetable(weight_table, [dirOut_cond, '/', subject '.csv'], ...
             'WriteRowNames',true, ...

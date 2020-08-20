@@ -35,7 +35,7 @@ path_in_eeg = [path_dataeeg '07_SSD/' mov_cond '/' cropstyle '/narrowband/'];
 path_in_SSDcomps = [path_dataeeg '07_SSD/' mov_cond '/'];
 
 % output paths:
-path_out_eeg = [path_dataeeg '08.5_CSP_10f/' mov_cond '/' cropstyle '/'];
+path_out_eeg = [path_dataeeg '08.6_CSP_10f/' mov_cond '/' cropstyle '/'];
 if ~exist(path_out_eeg, 'dir'); mkdir(path_out_eeg); end
 path_out_summaries = [path_out_eeg '/summaries/'];
 if ~exist(path_out_summaries, 'dir'); mkdir(path_out_summaries); end
