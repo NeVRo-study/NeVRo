@@ -270,107 +270,107 @@ for (i in 1:45) {
 ### Plot the results:
 
 Plot accuracies for both binary approaches per movement condition (ordered by CSP accuracy):
-```{r}
-
-# Plot histograms/freqpolys:
-ggplot(pred_success, aes(accuracy, linetype = Condition)) +
-  geom_freqpoly(binwidth = 0.03) + scale_color_brewer(palette="Paired") + 
-  theme_bw() + facet_wrap(~Model, scales = 'free')
-
-
-ggplot(data_df, aes(SPOC_LAMBDA, linetype = condition)) + 
-  geom_freqpoly(binwidth = 0.3)
-
-pred_success %>% 
-  rownames_to_column() %>% 
-  arrange(Model, Condition, accuracy) %>%
-  mutate(mixed = as.integer(rowname)) %>% 
-  select(-rowname) %>% 
-  rownames_to_column()  %>% 
-  arrange(mixed) -> ordered_subs
-ordervar<- rep(as.integer(ordered_subs$rowname[1:45]), 2)
-
-pred_success %>%
-  add_column(ordervar) %>% 
-  mutate(Condition = recode(Condition, mov = 'Movement', nomov = 'No Movement'))  %>% 
-  arrange(ordervar) %>% 
-  ggplot(aes(x = ordervar, y = accuracy, col = Model)) + 
-  facet_wrap(~Condition, scales = 'free') +
-  geom_point(aes(shape = Model), size = 3) +
-  theme_bw() + 
-  scale_color_brewer(palette="Paired") +
-  scale_shape_manual(values=c(13, 16, 17)) + 
-  xlab('Subjects') + 
-  theme(axis.text.x=element_blank()) 
+```{r, include=FALSE}
+# 
+# # Plot histograms/freqpolys:
+# ggplot(pred_success, aes(accuracy, linetype = Condition)) +
+#   geom_freqpoly(binwidth = 0.03) + scale_color_brewer(palette="Paired") + 
+#   theme_bw() + facet_wrap(~Model, scales = 'free')
+# 
+# 
+# ggplot(data_df, aes(SPOC_LAMBDA, linetype = condition)) + 
+#   geom_freqpoly(binwidth = 0.3)
+# 
+# pred_success %>% 
+#   rownames_to_column() %>% 
+#   arrange(Model, Condition, accuracy) %>%
+#   mutate(mixed = as.integer(rowname)) %>% 
+#   select(-rowname) %>% 
+#   rownames_to_column()  %>% 
+#   arrange(mixed) -> ordered_subs
+# ordervar<- rep(as.integer(ordered_subs$rowname[1:45]), 2)
+# 
+# pred_success %>%
+#   add_column(ordervar) %>% 
+#   mutate(Condition = recode(Condition, mov = 'Movement', nomov = 'No Movement'))  %>% 
+#   arrange(ordervar) %>% 
+#   ggplot(aes(x = ordervar, y = accuracy, col = Model)) + 
+#   facet_wrap(~Condition, scales = 'free') +
+#   geom_point(aes(shape = Model), size = 3) +
+#   theme_bw() + 
+#   scale_color_brewer(palette="Paired") +
+#   scale_shape_manual(values=c(13, 16, 17)) + 
+#   xlab('Subjects') + 
+#   theme(axis.text.x=element_blank()) 
 ```
 
 
 Plot accuracies of the two binary approaches against each other (per movement condition):
 ```{r}
-
-## Create corr plot across conditions and methods:
-
-data_df <- data_df %>% 
-  mutate(Condition = condition) 
-
-p1 <- pred_success %>%
-  mutate(Condition = recode(Condition, mov = 'Movement', nomov = 'No Movement'))  %>% 
-  select(Condition, Subject, Model, accuracy) %>% 
-  spread(Model, accuracy) %>% 
-  left_join(data_df[, c("Condition", "Subject", "SPOC_LAMBDA")], by = c("Condition", "Subject"))  %>% 
-  ggplot(aes(x = CSP, y = LSTM)) + 
-  facet_wrap(~Condition, scales = 'free') +
-  geom_point(size = 1, color = 'darkblue') +
-  stat_smooth(aes(y = LSTM), method = 'lm', size = 0.2, alpha = 0.1, xmax = 0, color = 'darkblue') +
-  #stat_smooth(aes(y = SPOC_LAMBDA * -1), method = 'lm', size = 0.2, alpha = 0.1, xmax = 0, color = 'green') +
-  theme_bw() + 
-  theme(axis.title.x = element_blank()) +
-  scale_color_brewer(palette="Paired") +
-  scale_shape_manual(values=c(13, 16, 17)) + 
-  xlab('accuracy CSP') + 
-  ylab('accuracy LSTM') + 
-  #ylim(c(0.449, 0.77)) + 
-  xlim(c(0.449, 0.77)) 
-
-p2 <- pred_success %>%
-  #mutate(Condition = recode(Condition, mov = 'Movement', nomov = 'No Movement'))  %>% 
-  select(Condition, Subject, Model, accuracy) %>% 
-  spread(Model, accuracy) %>% 
-  left_join(data_df[, c("Condition", "Subject", "SPOC_LAMBDA")], by = c("Condition", "Subject"))  %>% 
-  ggplot(aes(x = CSP, y = SPOC_LAMBDA)) + 
-  facet_wrap(~Condition, scales = 'free', labeller = ) +
-  geom_point(size = 1, color = 'darkgreen') +
-  stat_smooth(method = 'lm', size = 0.2, alpha = 0.1, xmax = 0, color = 'darkgreen') + 
-  theme_bw() + theme(strip.text.x = element_blank()) + 
-  scale_color_brewer(palette="Paired") +
-  scale_shape_manual(values=c(13, 16, 17)) + 
-  xlab('accuracy CSP') + 
-  ylab('lambda SPoC') + 
-  ylim(c(-1.7, 0.3)) + 
-  xlim(c(0.449, 0.77)) 
-
-p3 <- pred_success %>%
-  #mutate(Condition = recode(Condition, mov = 'Movement', nomov = 'No Movement'))  %>% 
-  select(Condition, Subject, Model, accuracy) %>% 
-  spread(Model, accuracy) %>% 
-  left_join(data_df[, c("Condition", "Subject", "SPOC_LAMBDA")], by = c("Condition", "Subject"))  %>% 
-  ggplot(aes(x = LSTM, y = SPOC_LAMBDA)) + 
-  facet_wrap(~Condition, scales = 'free', labeller = ) +
-  geom_point(size = 1, color = 'darkred') +
-  stat_smooth(method = 'lm', size = 0.2, alpha = 0.1, xmax = 0, color = 'darkred') + 
-  theme_bw() + theme(strip.text.x = element_blank()) + 
-  scale_color_brewer(palette="Paired") +
-  scale_shape_manual(values=c(13, 16, 17)) + 
-  xlab('accuracy LSTM') + 
-  ylab('lambda SPoC') + 
-  ylim(c(-1.7, 0.3)) + 
-  xlim(c(0.449, 0.77)) 
-
-
-
-ggarrange(p1,p2,p3, 
-          #labels = c("A", "B"),
-          ncol = 1, nrow = 3)
+# 
+# ## Create corr plot across conditions and methods:
+# 
+# data_df <- data_df %>% 
+#   mutate(Condition = condition) 
+# 
+# p1 <- pred_success %>%
+#   mutate(Condition = recode(Condition, mov = 'Movement', nomov = 'No Movement'))  %>% 
+#   select(Condition, Subject, Model, accuracy) %>% 
+#   spread(Model, accuracy) %>% 
+#   left_join(data_df[, c("Condition", "Subject", "SPOC_LAMBDA")], by = c("Condition", "Subject"))  %>% 
+#   ggplot(aes(x = CSP, y = LSTM)) + 
+#   facet_wrap(~Condition, scales = 'free') +
+#   geom_point(size = 1, color = 'darkblue') +
+#   stat_smooth(aes(y = LSTM), method = 'lm', size = 0.2, alpha = 0.1, xmax = 0, color = 'darkblue') +
+#   #stat_smooth(aes(y = SPOC_LAMBDA * -1), method = 'lm', size = 0.2, alpha = 0.1, xmax = 0, color = 'green') +
+#   theme_bw() + 
+#   theme(axis.title.x = element_blank()) +
+#   scale_color_brewer(palette="Paired") +
+#   scale_shape_manual(values=c(13, 16, 17)) + 
+#   xlab('accuracy CSP') + 
+#   ylab('accuracy LSTM') + 
+#   #ylim(c(0.449, 0.77)) + 
+#   xlim(c(0.449, 0.77)) 
+# 
+# p2 <- pred_success %>%
+#   #mutate(Condition = recode(Condition, mov = 'Movement', nomov = 'No Movement'))  %>% 
+#   select(Condition, Subject, Model, accuracy) %>% 
+#   spread(Model, accuracy) %>% 
+#   left_join(data_df[, c("Condition", "Subject", "SPOC_LAMBDA")], by = c("Condition", "Subject"))  %>% 
+#   ggplot(aes(x = CSP, y = SPOC_LAMBDA)) + 
+#   facet_wrap(~Condition, scales = 'free', labeller = ) +
+#   geom_point(size = 1, color = 'darkgreen') +
+#   stat_smooth(method = 'lm', size = 0.2, alpha = 0.1, xmax = 0, color = 'darkgreen') + 
+#   theme_bw() + theme(strip.text.x = element_blank()) + 
+#   scale_color_brewer(palette="Paired") +
+#   scale_shape_manual(values=c(13, 16, 17)) + 
+#   xlab('accuracy CSP') + 
+#   ylab('lambda SPoC') + 
+#   ylim(c(-1.7, 0.3)) + 
+#   xlim(c(0.449, 0.77)) 
+# 
+# p3 <- pred_success %>%
+#   #mutate(Condition = recode(Condition, mov = 'Movement', nomov = 'No Movement'))  %>% 
+#   select(Condition, Subject, Model, accuracy) %>% 
+#   spread(Model, accuracy) %>% 
+#   left_join(data_df[, c("Condition", "Subject", "SPOC_LAMBDA")], by = c("Condition", "Subject"))  %>% 
+#   ggplot(aes(x = LSTM, y = SPOC_LAMBDA)) + 
+#   facet_wrap(~Condition, scales = 'free', labeller = ) +
+#   geom_point(size = 1, color = 'darkred') +
+#   stat_smooth(method = 'lm', size = 0.2, alpha = 0.1, xmax = 0, color = 'darkred') + 
+#   theme_bw() + theme(strip.text.x = element_blank()) + 
+#   scale_color_brewer(palette="Paired") +
+#   scale_shape_manual(values=c(13, 16, 17)) + 
+#   xlab('accuracy LSTM') + 
+#   ylab('lambda SPoC') + 
+#   ylim(c(-1.7, 0.3)) + 
+#   xlim(c(0.449, 0.77)) 
+# 
+# 
+# 
+# ggarrange(p1,p2,p3, 
+#           #labels = c("A", "B"),
+#           ncol = 1, nrow = 3)
 
 
 ```
