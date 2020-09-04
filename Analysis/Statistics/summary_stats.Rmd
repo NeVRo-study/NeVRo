@@ -387,7 +387,7 @@ data_acc <- pred_success %>%
   mutate(SPoC = SPOC_CORR)
 
 models_l <- c('SPoC', 'CSP', 'LSTM')
-lims_l <- list(SPoC = c(-0.7, 0.25), 
+lims_l <- list(SPoC = c(-0.70, 0.25), 
                # Use c(-0.7, 0.25) for SPOC_CORR and c(-1.7, 0.25) for SPOC_LAMBDA 
                CSP = c(0.44, 0.8), 
                LSTM = c(0.44, 0.8))
@@ -442,7 +442,7 @@ for (i in 1:3) {
         }
     
     if (! (i == j)) {
-      cat("Doing ", models_l[j], " ~ ", models_l[i], "\n")
+      cat("Doing ", models_l[i], " ~ ", models_l[j], "\n")
       cond_ <- ifelse(i < j, 'nomov', 'mov')
       #x_lab <- ifelse(i == 3, element_text(size = rel(1.5), angle = 90), xx)
       #y_lab <- ifelse(i == 3, element_text(size = rel(1.5), angle = 90), element_blank())
@@ -465,10 +465,10 @@ for (i in 1:3) {
         pval_formatted <- str_remove(ifelse(pval == 0, 0.001, pval), '0')
         txt_pval <- sprintf('italic(p) %s "%s"', pval_sign, pval_formatted)
         #txt_pval <- "paste(italic(R) ^ 2, \" = .75\")"
-                             
+
         pp <- data_acc %>% 
           filter(Condition == cond_) %>% 
-          ggplot(aes(x = get(models_l[j]), y = get(models_l[i]))) + 
+          ggplot(aes(x = get(models_l[j]), y = get(models_l[i]))) +
           #facet_wrap(~Condition, scales = 'free', labeller = ) +
           
           # Print colored boxes for condition axis labels: 
@@ -670,7 +670,7 @@ fig <- ggarrange(
           
 
 fig
-ggsave(file="C:/Users/Felix/Downloads/pp_cor.svg", plot=fig, width=8, height=8)
+ggsave(file="C:/Users/Felix/Downloads/pp_cor_0409.svg", plot=fig, width=8, height=8)
 
 
 # annotate_figure(fig,

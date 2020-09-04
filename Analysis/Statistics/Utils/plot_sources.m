@@ -22,15 +22,17 @@ load(mymodelfile);
 
 conds = {'mov', 'nomov'}; %{'mov'}; % 
 
-% Specify a subset of subjects or empty vec for all subjects:
-sub_id = []; %'NVR_S35'; %'NVR_S08'; %
+% Specify a single subject or empty vec for all subjects:
+sub_id = 'NVR_S25'; %'NVR_S35'; %'NVR_S08'; %[];
 
 patterns = {'SSD_1', 'SSD_2', 'SSD_3', 'SSD_4', ...
            'SPOC', 'CSP_max', 'CSP_min'};
        
 save_plot = true;
+save_format = 'epsc';
 show_plot = false;
-save_mats = true;
+save_mats = ~true;
+load_mats = true;
 
 for cond = conds
     files_list = dir(fullfile(dirPatterns, cond{1}, [sub_id '*.csv']));
@@ -78,7 +80,7 @@ for cond = conds
                 patterns(j));
             P_mat = m_eLORETA_nvr(sa, table2array(patt_tab(:,patt_idx)), ...
                 patt_tab.chanlocs, patterns{j}, subject_name, cond{1}, ...
-                save_plot, dirOut, show_plot);
+                save_plot, save_format, dirOut, show_plot, 'viridis');
             if (~show_plot)
                 close all;
             end
@@ -119,6 +121,7 @@ end
 
 % get color maps:
 load cm17;
+cm_vir = viridis();
 
 patterns = {'SSD_1', 'SSD_2', 'SSD_3', 'SSD_4', ...
             'SPOC', 'CSP_max', 'CSP_min'};
@@ -130,7 +133,11 @@ conds = {'mov', 'nomov'}; %{'mov'}; %
 for cond=conds
     switch cond{1}
         case 'mov'
-            if ~exist('P_mov', 'var')
+            if load_mats 
+                fprintf('Loading data from disk.\n');
+                if exist('P_mov', 'var')
+                    fprintf('Overwriting data in memory w/ data from disk.\n');
+                end
                 dirResults = fullfile(dirPatterns, 'Sources', 'mov');
                 filename = fullfile(dirResults, 'source_patterns_mov.mat');
                 load(filename);
@@ -138,7 +145,11 @@ for cond=conds
             Pattern_mats = P_mov;
                 
         case 'nomov'
-            if ~exist('P_nomov', 'var')
+            if load_mats 
+                fprintf('Loading data from disk.\n');
+                if exist('P_nomov', 'var')
+                    fprintf('Overwriting data in memory w/ data from disk.\n');
+                end
                 dirResults = fullfile(dirPatterns, 'Sources', 'nomov');
                 filename = fullfile(dirResults, 'source_patterns_nomov.mat');
                 load(filename);
@@ -170,6 +181,9 @@ for cond=conds
         allplots_cortex_mina(sa, P(sa.cortex2K.in_to_cortex75K_geod), ... 
                     [min(P) max(P)], colormap, scale_unit, smooth, 'views', views, ...
                     'save', save_plot, 'savename', savename, ...
-                    'saveformat', 'png');
+                    'saveformat', save_format);
+        if (~show_plot)
+            close all;
+        end
     end
 end
