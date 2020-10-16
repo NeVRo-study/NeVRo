@@ -1,6 +1,6 @@
 <h1>NeVRo</h1>
 
-![NeVRo](./.NeVRoStyled.png)
+![NeVRo](./.NeVRoCover.png)
 
 *This is a rough outline. A more detailed description will come soon. Please see the publications for the specific models linked in the corresponding sections.*
 
