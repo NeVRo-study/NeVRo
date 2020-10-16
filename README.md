@@ -1,4 +1,4 @@
-<h1>Neuro VR roller coasters – NeVRo</h1>
+<h1>NeVRo – Neuro VR roller coasters</h1>
 
 ![NeVRo](./.NeVRoCover.png)
 
