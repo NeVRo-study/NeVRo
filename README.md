@@ -1,4 +1,5 @@
-<h1>NeVRo</h1>
+<h1>Neuro VR Rollercoasters – NeVRo</h1>
+<h2>Decoding subjective emotional arousal from EEG during an immersive Virtual Reality experience</h2>
 
 ![NeVRo](./.NeVRoCover.png)
 
