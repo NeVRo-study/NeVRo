@@ -1,7 +1,8 @@
-<h1>Neuro VR Rollercoasters – NeVRo</h1>
-<h2>Decoding subjective emotional arousal from EEG during an immersive Virtual Reality experience</h2>
+<h1>Neuro VR roller coasters – NeVRo</h1>
 
 ![NeVRo](./.NeVRoCover.png)
+
+<h2>Decoding subjective emotional arousal from EEG during an immersive Virtual Reality experience</h2>
 
 *This is a rough outline. A more detailed description will come soon. Please see the publications for the specific models linked in the corresponding sections.*
 
