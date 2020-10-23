@@ -1,13 +1,23 @@
 %% NVR_08_CSP
-% 2017 by Felix Klotzsche* and Alberto Mariola
+% 2017/2018/2020 by Felix Klotzsche* and Alberto Mariola
 % *: main contribution
 %
-%This script applies CSP to the data and stores the results.
+% This script applies CSP+LDA to classify the (binarized) level of emotional
+% arousal from the data and stores the results.
+%
 %
 % Arguments: - cropstyle
 %            - mov_cond
 %            - source for alpha peak information (defaults to mov_cond)
 %            - show plots? (defaults to TRUE)
+%
+% Requires EEGLAB (e.g., v13.4.4b) and BCILAB (v1.4-devel). 
+% Please note that for an exact replication you will need to mildly tweak
+% the BCILAB source (please see details in my extensive comment in the code
+% below). 
+% A numericically exact replication will probably also fail as no fixed
+% seed was/is set for the CV split, so you might end up with slightly (!)
+% different results. 
 
 
 function NVR_08_CSP(cropstyle, mov_cond, varargin)
@@ -35,7 +45,7 @@ path_in_eeg = [path_dataeeg '07_SSD/' mov_cond '/' cropstyle '/narrowband/'];
 path_in_SSDcomps = [path_dataeeg '07_SSD/' mov_cond '/'];
 
 % output paths:
-path_out_eeg = [path_dataeeg '08.6_CSP_10f/' mov_cond '/' cropstyle '/'];
+path_out_eeg = [path_dataeeg '08.5_CSP_10f/' mov_cond '/' cropstyle '/'];
 if ~exist(path_out_eeg, 'dir'); mkdir(path_out_eeg); end
 path_out_summaries = [path_out_eeg '/summaries/'];
 if ~exist(path_out_summaries, 'dir'); mkdir(path_out_summaries); end

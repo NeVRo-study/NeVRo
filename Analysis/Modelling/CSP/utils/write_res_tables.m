@@ -9,7 +9,7 @@ dirOut = './Results/CSP/';
 for cond = {'mov', 'nomov'}
 
     % load model output:
-    load([dirData, 'EEG/08.5_CSP_10f/' cond{1} '/SBA/summaries/CSP_results_' cond{1} '.mat'])
+    load([dirData, 'EEG/08.6_CSP_10f/' cond{1} '/SBA/summaries/CSP_results_' cond{1} '.mat'])
 
     % load binarized ratings (i.e., ground truth):
     ratFolder = [dirData 'ratings/class_bins/' cond{1} '/SBA/'];

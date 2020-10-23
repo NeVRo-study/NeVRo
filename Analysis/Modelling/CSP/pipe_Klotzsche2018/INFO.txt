@@ -1,0 +1,10 @@
+###################################################################
+## Code for the IEEEVR 2018 Paper (Klotzsche et al., 2018)       ##
+###################################################################
+
+
+This pipeline is only maintained for the sake of completeness. This is the code which was used to produce the results reported in Klotzsche (2018) 
+[IEEEVR conference Poster/mini proceedings paper]. This code has not been maintained and as long as you do not just want to reproduce the results of 
+this poster/paper, you are for sure better off with the newer NeVRo pipeline. 
+
+# Felix Klotzsche, 2020
