@@ -64,9 +64,9 @@ if __name__ == "__main__":
                             'summaries', 'path_specificities', 'mean_val_acc', 'meanline_acc'],
                    inplace=True)
 
-        table.drop(index=range(1, len(table)+1, 2), inplace=True)  # second of each subject is worst
+        table.drop(index=range(1, len(table)+1, 2), inplace=True)  # second of each subject is worse
         table.sort_values(by="subject", inplace=True)  # sort by subject
-        table.subject = [f"NVR_{s(sub)}" for sub in table.subject]  # Change subject # to e.g. "NVR_S12"
+        table.subject = [f"NVR_{s(sub)}" for sub in table.subject]  # change subj. nr to e.g. "NVR_S12"
 
         # Renamce columns
         # print(table.columns)
