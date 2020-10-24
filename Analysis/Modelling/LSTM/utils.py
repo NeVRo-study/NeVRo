@@ -92,6 +92,58 @@ def delete_dir_and_files(parent_path):
     else:
         cprint(f"Given folder '{parent_path}' doesn't exist.", 'r')
 
+
+def find(fname, folder=".", typ="file", exclusive=True, fullname=True, abs_path=False, verbose=True):
+    """
+    Find file(s) in given folder
+
+    :param fname: full filename OR consecutive part of it
+    :param folder: root folder to search
+    :param typ: 'file' or folder 'dir'
+    :param exclusive: only return path when only one file was found
+    :param fullname: True: consider only files which exactly match the given fname
+    :param abs_path: False: return relative path(s); True: return absolute path(s)
+    :param verbose: Report findings
+
+    :return: path to file OR list of paths, OR None
+    """
+
+    ctn_found = 0
+    findings = []
+    for root, dirs, files in os.walk(folder):
+        search_in = files if typ.lower() == "file" else dirs
+        for f in search_in:
+            if (fname == f) if fullname else (fname in f):
+                ffile = os.path.join(root, f)  # found file
+
+                if abs_path:
+                    ffile = os.path.abspath(ffile)
+
+                findings.append(ffile)
+                ctn_found += 1
+
+    if exclusive and len(findings) > 1:
+        if verbose:
+            cprint(f"\nFound several {typ}s for given fname='{fname}', please specify:", 'y')
+            print("", *findings, sep="\n\t>> ")
+        return None
+
+    elif not exclusive and len(findings) > 1:
+        if verbose:
+            cprint(f"\nFound several {typ}s for given fname='{fname}', return list of {typ} paths", 'y')
+        return findings
+
+    elif len(findings) == 0:
+        if verbose:
+            cprint(f"\nDid not find any {typ} for given fname='{fname}', return None", 'y')
+        return None
+
+    else:
+        if verbose:
+            cprint(f"\nFound this {typ}: '{findings[0]}'", 'y')
+        return findings[0]
+
+
 #%% Timer >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<
 
 def function_timed(funct):
