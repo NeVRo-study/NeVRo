@@ -2,13 +2,15 @@
 """
 Convert validation results into a table per condition
 
-Author: Simon Hofmann | <[surname].[lastname][at]pm.me> | 2020
+Author: Simon M. Hofmann | <[surname].[lastname][at]pm.me> | 2020
 """
+
+#%% Import
 
 from load_data import *
 import pandas as pd
 
-# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+#%% Main: Run  >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o
 
 # # Convert validation results into a table per condition and save
 
@@ -101,7 +103,7 @@ for cond in ["mov", "nomov"]:
         concat_val_targets_table_per_cond[isub-1, 0:len(concat_val_targ)] = concat_val_targ
         concat_val_indices_table_per_cond[isub-1, 0:len(concat_val_index)] = concat_val_index
 
-# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+    #%% Save >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
     # # Save table
     sub_idx = np.array(["NVR_"+s(sub) for sub in ls_subs])  # index
@@ -135,4 +137,5 @@ for cond in ["mov", "nomov"]:
         header=False, na_rep="NaN")
 
     end()
+
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<  END

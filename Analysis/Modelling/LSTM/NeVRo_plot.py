@@ -8,21 +8,19 @@ Plot ECG (RR and HR), EEG, and Rating Trajectories
     • plot subjective Ratings
     • save plots
 
-Author: Simon Hofmann | <[surname].[lastname][at]pm.me> | 2017, 2020 (Update)
+Author: Simon M. Hofmann | <[surname].[lastname][at]pm.me> | 2017, 2020 (Update)
 """
 
-# import sys
-# sys.path.insert(0, './LSTM Model')  # or set the folder as source root
+#%% Import
+
 from utils import *
 from load_data import load_component, t_roller_coasters
 import os.path
 import copy
-# import matplotlib
-# matplotlib.use('TkAgg')  # 'Agg', 'Qt5Agg'
 import matplotlib.pyplot as plt
 
 
-# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+#%% Functions >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >
 
 class NeVRoPlot:
     def __init__(self, n_sub=45, dropouts=None, subject_selection=None, smooth_w_size=3, trimmed=True):
@@ -36,18 +34,19 @@ class NeVRoPlot:
         """
 
         # Change to folder which contains files
+        # (asserts being executed from NeVRo/Analysis/Modelling/LSTM/)
         self.wdic = "../../../Data/"
         self.wdic_plots = "../../../Results/Plots/"
-        self.wdic_cropRR = "../../../Data/ECG/TR_cropped/"
-        self.wdic_SBA = "../../../Data/ECG/SBA/"
-        self.wdic_SA = "../../../Data/ECG/SA/"
-        self.wdic_Rating = "../../../Data/ratings/continuous/z_scored/"
-        self.wdic_Rating_not_z = "../../../Data/ratings/continuous/not_z_scored/"
-        self.wdic_cropTR_trim = "../../../Data/ECG/TR_cropped/trimmed/"
+        self.wdic_cropRR = f"{self.wdic}ECG/TR_cropped/"
+        self.wdic_SBA = f"{self.wdic}ECG/SBA/"
+        self.wdic_SA = f"{self.wdic}ECG/SA/"
+        self.wdic_Rating = f"{self.wdic}ratings/continuous/z_scored/"
+        self.wdic_Rating_not_z = f"{self.wdic}ratings/continuous/not_z_scored/"
+        self.wdic_cropTR_trim = f"{self.wdic}ECG/TR_cropped/trimmed/"
 
         # Set variables
-        self.n_sub = n_sub  # number of all Subjects
-        self.subjects = np.arange(1, n_sub+1)  # Array of all subjects
+        self.n_sub = n_sub  # number of subjects
+        self.subjects = np.arange(1, n_sub+1)  # array with all subjects
         # Define array of dropouts (subject ID)
         self.dropouts = [1, 12, 32, 35, 40, 42, 45] if not dropouts else dropouts
         # Select specific subjects of interest
@@ -91,7 +90,7 @@ class NeVRoPlot:
         self._concat_all_phases()  # will update self.all_phases
         self._create_z_scores()  # will update self.all_phases
 
-        self.w_size = smooth_w_size  # McCall has a window of 3 (see: SCRIPT_paperAnalyses_HR.m)
+        self.w_size = smooth_w_size  # default from McCall et al. (2015)
         self._create_smoothing(mode=0)  # modes:=["ontop"[0], "hanging"[1]]
 
         self.ratings_dic = {}
@@ -101,7 +100,7 @@ class NeVRoPlot:
         # "Space", "Break" and "Ande" (SBA) concatenated. Raw and z-scored
         self.SBA_ecg = self._create_sba()
         self.SBA_ecg_split = self._create_sba_split()
-        self._split_sba()  # Updates self.SBA_ecg_split dictionary with splitted z-scored sba data
+        self._split_sba()  # Updates self.SBA_ecg_split dictionary with split z-scored sba data
         self.SBA_ratings = copy.deepcopy(self.SBA_ecg)
         self._update_sba_ratings_dic()
 
@@ -170,13 +169,6 @@ class NeVRoPlot:
 
         if set_subset == 2:  # Create array of selected subjects, i.e. kick dropouts out
             subjects_array = np.setdiff1d(subjects_array, dropouts_array)  # elegant, 1
-            # subjects_array = np.array(list(set(subjects_array) ^ set(dropouts_array)))  # elegant, 2.1
-            # subjects_array = np.array(list(set(subjects_array).symmetric_difference(
-            #     set(dropouts_array))))  #2.2
-            # subjects_array = np.array(list(set(subjects_array) - set(dropouts_array)))  # elegant, 3.1
-            # subjects_array = np.array(list(set(subjects_array).difference(set(dropouts_array))))  # 3.2
-            # for drop in dropouts_array:  # not so elegant
-            #     subjects_array = np.delete(subjects_array, np.where(subjects_array == drop))
             print("Create subset of all subjects without dropouts")
         elif set_subset == 3:
             subjects_array = selected_array
@@ -365,7 +357,7 @@ class NeVRoPlot:
 
     def _update_sa_dics(self):
         """
-        Update SA dic and SA_ratings. That is, deleting the break from the copied SBA dics
+        Update SA dict and SA_ratings. That is, deleting the break from the copied SBA dicts
         """
 
         # Delete-Index
@@ -476,8 +468,7 @@ class NeVRoPlot:
                     # plot
                     if plotten:
                         plt.plot(z_hr_file_ds)  # z_score
-                    # print("z_hr_file_ds.shape", z_hr_file_ds.shape)
-                    # plt.plot(HR_file)
+
                 if plotten:
                     mean_z = np.nanmean(self.each_phases_z[phase], axis=0)  # z_score-mean
                     plt.plot(mean_z, color="black", linewidth=2)  # plot z_score-mean
@@ -487,10 +478,16 @@ class NeVRoPlot:
                         plt.vlines(xlim, ymin=-y_min_max, ymax=y_min_max, linestyles="--", alpha=0.6)
 
                         # Include events for roller coasters:
-                        if "Space" in phase:
-                            events = np.genfromtxt(self.wdic + "space_events.csv", delimiter=",",
-                                                   dtype="|U18")
-                            # U18, 18 for max-length of str (n characters) of col_names
+                        _phase, u = ("space",
+                                     "18") if "Space" in phase else ("andes",
+                                                                     "12") if "Andes" in phase else (None,
+                                                                                                     None)
+
+                        if _phase is not None:
+
+                            events = np.genfromtxt(self.wdic + f"{_phase}_events.csv", delimiter=",",
+                                                   dtype=f"|U{u}")
+                            # U18 (or U12), 18 for max-length of str (n characters) of col_names
                             events = events[:, 1:]  # drop start=0
 
                             # Events need to be shifted, if trimmed
@@ -498,22 +495,6 @@ class NeVRoPlot:
 
                             for idxe, event in enumerate(events[0, :]):
                                 t_event = float(events[1, idxe]) - subtractor  # timepoint of event
-                                shift = 0 if idxe % 2 == 0 else 1
-                                plt.vlines(x=t_event, ymin=-(y_min_max-shift), ymax=mean_z[int(t_event)],
-                                           linestyles="dotted", alpha=0.3)
-                                plt.text(x=t_event, y=-(y_min_max-shift), s=event.replace("_", " "))
-
-                        elif "Ande" in phase:
-
-                            events = np.genfromtxt(self.wdic + "ande_events.csv", delimiter=",",
-                                                   dtype="|U12")
-                            # U12, 12 for max-length of str (n characters) of col_names
-                            events = events[:, 1:]  # drop start=0
-                            # Events need to be shifted, if trimmed
-                            subtractor = self.trim_time / 2 if self.trimmed else 0
-
-                            for idxe, event in enumerate(events[0, :]):
-                                t_event = float(events[1, idxe]) - subtractor   # timepoint of event
                                 shift = 0 if idxe % 2 == 0 else 1
                                 plt.vlines(x=t_event, ymin=-(y_min_max-shift), ymax=mean_z[int(t_event)],
                                            linestyles="dotted", alpha=0.3)
@@ -604,7 +585,7 @@ class NeVRoPlot:
 
     def _create_sba(self):
         """
-        Create and save following data: concantenated and then z-scored data of
+        Create and save following data: concatenated and then z-scored data of
         "Space", "Break" and "Ande" (SBA)
         For this data-set we used trimmed versions of the coasters.
         At this point, ignore ECG during Ratings.
@@ -749,7 +730,7 @@ class NeVRoPlot:
 
     def _split_sba(self):
         """
-        Separates the zSBA trials in single phases: Space, Break, Ande
+        Separates the zSBA trials in single phases: Space, Break, Andes
         And updates the self.SBA_ecg dictionary
         """
 
@@ -1564,12 +1545,6 @@ class NeVRoPlot:
 
                 plt.legend()
 
-                # plt.figure("S{} in {} | HR, Rating".format(str(sub).zfill(2), coaster))
-                # plt.plot(var1, var2, "o")
-                # plt.xlabel("z_Ratings")
-                # plt.ylabel("z_HR")
-                # plt.legend()
-
                 subplot_nr += 1
                 plt.subplot(subplot_nr)
                 plt.xcorr(var1, var2, maxlags=maxlag)
@@ -1579,22 +1554,20 @@ class NeVRoPlot:
                          s=f"S{str(sub).zfill(2)} in {cond} | cond {str(self.subject_condition(sub))[0]} "
                            f"| xcorr")
 
-                # plt.figure("S{} in {} | np.correlate".format(str(sub).zfill(2), coaster))
-                # plt.plot(np.correlate(var1, var2, mode=2))  # mode = "full"
-
             plt.tight_layout()
 
             if save_plot:
                 self.save_plot(f"S{str(sub).zfill(2)}_z_Ratings_HR_x_corr")
 
 
-# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+#%% Main >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o
 
 if __name__ == "__main__":
 
+    # Dropouts recording time + ICA prep + SSD selected (< 4)
     # dropouts = [1, 12, 32, 33, 35, 38, 41, 45]  # recording time
 
-    # Dropouts recording time + ICA prep + SSD selected (< 4)
+    # Dropouts after SSD selection
     mov_dropouts = [1, 3, 5, 7, 9, 10, 11, 12, 13, 15, 16, 17, 19, 20, 23, 24, 26, 27, 30,
                     32, 33, 38, 40, 41, 43, 45]  # mov
     nomov_dropouts = [1, 7, 9, 10, 12, 16, 19, 20, 23, 24, 27, 31, 32, 33, 38, 40, 41, 43, 45]  # nomov
@@ -1618,41 +1591,10 @@ if __name__ == "__main__":
               f"STD:\t\t {np.nanstd(mean_rat_across_subs):.2f}\n"
               f"MIN-MAX:\t {np.nanmin(mean_rat_across_subs):.2f} – {np.nanmax(mean_rat_across_subs):.2f}")
 
-        # # Plot different types of rating normalization
-        # plt.figure()
-        # for rat in ec.SBA_ratings["SBA"][["Mov", "NoMov"][idx]]:
-        #     plt.plot(rat)
-        # plt.plot(mean_rat_across_subs, color="black", lw=2)
-        # plt.title(f"Rating in {['Mov', 'NoMov'][idx]}")
-        #
-        # # Center around subject-average-rating
-        # plt.figure()
-        # sba_rating = ec.SBA_ratings["SBA"][["Mov", "NoMov"][idx]].copy()
-        # sba_rating[sba_rating > 0] = 0
-        #
-        # for ridx, rat in enumerate(ec.SBA_ratings["SBA"][["Mov", "NoMov"][idx]]):
-        #     plt.plot(rat - np.nanmean(rat))
-        #     sba_rating[ridx] = rat - np.nanmean(rat)
-        # plt.plot(mean_rat_across_subs - np.nanmean(mean_rat_across_subs), color="darkgrey", lw=2)
-        # plt.plot(np.nanmean(sba_rating, axis=0), color="black", lw=2)
-        # plt.title(f"Zero-centred per subject Rating in {['Mov', 'NoMov'][idx]}")
-        #
-        # plt.figure()
-        # for rat in ec.SBA_ratings["zSBA"][["Mov", "NoMov"][idx]]:
-        #     plt.plot(rat-np.nanmean(rat))
-        # plt.plot(np.nanmean(ec.SBA_ratings["zSBA"][["Mov", "NoMov"][idx]], axis=0), color="black", lw=2)
-        # plt.title(f"zscored Rating in {['Mov', 'NoMov'][idx]}")
-
-        # # Plots of z-scored ratings:
-        # ec.plot_sba_ratings(condition=["Mov", "NoMov"][idx], save_plot=True, class_bins=False)
-
     # # Explore difference of ratings between conditions
     from scipy.stats import ttest_rel
     pt = ttest_rel(a=mean_rat_across_subs_mov, b=mean_rat_across_subs_nomov, nan_policy="omit")
     dgf = (len(mean_rat_across_subs_mov) + len(mean_rat_across_subs_nomov))/2 - 1  # degress of freedom
-    # # for all subjects (consider different dropouts per conditions)
-    # pt2 = ttest_rel(a=ec.SBA_ratings["SBA"]["Mov"], b=ec.SBA_ratings["SBA"]["NoMov"],
-    #                 axis=1, nan_policy="omit")
 
     fig, (ax1, ax2) = plt.subplots(ncols=2, figsize=(12, 6))
     fig.suptitle(f"Difference of mean-ratings (mov - nomov),  "

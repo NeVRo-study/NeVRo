@@ -2,8 +2,10 @@
 """
 Plot predictions made by the different models of the study
 
-Author: Simon Hofmann | <[surname].[lastname][at]pm.me> | 2020
+Author: Simon M. Hofmann | <[surname].[lastname][at]pm.me> | 2020
 """
+
+#%% Import
 
 from load_data import *
 # from tensorflow import gfile
@@ -11,8 +13,8 @@ import matplotlib
 import matplotlib.pyplot as plt
 from scipy.signal import savgol_filter
 
-# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
-# # Set parameters and paths
+
+#%% Set paths & vars >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >
 
 save_plots = True
 ftypes = ["png", "pdf"]  # or only e.g., ["png"]
@@ -24,8 +26,7 @@ fs = 14
 wdic_results = f"../../../Results/"
 
 
-# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
-# # Run
+#%% Plotting >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
 if __name__ == "__main__":
 
@@ -276,4 +277,5 @@ if __name__ == "__main__":
                     fig.savefig(save_folder + plot_filename)
                     plt.close()
 
+    end()
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<  END

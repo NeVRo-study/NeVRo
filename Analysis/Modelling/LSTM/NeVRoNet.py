@@ -5,18 +5,16 @@ Build LSTM architecture
 Author: Simon Hofmann | <[surname].[lastname][at]pm.me> | 2017, 2019 (Update)
 """
 
+#%% Import
+
 import tensorflow as tf  # implemented with TensorFlow 1.13.1
-# import numpy as np
 
 
+#%% Network >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 class NeVRoNet:
     """
     This class implements a LSTM neural network in TensorFlow.
-    It incorporates a certain graph model to be trained and to be used
-    in inference.
-
-    Potentially for layer visualization check out Beholder PlugIn
-    https://www.youtube.com/watch?feature=youtu.be&v=06HjEr0OX5k&app=desktop
+    It incorporates a certain graph model to be trained and to be used in inference.
     """
 
     def __init__(self, activation_function=tf.nn.elu,
@@ -44,20 +42,16 @@ class NeVRoNet:
 
     def inference(self, x):
         """
-        Performs inference given an input tensor. Here an input
-        tensor undergoes a series of nonlinear operations as defined in this method.
-
-        Using variable and name scopes in order to make the graph more i
-        ntelligible for later references in TensorBoard.
+        Performs inference given an input tensor. Here an input tensor undergoes a series of nonlinear
+        operations as defined in this method.
 
         Args:
           x: 3D float Tensor of size [batch_size, input_length, input_channels]
 
         Returns:
-          infer: 2D float Tensor of size [batch_size, -1]. Returns
-                 the infer outputs (as tanh transformation) of the
-                 network. These infer can be used with loss and accuracy
-                 to evaluate the model.
+          infer: 2D float Tensor of size [batch_size, -1]. Returns the infer outputs (as tanh
+                 transformation) of the network. These infer can be used with loss and accuracy to
+                 evaluate the model.
         """
 
         with tf.variable_scope('NeVRoNet'):
@@ -81,8 +75,6 @@ class NeVRoNet:
                     lstm_input = post_lstm
 
             # Fully Connected Layer(s)
-            # post_lstm = tf.Print(input_=post_lstm, data=[post_lstm.get_shape()], message="post_lstm")
-
             fc_layer_input = self.lstm_post_activation[-1]  # [batch_size, lstm_size[-1]]
             # This works due to lstm_output[-1]: takes only last and ignores the last 249 outputs of lstm
 
@@ -108,8 +100,6 @@ class NeVRoNet:
                                                       shape=fc_shape,  # shape=(lstm_size, 1-rating)
                                                       last_layer=last_layer)
 
-                # shape = [post_lstm.get_shape()[1], post_lstm.get_shape()[0]]
-
                 # For the feature_extractor:
                 self.fc_post_activation.append(fc_activation)
 
@@ -121,8 +111,6 @@ class NeVRoNet:
             with tf.name_scope("inference"):
                 tf.summary.histogram("hist", infer)
                 tf.summary.scalar(name="scalar", tensor=infer[0][0])
-
-        # probabilities = []
 
         return infer
 
@@ -157,27 +145,16 @@ class NeVRoNet:
 
             # # Initial state of the LSTM memory
             # # (previous state is not taken over in next batch, regardless of zero-state implementation)
-            # init_state = lstm_cell.zero_state(batch_size=self.batch_size, dtype=tf.float32)
 
             # # Run LSTM cell
             lstm_layer = tf.keras.layers.RNN(cell=lstm_cell, dtype=tf.float32, unroll=True,
-                                             return_sequences=True,  # False: return only the last output in sequence
+                                             return_sequences=True,
+                                             # False: return only the last output in sequence
                                              return_state=True,
                                              time_major=False)
 
             self.lstm_output, state_h, state_c = lstm_layer(inputs=x)
             self.final_state = (state_h, state_c)
-            # # rnn.static_rnn calculates basically this:
-            # # outputs = []
-            # # for input_ in x:
-            # #     output, state = lstm_cell(input_, state)
-            # #     outputs.append(output)
-            # # Check: https://www.tensorflow.org/versions/r1.1/api_docs/python/tf/contrib/rnn/static_rnn
-
-            # # How to define output:
-            # Different options: 1) last lstm output 2) average over all outputs
-            # or 3) right-weighted average (last values have stronger impact)
-            # here option 1)
 
             # Write summaries
             self._var_summaries(name=layer_name + "/lstm_outputs",
@@ -186,7 +163,8 @@ class NeVRoNet:
 
             # Push through activation function
             with tf.name_scope(layer_name + "_elu"):  # or relu
-                # lstm_output.shape: (batch_size, 250, lstm_size) | lstm_output[:, -1, :].shape: (batch_size, lstm_size)
+                # lstm_output.shape: (batch_size, 250, lstm_size) |
+                # lstm_output[:, -1, :].shape: (batch_size, lstm_size)
                 # Only do '[-1]' if last lstm-layer
                 pre_activation = self.lstm_output[:, -1, :] if last_layer else self.lstm_output
 
@@ -202,7 +180,7 @@ class NeVRoNet:
 
     def _create_fc_layer(self, x, layer_name, shape, last_layer):
         """
-        Create fully connected layer [Check out tf.layers.dense()]
+        Create fully connected layer
         :param x: Input to layer
         :param layer_name: Name of Layer
         :param shape: Shape from input to output
@@ -258,13 +236,10 @@ class NeVRoNet:
     def accuracy(infer, ratings):
         """
         Calculate the prediction accuracy, i.e. the average correct predictions of the network.
-        As in self.loss below, use tf.summary.scalar to save
-        scalar summaries of accuracy for later use with the TensorBoard.
 
         Args:
-          infer: 2D float Tensor of size [batch_size].
-                       The predictions returned through infer.
-          ratings: 2D int Tensor of size [batch_size], continious range [-1,1]
+          infer: 2D float Tensor of size [batch_size]. The predictions returned through infer.
+          ratings: 2D int Tensor of size [batch_size], continuous range [-1,1]
 
         Returns:
           accuracy: scalar float Tensor, the accuracy of predictions,
@@ -292,11 +267,9 @@ class NeVRoNet:
     @staticmethod
     def loss(infer, ratings):
         """
-        Calculates the mean squared error loss (MSE) from infer/predictions and
-        the ground truth labels. The function will also add the regularization
-        loss from network weights to the total loss that is return.
-        Use tf.summary.scalar to save scalar summaries of mean squared error loss, regularization loss,
-        and full loss (both summed) for use with TensorBoard.
+        Calculates the mean squared error loss (MSE) from infer/predictions and the ground truth labels.
+        The function will also add the regularization loss from network weights to the total loss that is
+        return.
 
         Args:
           infer: 2D float Tensor of size [batch_size].
@@ -313,12 +286,10 @@ class NeVRoNet:
 
             diff = tf.losses.mean_squared_error(labels=ratings, predictions=infer,
                                                 scope="mean_squared_error")
-            #                                   , loss_collection=reg_losses)
 
             with tf.name_scope("total"):
                 mean_squared_error = tf.reduce_mean(diff, name='mean_squared_error_mean')
                 loss = tf.add(mean_squared_error, tf.add_n(reg_losses), name="Full_Loss")
-                # add_n==tf.reduce_sum(reg_losses)
 
             # if self.summaries:
             with tf.name_scope("summaries"):
@@ -327,3 +298,5 @@ class NeVRoNet:
                 tf.summary.scalar("Reg_Losses", tf.reduce_sum(reg_losses))
 
         return loss
+
+# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<  END

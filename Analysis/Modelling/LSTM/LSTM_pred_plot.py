@@ -5,8 +5,8 @@ Plot predictions made by the LSTM model
 Author: Simon Hofmann | <[surname].[lastname][at]pm.me> | 2017, 2019 (Update)
 """
 
+#%% Import
 import sys
-# sys.path.insert(0, './LSTM Model')  # or set the folder as source root
 from load_data import *
 from tensorflow import gfile
 import string
@@ -15,20 +15,18 @@ import ast
 
 if platform.system() != 'Darwin':
     import matplotlib
-
     matplotlib.use('Agg')
-    # print(matplotlib.rcParams['backend'])
     import matplotlib.pyplot as plt
 else:
     import matplotlib.pyplot as plt
 
-# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+#%% Global vars >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o
 
 # Add mean input data
 plt_input_data = False  # default value: False TODO revisit
 
 
-# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+#%% Functions >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >
 
 # Save plot
 @true_false_request
@@ -62,7 +60,7 @@ def plot_all_there_is(dellog):
                                                   subfol + "/", str(dellog)])
 
 
-# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+#%% Get arguments >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<
 
 # # Check from where the script is executed, and adapt arguments accordingly:
 try:
@@ -114,7 +112,7 @@ if plots:
 else:  # If plots are not saved, do not delete log folders
     delete_log_folder = False
 
-# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+#%% Set paths & vars >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >
 
 # Get condition
 try:
@@ -169,7 +167,7 @@ if plots:
         abc = string.ascii_lowercase[abc_counter]
         abc_counter += 1
 
-# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+#%% Load data & results >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<
 
 # Load data
 pred_matrix = np.loadtxt(wdic_sub + file_name, delimiter=",")
@@ -357,7 +355,7 @@ def subplot_div(n_s_fold):
     return sub_rows_f, sub_col_f, sub_n_f
 
 
-# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+#%% Plot Figure 1 >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<
 
 # # Plot predictions 1)
 # open frame
@@ -382,10 +380,6 @@ for fold in range(s_fold):
     fig.add_subplot(sub_rows, sub_col, sub_n)
 
     # plot
-    # plt.plot(pred, label="prediction", marker='o', markersize=3)  # , style='r-'
-    # plt.plot(rating, ls="dotted", label="rating", marker='o', mfc='none', markersize=3)
-    # plt.plot(val_pred, label="val_prediction", marker='o', markersize=3)
-    # plt.plot(val_rating, ls="dotted", label="val_rating", marker='o', mfc='none', markersize=3)
     if task == "regression":
         # Predictions
         plt.plot(pred, color="steelblue", linewidth=lw, label="train-pred")
@@ -421,6 +415,7 @@ for fold in range(s_fold):
                      label="mean input data")
 
         fold_acc = np.round(val_acc[int(np.where(np.array(s_rounds) == fold)[0])], 3)
+
     else:  # == "classification"
         # Predictions
         plt.plot(pred, marker="o", markerfacecolor="None", ms=2, color="steelblue", linewidth=lw,
@@ -516,11 +511,11 @@ if plots:
 
     fig.savefig(wdic_plot + plot_filename)
 
-# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+#%% Plot Figure 2 >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<
 
 # # Plot accuracy-trajectories 2)
-fig2 = plt.figure(f"{s_fold}-Folds Accuracies | {s(subject)} | {cond} | {task} | mean(val_acc)={mean_acc} | 1Hz",
-                  figsize=figsize)
+fig2 = plt.figure(f"{s_fold}-Folds Accuracies | {s(subject)} | {cond} | {task} | mean(val_acc)={mean_acc}"
+                  f" | 1Hz", figsize=figsize)
 
 # Prepare subplot division
 sub_rows, sub_col, sub_n = subplot_div(n_s_fold=s_fold)
@@ -579,14 +574,16 @@ if task == "regression":
 
         plot_filename = f"{file_name[0:10]}{abc}_|{'_Hilbert_' if hilb else '_'}{int(reps)}*" \
             f"{'rnd-batch' if rnd_batch else 'subsequent-batch'}({batch_size})_|_{s_fold}-Folds_|" \
-            f"_Accuracies_|_{ s(subject)}_|_{cond}_|_mean(val_acc)_{mean_acc:.2f}_|_{path_specificity[:-1]}.png"
+            f"_Accuracies_|_{ s(subject)}_|_{cond}_|_mean(val_acc)_{mean_acc:.2f}_|_" \
+            f"{path_specificity[:-1]}.png"
 
         fig2.savefig(wdic_plot + plot_filename)
 
 else:  # task == "classification"
     plt.close()
 
-# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+
+#%% Plot Figure 3 >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<
 
 # # Plot loss-trajectories
 
@@ -654,7 +651,7 @@ if task == "regression":
 else:  # task == "classification"
     plt.close()
 
-# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+#%% Plot Figure 4 >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<
 
 # # Plot i) average training prediction and ii) concatenated val_prediction
 
@@ -850,7 +847,7 @@ if plots:
     fig4.savefig(wdic_plot + plot_filename)
 
 
-# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+#%% Update and close >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >
 
 @true_false_request
 def close_plots():
@@ -907,3 +904,7 @@ if plots:
 
     else:  # In case files are saved on MPI GPU server, delete manually:
         cprint("Delete log and checkpoint files manually.", "y")
+
+end()
+# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<  END
+

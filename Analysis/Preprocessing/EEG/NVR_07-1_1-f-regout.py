@@ -10,7 +10,9 @@ Selection of SSD components
 Author: Simon M. Hofmann | <[surname].[lastname][at]pm.me> | 2019
 """
 
-from utils import *
+#%% Import
+
+from utils import *  # assumes that NeVRo/Analysis/Modelling/LSTM/ is in sys.path
 from load_data import get_filename
 import pandas as pd
 from scipy.signal import welch
@@ -21,7 +23,7 @@ if os.sys.platform == "darwin":  # "darwin" == Mac
 import matplotlib.pyplot as plt
 
 
-# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+#%% Class: SSD Selection  >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
 class SelectSSDcomponents:
 
@@ -34,6 +36,7 @@ class SelectSSDcomponents:
                  poly_fit=False, test_alt_ffit=False,
                  sanity_check=False, save_plots_and_selection=False):
         """
+        Functional class to select SSD components given 1/f depending criteria.
         :param subjects: list or array of subjects to be trained. If None: apply on all 45 subjects
         :param condition: 'mov' or 'nomov' condition
         :param max_range: frequency-max for plots: absolute max ~130 Hz
@@ -475,9 +478,9 @@ class SelectSSDcomponents:
                     predicted = np.polyval(model3_alphout, f)  # predict on whole! freq-range
 
                 else:
-                    modelfao_opt_param, _ = curve_fit(f=self.f1_ab if not self.test_alt_ffit else self.f1_abc,
-                                                      xdata=_f_alphout_fit,
-                                                      ydata=np.log(_pxx_den_alphout_fit))
+                    modelfao_opt_param, _ = curve_fit(
+                        f=self.f1_ab if not self.test_alt_ffit else self.f1_abc,
+                        xdata=_f_alphout_fit, ydata=np.log(_pxx_den_alphout_fit))
 
                     if not self.test_alt_ffit:
                         predicted = self.f1_ab(fr=f,
@@ -508,7 +511,7 @@ class SelectSSDcomponents:
                 selected = False
                 if np.any(log_pxx_den_apeak > 0 + error_term):
                     # # Additional criterion: peak in area > adjacent areas
-                    cSD = 1.45  # TODO check = 1.45 whether to conservative
+                    cSD = 1.45  # TODO check = 1.45 whether too conservative
 
                     # Z-Score decision area:
                     left_pxx_right = np.append(log_pxx_den_apeak_flank_left,
@@ -574,7 +577,7 @@ class SelectSSDcomponents:
                     axs2.set_title("{} | {} | comp{} | z-alpha".format(s(sub), self.condition, ch + 1),
                                    color="g" if selected else "r")
                     axs2.legend(handlelength=0, handletextpad=0, loc='lower right')
-                    # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+                    # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
                 axs.plot(f, np.log(pxx_den), c="m", alpha=.3)  # Original
 
@@ -609,9 +612,6 @@ class SelectSSDcomponents:
 
                 axs.legend(handlelength=0, handletextpad=0, loc='lower right')
 
-                # np.var()
-                # axs.fill_between(f_apeak, np.array(log_pxx_den_apeak_stand+.5), alpha=.2)
-
             figs4.tight_layout()
             figs4.show()
             figs5.tight_layout()
@@ -636,12 +636,11 @@ class SelectSSDcomponents:
             np.savetxt(fname=self.tab_select_name, X=self.tab_select_ssd, header=";".join(col_names),
                        delimiter=";", fmt='%s')
             cprint("{}able saved. End.\n".format("Plots and t" if self.save_plots_and_selection else "T"),
-                   "b")
+                   col="b")
 
 
-# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+#%% Main: Run >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >
 
-# Execute
 if __name__ == "__main__":
     selcomp = SelectSSDcomponents(subjects=None, condition="mov",
                                   max_range=40, f_res_fac=5,
@@ -653,4 +652,5 @@ if __name__ == "__main__":
     selcomp.condition = "nomov"
     selcomp.select()
 
+    end()
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< END

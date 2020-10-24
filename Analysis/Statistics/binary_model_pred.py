@@ -1,7 +1,7 @@
 """
 Analysis on binary predictions of LSTM and CSP
 
-Author: Simon Hofmann | <[surname].[lastname][at]pm.me> | 2020
+Author: Simon M. Hofmann | <[surname].[lastname][at]pm.me> | 2020
 """
 
 # %% Import
@@ -15,7 +15,7 @@ from sklearn.metrics import classification_report, confusion_matrix
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-# %% ><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<
+#%% Set paths & vars >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >
 
 # # Set variables
 save_plot_individual_cm = True
@@ -30,7 +30,7 @@ wdic_results = f"../../../Results/"
 p2_predplots = f"../../../Results/Plots/ConfusionMatrix/"
 
 
-# %% ><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<
+#%% Functions >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >
 # Define plotting function
 
 def plot_cm(cm, model_name, condi, title, path2save=None, fm="png"):
@@ -56,8 +56,8 @@ def plot_cm(cm, model_name, condi, title, path2save=None, fm="png"):
         plt.close()
 
 
-# %% ><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<
-# Main()
+#%% Main: Run >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >
+
 if __name__ == "__main__":
 
     for cond in conditions:  # Conditions
@@ -124,4 +124,4 @@ if __name__ == "__main__":
 
     end()
 
-# %% ><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o  End
+# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<  END
