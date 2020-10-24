@@ -24,8 +24,8 @@ We tackled the data with three model approaches. The corresponding code can be f
 <a href="https://ieeexplore.ieee.org/document/4408441/">Common Spatial Pattern (CSP)</a> algorithm derives a set of spatial filters to project the EEG data onto compontents whose band-power maximally relates to the prevalence of specified classes (here low and high arousal).<br>
 <br>
 This part of the study was published at IEEE VR 2018 in Reutlingen, Germany:<br>
-<a href="https://ieeexplore.ieee.org/abstract/document/8446275"> Klotzsche, Mariola, Hofmann, Nikulin, Villringer, & Gaebler. <i>IEEE VR</i>, 2018.</a>
-<sub>[<a href="https://github.com/eioe/NeVRo/tree/klotzsche2018_ieeevr">archived code</a>]</sub><br>
+<a href="https://ieeexplore.ieee.org/abstract/document/8446275"> Klotzsche, Mariola, Hofmann, Nikulin, Villringer, & Gaebler. <i>IEEE VR</i>, 2018.</a>  
+<sup><sub>[<a href="https://github.com/eioe/NeVRo/tree/klotzsche2018_ieeevr">archived code</a>]</sub></sup>
 
 <h3>LSTM Model</h3>
 <a href="https://doi.org/10.1162/neco.1997.9.8.1735">Long Short-Term Memory (LSTM)</a> recurrent neural networks (RNNs) were trained on alpha-frequency components of the recorded EEG signal to predict subjective reports of arousal (ratings) in a binary (low and high arousal) and a continuous prediction task. The fed EEG components were generated via <a href="https://doi.org/10.1016/j.neuroimage.2011.01.057">Spatio Spectral Decomposition (SSD)</a> or SPoC. The SSD emphasizes the frequency of interest (here alpha) while attenuating the adjacent frequency bins. Performances of SPoC-trained models served as benchmark-proxies for models that were trained only on neural alpha information.<br>
