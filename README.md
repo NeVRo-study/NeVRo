@@ -7,7 +7,7 @@
 *This is a rough outline. A more detailed description can be found in the corresponding publications.*
 
 [![Python.pm](https://img.shields.io/badge/python->3.5-brightgreen.svg?maxAge=259200)](#)
-[![Matlab.pm](https://img.shields.io/badge/matlab->R2016.a-informational.svg?maxAge=259200)](#)
+[![Matlab.pm](https://img.shields.io/badge/matlab->R2016.a-red.svg?maxAge=259200)](#)
 [![R.pm](https://img.shields.io/badge/R->3.4-informational.svg?maxAge=259200)](#)
 [![version](https://img.shields.io/badge/version-2.0.2-yellow.svg?maxAge=259200)](#)
 
