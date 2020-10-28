@@ -3,7 +3,7 @@
 ![NeVRo](./.NeVRoCover.png)
 
 <h2>Decoding subjective emotional arousal from EEG during an immersive Virtual Reality experience</h2>
-Code base of: <a href="https://doi.org/10.1101/2020.10.24.353722"> Hofmann, Klotzsche, Mariola, Nikulin, Villringer, & Gaebler. <i>bioRxiv</i>, 2020</a><br>
+Code base of: <a href="https://doi.org/10.1101/2020.10.24.353722"> Hofmann, Klotzsche, Mariola, Nikulin, Villringer, & Gaebler. <i>bioRxiv</i>, 2020</a><br><br>
 
 [![Python.pm](https://img.shields.io/badge/python->3.5-brightgreen.svg?maxAge=259200)](#)
 [![Matlab.pm](https://img.shields.io/badge/matlab->R2016.a-red.svg?maxAge=259200)](#)
