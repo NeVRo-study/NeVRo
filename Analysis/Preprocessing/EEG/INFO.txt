@@ -5,7 +5,8 @@
 # For more details please look into the single scripts/functions. 
 #
 #---------------------------------------------------------------------------
-#
+
+# 24 October 2020: Simon M. Hofmann --- SHEscher
 # 29 March 2019: Felix Klotzsche --- eioe
 # 16 April 2019: Alberto Mariola --- langestroop
 #---------------------------------------------------------------------------
@@ -36,8 +37,9 @@ NVR_05_ICA.m:    Run ICA decomposition (default: Infomax; can be changed via <va
 NVR_06_rejcomp.m:    Perform semi-manual rejection of noisy ICA components, guided by the SASICA plugin (Chaumon et al., 2015) for EEGLAB and reproject the ICA weights onto the full data set 
                      (including the "noisy" epochs) to keep the temporal continuity and same length of data sets for all participants.
 
-NVR_07_SSD.m:    This script computes SSD on the ICA cleaned data. SSD is centered on the individualized peak alpha frequency computed for each participant (NVR_07_peak.m). Users can choose which peak file to use as a reference (eyes-closed resting state, no_movement task or movement_task). 
+NVR_07_SSD.m:    This script computes SSD on the ICA cleaned data. SSD is centered on the individualized peak alpha frequency computed for each participant (NVR_07_peak.m). Users can choose which peak file to use as a reference (eyes-closed resting state, no_movement task or movement_task).
 
+NVR_07-1_1-f-regout.py:   Script to select SSD components as function of the approximated 1/f in the signal
 
 # For peak selection use (in `/helpers`)
 NVR_peak.m:    This script finds the peak in a selected frequency band (alpha in our case) for both the resting state and SBA task-related recordings. 

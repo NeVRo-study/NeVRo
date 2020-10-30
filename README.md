@@ -1,14 +1,14 @@
-<h1>NeVRo – Neuro VR roller coasters</h1>
+<h1>NeVRo – Neuro Virtual Reality </h1>
 
 ![NeVRo](./.NeVRoCover.png)
 
 <h2>Decoding subjective emotional arousal from EEG during an immersive Virtual Reality experience</h2>
-
-*This is a rough outline. A more detailed description will come soon. Please see the publications for the specific models linked in the corresponding sections.*
+Code base of: <a href="https://doi.org/10.1101/2020.10.24.353722"> Hofmann, Klotzsche, Mariola, Nikulin, Villringer, & Gaebler. <i>bioRxiv</i>, 2020</a><br><br>
 
 [![Python.pm](https://img.shields.io/badge/python->3.5-brightgreen.svg?maxAge=259200)](#)
-[![Matlab.pm](https://img.shields.io/badge/Matlab->R2016.a-informational.svg?maxAge=259200)](#)
-[![version](https://img.shields.io/badge/version-2.0.1-yellow.svg?maxAge=259200)](#)
+[![Matlab.pm](https://img.shields.io/badge/matlab->R2016.a-red.svg?maxAge=259200)](#)
+[![R.pm](https://img.shields.io/badge/R->3.4-informational.svg?maxAge=259200)](#)
+[![version](https://img.shields.io/badge/version-2.0.2-yellow.svg?maxAge=259200)](#)
 
 <h2>Introduction</h2>
 
@@ -34,8 +34,14 @@ Furthermore, we tested whether peripheral physiological responses, here the card
 This part of the study was published at IEEE AIVR 2018 in Taichung, Taiwan:<br>
 <a href="https://ieeexplore.ieee.org/document/8613645"> Hofmann, Klotzsche, Mariola, Nikulin, Villringer, & Gaebler. <i>IEEE AIVR</i>, 2018</a>
 
-<h3>Miscellaneous</h3>
-Before the main phase of the experiment, we tested the Interceptive Accuracy (IA) of each subject with the <a href="https://doi.org/10.1111/j.1469-8986.1981.tb02486.x">Heart Beat Perception (HBP)</a> task.   
+
+<h3>Versions</h3>
+
+###### version 2.x
+`2018-2020`: preprocessing for models (SPoC, CSP, LSTM) was harmonized, and their evaluation and metrics were adapted accordingly. Plus, a more detailed documentation is available.
+
+###### version 1.x
+`2017-2018`: Code of two above mentioned IEEE conference publications.
 
 <h3>Collaborators</h3>
 <a href="https://github.com/SHEscher">Simon M. Hofmann</a><br>

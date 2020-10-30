@@ -9,7 +9,6 @@ respectively.
 ..........................................................................................................
 MODEL 1: Feed best SSD-extracted alpha components (250Hz) into LSTM to predict ratings (1Hz)
 
-
 Comp1: [x1_0, ..., x1_250], [x1_251, ..., x1_500], ... ]  ==> LSTM \
  ...                                                                ==>> Rating [y0, y1, ... ]
 CompN: [x2_0, ..., x2_250], [x2_251, ..., x2_500], ... ]  ==> LSTM /
@@ -24,21 +23,20 @@ Channel02: [x02_0, ..., x02_250], [x02_251, ..., x02_500], ... ]  ==> LSTM  \
 Channel30: [x30_0, ..., x30_250], [x30_251, ..., x30_500], ... ]  ==> LSTM /
 ..........................................................................................................
 
-Author: Simon Hofmann | <[surname].[lastname][at]pm.me> | 2017, 2019 (Update)
+Author: Simon M. Hofmann | <[surname].[lastname][at]pm.me> | 2017, 2019 (Update)
 """
 
-# import sys
-# sys.path.insert(0, './LSTM Model')  # or set the folder as source root
+#%% Import
+
 import copy
 from utils import *
 import pandas as pd
 
-# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+#%% Set paths and vars >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o
 
-#  load EEG data of from *.set (EEGlab format) with: mne.io.read_raw_eeglab() and mne.read_epochs_eeglab()
+# load EEG data of from *.set (EEGlab format) with: mne.io.read_raw_eeglab() and mne.read_epochs_eeglab()
 
 fresh_prep = True  # with refreshed preprocessed data is to be used
-
 n_sub = 45
 
 # # # Define root abd data folders
@@ -67,8 +65,8 @@ path_results_xcorr = "../../../Results/x_corr/"
 # subjects = range(1, 45+1)
 # dropouts = [1,12,32,33,38,40,45]
 
-# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
+#%% Functions >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >
 
 def t_roller_coasters(sba=True):
     """
@@ -176,8 +174,6 @@ def get_num_components(subject, condition, filetype, selected=True):
     ncomp = int(ncomp) if ncomp != "nan" else np.nan
 
     return ncomp
-
-# get_num_components(subject=24, condition="mov", filetype="SSD")
 
 
 def get_list_components(subject, condition, filetype, selected=True, lstype="list"):
@@ -651,11 +647,8 @@ def mean_line_prediction(subject, condition, sba=True):
 
 class DataSet(object):
     """
-    Utility class (http://wiki.c2.com/?UtilityClasses) to handle dataset structure
+    Class to handle dataset structure
     """
-
-    # s_fold_idx_list = []  # this needs to be changed across DataSet-instances
-    # s_fold_idx = []  # this needs to be changed across DataSet-instances
 
     def __init__(self, name, eeg, ratings, subject, condition, task, eeg_samp_freq=250.,
                  rating_samp_freq=1.):
@@ -688,11 +681,6 @@ class DataSet(object):
         self.current_batch = []
         self.subject = subject
         self.condition = condition
-
-    # @classmethod
-    # def update_s_fold_idx(cls):
-    #     """This updates the class variable s_fold_idx_list and s_fold_idx"""
-    #     pass
 
     @property
     def eeg(self):
@@ -736,9 +724,6 @@ class DataSet(object):
                           the Default is set to True
         :return: Next batch
         """
-
-        # if batch_size > 1:
-        #     raise ValueError("A batch_size of > 1 is not recommended at this point")
 
         assert batch_size % successive == 0, "batch_size must be a multiple of successive"
         assert successive_mode in [1, 2], "successive_mode must be either 1 or 2"
@@ -978,9 +963,11 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
         sba: Whether to use SBA-data
         s_freq_eeg: Sampling Frequency of EEG
         shuffle: shuffle data (for classific. task to have balance low/high arousal in all folds/valsets)
-        shuffle_order: None: indices for data vector gets shuffled (if True: shuffle): index order array (len(rating),)
-        balanced_cv: False: at each iteration/fold data gets shuffled (can lead to overlapping samples in valset);
-                          True: all folds are fixed before start of training (no overlap of samples in valset)
+        shuffle_order: None: indices for data vector gets shuffled
+                       (if True: shuffle): index order array (len(rating),)
+        balanced_cv: False: at each iteration/fold data gets shuffled (can lead to overlapping samples
+                            in valset);
+                     True: all folds are fixed before start of training (no overlap of samples in valset)
         testmode: Whether to load data for testmode
     Returns:
         Train, Validation Datasets
@@ -1242,49 +1229,4 @@ def filnames_processed_models(wdic_of_subject, path_specificity):
 
     return _file_name, _val_filename, _acc_filename, _shuff_filename
 
-# # Testing
-# nevro_data = get_nevro_data(subject=36, task="regression", cond="NoMov",
-#                             component=5, hr_component=True,
-#                             filetype="SSD", hilbert_power=True, band_pass=True,
-#                             s_fold_idx=9, s_fold=10, sba=True)
-# print("Subject:", nevro_data["train"].subject,
-#       "\nEEG shape:", nevro_data["train"].eeg.shape,
-#       "\nRating shape:", nevro_data["train"].ratings.shape,
-#       "\nCondition:", nevro_data["train"].condition)
-#
-# nevro_data = get_nevro_data(subject=44, task="classification", cond="NoMov",
-#                             component=4, hr_component=False,
-#                             filetype="SSD", hilbert_power=False, band_pass=False,
-#                             s_fold_idx=9, s_fold=10, sba=True)
-# print("Subject:", nevro_data["validation"].subject,
-#       "\nEEG shape:", nevro_data["validation"].eeg.shape,
-#       "\nRating shape:", nevro_data["validation"].ratings.shape,
-#       "\nCondition:", nevro_data["validation"].condition)
-#
-# # Test equal_comp_matrix
-# nevro_data = get_nevro_data(subject=44, task="classification", cond="NoMov",
-#                             component=[1, 2, 4], hr_component=True, equal_comp_matrix=None,
-#                             filetype="SSD", hilbert_power=False, band_pass=False,
-#                             s_fold_idx=9, s_fold=10, sba=True)
-# print("Subject:", nevro_data["validation"].subject,
-#       "\nEEG shape:", nevro_data["validation"].eeg.shape,
-#       "\nRating shape:", nevro_data["validation"].ratings.shape,
-#       "\nCondition:", nevro_data["validation"].condition)
-#
-# nevro_data = get_nevro_data(subject=44, task="classification", cond="NoMov",
-#                             component=[1, 2, 4], hr_component=True, equal_comp_matrix=6,
-#                             filetype="SSD", hilbert_power=False, band_pass=False,
-#                             s_fold_idx=9, s_fold=10, sba=True)
-# print("Subject:", nevro_data["validation"].subject,
-#       "\nEEG shape:", nevro_data["validation"].eeg.shape,  # (27, 250, 6=columns)
-#       "\nRating shape:", nevro_data["validation"].ratings.shape,
-#       "\nCondition:", nevro_data["validation"].condition)
-
-# for _ in range(27):
-#     x = nevro_data["validation"].next_batch(batch_size=4, randomize=True)
-#     print("Current Batch:", nevro_data["validation"].current_batch)
-#     print("n_remaining slices: {}/{}".format(len(nevro_data["validation"].remaining_slices),
-#                                              nevro_data["validation"]._num_time_slices))
-#     print("index in current epoch:", nevro_data["validation"]._index_in_epoch)
-#     print("epochs copmleted:", nevro_data["validation"]._epochs_completed)
-#     print("")
+# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<  END

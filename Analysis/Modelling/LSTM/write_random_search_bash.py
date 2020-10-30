@@ -1,17 +1,20 @@
 # coding=utf-8
 """
-Write random search bashfiles.
+Write random search bash files.
 1) Do broad search: run over small subset of 10 random subjects
 2) apply best working hyperparameter sets, i.e. 2 best sets per subject of broad search, on all subjects
 
 Author: Simon Hofmann | <[surname].[lastname][at]pm.me> | 2017, 2019 (Update)
 """
 
+#%% Import
+
 from load_data import *
 import sys
 import fileinput
 
-# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+#%% Paths >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<
+
 # Set paths to bashfile dir
 p2_bash = './bashfiles/'
 
@@ -20,7 +23,7 @@ if not os.path.exists(p2_bash):
     os.mkdir(p2_bash)
 
 
-# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+#%% Functions >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >
 
 def draw_components(n, subject, condition, filetype, select_mode="one_up", dtype=None):
     """
@@ -84,8 +87,9 @@ def write_search_bash_files(subs, filetype, condition,
     :param rand_batch: Should remain True
     :param plot: Whether to plot results after processing
     :param successive_default: How many of random batches shall remain in successive order. That is, the
-    time-slices (1-sec each) that are kept in succession. Representing subjective experience, this could
-    be 2-3 sec in order to capture responses to the stimulus environment.
+                               time-slices (1-sec each) that are kept in succession. Representing
+                               subjective experience, this could be 2-3 sec in order to capture responses
+                               to the stimulus environment.
     :param del_log_folders: Whether to delete log files and checkpoints after processing and plotting
     :param summaries: Whether verbose summaries (get deleted if del_log_folders==True)
     :param n_combinations: Number of random combinations in hyperparameter search
@@ -132,8 +136,6 @@ def write_search_bash_files(subs, filetype, condition,
     if eqcompmat is None:
         eqcompmat = ask_true_false(question="Shall the model input matrix always be the same in size?")
     eqcompmat = 10 if eqcompmat else 0
-    # eqcompmat = int(cinput("What should be the number (int) of columns (i.e. components)?",
-    #                        "b"))
 
     # Create bashfile if not there already:
     bash_file_name = p2_bash + f"bashfile_randomsearch_{cond}_{tfix}.sh"
@@ -148,7 +150,7 @@ def write_search_bash_files(subs, filetype, condition,
         with open(bash_file_name, "w") as bashfile:  # 'a' for append
             bashfile.write("#!/usr/bin/env bash\n\n" + f"# Random Search Bashfile: {task}")
         for subash_fname in sub_bash_file_names:
-            with open(subash_fname, "w") as bashfile:  # 'a' for append
+            with open(subash_fname, "w") as bashfile:
                 bashfile.write("#!/usr/bin/env bash\n\n"+"# Random Search Bashfile_{}: {}".format(
                     subash_fname.split("_")[-1].split(".")[0], task))
 
@@ -188,8 +190,8 @@ def write_search_bash_files(subs, filetype, condition,
                         break
 
         # learning_rate
-        # learning_rate = np.random.choice(a=['1e-1', '1e-2', '1e-3', '5e-4'])
         learning_rate = np.random.choice(a=['1e-2', '1e-3', '5e-4'])
+        # learning_rate = np.random.choice(a=['1e-1', '1e-2', '1e-3', '5e-4'])
 
         # weight_reg
         weight_reg = np.random.choice(a=['l1', 'l2'])
@@ -238,8 +240,6 @@ def write_search_bash_files(subs, filetype, condition,
                                             filetype=filetype, select_mode=component_modes, dtype='str')
 
             # path_specificities
-            # TODO: Could indicate in comp- which selection criterion applied (update then also
-            #  best_hyperparameter.py)
             path_specificities = f"{tfix}_{cond}_RndHPS_" \
                 f"lstm-{'-'.join(str(lstm_size).split(','))}_" \
                 f"fc-{'-'.join(str(fc_n_hidden).split(','))}_" \
@@ -328,13 +328,12 @@ def write_search_bash_files(subs, filetype, condition,
 def write_bash_from_table(subs, table_path, condition, task=None, n_subbash=4, del_log_folders=True):
     """
     Write executable bash scripts for list of subjects (usually full cohort). Corresponding
-    hyperparameters will be
-    extracted from given table (path). This is (usually) done for a 'narrow' search over best
-    hyperparameter settings
-    that are received from a broad random search on a subset of subjects.
+    hyperparameters will be extracted from given table (path). This is (usually) done for a 'narrow'
+    search over best hyperparameter settings that are received from a broad random search on a subset of
+    subjects.
     :param subs: list of subjects
     :param table_path: path to table. Asserts table to be in subfolder
-        './processed/Random_Search_Tables/...'
+                       './processed/Random_Search_Tables/...'
     :param condition: 'mov' OR 'nomov'
     :param task: 'classification' OR 'regression'; If None: try to extract from path
     :param n_subbash: Define number of sub-bashfiles (for distributed processing)
@@ -367,8 +366,6 @@ def write_bash_from_table(subs, table_path, condition, task=None, n_subbash=4, d
     # [write full path implementation if necessary]
     wd_tables = f"./processed/Random_Search_Tables/{cond}/0_broad_search/{task}/per_subject/"
     full_table_path = wd_tables + table_path
-    # table_path = wd_tables \
-    #              + "unique_Best_2_HPsets_over_10_Subjects_mean_acc_0.660_Random_Search_Table_BiCl.csv"
 
     if not isinstance(subs, list) and not isinstance(subs, np.ndarray):
         subs = [subs]
@@ -481,7 +478,7 @@ def write_bash_from_table(subs, table_path, condition, task=None, n_subbash=4, d
         # and in subbashfile
         subbash = subbash_suffix[combi_count]
         sub_bash_file_name = bash_filename.split(".sh")[0] + subbash
-        with open(sub_bash_file_name, "a") as subbashfile:  # 'a' for append
+        with open(sub_bash_file_name, "a") as subbashfile:
             subbashfile.write("\n" + bash_line)
 
         # Set Counter
@@ -563,7 +560,7 @@ def update_bashfiles(table_name=None, subject=None, path_specs=None, all_runs=Fa
         cprint(f"There is no corresponding table: '{table_name}'", 'r')
 
 
-# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+#%% Main >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o
 
 # # # Adapt here for which subjects bash files should be written and in which condition
 
@@ -603,7 +600,7 @@ if __name__ == "__main__":
                                  np.array(ssd_comp_sel_tab[ssd_comp_sel_tab['n_sel_comps'] < 4]["# ID"]))
 
         elif datatype == "SPOC":
-            raise NotImplementedError("Dropouts are not defined yet via SPOC component selection.")
+            raise NotImplementedError("Dropouts are not defined (yet) via SPOC component selection.")
 
             # # Alternatively define dropouts here:
             # dropouts = np.array([1, 12, 32, 33, 38, 40, 45])  # due to acquisition problems
@@ -613,7 +610,6 @@ if __name__ == "__main__":
             # would lead to a calculation of unreliable ICA-weights, dominated by the noisy segments.
             # add_drop = [10, 16, 19, 23, 41, 43]  # no mov
             # TODO add_drop = [...]  # mov
-
             # dropouts = np.append(dropouts, add_drop)
 
         else:
@@ -674,4 +670,5 @@ if __name__ == "__main__":
                                f"in '{p2tables}'.", 'y')
 
         end()
+
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<  END

@@ -1,21 +1,22 @@
 # coding=utf-8
 """
-After we run grid or random search on subjects,
-we find now the best hyperparameters from the processed files.
+After we run grid or random search on subjects, we find now the best hyperparameters from the
+processed files.
 
 Author: Simon Hofmann | <[surname].[lastname][at]pm.me> | 2017, 2019-2020 (Update)
 """
 
+#%% Import
 import copy
 import ast
 from utils import *
 
-# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+#%% Set environment  >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >
 
 setwd("/Analysis/Modelling/LSTM/")
 
 
-# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+#%% Functions  >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o
 
 def open_best_params(subjects, task, condition, n=5):
     """
@@ -51,11 +52,6 @@ def open_best_params(subjects, task, condition, n=5):
                     for line_terminated in f:
                         line = line_terminated.rstrip("\n")
 
-                        # if "Task" in line:
-                        #     tsk = line.split(" ")[1]
-                        #     assert tsk in ["classification", "regression"], "Task is not given."
-                        #     classification = True if tsk == "classification" else False
-
                         if task == "classification":
                             if "mean(Classification_Accuracy)" in line:
                                 accuracy = line.split(" ")[1]
@@ -66,7 +62,6 @@ def open_best_params(subjects, task, condition, n=5):
                         elif task == "regression":
                             if "mean(Accuracy)" in line:
                                 accuracy = line.split(" ")[1]
-                                # print(accuracy)
                                 # Fill in lists
                                 acc_list.append(float(accuracy))
                                 acc_name_list.append(file_name)
@@ -80,10 +75,6 @@ def open_best_params(subjects, task, condition, n=5):
 
         for file_n in acc_name_list_sorted[:n]:
             identifier = file_n.split("folds_")[1][:-4]
-            # try:
-            #     identifier = file_n.split("folds_")[1][:-4]
-            # except IndexError:
-            #     identifier = file_n.split(f"_S{sub}")[0]
 
             for plot_file in os.listdir(wdic_plot):
                 if identifier in plot_file and "_all_train_val_" in plot_file:
@@ -618,7 +609,7 @@ def model_performance(over, task, condition, search, input_type):
         np.savetxt(fname=wd_tables + export_filename, X=sorted_fin_table, delimiter=";", fmt="%s")
 
 
-# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+#%% Main: Run  >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o
 
 if __name__ == "__main__":
 
@@ -669,5 +660,5 @@ if __name__ == "__main__":
                 if searchi == "broad":
                     cprint("Run write_random_search_bash.py to initiate narrow-search.", 'y')
 
-end()
+    end()
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<  END

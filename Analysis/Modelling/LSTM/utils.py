@@ -5,7 +5,9 @@ Some meta functions
 Author: Simon Hofmann | <[surname].[lastname][at]pm.me> | 2017, 2019-2020 (Update)
 """
 
-import datetime
+#%% Import
+
+from datetime import datetime, timedelta
 from functools import wraps
 import numpy as np
 from scipy.signal import hilbert
@@ -14,11 +16,9 @@ import platform
 import os
 import psutil
 from pathlib import Path
-try:  # local function to send emails from script
-    from TEMP.send_mail import *
-except ModuleNotFoundError:
-    pass
 
+
+#%% Environment >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o
 
 def setwd(new_dir):
 
@@ -56,11 +56,96 @@ def setwd(new_dir):
         else:
             cprint(f"Given folder not found. Working dir remains:\t{os.getcwd()}\n", 'r')
 
-    # else:
-    #     print("Already in correct working dir")
+
+def delete_dir_and_files(parent_path):
+    """
+    Delete given folder and all subfolders and files.
+
+    os.walk() returns three values on each iteration of the loop:
+        i)    The name of the current folder: dirpath
+        ii)   A list of folders in the current folder: dirnames
+        iii)  A list of files in the current folder: files
+
+    :param parent_path: path to parent folder
+    :return:
+    """
+    # Print the effected files and subfolders
+    if Path(parent_path).exists():
+        print(f"\nFollowing (sub-)folders and files of parent folder '{parent_path}' would be deleted:")
+        for file in Path(parent_path).glob("**/*"):
+            cprint(f"{file}", 'b')
+
+        # Double checK: Ask whether to delete
+        delete = ask_true_false("Do you want to delete this tree and corresponding files?", 'r')
+
+        if delete:
+            # Delete all folders and files in the tree
+            for dirpath, _, files in os.walk(parent_path, topdown=False):
+                cprint(f"Remove folder: {dirpath}", "r")
+                for file_name in files:
+                    cprint(f"Remove file: {file_name}", 'r')
+                    os.remove(os.path.join(dirpath, file_name))
+                os.rmdir(dirpath)
+        else:
+            cprint("Tree and files won't be deleted!", 'b')
+
+    else:
+        cprint(f"Given folder '{parent_path}' doesn't exist.", 'r')
 
 
-# Timer
+def find(fname, folder=".", typ="file", exclusive=True, fullname=True, abs_path=False, verbose=True):
+    """
+    Find file(s) in given folder
+
+    :param fname: full filename OR consecutive part of it
+    :param folder: root folder to search
+    :param typ: 'file' or folder 'dir'
+    :param exclusive: only return path when only one file was found
+    :param fullname: True: consider only files which exactly match the given fname
+    :param abs_path: False: return relative path(s); True: return absolute path(s)
+    :param verbose: Report findings
+
+    :return: path to file OR list of paths, OR None
+    """
+
+    ctn_found = 0
+    findings = []
+    for root, dirs, files in os.walk(folder):
+        search_in = files if typ.lower() == "file" else dirs
+        for f in search_in:
+            if (fname == f) if fullname else (fname in f):
+                ffile = os.path.join(root, f)  # found file
+
+                if abs_path:
+                    ffile = os.path.abspath(ffile)
+
+                findings.append(ffile)
+                ctn_found += 1
+
+    if exclusive and len(findings) > 1:
+        if verbose:
+            cprint(f"\nFound several {typ}s for given fname='{fname}', please specify:", 'y')
+            print("", *findings, sep="\n\t>> ")
+        return None
+
+    elif not exclusive and len(findings) > 1:
+        if verbose:
+            cprint(f"\nFound several {typ}s for given fname='{fname}', return list of {typ} paths", 'y')
+        return findings
+
+    elif len(findings) == 0:
+        if verbose:
+            cprint(f"\nDid not find any {typ} for given fname='{fname}', return None", 'y')
+        return None
+
+    else:
+        if verbose:
+            cprint(f"\nFound this {typ}: '{findings[0]}'", 'y')
+        return findings[0]
+
+
+#%% Timer >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<
+
 def function_timed(funct):
     """
     This allows to define new function with the timer-wrapper
@@ -70,18 +155,15 @@ def function_timed(funct):
             print("Any Function")
     And try:
         foo()
-    http://stackoverflow.com/questions/2245161/how-to-measure-execution-time-of-functions-automatically-in-python
     """
 
     @wraps(funct)
     def wrapper(*args, **kwds):
-        start_timer = datetime.datetime.now()
+        start_timer = datetime.now()
 
         output = funct(*args, **kwds)  # == function()
 
-        duration = datetime.datetime.now() - start_timer
-
-        # duration = chop_microseconds(delta=duration)  # do not show microseconds(ms)
+        duration = datetime.now() - start_timer
 
         print("Processing time of {}: {} [h:m:s:ms]".format(funct.__name__, duration))
 
@@ -89,33 +171,29 @@ def function_timed(funct):
 
     return wrapper
 
-# @function_timed
-# def foo():
-#     print("Any Function")
-#
-# foo()
-
 
 def chop_microseconds(delta):
-    return delta - datetime.timedelta(microseconds=delta.microseconds)
+    return delta - timedelta(microseconds=delta.microseconds)
 
 
 def average_time(list_of_timestamps, in_timedelta=True):
     """
     Method to average time of a list of time-stamps. Necessary for Python 2.
-    In Python3 simply: np.mean([datetime.timedelta(0, 20), ... , datetime.timedelta(0, 32)])
+    In Python3 simply: np.mean([timedelta(0, 20), ... , timedelta(0, 32)])
 
     :param list_of_timestamps: list of time-stamps
-    :param in_timedelta: whether to return in datetime.timedelta-format.
+    :param in_timedelta: whether to return in timedelta-format.
     :return: average time
     """
-    mean_time = sum(list_of_timestamps, datetime.timedelta()).total_seconds() / len(list_of_timestamps)
+    mean_time = sum(list_of_timestamps, timedelta()).total_seconds() / len(list_of_timestamps)
 
     if in_timedelta:
-        mean_time = datetime.timedelta(seconds=mean_time)
+        mean_time = timedelta(seconds=mean_time)
 
     return mean_time
 
+
+#%% Subjects >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
 def s(subject):
     """
@@ -124,6 +202,8 @@ def s(subject):
     """
     return 'S' + str(subject).zfill(2)
 
+
+#%% Transformation >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
 def normalization(array, lower_bound, upper_bound):
     """
@@ -242,6 +322,8 @@ def calc_hilbert_z_power(array):
     return hilbert_z_power
 
 
+#%% Model training >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+
 def create_s_fold_idx(s_folds, list_prev_indices=None):
 
     if not list_prev_indices:  # list_prev_indices == []
@@ -253,11 +335,6 @@ def create_s_fold_idx(s_folds, list_prev_indices=None):
     list_prev_indices.append(s_fold_idx)
 
     return s_fold_idx, list_prev_indices
-
-# s_idx, list_indices = create_s_fold_idx(s_folds=10)
-# for _ in range(9):
-#     s_idx, list_indices = create_s_fold_idx(s_folds=10, list_prev_indices=list_indices)
-# len(list_indices)
 
 
 def calc_binary_class_accuracy(prediction_matrix):
@@ -281,6 +358,8 @@ def calc_binary_class_accuracy(prediction_matrix):
         val_class_acc_list[fo] = fo_accur
     return val_class_acc_list
 
+
+#%% Sorting >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
 def sort_mat_by_mat(mat, mat_idx):
     """
@@ -364,25 +443,7 @@ def interpolate_nan(arr_with_nan, verbose=False):
     return updated_array
 
 
-def cln(factor=1):
-    """Clean the console"""
-    print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n" * factor)
-
-
-def true_false_request(func):
-
-    @wraps(func)
-    def wrapper(*args, **kwds):
-        func(*args, **kwds)  # should be only a print command
-
-        tof = input("(T)rue or (F)alse: ").lower()
-        assert tof in ["true", "false", "t", "f"], "Must be 'T', 't' or 'T/true', or 'F', 'f', 'F/false'"
-        output = True if tof in "true" else False
-
-        return output
-
-    return wrapper
-
+#%% System >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><
 
 def open_folder(path):
     """Open specific folder in Finder. Can also be a file"""
@@ -456,6 +517,48 @@ def path2_mpi_gpu_hd(disk):
     return path_2_mpi_gpu_hd
 
 
+def gpu_test():
+    import tensorflow as tf
+
+    print("GPU device is available:", tf.test.is_gpu_available())
+    # Returns True iff a gpu device of the requested kind is available.
+
+    compute_on = '/gpu:0' if tf.test.is_gpu_available() else '/cpu:0'
+
+    with tf.device(compute_on):  # '/cpu:0'
+        a = tf.constant([1.0, 2.0, 3.0, 4.0, 5.0, 6.0], shape=[2, 3], name='a')
+        b = tf.constant([1.0, 2.0, 3.0, 4.0, 5.0, 6.0], shape=[3, 2], name='b')
+        c = tf.matmul(a, b)
+    # Creates a session with log_device_placement set to True.
+    sess = tf.Session(config=tf.ConfigProto(log_device_placement=True))
+    # Runs the op.
+    print(sess.run(c))
+
+    if 'gpu' not in compute_on:
+        print("Can only be run on CPU")
+
+    # Another test
+    # In case there is a GPU: test it against CPU
+    device_name = ["/gpu:0", "/cpu:0"] if tf.test.is_gpu_available() else ["/cpu:0"]
+
+    for device in device_name:
+        for shape in [4500, 6000, 12000]:
+            with tf.device(device):
+                random_matrix = tf.random_uniform(shape=(shape, shape), minval=0, maxval=1)
+                dot_operation = tf.matmul(random_matrix, tf.transpose(random_matrix))
+                sum_operation = tf.reduce_sum(dot_operation)
+
+            startTime = datetime.now()
+            with tf.Session(config=tf.ConfigProto(log_device_placement=True)) as session:
+                result = session.run(sum_operation)
+                print(result)
+
+            print("\n" * 3)
+            print("Shape:", (shape, shape), "Device:", device)
+            print("Time taken:", datetime.now() - startTime)
+            print("\n" * 3)
+
+
 def set_path2data():
 
     path_data = "../../../Data/"
@@ -467,6 +570,28 @@ def set_path2data():
     cprint(f"Data dir: \t\t{path_data}", "y")
 
     return path_data
+
+
+#%% I/O & Print >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o
+
+def cln(factor=1):
+    """Clean the console"""
+    print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n" * factor)
+
+
+def true_false_request(func):
+
+    @wraps(func)
+    def wrapper(*args, **kwds):
+        func(*args, **kwds)  # should be only a print command
+
+        tof = input("(T)rue or (F)alse: ").lower()
+        assert tof in ["true", "false", "t", "f"], "Must be 'T', 't' or 'T/true', or 'F', 'f', 'F/false'"
+        output = True if tof in "true" else False
+
+        return output
+
+    return wrapper
 
 
 class Bcolors:
@@ -530,17 +655,6 @@ class Bcolors:
     DICT = {'p': HEADERPINK, 'b': OKBLUE, 'g': OKGREEN, 'y': WARNING, 'r': FAIL,
             'ul': UNDERLINE, 'bo': BOLD}
 
-# print(Bcolors.HEADER + "Header: No active frommets remain. Continue?" + Bcolors.ENDC)
-# print(Bcolors.OKBLUE + "Ok Blue: No active frommets remain. Continue?" + Bcolors.ENDC)
-# print(Bcolors.OKGREEN + "Ok Green: No active frommets remain. Continue?" + Bcolors.ENDC)
-# print(Bcolors.WARNING + "Warning: No active frommets remain. Continue?" + Bcolors.ENDC)
-# print(Bcolors.FAIL + "Fail: No active frommets remain. Continue?" + Bcolors.ENDC)
-# print(Bcolors.ENDC + "Endc: No active frommets remain. Continue?" + Bcolors.ENDC)
-# print(Bcolors.BOLD + "Bold: No active frommets remain. Continue?" + Bcolors.ENDC)
-# print(Bcolors.UNDERLINE + "Underline: No active frommets remain. Continue?" + Bcolors.ENDC)
-# print(Bcolors.UNDERLINE + Bcolors.BOLD + Bcolors.WARNING +
-#       "Underline: No active frommets remain. Continue?" + Bcolors.ENDC)
-
 
 def cprint(string, col=None, fm=None):
     """Format given string"""
@@ -583,42 +697,6 @@ def ask_true_false(question, col="b"):
     cprint(question, col)
 
 
-def delete_dir_and_files(parent_path):
-    """
-    Delete given folder and all subfolders and files.
-
-    os.walk() returns three values on each iteration of the loop:
-        i)    The name of the current folder: dirpath
-        ii)   A list of folders in the current folder: dirnames
-        iii)  A list of files in the current folder: files
-
-    :param parent_path: path to parent folder
-    :return:
-    """
-    # Print the effected files and subfolders
-    if Path(parent_path).exists():
-        print(f"\nFollowing (sub-)folders and files of parent folder '{parent_path}' would be deleted:")
-        for file in Path(parent_path).glob("**/*"):
-            cprint(f"{file}", 'b')
-
-        # Double checK: Ask whether to delete
-        delete = ask_true_false("Do you want to delete this tree and corresponding files?", 'r')
-
-        if delete:
-            # Delete all folders and files in the tree
-            for dirpath, _, files in os.walk(parent_path, topdown=False):  # start from bottom, _ == dirnames
-                cprint(f"Remove folder: {dirpath}", "r")
-                for file_name in files:
-                    cprint(f"Remove file: {file_name}", 'r')  # f style  (for Python > 3.5)
-                    os.remove(os.path.join(dirpath, file_name))
-                os.rmdir(dirpath)
-        else:
-            cprint("Tree and files won't be deleted!", 'b')
-
-    else:
-        cprint(f"Given folder '{parent_path}' doesn't exist.", 'r')
-
-
 def try_funct(funct):
     """
     try wrapped function, if exception: tell user
@@ -647,3 +725,5 @@ def try_funct(funct):
 
 def end():
     cprint("\n" + "*<o>*" * 9 + "  END  " + "*<o>*" * 9 + "\n", col='p', fm='bo')
+
+# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<  END

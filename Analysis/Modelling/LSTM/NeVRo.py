@@ -4,10 +4,10 @@ Main script
     • run model
     • script should be called via bash files (see parser)
 
-Author: Simon Hofmann | <[surname].[lastname][at]pm.me> | 2017, 2019 (Update)
+Author: Simon M. Hofmann | <[surname].[lastname][at]pm.me> | 2017, 2019 (Update)
 """
 
-# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+#%% Import
 
 # Adaptations if code is run under Python2
 from __future__ import absolute_import
@@ -30,13 +30,13 @@ from write_random_search_bash import update_bashfiles
 
 # os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # Makes TensorFlow less verbose, comment out for debugging
 
-# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+#%% TO DO's >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
 # TODO successively adding SSD components, adding more non-alpha related information (non-b-pass)
 # TODO test trained model on different subject dataset.
 # TODO Train model on various subjects
 
-# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+#%% Set Defaults >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<
 
 TASK_DEFAULT = 'classification'  # prediction via 'regression' (continuous) or 'classification' (low-high)
 LEARNING_RATE_DEFAULT = 1e-3  # 1e-4
@@ -61,7 +61,7 @@ CONDITION_DEFAULT = "nomov"
 
 PATH_SPECIFICITIES_DEFAULT = ""  # or fill like this: "special_folder/"
 
-# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+#%% Model dicts >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o
 
 WEIGHT_REGULARIZER_DICT = {'none': lambda x: None,  # No regularization
                            # L1 regularization
@@ -72,13 +72,12 @@ WEIGHT_REGULARIZER_DICT = {'none': lambda x: None,  # No regularization
 ACTIVATION_FCT_DICT = {'elu': tf.nn.elu,
                        'relu': tf.nn.relu}
 
-# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+#%% Functions: Model training  >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<
 
 
 def train_step(loss):
     """
-    Defines the ops to conduct an optimization step. Optional: Implement Learning
-    rate scheduler or pick optimizer here.
+    Defines the ops to conduct an optimization step. Could do: Implement Learning rate scheduler.
 
     Args:
         loss: scalar float Tensor, full loss = mean squared error + reg_loss
@@ -98,27 +97,6 @@ def train_step(loss):
 def train_lstm():
     """
     Performs training and evaluation of LSTM model.
-
-    First define graph using class LSTM and its methods. Then define
-    necessary operations such as trainer (train_step in this case), savers
-    and summarizers. Finally, initialize model within a tf.Session and do the training.
-    ---------------------------
-    How to evaluate the model:
-    ---------------------------
-    Evaluation on test set should be conducted over full batch, i.e. validation fold,
-    while it is alright to do it over mini-batch for train set.
-    ---------------------------------
-    How often to evaluate the model:
-    ---------------------------------
-    - on training set every print_freq iterations
-    - on test set every eval_freq iterations
-    ------------------------
-    Additional:
-    ------------------------
-    Also takes snapshots of the model state (i.e. graph, weights and etc.)
-    every checkpoint_freq iterations. For this, use tf.train.Saver class.
-    checkout:
-    [https://www.tensorflow.org/versions/r0.11/how_tos/variables/index.html]
     """
 
     # # Parameters
@@ -126,7 +104,8 @@ def train_lstm():
     num_samples = 270 if FLAGS.task == "regression" else 180
     max_steps = FLAGS.repet_scalar * (num_samples - num_samples / FLAGS.s_fold) / FLAGS.batch_size
     assert float(max_steps).is_integer(), "max steps must be integer"
-    eval_freq = int(((num_samples - num_samples / FLAGS.s_fold) / FLAGS.batch_size) / 2)  # approx. 2 times per epoch
+    eval_freq = int(((num_samples - num_samples / FLAGS.s_fold) / FLAGS.batch_size) / 2)
+    # approx. 2 times per epoch
     checkpoint_freq = int(max_steps/2)  # int(max_steps)/2 for chechpoint after half the training
     print_freq = int(max_steps / 8)  # if too low, uses much memory
     assert FLAGS.batch_size % FLAGS.successive == 0, \
@@ -148,7 +127,8 @@ def train_lstm():
 
     # For fully connected layers
     if FLAGS.fc_n_hidden and len(FLAGS.fc_n_hidden) > 0 and FLAGS.fc_n_hidden not in "0":
-        n_hidden_units = [int(fc_l) for fc_l in FLAGS.fc_n_hidden.split(",")] + [1]  # output layer==1 rating-prediction
+        n_hidden_units = [int(fc_l) for fc_l in FLAGS.fc_n_hidden.split(",")] + [1]
+        # output layer==1 rating-prediction
     else:
         n_hidden_units = [1]
 
@@ -255,7 +235,7 @@ def train_lstm():
     for rnd, s_fold_idx in enumerate(s_fold_idx_list):
         cprint(f"\nTrain now on Fold-Nr.{s_fold_idx} (fold {rnd+1}/{len(s_fold_idx_list)}) | "
                f"{FLAGS.path_specificities[:-1]} | {s(FLAGS.subject)}", "b")
-        start_timer_fold = datetime.datetime.now().replace(microsecond=0)
+        start_timer_fold = datetime.now().replace(microsecond=0)
 
         # For each fold define new graph to finally compare the validation accuracies of each fold
         with tf.Session(graph=graph_dict[s_fold_idx]) as sess:  # (re-)initialise the model completely
@@ -267,7 +247,7 @@ def train_lstm():
                 if rnd > 0:
                     # Show time passed per fold and estimation of rest time
                     cprint(f"{s(FLAGS.subject)} | {FLAGS.path_specificities[:-1]}", "y")
-                    cprint(f"{datetime.datetime.now().replace(microsecond=0)}", "g")
+                    cprint(f"{datetime.now().replace(microsecond=0)}", "g")
                     cprint(f"Duration of previous fold {duration_fold} [h:m:s]", "y")
                     timer_fold_list.append(duration_fold)
                     # average over previous folds (np.mean(timer_fold_list) not possible in python2)
@@ -291,7 +271,8 @@ def train_lstm():
                                                 hilbert_power=FLAGS.hilbert_power,
                                                 task=FLAGS.task,
                                                 shuffle=FLAGS.shuffle,
-                                                shuffle_order=global_shuffle_order,  # is None if not FLAGS.balanced_cv
+                                                shuffle_order=global_shuffle_order,
+                                                # is None if not FLAGS.balanced_cv
                                                 balanced_cv=FLAGS.balanced_cv,
                                                 testmode=FLAGS.testmodel)
 
@@ -332,7 +313,8 @@ def train_lstm():
                 merged = tf.summary.merge_all()
 
                 # Define logdir
-                logdir = f'./processed/logs/{FLAGS.condition}/{s(FLAGS.subject)}/{FLAGS.path_specificities}'
+                logdir = f'./processed/logs/{FLAGS.condition}/{s(FLAGS.subject)}/' \
+                         f'{FLAGS.path_specificities}'
 
                 if not tf.gfile.Exists(logdir):
                     tf.gfile.MakeDirs(logdir)
@@ -373,6 +355,7 @@ def train_lstm():
                 if FLAGS.task == "classification":
                     val_steps = len(nevro_data["validation"].remaining_slices)  # 18
                 else:  # for regression
+                    total_length = nevro_data["validation"].num_time_slices
                     val_steps = int(total_length / FLAGS.s_fold)  # 27
 
                 # Init Lists of Accuracy and Loss
@@ -395,7 +378,7 @@ def train_lstm():
                     # Timer for every timer_freq=100 steps
                     if step == 0:
                         # Set Start Timer
-                        start_timer = datetime.datetime.now().replace(microsecond=0)
+                        start_timer = datetime.now().replace(microsecond=0)
 
                     if step % (timer_freq/2) == 0.:
                         cprint(f"Step {step}/{int(max_steps)} in Fold Nr.{s_fold_idx} "
@@ -404,7 +387,6 @@ def train_lstm():
 
                     # Evaluate on training set every print_freq (=10) iterations
                     if (step + 1) % print_freq == 0:
-                        # run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)  # TODO test
                         run_metadata = tf.RunMetadata()
 
                         summary, _, train_loss, train_acc, tain_infer, train_y = sess.run([
@@ -423,11 +405,6 @@ def train_lstm():
                         train_loss_list.append(train_loss)
 
                     else:
-                        # summary, _, train_loss, train_acc = sess.run([merged, optimization, loss,
-                        #                                               accuracy],
-                        #                                              feed_dict=_feed_dict(True))
-                        # train_writer.add_summary(summary=summary, global_step=step)
-
                         _, train_loss, train_acc, tain_infer, train_y = sess.run(
                             [optimization, loss, accuracy, infer, y], feed_dict=_feed_dict(training=True))
 
@@ -512,7 +489,7 @@ def train_lstm():
 
                     # End Timer
                     if step % timer_freq == 0 and step > 0:
-                        end_timer = datetime.datetime.now().replace(microsecond=0)
+                        end_timer = datetime.now().replace(microsecond=0)
 
                         # Calculate Duration and Estimations
                         duration = end_timer - start_timer
@@ -535,15 +512,15 @@ def train_lstm():
                             rest_duration_all_folds = rest_duration + \
                                                       average_time(timer_fold_list,
                                                                    in_timedelta=False)*remaining_folds
-                        # convert back to: datetime.timedelta(seconds=27)
-                        rest_duration = datetime.timedelta(seconds=rest_duration)
-                        rest_duration_all_folds = datetime.timedelta(seconds=rest_duration_all_folds)
+                        # convert back to: timedelta(seconds=27)
+                        rest_duration = timedelta(seconds=rest_duration)
+                        rest_duration_all_folds = timedelta(seconds=rest_duration_all_folds)
                         # Remove microseconds
                         rest_duration = chop_microseconds(delta=rest_duration)
                         rest_duration_all_folds = chop_microseconds(delta=rest_duration_all_folds)
 
                         cprint(f"{FLAGS.path_specificities[:-1]} | {s(FLAGS.subject)}", "y")
-                        cprint(f"{datetime.datetime.now().replace(microsecond=0)}", "g")
+                        cprint(f"{datetime.now().replace(microsecond=0)}", "g")
                         cprint(f"Time passed to train {timer_freq} steps: {duration} [h:m:s]", "y")
                         cprint(f"Estimated time to train the rest {int(max_steps - (step + 1))} steps in "
                                f"current Fold-Nr.{s_fold_idx}: {rest_duration} [h:m:s]", "y")
@@ -552,7 +529,7 @@ def train_lstm():
                                f"[h:m:s]", "y")
 
                         # Set Start Timer
-                        start_timer = datetime.datetime.now().replace(microsecond=0)
+                        start_timer = datetime.now().replace(microsecond=0)
 
                 # Close Writers:
                 train_writer.close()
@@ -576,7 +553,7 @@ def train_lstm():
                             list_file.write(str(value) + "\n")
 
             # Fold End Timer
-            end_timer_fold = datetime.datetime.now().replace(microsecond=0)
+            end_timer_fold = datetime.now().replace(microsecond=0)
             duration_fold = end_timer_fold - start_timer_fold
 
         # In case data was shuffled save corresponding order externally
@@ -735,10 +712,6 @@ def fill_pred_matrix(pred, y, current_mat, s_idx, current_batch, sfold, train=Tr
         # if step=27 => fill_pos=54 (in FOLD 2)
         fill_pos = [step if step < verge else step + fold_length for step in current_batch]
 
-        # fill_pos = step if step < verge else step + fold_length
-        # if not np.isnan(current_mat[pred_idx, fill_pos]):
-        #     print("Overwrites position in pred_matrix")
-
     else:  # case of validation (use: batch_size=1, but works also with >1)
         fill_pos = [step + int(verge) for step in current_batch]
         # Check whether position is already filled
@@ -754,15 +727,6 @@ def fill_pred_matrix(pred, y, current_mat, s_idx, current_batch, sfold, train=Tr
     return updated_mat
 
 
-def initialize_folders():
-    """
-    Initializes all folders in FLAGS variable.
-    """
-    path = ".some/random/path"  # TODO no need
-    if not tf.gfile.Exists(path):
-        tf.gfile.MakeDirs(path)
-
-
 def print_flags():
     """
     Prints all entries in FLAGS variable.
@@ -774,23 +738,12 @@ def print_flags():
 def main(_):
     print_flags()
 
-    # initialize_folders()
-
     if FLAGS.is_train:
-
         # Run main training
         train_lstm()
 
-        # Inform if training is done
-        try:
-            message(subject="Training is done", content=FLAGS.path_specificities)
-        except NameError:
-            pass
-
     else:
         pass
-        # print("I run now feature_extraction()")
-        # feature_extraction(layer=FLAGS.layer_feat_extr)
 
     if FLAGS.plot:
         # ["python3", "LSTM_pred_plot.py", Save_plots='True', Path specificities]
@@ -807,6 +760,8 @@ def str2bool(v):
     else:
         raise argparse.ArgumentTypeError('Boolean value expected.')
 
+
+#%% Main: Run >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >
 
 if __name__ == '__main__':
     # Command line arguments
@@ -887,3 +842,6 @@ if __name__ == '__main__':
     FLAGS, unparsed = parser.parse_known_args()
 
     tf.app.run()
+    end()
+
+# < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<  END
