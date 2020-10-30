@@ -3,6 +3,7 @@
 
 •  Export table of results across methods as pdf
 •  Export best hyperparameter sets per subject per condition
+•  Export table for individual alpha peaks
 
 Both table exports are aimed for publication
 
@@ -29,14 +30,15 @@ to_process = {"across_method": False,
 
 #%% Functions >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >
 
-def table2tex2pdf(path_to_table, preamble=False):
+def table2tex2pdf(tab, path_to_table, preamble=False):
 
     # Export as Latex (*.tex)
-    table.to_latex(path_to_table + ".tex", index=False)
+    tab.to_latex(path_to_table + ".tex", index=False, escape=False)
 
     # Export to pdf via pandoc (shell)
     preamb = ("--include-in-header=" + os.path.join(p2results, "preamble.tex")) if preamble else ''
-    os.system(f"pandoc {path_to_table + '.tex'} {preamb} -o {path_to_table + '.pdf'}")
+    os.system(f"pandoc {path_to_table + '.tex'} {preamb} -o {path_to_table + '.pdf'} "
+              f"--pdf-engine=xelatex")  # or w/o engine
 
 
 #%% Read and export >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >
@@ -52,19 +54,23 @@ if __name__ == "__main__":
             table = pd.read_csv(p2tab + ".csv")
             table = table.dropna().round(3)
 
-            # Change order of columns to: SPoC, CSP, LSTM
-            table = table[table.columns[[0, -3, -2, -1, 1, 2]]]
-
-            # Renamce SPoC
+            # Renamce Columns
             table.rename(columns=dict(zip(table.columns,
-                                          [col.replace("SPOC", "SPoC") for col in table.columns])),
+                                          [col.replace(
+                                              "SPOC", "SPoC").replace(
+                                              "_Pvalue", r"$_{p}$").replace(
+                                              "_LAMBDA", r"$_{\lambda}$").replace(
+                                              "_CORR", r"$_{r}$").replace(
+                                              "_acc", r"$_{acc}$") for col in table.columns])),
                          inplace=True)
 
+            # Renamce subject code
+            table.Subject = [sub.replace("NVR_", "") for sub in table.Subject]
+
             # Table to pdf
-            table2tex2pdf(path_to_table=p2tab)
+            table2tex2pdf(tab=table, path_to_table=p2tab, preamble=False)
 
         # %% LSTM Best HP Sets >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<
-
         if to_process["LSTM"]:
 
             # # Load LSTM table
@@ -77,22 +83,18 @@ if __name__ == "__main__":
             # e.g. ".../Best_2_HPsets_over_26_Subjects_mean_acc_0.590_Narrow_Search_Table_nomov_BiCl.csv"
             table = pd.read_csv(p2tab, sep=";")
             # print(table.columns)
-            table.drop(columns=['round', 'cond', 'seed', 'task', 'shuffle', 'repet_scalar', 's_fold',
-                                'balanced_cv', 'batch_size', 'successive', 'successive_mode', 'rand_batch',
-                                'plot',   'filetype', 'hilbert_power', 'band_pass', 'hrcomp', 'fixncol',
-                                'summaries', 'path_specificities', 'mean_val_acc', 'meanline_acc'],
-                       inplace=True)
+            table = table[['subject', 'lstm_size', 'fc_n_hidden', 'learning_rate', 'weight_reg',
+                           'weight_reg_strength', 'activation_fct', 'component']]
 
             table.drop(index=range(1, len(table)+1, 2), inplace=True)  # second of each subject is worse
             table.sort_values(by="subject", inplace=True)  # sort by subject
-            table.subject = [f"NVR_{s(sub)}" for sub in table.subject]  # change subj. nr to e.g. "NVR_S12"
+            table.subject = [s(sub) for sub in table.subject]  # change subj. nr to e.g. "S12"
 
             # Renamce columns
             # print(table.columns)
             table.rename(columns=dict(zip(table.columns,
-                                          ['Subject', 'LSTM', 'FC', 'l.rate',
-                                           'reg.', 'reg. strength',
-                                           'activ.func.', 'components', 'mean accuracy'])),
+                                          ['Subject', 'LSTM', 'FC', 'l.rate', 'reg.', 'reg. strength',
+                                           'activ.func.', 'components'])),
                          inplace=True)
 
             # Round
@@ -103,7 +105,7 @@ if __name__ == "__main__":
             p2tab = os.path.join(p2results, f"LSTM_best_hyperparmeters_per_subject_{cond}")
 
             # Table to pdf
-            table2tex2pdf(path_to_table=p2tab)
+            table2tex2pdf(tab=table, path_to_table=p2tab, preamble=False)
 
     # %% Alpha peaks >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<
 
@@ -122,8 +124,11 @@ if __name__ == "__main__":
                                       ['Subject', 'resting state', 'nomov', 'mov'])),
                      inplace=True)
 
+        # Renamce subject code
+        table.Subject = [sub.replace("NVR_", "") for sub in table.Subject]
+
         # Table to pdf
-        table2tex2pdf(path_to_table=p2tab[:-4], preamble=True)  # [:-4]: remove .csv here
+        table2tex2pdf(tab=table, path_to_table=p2tab[:-4], preamble=True)  # [:-4]: remove .csv here
 
     end()
 # < o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<  END
