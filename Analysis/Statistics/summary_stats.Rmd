@@ -1,20 +1,24 @@
 ---
 title: "Summary analysis NeVRo"
-author: "Felx Klotzsche"
-date: "17 1 2020"
-output: html_document
+author: "Felix Klotzsche"
+date: "2020"
+output:
+  html_document:
+    code_folding: hide
+    toc: yes
+    
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(
-	echo = TRUE,
-	message = FALSE,
-	warning = FALSE
-)
+## Setup
+
+```{r setup, message=FALSE, warning=FALSE}
 library(tidyverse)
 library(here)
+library(glue)
+library(caret)
 library(rstatix)
 library(ggpubr)
+library(kableExtra)
 library(grDevices)
 library(ggsci) # sci color palettes
 library("RColorBrewer")
@@ -28,37 +32,14 @@ path_results <- here('Results')
 path_plots <- here('Results', 'Plots')
 ```
 
-## analysis accuracies:
 
-This reads in the summaries spit out from the respective models by averaging over the folds of the CV procedure. 
-```{r}
-# Get summary data:
-data_ls <- list()
-conds <- c('mov', 'nomov')
+## Get predictions & targets for binary models (CSP, LSTM)
 
-for (cond in conds) {
-  fname <- str_c('results_across_methods_', cond, '.csv')
-  fpath <- file.path(path_data, fname)
-  data_ls[[cond]] <- read_csv(fpath)
-}
-
-data_df <- bind_rows(data_ls, .id = 'Condition')
-
-# select data of binary approaches only and put into long format:
-data_bin <- data_df %>% 
-  dplyr::rename("Condition" = "Condition") %>% 
-  select(Condition, Subject, LSTM, CSP) %>% 
-  gather('LSTM', 'CSP', key = Model, value = Accuracy)
-
-data_bin_summary <- data_bin %>% 
-  group_by(Condition, Model) %>% 
-  summarise(meanAccuracy = mean(Accuracy, na.rm = TRUE)) 
-data_bin_summary
-```
-
-
-Now we read in the data from the single samples/epochs/seconds. Namely their actual ratings (= labels, ground truth) and the binary predictions of each model:
+We read in the data from the single samples/epochs/seconds. Namely their actual ratings (= labels, ground truth) and the binary predictions of each model.
 ```{r message=FALSE, warning=FALSE}
+
+
+conds <- c('mov', 'nomov')
 
 #Get single sample data:
 
@@ -138,8 +119,9 @@ Now we have 3 big data frames:
 - Preiction probability  
 
 
+## Calculate accuracies & binomial tests (single subjects)
 
-```{r}
+```{r, message=FALSE}
 # combine, calc accuracy, and run binomial test:
 
 binom_func <- function(n_corr_samps, n_samps_tot, p_guess) {
@@ -153,8 +135,8 @@ pred_success[, samp_col_names] <- data_targ_df_full[, samp_col_names] ==
 
 # Calculate accuracy & run bionomial test on single subjects:
 pred_success %>% 
-  mutate(Ncorrect = rowSums(select(., samp_col_names), na.rm = T), 
-         Ntot = rowSums(!is.na(select(., samp_col_names))), 
+  mutate(Ncorrect = rowSums(select(., all_of(samp_col_names)), na.rm = T), 
+         Ntot = rowSums(!is.na(select(., all_of(samp_col_names)))), 
          accuracy = Ncorrect/Ntot) %>% 
   rowwise() %>% 
   mutate(p_val = binom_func(Ncorrect, Ntot, 0.5)$p.value) %>% 
@@ -162,7 +144,8 @@ pred_success %>%
 
 # summary stats:
 pred_success %>% 
-  mutate(pval_sign = p_val < 0.05, acc_imp = round(accuracy,1)) %>% 
+  ungroup() %>% 
+  mutate(pval_sign = p_val < 0.05)  %>% 
   group_by(Model, Condition) %>% 
   summarise(n = n(),
             Ncorr_median = median(Ncorrect), 
@@ -175,16 +158,78 @@ pred_success %>%
             n_sig_pval = sum(pval_sign)) %>% 
   mutate(prop_sign_pval = n_sig_pval/n)  -> accuracy_summary
 
-print(accuracy_summary)
+accuracy_summary %>%  select(-c(n, Ncorr_median, Ntot_median, n_sig_pval)) %>% 
+  kbl() %>%
+  kable_styling()
+                               
+```
 
+
+### Suppl. Table S3
+
+Now we read in the data about SPoC from disc and combine it to write table3 in the Supp Material:
+```{r, message=FALSE}
+
+#Read SPoC data:
+data_ls <- list()
+
+for (cond in conds) {
+  fname <- str_c('results_across_methods_', cond, '.csv')
+  fpath <- file.path(path_data, fname)
+  data_ls[[cond]] <- read_csv(fpath)
+}
+
+data_spoc <- bind_rows(data_ls, .id = 'Condition') %>% 
+  select(c(Condition, Subject, SPOC_LAMBDA, SPOC_CORR, SPOC_Pvalue))
+
+# binary models (CSP, LSTM):
+perf_binModels <- pred_success %>% 
+  select(-c(Ncorrect, Ntot)) %>% 
+  pivot_wider(names_from = Model, values_from = c(accuracy, p_val))
+
+# combine them:
+perf_all <- data_spoc %>% 
+  #dplyr::filter(!is.na(CSP)) %>% 
+  select(c(Condition, Subject, SPOC_LAMBDA, SPOC_CORR, SPOC_Pvalue)) %>% 
+  left_join(perf_binModels)
+
+
+perf_all_modells <- perf_all %>% 
+  rename(CSP_acc = accuracy_CSP, 
+         LSTM_acc = accuracy_LSTM, 
+         CSP_Pvalue = p_val_CSP, 
+         LSTM_Pvalue = p_val_LSTM) %>% 
+  select(Condition, Subject, SPOC_LAMBDA, SPOC_CORR, SPOC_Pvalue, CSP_acc, CSP_Pvalue, LSTM_acc, LSTM_Pvalue)
+  
+# write to files:
+for (cond in c('mov', 'nomov')) {
+
+  fname <- glue('results_across_methods_{cond}.csv')
+  fpath <- file.path(path_results, 'Tables')
+  
+  perf_all_modells %>% 
+    filter(Condition == cond) %>% 
+    select(-Condition) %>% 
+    write_csv(file.path(fpath, fname))
+}
+
+```
+
+
+## Group statistics:
+### t tests:
+```{r, message=FALSE}
+           
 # Run t tests against chance level:
 pwc <- pred_success %>%
-  #filter(Model == mod) %>% 
+  ungroup() %>% 
   group_by(Model, Condition) %>% 
   summarise(t     = t.test(accuracy, mu = 0.5)$statistic, 
             p_val = t.test(accuracy, mu = 0.5)$p.value, 
             df    = t.test(accuracy, mu = 0.5)$parameter)
-print(pwc)
+pwc %>% 
+  kbl(digits = 10) %>% 
+  kable_styling()
 
 ## Write out result tables:
 fpath <- file.path(path_results, 'Stats', 'results_binomTest_allsubjects.csv')
@@ -195,11 +240,13 @@ write_csv2(accuracy_summary, fpath)
 
 ```
 
+### ANOVA
 
 To further compare, we can now put the accuracies into an ANOVA:
 ```{r}
 
 pred_success_completecases <- pred_success %>% 
+  ungroup() %>% 
   group_by(Subject) %>% 
   mutate(n = n()) %>% 
   filter(n == 4) %>%   #only use full cases (data for both conditions) 
@@ -211,13 +258,77 @@ aov.acc <- aov(accuracy ~ Model * Condition + Error(Subject/(Model * Condition))
 
 summary(aov.acc)
 
+
+```
+
+### Confusion matrices (Fig 3)
+
+Here we calculate the confusion matrices:
+```{r}
+
+subs <- unique(model_pred_ls$LSTM$Subject)
+
+r <- list()
+confMats <- tibble()
+
+for (model in c('CSP', 'LSTM')) {
+  
+  for (cond in c('nomov', 'mov')) {
+
+    for (sub in subs) {
+      
+      if (!(sub %in% filter(model_pred_ls[[model]], Condition==cond)$Subject)) next()
+    
+      pred <- model_pred_ls[[model]] %>% filter(Condition==cond, 
+                                            Subject == sub) %>%  
+        select(all_of(samp_col_names)) %>%  
+        unlist(use.names = F) %>% 
+        factor()
+      
+      targ <- model_targ_ls[[model]] %>% filter(Condition==cond, 
+                                            Subject == sub) %>% 
+        select(all_of(samp_col_names)) %>%  
+        unlist(use.names = F) %>% 
+        factor() %>% na_if(0) %>% 
+        droplevels()
+      rr <- confusionMatrix(pred, targ)
+      tmp <- as_tibble(rr$table) %>% mutate(Condition = cond, 
+                                            Model = model, 
+                                            Subject = sub)
+      confMats <- bind_rows(confMats, tmp)
+    }
+    
+    #confMat <- bind_rows(r, .id = sub) %>% mutate(Condition = cond, 
+                                                     # Model = model)
+    #confMats <- append(confMats, confMat)
+  }
+}
+
+confMats %>% mutate(Class = if_else(Prediction == Reference, 
+                                    if_else(Prediction == 1, 
+                                            'high-high', 
+                                            'low-low'), 
+                                    if_else(Prediction == 1, 
+                                            'low-high', 
+                                            'high-low')), 
+                    Percent = n/90) %>% 
+  group_by(Model, Condition, Class) %>% 
+  summarise(Percent = round(mean(Percent), 2)) %>% 
+  pivot_wider(names_from = Class, values_from = Percent) %>% 
+  select(Model, Condition, 'low-low', 'low-high', 'high-low', 'high-high') %>% 
+  kbl() %>% 
+  kable_styling()
+  
+  
+                                    
+
+
 ```
 
 
+# Plot correlations (Fig 6)
 
-### Plot the results:
-
-```{r}
+```{r, message=FALSE, warning=FALSE}
 ## Create corr plot across conditions and methods:
 ## (Figure 6): 
 
@@ -225,7 +336,8 @@ summary(aov.acc)
 data_acc <- pred_success %>%
   select(Condition, Subject, Model, accuracy) %>% 
   spread(Model, accuracy) %>% 
-  left_join(data_df[, c("Condition", "Subject", "SPOC_LAMBDA", "SPOC_CORR")], by = c("Condition", "Subject")) %>% 
+  #left_join(data_df[, c("Condition", "Subject", "SPOC_LAMBDA", "SPOC_CORR")], by = c("Condition", "Subject")) %>% 
+  left_join(data_spoc) %>% 
   mutate(SPoC = SPOC_CORR)
 
 models_l <- c('SPoC', 'CSP', 'LSTM')
@@ -284,7 +396,7 @@ for (i in 1:3) {
         }
     
     if (! (i == j)) {
-      cat("Doing ", models_l[i], " ~ ", models_l[j], "\n")
+      #cat("Doing ", models_l[i], " ~ ", models_l[j], "\n")
       cond_ <- ifelse(i < j, 'nomov', 'mov')
       #x_lab <- ifelse(i == 3, element_text(size = rel(1.5), angle = 90), xx)
       #y_lab <- ifelse(i == 3, element_text(size = rel(1.5), angle = 90), element_blank())
@@ -386,7 +498,7 @@ for (i in 1:3) {
           coord_cartesian(xlim = lims_l[[models_l[j]]], 
                   ylim = lims_l[[models_l[i]]])
         
-        print(pp)
+        #print(pp)
       })
     
     } else {
@@ -485,7 +597,7 @@ for (i in 1:3) {
           ylab(models_l[j])
           
         
-        print(pp)
+        #print(pp)
           
       })
     }
