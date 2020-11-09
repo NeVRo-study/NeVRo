@@ -5,7 +5,7 @@
 •  Export best hyperparameter sets per subject per condition
 •  Export table for individual alpha peaks
 
-Both table exports are aimed for publication
+All table exports are aimed for publication
 
 Author: Simon M. Hofmann | <[surname].[lastname][at]pm.me> | 2020
 """
