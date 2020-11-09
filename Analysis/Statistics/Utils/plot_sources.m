@@ -8,7 +8,7 @@
 % - Download the "New York Head" Leadfield from https://www.parralab.org/nyhead/
 % - make sure the file is called "sa_nyhead.mat"
 % - Place it in "./Analysis/SourceReconstruction/eLORETA_MJ/"
-% - Please not that since that file is very large (>600MB) it is on the
+% - Please note that since that file is very large (>600MB) it is on the
 % .gitignore list and will not be committed/downloaded if you use this 
 % within our repository or a forked version. 
 
@@ -20,6 +20,7 @@
 % STEFAN HAUFE
 % 
 % For the original work, please refer to:
+% http://bbci.de/supplementary/EEGconnectivity/BBCB.html
 % https://github.com/minajamshidi 
 % and: 
 % METH toolbox 

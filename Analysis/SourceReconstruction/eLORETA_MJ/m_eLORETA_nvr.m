@@ -21,6 +21,7 @@ function out_P = m_eLORETA_nvr(sa, pattern, chanlocs_labs, pattern_name, ...
     %
     % For the original work, please refer to:
     % https://github.com/minajamshidi 
+    % http://bbci.de/supplementary/EEGconnectivity/BBCB.html
     % and: 
     % METH toolbox 
     % https://www.uke.de/english/departments-institutes/institutes/neurophysiology-and-pathophysiology/research/research-groups/index.html 
