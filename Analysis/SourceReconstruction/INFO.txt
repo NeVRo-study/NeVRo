@@ -7,6 +7,7 @@
 % and only very slightly adapted to the purposes of this study by Felix Klotzsche.
 % 
 % For the original work, please refer to:
+% http://bbci.de/supplementary/EEGconnectivity/BBCB.html
 % https://github.com/minajamshidi 
 % and: 
 % METH toolbox 
