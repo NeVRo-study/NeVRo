@@ -1,9 +1,45 @@
 
+%% Plot cortical sources for NeVRo study
+% Project the spatial patterns from SSD, CSP, and SPoC into source space 
+% by using eLORETA.
+%
+% Launch this script from top level of the NeVRo repository.
+% BEFORE RUNNING: 
+% - Download the "New York Head" Leadfield from https://www.parralab.org/nyhead/
+% - make sure the file is called "sa_nyhead.mat"
+% - Place it in "./Analysis/SourceReconstruction/eLORETA_MJ/"
+% - Please not that since that file is very large (>600MB) it is on the
+% .gitignore list and will not be committed/downloaded if you use this 
+% within our repository or a forked version. 
 
+% CREDITS:
+% The centerpiece of this script are the calls to `m_eLORETA_nvr.m` which
+% is a slightly adapted version of and a wrapper to code written by 
+% MINA JAMSHIDI IDAJI
+% GUIDO NOLTE
+% STEFAN HAUFE
+% 
+% For the original work, please refer to:
+% https://github.com/minajamshidi 
+% and: 
+% METH toolbox 
+% https://www.uke.de/english/departments-institutes/institutes/neurophysiology-and-pathophysiology/research/research-groups/index.html 
+% (as of 06/11/2019)
+%
+% If you make use of code in `SourceReconstruction`, please cite the 
+% following paper:
+% Haufe, S., & Ewald, A. (2016):
+% A simulation framework for benchmarking EEG-based brain connectivity 
+% estimation methodologies. 
+% Brain topography, 1-18
+% 
+% 
+% 2020 -- Felix Klotzsche -- 
 
-% set path to Mina J's source plotting tools: 
+%%
+% set path to source plotting tools provided by MJ Idaji: 
 
-path_MJ_tb = 'C:/Users/Felix/Downloads/eLORETA_MJ/';
+path_MJ_tb = fullfile('.', 'Analysis', 'SourceReconstruction');
 addpath(genpath(path_MJ_tb))
 addpath(genpath(fullfile('.', 'Analysis', 'Statistics', 'Utils')));
 
@@ -17,6 +53,13 @@ end
 
 
 % loading the model is slow, so I just do it once.
+
+found_headmodel = exist(fullfile(path_MJ_tb, 'eLORETA_MJ','sa_nyhead.mat'), ...
+                        'file') == 2;
+assert(found_headmodel, ... 
+       ['Looks like you have not loaded the New York Head model with the ', ...
+       'name "sa_nyhead.mat" in the correct place. Check the header of ', ...
+       '"plot_sources.m" for instructions.']);
 mymodelfile= 'sa_nyhead';
 load(mymodelfile);
 

@@ -1,0 +1,2 @@
+dips=[[3 0 8 0 0 1];[-3 0 8 0 0 1]]; 
+v=forward_general(dips,sa.fp);

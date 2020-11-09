@@ -1,0 +1,422 @@
+load clab_example;
+whos
+  Name               Size                    Bytes  Class
+
+  clab_example       1x118                    7818  cell array
+
+Grand total is 487 elements using 7818 bytes
+
+clab_example
+
+clab_example = 
+
+  Columns 1 through 11
+
+    'Fp1'    'AFp1'    'Fpz'    'AFp2'    'Fp2'    'AF7'    'AF3'    'AF4'    'AF8'    'FAF5'    'FAF1'
+
+  Columns 12 through 23
+
+    'FAF2'    'FAF6'    'F7'    'F5'    'F3'    'F1'    'Fz'    'F2'    'F4'    'F6'    'F8'    'FFC7'
+
+  Columns 24 through 33
+
+    'FFC5'    'FFC3'    'FFC1'    'FFC2'    'FFC4'    'FFC6'    'FFC8'    'FT9'    'FT7'    'FC5'
+
+  Columns 34 through 44
+
+    'FC3'    'FC1'    'FCz'    'FC2'    'FC4'    'FC6'    'FT8'    'FT10'    'CFC7'    'CFC5'    'CFC3'
+
+  Columns 45 through 55
+
+    'CFC1'    'CFC2'    'CFC4'    'CFC6'    'CFC8'    'T7'    'C5'    'C3'    'C1'    'Cz'    'C2'
+
+  Columns 56 through 65
+
+    'C4'    'C6'    'T8'    'CCP7'    'CCP5'    'CCP3'    'CCP1'    'CCP2'    'CCP4'    'CCP6'
+
+  Columns 66 through 76
+
+    'CCP8'    'TP9'    'TP7'    'CP5'    'CP3'    'CP1'    'CPz'    'CP2'    'CP4'    'CP6'    'TP8'
+
+  Columns 77 through 86
+
+    'TP10'    'PCP7'    'PCP5'    'PCP3'    'PCP1'    'PCP2'    'PCP4'    'PCP6'    'PCP8'    'P9'
+
+  Columns 87 through 98
+
+    'P7'    'P5'    'P3'    'P1'    'Pz'    'P2'    'P4'    'P6'    'P8'    'P10'    'PPO7'    'PPO5'
+
+  Columns 99 through 109
+
+    'PPO1'    'PPO2'    'PPO6'    'PPO8'    'PO7'    'PO3'    'PO1'    'POz'    'PO2'    'PO4'    'PO8'
+
+  Columns 110 through 118
+
+    'OPO1'    'OPO2'    'O1'    'Oz'    'O2'    'OI1'    'OI2'    'I1'    'I2'
+
+sa=prepare_sourceanalysis(clab_example);
+sa
+
+sa = 
+
+                 fp: [1x1 struct]
+            locs_3D: [118x6 double]
+                 vc: {[1x1 struct]  [1x1 struct]  [1x1 struct]}
+    clab_electrodes: {1x118 cell}
+            locs_2D: [118x5 double]
+             cortex: [1x1 struct]
+                mri: [1x1 struct]
+        grid_coarse: [1340x3 double]
+          grid_fine: [10799x3 double]
+           V_coarse: [118x1340x3 double]
+             V_fine: [118x10799x3 double]
+               head: [1x1 struct]
+          naspalpar: [3x6 double]
+          elec2head: [14087x118 double]
+
+sa.cortex
+
+ans = 
+
+     vc: [17439x3 double]
+    tri: [35100x3 double]
+
+load cs_example; % this a cross-spectrum at 10 Hz
+[u s v]=svd(real(cs_example));field=u(:,2);
+figure;showfield(field,sa.locs_2D); 
+figure; showcs(imag(cs_example),sa.locs_2D);
+figure;showsurface(sa.cortex);
+figure;showsurface(sa.head);
+clear para 
+para.myviewdir=[0 0 1]; % changes the viewpoint 
+figure;showsurface(sa.cortex,para);
+dips=[[3 -3 9 0 0 1];[3 3 10 0 0 1]]; %difine two dipoles 
+figure;showsurface(sa.cortex,[],dips);
+dips=[[3 -3 9 0 0 1];[3 3 30 0 0 1]]; %difine two dipoles
+figure;showsurface(sa.cortex,[],dips);
+dips=[[3 -3 9 0 0 1];[0 0 0 0 1 0]]; %difine two dipoles
+figure;showsurface(sa.cortex,[],dips);
+figure;showsurface(sa.cortex,[],dips,sa.cortex.vc(:,2));
+close all
+figure;showsurface(sa.head,[],sa.elec2head*diag(cs_example));
+figure; showmri(sa.mri);
+para.orientation='coronal';
+figure;showmri(sa.mri,para);
+s1=sa.cortex.vc; % all points an a cortex;
+s2=randn(1000,4)+repmat([3 3 3 0],1000,1); %hypothetical source with values
+s3=randn(1000,4)+repmat([-3 -3 7 0],1000,1);% another hypothetical source with values
+s4=sa.locs_3D; %electrode location plus outward normals (treated as dipoles)
+figure;showmri(sa.mri,[],s1,s2,s3,s4);
+
+dips=[0 3 8 0 0 1];
+v0=forward_general(dips,sa.fp);
+noise=randn(118,1);
+v=v0/norm(v0)+noise/norm(noise)/2;
+figure;showfield(v0,sa.locs_2D); 
+figure;showfield(v,sa.locs_2D);
+ndip=1; %select number of dipoles 
+[a,res_out,k,field_theo]=dipole_fit_field(v,sa.fp,ndip);
+a
+
+a =
+
+   -0.1609    3.1314    7.6408    0.0057   -0.0021    2.2354
+
+figure;showmri(sa.mri,[],dips,a);
+res_out
+
+res_out =
+
+    0.4377
+
+figure;showmri(sa.mri,[],dips,a);
+dips=[[3 -3 9 0 0 1];[3 3 10 0 0 1]];
+v=forward_general(dips,sa.fp); % calculate the fields;
+noise=randn(118,2);
+vv=(v/norm(v,'fro')+noise/norm(noise,'fro')/5); %add some noise
+whos vv
+  Name      Size                    Bytes  Class
+
+  vv      118x2                      1888  double array
+
+Grand total is 236 elements using 1888 bytes
+
+[s,vmax,imax,dip_mom,dip_loc]=music(vv,sa.V_fine,sa.grid_fine);
+whos s
+  Name      Size                    Bytes  Class
+
+  s     10799x2                    172784  double array
+
+Grand total is 21598 elements using 172784 bytes
+
+grid_fine_val=[sa.grid_fine,1./(1-s(:,1).^2)];
+dips_estimate=[dip_loc,dip_mom];
+figure;showmri(sa.mri,[],grid_fine_val,dips,dips_estimate);
+ns=2; %number of dipoles
+[s,vmax,imax,dip_mom,dip_loc]=rapmusic(vv,sa.V_fine,ns,sa.grid_fine);
+dips_estimate=[dip_loc,dip_mom];
+grid_fine_val=[sa.grid_fine,1./(1-s(:,2).^2)];
+figure;showmri(sa.mri,[],grid_fine_val,dips,dips_estimate);
+thresh=3;
+res=grid_fine_val(grid_fine_val(:,4)>thresh,:);
+figure;showmri(sa.mri,[],res);
+
+
+% one can do calculations constraining dipoles on the surface 
+load Vcortex; %forward field; can be caculated with Vcortex=grid2V(sa.cortex.vc,sa.fp)
+              % but that takes 40 minutes
+[s,vmax,imax,dip_mom,dip_loc]=music(vv,Vcortex,sa.cortex.vc); 
+figure;showsurface(sa.cortex,[],1./(1-s(:,1).^2),dips,[dip_loc,dip_mom]);
+
+
+uiopen('C:\nolte\matlab\toolbox\dipole_fit_field.m', true);
+edit
+cd ../test
+ls
+
+.                                             MNI_head_small_tess_mni.mat                   
+..                                            MNI_head_tess_CTF.mat                         
+AtlasColorMaps.mat                            MNI_subjectimage.mat                          
+CTF_Fiducials.mat                             MNI_white_big_tess_CTF.mat                    
+ColorMaps.mat                                 ch2aal.hdr                                    
+DO_NOT_CHANGE_FILE_NAMES_IN_THIS_FOLDER.txt   ch2aal.img                                    
+MNI_brain small_tess_CTF.mat                  ch2aal.txt                                    
+MNI_brain_big_tess_CTF.mat                    ch2brodmann.hdr                               
+MNI_brain_small_tess.mat                      ch2brodmann.img                               
+MNI_brain_small_tess_CTF.mat                  cortex_mani.m                                 
+MNI_brain_small_tess_labels_Brodmann.mat      cortex_mani.m~                                
+MNI_brain_small_tess_labels_Brodmann_LR.mat   hs_err_pid9420.log                            
+MNI_brain_small_tess_mni.mat                  main1.m                                       
+MNI_braincereb_big_tess_CTF.mat               main1.m~                                      
+MNI_braincereb_small_tess.mat                 main2.m                                       
+MNI_braincereb_small_tess_CTF.mat             main2.m~                                      
+MNI_braincereb_small_tess_labels_AAL.mat      t2.asv                                        
+MNI_braincereb_small_tess_mni.mat             t2.m                                          
+MNI_braincereb_small_tess_talCS_MNIcereb.mat  tt.m                                          
+MNI_brainstormsubject.mat                     vc_cortex_new.mat                             
+MNI_head_small_tess.mat                       x.m                                           
+MNI_head_small_tess_CTF.mat                   
+
+x
+
+ans =
+
+  716.6836
+
+x
+
+ans =
+
+  1.2481e+003
+
+x
+plot(res)
+x
+plot(res)
+x
+plot(res)
+x
+plot(res)
+x
+plot(res)
+mean(res)
+
+ans =
+
+    0.4841
+
+x
+mean(res)
+
+ans =
+
+    0.4932
+
+x
+mean(res)
+
+ans =
+
+    0.4869
+
+x
+mean(res)
+
+ans =
+
+    0.4979
+
+x
+mean(res)
+
+ans =
+
+    0.6048
+
+x
+mean(res)
+
+ans =
+
+    0.4986
+
+x
+mean(res)
+
+ans =
+
+    0.4996
+
+pwd
+
+ans =
+
+C:\nolte\matlab\test
+
+pwd
+
+ans =
+
+C:\nolte\matlab\test
+
+cd ..
+cd toolbox\
+edit
+test1
+
+dips =
+
+     3    -3     9     0     0     1
+     3     3    10     0     0     1
+
+
+a =
+
+  Columns 1 through 10 
+
+    3.0000   -3.0000    9.0000   -0.0000    0.0000    1.0000    3.0000    3.0000   10.0000   -0.0000
+
+  Columns 11 through 12 
+
+   -0.0000    1.0000
+
+
+for k=1:10;
+[a,res_out,k,field_theo]=dipole_fit_field(v,sa.fp,ndip);
+disp([k,res_out])
+end
+   18.0000    0.2002
+
+   21.0000    0.5082
+
+Error in ==> <a href="error:C:\nolte\matlab\toolbox\legs_c.m,89,1">legs_c at 89</a>
+ephi=exp(comi*ms'*phi');
+
+Error in ==> <a href="error:C:\nolte\matlab\toolbox\getbasis.m,15,1">getbasis at 15</a>
+      [bas,gradbas]=legs_c(x1,n1,order,scale); 
+
+Error in ==> <a href="error:C:\nolte\matlab\toolbox\calc_leadcorr_major.m,18,1">calc_leadcorr_major at 18</a>
+     [bas,a]=getbasis(x,ori,para_tmp,type); 
+
+Error in ==> <a href="error:C:\nolte\matlab\toolbox\eeg_forward.m,38,1">eeg_forward at 38</a>
+lead1_corr=calc_leadcorr_major(dips(:,1:3),dips(:,4:6),para_sensors_out,shell);
+
+Error in ==> <a href="error:C:\nolte\matlab\toolbox\lm_field_general.m,94,1">lm_field_general>lm_1step_general at 94</a>
+    field1=feval(Fmeth,dipall,forwpar);  
+
+Error in ==> <a href="error:C:\nolte\matlab\toolbox\lm_field_general.m,29,1">lm_field_general at 29</a>
+      dela=lm_1step_general(a,f,forwpar,alpha,lambda);
+
+Error in ==> <a href="error:C:\nolte\matlab\toolbox\dipole_fit_field.m,70,1">dipole_fit_field at 70</a>
+ [a,res_out,k,field_theo]=lm_field_general(astart,f,fp,lambda);
+
+a
+
+a =
+
+  Columns 1 through 10 
+
+    1.8983   -1.6215   -0.5170   -4.5011    4.6746    5.4576    0.5779   -0.7476   -0.2618   -1.6217
+
+  Columns 11 through 12 
+
+   -3.2792   -4.9540
+
+reshape(a,2,6)
+
+ans =
+
+    1.8983   -0.5170    4.6746    0.5779   -0.2618   -3.2792
+   -1.6215   -4.5011    5.4576   -0.7476   -1.6217   -4.9540
+
+
+for i=1:10;
+[a,res_out,k,field_theo]=dipole_fit_field(v,sa.fp,ndip);
+disp([i,res_out])
+end
+    1.0000    0.4722
+
+    2.0000    0.5906
+
+    3.0000    0.1974
+
+    4.0000    0.4219
+
+    5.0000    0.1959
+
+    6.0000    0.0901
+
+    7.0000    0.0901
+
+    8.0000    0.2075
+
+    9.0000    0.0901
+
+   10.0000    0.0000
+
+
+
+edit
+uiopen('C:\nolte\matlab\toolbox\test1.m', true);
+disp([i,res_out])
+   10.0000    0.0000
+
+end
+??? end
+    |
+Error: Illegal use of reserved keyword "end".
+
+
+a=2
+
+a =
+
+     2
+
+
+xtype='real';ndip=2;
+for i=1:10;
+[dips_out,c_source,res_out,c_theo]=dipole_fit_cs(v*v',sa.fp,ndip,xtype);
+disp([i,res_out])
+end
+    1.0000    0.2744
+
+    2.0000    0.1272
+
+    3.0000    0.1272
+
+    4.0000    0.0000
+
+    5.0000    0.1272
+
+    6.0000    0.1272
+
+    7.0000    0.1272
+
+    8.0000    0.0000
+
+    9.0000    0.0000
+
+   10.0000    0.1272
+
+

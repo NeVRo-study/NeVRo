@@ -1,0 +1,26 @@
+
+% How the draw potentials on the head 
+load clab_example;
+sa=prepare_sourceanalysis(clab_example);
+
+
+% sa.elec2head is a matrix which maps values 
+% on electrodes to values on the head 
+% it was calculated (in perpare_souceanalysis by 
+%  elec2head=prep_v2head(sa.locs_3D,sa.head.vc,.5));
+
+y=sa.locs_3D(:,1:3);yn=y;
+yn(52,2)=(y(52,2)+y(56,2))/2;
+yn(56,2)=(y(52,2)+y(56,2))/2;
+yn(52,3)=(y(52,3)+y(56,3))/2;
+yn(56,3)=(y(52,3)+y(56,3))/2;
+yn(52,1)=(y(52,1)-y(56,1))/2;
+yn(56,1)=(-y(52,1)+y(56,1))/2;
+elec2head=prep_v2head(yn,sa.head.vc,.5);
+
+power=zeros(118,1)+eps;power(52)=1;power(56)=1;
+v=elec2head*power;
+new_head=vc2vcdeform(sa.head,5*v/max(abs(v)));
+figure;showsurface(new_head,[],v);
+
+

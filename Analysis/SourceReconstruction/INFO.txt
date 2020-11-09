@@ -1,0 +1,25 @@
+
+% CREDITS:
+% Code in this folder was originally written by 
+% MINA JAMSHIDI IDAJI
+% GUIDO NOLTE
+% STEFAN HAUFE
+% and only very slightly adapted to the purposes of this study by Felix Klotzsche.
+% 
+% For the original work, please refer to:
+% https://github.com/minajamshidi 
+% and: 
+% METH toolbox 
+% https://www.uke.de/english/departments-institutes/institutes/neurophysiology-and-pathophysiology/research/research-groups/index.html 
+% (as of 06/11/2019)
+%
+% If you make use of code in `SourceReconstruction`, please cite the 
+% following paper:
+% Haufe, S., & Ewald, A. (2016):
+% A simulation framework for benchmarking EEG-based brain connectivity 
+% estimation methodologies. 
+% Brain topography, 1-18
+% 
+%
+% Further included is the `tensortoolbox for MATLAB`. For the source plese refer to: 
+% https://www.tensortoolbox.org/
