@@ -1,21 +1,15 @@
 %% NeVRo_Peak
-%This script finds the peak in a selected frequency band for both the
-%resting state and SBA task-related recordings.
-%Please note: SBA are ICA-cleaned (.set) whereas resting state data are
-%raw
+% This script finds the peak in a selected frequency band for both the
+% resting state and SBA task-related recordings.
+% Please note: SBA are ICA-cleaned (.set) whereas resting state data are raw
 
 %% 1.Open EEGLAB and set paths
 
 % 1.1 Add general matlab scripts and eeglab plugins
-addpath(genpath('/Users/Alberto/Documents/MATLAB/'));
+% NB: Add your general matlab and eeglab paths
 
-% 1.2 Open eeglab
+% 1.2 Open EEGLAB
 [ALLEEG EEG CURRENTSET ALLCOM] = eeglab;
-
-% 1.3 Remove PREP pipeline folder (problem with its findpeaks function) -
-%comment out if you don't have it in your path
-% e.g:
-rmpath(genpath('/Users/Alberto/Documents/MATLAB/eeglab14_1_2b/plugins/PrepPipeline0.55.3/'));  %remove PREP pipeline folder (problem with its findpeaks function)
 
 % Periodogram Parameters - to be put in the function
 cropstyle = 'SBA';
@@ -119,7 +113,7 @@ peaks = zeros(length(fooof_results),1);
 
 for c=1:length(fooof_results)
     
-    %Select it's within a "wider alpha range" (7-14 hz)
+    %Select it's within a "wider alpha range" (8-13 hz)
     [row, col] = find(fooof_results(c).peak_params(:,1)>=8 & fooof_results(c).peak_params(:,1)<=13);
     
     %Find the maximum between them
