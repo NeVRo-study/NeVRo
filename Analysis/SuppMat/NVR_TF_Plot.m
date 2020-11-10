@@ -8,7 +8,8 @@
 % The viridis palette is coherent with the group plots that are reported in
 % the main text.
 
-%% Set path
+%% Set paths
+% NB: Add your general matlab and eeglab paths
 
 tf_path = [master_path 'Data/EEG/08.3_TF/']; 
 
