@@ -9,9 +9,7 @@ clc
 clear all
 
 %% Set paths
-
-% Add general matlab scripts and eeglab plugins
-addpath(genpath('/Users/Alberto/MATLAB/'));
+% NB: Add your general matlab and eeglab paths
 
 % Open EEGLAB
 [ALLEEG EEG CURRENTSET ALLCOM] = eeglab;
