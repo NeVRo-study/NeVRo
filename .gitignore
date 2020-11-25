@@ -1,6 +1,6 @@
 # Files and folders to be ignored
 /Data
-/Results
+/Results/**/*
 /Publication
 /Presentations
 /Literature
@@ -26,3 +26,8 @@
 
 # Others
 *.DS_Store
+
+# Exceptions
+!Results/Tables/alphapeaks_FOOOF_fres024_813.csv
+!Results/Tables/results_across_methods_nomov.csv
+!Results/Tables/results_across_methods_mov.csv
