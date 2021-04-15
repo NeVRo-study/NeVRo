@@ -4,8 +4,8 @@ function ev_types_shuffled = nvr_shuffle_eventtypes(ev_types_seq, ev_types2shuff
 
 evs = ev_types_seq;
 y = evs([ismember(evs, ev_types2shuffle)]);
-if rem(length(y), n_blocks)
-    error('Splitting %i trials into %i equally sized blocks does not work.', length(y), n_blocks);
+if rem(length(evs), n_blocks)
+    error('Splitting %i trials into %i equally sized blocks does not work.', y, n_blocks);
 end
 n_max_perms = factorial(n_blocks) - 1;
 if n_perms > n_max_perms 

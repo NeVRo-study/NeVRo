@@ -80,7 +80,7 @@ for isub = 1:length(files_eeg) % 1:length(files_eeg)
     
     % Call helper func to reject noisy epochs:
     % arg1: EEG, arg2: threshold (in mV), arg3: manual check?
-    EEG = NVR_S01_prep4ICA(EEG, 100, 0);
+    EEG = NVR_S01_prep4ICA(EEG, 100);
     
     rej_epos = EEG.etc.rejepo_thresh;
     
