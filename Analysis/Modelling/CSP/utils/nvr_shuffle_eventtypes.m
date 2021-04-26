@@ -60,7 +60,7 @@ ev_types_shuffled = evs_shuf;
 
 %% Display autocorr info
 
-vis_acf_info = true;
+vis_acf_info = false;
 
 if vis_acf_info
     acf_lags = 50;

@@ -53,7 +53,7 @@ path_in_eeg = [path_dataeeg '07_SSD/' mov_cond '/' cropstyle '/narrowband/'];
 path_in_SSDcomps = [path_dataeeg '07_SSD/' mov_cond '/'];
 
 % output paths:
-path_out_eeg = [path_dataeeg '08.7_CSP_3x10f_reg_mcr_smote_0.2cor/' mov_cond '/' cropstyle '/'];
+path_out_eeg = [path_dataeeg '08.7_CSP_3x10f_reg_auc_smote_0.2cor/' mov_cond '/' cropstyle '/'];
 if ~exist(path_out_eeg, 'dir'); mkdir(path_out_eeg); end
 path_out_summaries = [path_out_eeg '/summaries/'];
 if ~exist(path_out_summaries, 'dir'); mkdir(path_out_summaries); end
@@ -160,7 +160,7 @@ for isub = (1:nsubs)
                     'Regularizer', 'auto'}}}};
     
                 
-    shuffled_events_mat = nvr_shuffle_eventtypes([EEG.event.type], [1,3], 10, 100, 0.4);
+    shuffled_events_mat = nvr_shuffle_eventtypes([EEG.event.type], [1,3], 10, 500, 0.2);
     
     for perm=1:size(shuffled_events_mat, 2)
         shuffled_evs = num2cell(shuffled_events_mat(:,perm));
@@ -189,48 +189,20 @@ for isub = (1:nsubs)
         [trainloss,model,stats] = bci_train('Data',isub_data, ...
             'Approach',approach_CSP, ...
             'EvaluationScheme', {'subchron', 3, 10}, ... # [10], ... %[3 10]: 3x10-fold CV;  'loo': leave-one-out
-            'EvaluationMetric', 'mcr', ...
+            'EvaluationMetric', 'auc', ...
             'TargetMarkers',{'1','3'});
         %  'OptimizationScheme', {'subchron', 6, 3, 0}, ...
         %  'OptimizationScheme', 3, ...
 
-        % save to .SET files:
-%         EEG.etc.CSP.trainloss = trainloss;
-%         EEG.etc.CSP.model = model;
-%         EEG.etc.CSP.stats = stats;
-% 
-%         pop_saveset(EEG, [filename '_CSP.set'] , path_out_eeg);
-
         % Save to global .mat file:
-
-        CSP_A = model.featuremodel.patterns;
-        CSP_W = model.featuremodel.filters;
-        SSD_A_sel = EEG.etc.SSD.A(:,SSD_comps_arr);
-        SSD_W_sel = SSD_W(SSD_comps_arr,:);
-
         CSP_results.results(isub).participant = thissubject;
         CSP_results.results(isub).trainloss.perm(perm) = trainloss;
-        CSP_results.results(isub).model.perm(perm) = model;
-        CSP_results.results(isub).stats.perm(perm) = stats;
-%         CSP_results.results(isub).weights.CSP_A.perm(perm) = CSP_A;
-%         CSP_results.results(isub).weights.CSP_W.perm(perm) = CSP_W;
-%         CSP_results.results(isub).weights.SSD_A_sel.perm(perm) = SSD_A_sel;
-%         CSP_results.results(isub).weights.SSD_W_sel.perm(perm) = SSD_W_sel;
-        CSP_results.chanlocs = EEG.chanlocs;
+        CSP_results.results(isub).stats.perm(perm).per_fold = stats.per_fold;
+        CSP_results.results(isub).stats.perm(perm).targets = [EEG.event.type];
+        
     end
     save([path_out_summaries 'CSP_results_perm.mat'], 'CSP_results');
-
-%     
-%     struct_classAccs(isub).ID = thissubject;
-%     struct_classAccs(isub).acc = 1 - trainloss;
- 
 end
-% 
-% saveas(h1, [path_out_summaries 'topoplots_comp1.png'], 'png');
-% saveas(h2, [path_out_summaries 'topoplots_comp4.png'], 'png');
-% 
-% table_classAccs = struct2table(struct_classAccs);
-% writetable(table_classAccs, [path_out_summaries '\_summary.csv']);
 
 % back to old pwd:
 cd(path_orig);

@@ -8,7 +8,7 @@ mov_cond = 'nomov';
 cropstyle = 'SBA';
 path_data = [path_orig '/../../../Data/'];
 path_dataeeg =  [path_data 'EEG/'];
-path_summaries = [path_dataeeg, '08.7_CSP_3x10f_reg_mcr_smote_0.4cor/' mov_cond '/' cropstyle '/summaries/'];
+path_summaries = [path_dataeeg, '08.7_CSP_3x10f_reg_auc_smote_0.2cor/' mov_cond '/' cropstyle '/summaries/'];
 
 % if scorer==mcr: acc=1-loss
 % if scorer==-auc: auc=0-(-auc)
@@ -51,42 +51,55 @@ end
 %% Plot overall distributions
 figure
 accs_perm_mean = mean(accs_perm, 2);
-histogram(accs_perm_mean, 26, 'Normalization','count', 'FaceColor','blue', 'FaceAlpha', 0.6)
-hold on;
-y = 0.3:0.001:0.8;
-mu = mean(accs_perm_mean);
-sigma = std(accs_perm_mean);
-f = exp(-(y-mu).^2./(2*sigma^2))./(sigma*sqrt(2*pi));
-shuf = plot(y,f,'LineWidth',1.5, 'Color', 'blue')
+h_perm = histfit(accs_perm_mean, 26);
+h_perm(1).FaceColor = 'blue'; 
+h_perm(1).FaceAlpha = 0.6;
+h_perm(2).Color = 'blue';
 hold on
 
 accs_real_mean = mean(accs_real, 2);
-histogram(accs_real, 26, 'Normalization','count', 'FaceColor', 'red', 'FaceAlpha', 0.6)
-y = 0.3:0.001:0.8;
-mu = mean(accs_real);
-sigma = std(accs_real_mean);
-f = exp(-(y-mu).^2./(2*sigma^2))./(sigma*sqrt(2*pi));
-real = plot(y,f,'LineWidth',1.5, 'Color', 'red')
-legend([real, shuf], 'real', 'shuffled')
-ylabel(scorer);
+h_real = histfit(accs_real_mean, 26);
+h_real(1).FaceColor = 'red'; 
+h_real(1).FaceAlpha = 0.6;
+h_real(2).Color = 'red';
 
+% calc significance:
+sign_levels = [0.05, 0.01, 0.001];
+[~, p] = ttest(accs_real, accs_perm_mean);
+n_sigstars = sum(p < sign_levels);
+xL = xlim;
+yL = ylim;
+text(median(xL),0.99*yL(2),repmat('*', 1, n_sigstars), 'HorizontalAlignment','center','VerticalAlignment','top')
+
+ylabel('count')
+xlabel(scorer)
+title(['Avg. ' scorer ' per subject'])
+leg = legend([h_perm(2), h_real(2)], 'shuffled labels', 'real labels');
+title(leg, [cropstyle, '  -  ', mov_cond])
+
+%% 
 figure
 % per subject:
 for isub=1:size(accs_real, 1)
     subplot(4, 7, isub)
-    histogram(accs_perm(isub,:), 5, 'Normalization','pdf', 'FaceColor','blue', 'FaceAlpha', 0.6)
-    hold on;
-    [ymin, ymax] = bounds(accs_perm(isub,:));
-    y = ymin-0.05:0.001:ymax+0.05;
-    mu = mean(accs_perm(isub,:));
-    sigma = std(accs_perm(isub,:));
-    f = exp(-(y-mu).^2./(2*sigma^2))./(sigma*sqrt(2*pi));
-    shuffled = plot(y,f,'LineWidth',1.5, 'Color', 'blue')
+    h = histfit(accs_perm(isub,:));
+    h(1).FaceColor = 'blue'; 
+    h(1).FaceAlpha = 0.6;
+    h(2).Color = 'blue';
     hold on
-    real = xline(mean(accs_real(isub,:)), 'Color', 'red', 'LineWidth', 1.5)
-    ylabel(scorer);
+    real = xline(accs_real(isub), 'Color', 'red', 'LineWidth', 1.5);
+    xlabel(scorer);
+    ylabel('count');
     title(sub_ids{isub}, 'Interpreter','none')
+    ylim([0 80])
+    
+    n_sigstars = sum(accs_real(isub) > prctile(accs_perm(isub,:), [95, 99, 99.9]));
+    xL=xlim;
+    yL=ylim;
+    text(mean([accs_real(isub), accs_perm_mean(isub)]),0.99*yL(2),repmat('*', 1, n_sigstars), 'HorizontalAlignment','center','VerticalAlignment','top')
 end
-subplot(4, 7, isub+1)
+subplot(4, 7, isub+2)
+plot(0, 0, 0, 0)
 axis off
-legend([shuffled, real], 'shuffled', 'real')
+leg = legend('shuffled labels', 'real labels', 'Location', 'east');
+title(leg, [cropstyle, '  -  ', mov_cond])
