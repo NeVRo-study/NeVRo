@@ -8,18 +8,11 @@ Author: Simon M. Hofmann | <[surname].[lastname][at]pm.me> | 2017, 2019 (Update)
 """
 
 #%% Import
-
-# Adaptations if code is run under Python2
-from __future__ import absolute_import
-from __future__ import division  # int/int can result in float now, 1/2 = 0.5 (in python2 1/2=0, 1/2.=0.5)
-from __future__ import print_function  # : Use print as a function as in Python 3: print()
-
 # import sys
-# sys.path.insert(0, './LSTM Model')  # or set the folder as source root
 from load_data import *
 
 import numpy as np
-import tensorflow as tf  # implemented with TensorFlow 1.13.1
+import tensorflow as tf  # implemented with TensorFlow 1.14.0-rc1
 import argparse
 import time
 import copy
