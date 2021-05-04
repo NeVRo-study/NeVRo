@@ -7,13 +7,13 @@ Write random search bash files.
 Author: Simon Hofmann | <[surname].[lastname][at]pm.me> | 2017, 2019 (Update)
 """
 
-#%% Import
+# %% Import
 
 from load_data import *
 import sys
 import fileinput
 
-#%% Paths >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<
+# %% Paths >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<
 
 # Set paths to bashfile dir
 p2_bash = './bashfiles/'
@@ -23,7 +23,7 @@ if not os.path.exists(p2_bash):
     os.mkdir(p2_bash)
 
 
-#%% Functions >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >
+# %% Functions >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o
 
 def draw_components(n, subject, condition, filetype, select_mode="one_up", dtype=None):
     """
@@ -151,7 +151,7 @@ def write_search_bash_files(subs, filetype, condition,
             bashfile.write("#!/usr/bin/env bash\n\n" + f"# Random Search Bashfile: {task}")
         for subash_fname in sub_bash_file_names:
             with open(subash_fname, "w") as bashfile:
-                bashfile.write("#!/usr/bin/env bash\n\n"+"# Random Search Bashfile_{}: {}".format(
+                bashfile.write("#!/usr/bin/env bash\n\n" + "# Random Search Bashfile_{}: {}".format(
                     subash_fname.split("_")[-1].split(".")[0], task))
 
     # # Randomly Draw
@@ -229,7 +229,7 @@ def write_search_bash_files(subs, filetype, condition,
 
         # Randomly choice number of feed-components
         while True:
-            choose_n_comp = np.random.randint(1, max_n_comp+1)  # x
+            choose_n_comp = np.random.randint(1, max_n_comp + 1)  # x
             if choose_n_comp <= 10:  # don't feed more than 10 components
                 break
 
@@ -250,7 +250,7 @@ def write_search_bash_files(subs, filetype, condition,
 
             if task == "classification":
                 path_specificities += f"_shuf-{'T' if shuffle else 'F'}_" \
-                                      f"balcv-{'T' if balanced_cv else 'F'}/"
+                    f"balcv-{'T' if balanced_cv else 'F'}/"
             else:
                 path_specificities += "/"
 
@@ -272,13 +272,13 @@ def write_search_bash_files(subs, filetype, condition,
                 os.mkdir("./processed/")
 
             with open(bash_file_name, "a") as bashfile:  # 'a' for append
-                bashfile.write("\n"+bash_line)
+                bashfile.write("\n" + bash_line)
 
             # and in subbashfile
             sub_bash_file_name = sub_bash_file_names[combi_count]
 
             with open(sub_bash_file_name, "a") as sub_bashfile:  # 'a' for append
-                sub_bashfile.write("\n"+bash_line)
+                sub_bashfile.write("\n" + bash_line)
 
             # Fill in Random_Search_Table.csv
             table_name = f"./processed/Random_Search_Table_{cond}_{tfix}.csv"
@@ -320,7 +320,7 @@ def write_search_bash_files(subs, filetype, condition,
             np.savetxt(fname=table_name, X=rs_table, delimiter=";", fmt="%s")
 
             # Set Counter
-            combi_count = combi_count+1 if combi_count < n_subbash-1 else 0
+            combi_count = combi_count + 1 if combi_count < n_subbash - 1 else 0
 
     print("\nBashfiles and table completed.")
 
@@ -378,7 +378,7 @@ def write_bash_from_table(subs, table_path, condition, task=None, n_subbash=4, d
 
     # Create new HP-table
     n_combis = hp_table[1:].shape[0]
-    rounds = np.arange(n_combis*num_sub)
+    rounds = np.arange(n_combis * num_sub)
     rounds = np.reshape(rounds, newshape=(len(rounds), 1))
     subs = np.tile(subs, n_combis)
     subs = np.reshape(subs, newshape=(len(subs), 1))
@@ -387,7 +387,8 @@ def write_bash_from_table(subs, table_path, condition, task=None, n_subbash=4, d
     lside_table = np.concatenate((lside_header, lside_table))
     rside_header = np.reshape(np.array(['mean_val_acc', 'meanline_acc', 'mean_class_val_acc'],
                                        dtype='<U160'), (1, 3))
-    rside_table = np.reshape(np.repeat(np.repeat(a="nan", repeats=n_combis*num_sub), 3), newshape=(-1, 3))
+    rside_table = np.reshape(np.repeat(np.repeat(a="nan", repeats=n_combis * num_sub), 3),
+                             newshape=(-1, 3))
     rside_table = np.concatenate((rside_header, rside_table))
     mid_table = np.repeat(hp_table[1:, :], num_sub, axis=0)
     mid_header = np.reshape(hp_table[0, :], newshape=(1, -1))
@@ -416,11 +417,11 @@ def write_bash_from_table(subs, table_path, condition, task=None, n_subbash=4, d
                                         filetype=filetype, select_mode="one_up", dtype="str")
 
             # Overwrite in table: 'component' AND 'path_specificities'
-            new_hp_table[ridx+1, idx_comp] = sub_comps  # 'component'
+            new_hp_table[ridx + 1, idx_comp] = sub_comps  # 'component'
 
             pspecs = row[idx_path]  # 'path_specificities'
             pspecs = pspecs.split("_comp")[0] + f"_comp-{'-'.join(sub_comps.split(','))}" \
-                                                f"_hrc" + pspecs.split("_hrc")[1]
+                f"_hrc" + pspecs.split("_hrc")[1]
             new_hp_table[ridx + 1, idx_path] = pspecs
 
     # Save new HP-table
@@ -438,38 +439,38 @@ def write_bash_from_table(subs, table_path, condition, task=None, n_subbash=4, d
             with open(subbash_filename, "w") as bash_file:  # 'a' for append
                 bash_file.write(
                     "#!/usr/bin/env bash\n\n" + f"# Narrow Search Bashfile{subbash.split('.')[0]}: "
-                                                f"{task}")
+                    f"{task}")
 
     # Write according bashfiles
     combi_count = 0
     for line in new_hp_table[1:, 1:-3]:
 
         subject, cond, seed, task, shuffle, \
-            repet_scalar, s_fold, balanced_cv, batch_size, \
-            successive, successive_mode, rand_batch, \
-            plot, \
-            lstm_size, fc_n_hidden, learning_rate, \
-            weight_reg, weight_reg_strength,\
-            activation_fct, \
-            filetype, hilbert_power, band_pass, \
-            component, hrcomp, eqcompmat, summaries, \
-            path_specificities = line
+        repet_scalar, s_fold, balanced_cv, batch_size, \
+        successive, successive_mode, rand_batch, \
+        plot, \
+        lstm_size, fc_n_hidden, learning_rate, \
+        weight_reg, weight_reg_strength, \
+        activation_fct, \
+        filetype, hilbert_power, band_pass, \
+        component, hrcomp, eqcompmat, summaries, \
+        path_specificities = line
 
         if lstm_size == '100100':  # probably due to np.savetxt: 100,100 => 100100
             lstm_size = '100,100'
 
         # Write line for bashfile (Important: [Space] after each entry)
         bash_line = f"python3 NeVRo.py --subject {subject} --condition {cond} --seed {seed} " \
-                    f"--task {task} --shuffle {shuffle} --balanced_cv {balanced_cv} " \
-                    f"--repet_scalar {repet_scalar} --s_fold {s_fold} " \
-                    f"--batch_size {batch_size} --successive {successive} " \
-                    f"--successive_mode {successive_mode} --rand_batch {rand_batch} --plot {plot} " \
-                    f"--dellog {del_log_folders} --lstm_size {lstm_size} --fc_n_hidden {fc_n_hidden} " \
-                    f"--learning_rate {learning_rate} --weight_reg {weight_reg} " \
-                    f"--weight_reg_strength {weight_reg_strength} --activation_fct {activation_fct} " \
-                    f"--filetype {filetype} --hilbert_power {hilbert_power} --band_pass {band_pass} " \
-                    f"--component {component} --hrcomp {hrcomp} --eqcompmat {eqcompmat} " \
-                    f"--summaries {summaries} --path_specificities {path_specificities}"
+            f"--task {task} --shuffle {shuffle} --balanced_cv {balanced_cv} " \
+            f"--repet_scalar {repet_scalar} --s_fold {s_fold} " \
+            f"--batch_size {batch_size} --successive {successive} " \
+            f"--successive_mode {successive_mode} --rand_batch {rand_batch} --plot {plot} " \
+            f"--dellog {del_log_folders} --lstm_size {lstm_size} --fc_n_hidden {fc_n_hidden} " \
+            f"--learning_rate {learning_rate} --weight_reg {weight_reg} " \
+            f"--weight_reg_strength {weight_reg_strength} --activation_fct {activation_fct} " \
+            f"--filetype {filetype} --hilbert_power {hilbert_power} --band_pass {band_pass} " \
+            f"--component {component} --hrcomp {hrcomp} --eqcompmat {eqcompmat} " \
+            f"--summaries {summaries} --path_specificities {path_specificities}"
 
         # Write in bashfile
         with open(bash_filename, "a") as bashfile:  # 'a' for append
@@ -482,7 +483,7 @@ def write_bash_from_table(subs, table_path, condition, task=None, n_subbash=4, d
             subbashfile.write("\n" + bash_line)
 
         # Set Counter
-        combi_count = combi_count + 1 if combi_count < n_subbash-1 else 0
+        combi_count = combi_count + 1 if combi_count < n_subbash - 1 else 0
 
     print("\nBashfiles and table completed.")
 
@@ -525,8 +526,8 @@ def update_bashfiles(table_name=None, subject=None, path_specs=None, all_runs=Fa
                 # Run through table and find successfully executed entries
                 for idx, rs_line in enumerate(rs_table[1:, -3:]):
                     if not np.all(rs_line == 'nan'):
-                        subject = rs_table[1+idx, idx_sub]
-                        path_specs = rs_table[1+idx, idx_pspec]
+                        subject = rs_table[1 + idx, idx_sub]
+                        path_specs = rs_table[1 + idx, idx_pspec]
 
                         for bfile in os.listdir("./bashfiles/"):
                             if bfile.split(".")[-1] == 'sh':  # check whether bash file
@@ -560,7 +561,7 @@ def update_bashfiles(table_name=None, subject=None, path_specs=None, all_runs=Fa
         cprint(f"There is no corresponding table: '{table_name}'", 'r')
 
 
-#%% Main >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o
+# %% Main >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<
 
 # # # Adapt here for which subjects bash files should be written and in which condition
 
@@ -656,7 +657,7 @@ if __name__ == "__main__":
                 for _task in tasks:
                     file_found = False
                     p2tables = f"./processed/Random_Search_Tables/{condi}/0_broad_search/{_task}/" \
-                               f"per_subject/"
+                        f"per_subject/"
                     if os.path.exists(p2tables):
                         for tab_name in os.listdir(p2tables):
                             if "unique" in tab_name:
