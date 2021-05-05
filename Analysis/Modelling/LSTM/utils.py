@@ -2,10 +2,10 @@
 """
 Some meta functions
 
-Author: Simon Hofmann | <[surname].[lastname][at]pm.me> | 2017, 2019-2020 (Update)
+Author: Simon Hofmann | <[surname].[lastname][at]pm.me> | 2017, 2019-2021 (Update)
 """
 
-#%% Import
+# %% Import
 
 from datetime import datetime, timedelta
 from functools import wraps
@@ -18,10 +18,9 @@ import psutil
 from pathlib import Path
 
 
-#%% Environment >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o
+# %% Environment >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<
 
 def setwd(new_dir):
-
     # Remove '/' if new_dir == 'folder/' OR '/folder'
     new_dir = new_dir[:-1] if new_dir[-1] == "/" else new_dir
 
@@ -144,7 +143,7 @@ def find(fname, folder=".", typ="file", exclusive=True, fullname=True, abs_path=
         return findings[0]
 
 
-#%% Timer >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<
+# %% Timer >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<
 
 def function_timed(funct):
     """
@@ -193,7 +192,7 @@ def average_time(list_of_timestamps, in_timedelta=True):
     return mean_time
 
 
-#%% Subjects >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+# %% Subjects >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >
 
 def s(subject):
     """
@@ -203,7 +202,7 @@ def s(subject):
     return 'S' + str(subject).zfill(2)
 
 
-#%% Transformation >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+# %% Transformation >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
 def normalization(array, lower_bound, upper_bound):
     """
@@ -218,7 +217,7 @@ def normalization(array, lower_bound, upper_bound):
 
     a, b = lower_bound, upper_bound
 
-    normed_array = (b-a) * ((array - np.nanmin(array)) / (np.nanmax(array) - np.nanmin(array))) + a
+    normed_array = (b - a) * ((array - np.nanmin(array)) / (np.nanmax(array) - np.nanmin(array))) + a
 
     return normed_array
 
@@ -238,7 +237,7 @@ def denormalize(array, denorm_minmax, norm_minmax):
     assert nmin < nmax, "norm_minmax must be tuple (min, max), where min < max"
     assert dnmin < dnmax, "denorm_minmax must be tuple (min, max), where min < max"
 
-    denormed_array = (array - nmin)/(nmax - nmin) * (dnmax-dnmin) + dnmin
+    denormed_array = (array - nmin) / (nmax - nmin) * (dnmax - dnmin) + dnmin
 
     return denormed_array
 
@@ -288,12 +287,12 @@ def smooth(array_to_smooth, w_size, sliding_mode="ontop"):
 
 
 def downsampling(array_to_ds, target_hertz=1, given_hertz=250):
-    ds_ratio = given_hertz/target_hertz
+    ds_ratio = given_hertz / target_hertz
     assert float(ds_ratio).is_integer(), \
         "Ratio between given frequency and target frequency must be an integer."
 
     output_shape = None
-    if float(len(array_to_ds)/ds_ratio).is_integer():
+    if float(len(array_to_ds) / ds_ratio).is_integer():
         output_shape = int(len(array_to_ds) / ds_ratio)
     else:
         ValueError("Input-array must be pruned. Cannot be split in equally sized pieces.")
@@ -302,7 +301,7 @@ def downsampling(array_to_ds, target_hertz=1, given_hertz=250):
 
     idx = int(ds_ratio)
     for i in range(output_shape):
-        output_array[i] = np.nanmean(array_to_ds[idx-int(ds_ratio):idx])
+        output_array[i] = np.nanmean(array_to_ds[idx - int(ds_ratio):idx])
         idx += int(ds_ratio)
 
     return output_array
@@ -322,6 +321,7 @@ def calc_hilbert_z_power(array):
     return hilbert_z_power
 
 
+<<<<<<< HEAD
 def getfactors(n):
     # Create an empty list for factors
     factors = []
@@ -360,9 +360,11 @@ def get_n_cols_and_rows(n_plots, squary=True):
 
 
 #%% Model training >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+=======
+# %% Model training >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+>>>>>>> 80e6cdeb7060493670ba3f8f92b782339e3ee984
 
 def create_s_fold_idx(s_folds, list_prev_indices=None):
-
     if not list_prev_indices:  # list_prev_indices == []
         s_fold_idx = np.random.randint(0, s_folds)
     else:
@@ -381,22 +383,22 @@ def calc_binary_class_accuracy(prediction_matrix):
     :param prediction_matrix: Contains predictions and ground truth
     :return: list of accuracy of each fold
     """
-    n_folds = int(prediction_matrix.shape[0]/2)
+    n_folds = int(prediction_matrix.shape[0] / 2)
     val_class_acc_list = np.zeros(shape=n_folds)
     for fo in range(n_folds):
         # 1: correct, -1: incorrect
-        cor_incor = np.sign(prediction_matrix[fo*2, :]*prediction_matrix[fo*2+1, :])
+        cor_incor = np.sign(prediction_matrix[fo * 2, :] * prediction_matrix[fo * 2 + 1, :])
         # delete nan's
         cor_incor = np.delete(arr=cor_incor, obj=np.where(np.isnan(cor_incor)))
         if len(cor_incor) > 0:
-            fo_accur = sum(cor_incor == 1)/len(cor_incor)
+            fo_accur = sum(cor_incor == 1) / len(cor_incor)
         else:
             fo_accur = np.nan
         val_class_acc_list[fo] = fo_accur
     return val_class_acc_list
 
 
-#%% Sorting >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+# %% Sorting >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
 def sort_mat_by_mat(mat, mat_idx):
     """
@@ -415,7 +417,6 @@ def sort_mat_by_mat(mat, mat_idx):
     sorted_mat = np.zeros(shape=mat.shape)
 
     for row in range(n_rows):
-
         sorted_mat[row, :] = inverse_indexing(arr=mat[row, :], idx=mat_idx[row, :])
         # sorted_mat[row, :] = mat[row, :][mat_idx[row, :]]
 
@@ -452,26 +453,27 @@ def interpolate_nan(arr_with_nan, verbose=False):
         for midx in missing_idx:
             # if the first value is missing take average of the next 5sec
             if midx == 0:
-                arr_with_nan[midx] = np.nanmean(arr_with_nan[midx+1: midx+1+5])
+                arr_with_nan[midx] = np.nanmean(arr_with_nan[midx + 1: midx + 1 + 5])
             # Else Take the mean of the two adjacent values
             else:  # midx > 0
                 if np.isnan(arr_with_nan[midx]):  # Check if still missing (see linspace filling below)
-                    if not np.isnan(arr_with_nan[midx+1]):  # we coming from below
-                        arr_with_nan[midx] = np.mean([arr_with_nan[midx-1], arr_with_nan[midx+1]])
+                    if not np.isnan(arr_with_nan[midx + 1]):  # we coming from below
+                        arr_with_nan[midx] = np.mean([arr_with_nan[midx - 1], arr_with_nan[midx + 1]])
                     else:  # next value is also missing
                         count = 0
                         while True:
-                            if np.isnan(arr_with_nan[midx+1+count]):
+                            if np.isnan(arr_with_nan[midx + 1 + count]):
                                 count += 1
                             else:
                                 break
 
-                        fillvec = np.linspace(start=arr_with_nan[midx-1], stop=arr_with_nan[midx+1+count],
+                        fillvec = np.linspace(start=arr_with_nan[midx - 1],
+                                              stop=arr_with_nan[midx + 1 + count],
                                               num=3 + count)[1:-1]
 
                         assert len(fillvec) == 1 + count, "Implementation error at interpolation"
 
-                        arr_with_nan[midx: midx+count+1] = fillvec
+                        arr_with_nan[midx: midx + count + 1] = fillvec
         if verbose:
             print("Interpolated {} values.".format(len(missing_idx)))
 
@@ -480,7 +482,7 @@ def interpolate_nan(arr_with_nan, verbose=False):
     return updated_array
 
 
-#%% System >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><
+# %% System >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><
 
 def open_folder(path):
     """Open specific folder in Finder. Can also be a file"""
@@ -597,7 +599,6 @@ def gpu_test():
 
 
 def set_path2data():
-
     path_data = "../../../Data/"
     # <<<<<< MPI-specific
     if check_mpi_gpu():
@@ -609,7 +610,7 @@ def set_path2data():
     return path_data
 
 
-#%% I/O & Print >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o
+# %% I/O & Print >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<
 
 def cln(factor=1):
     """Clean the console"""
@@ -617,7 +618,6 @@ def cln(factor=1):
 
 
 def true_false_request(func):
-
     @wraps(func)
     def wrapper(*args, **kwds):
         func(*args, **kwds)  # should be only a print command
@@ -712,7 +712,6 @@ def cprint(string, col=None, fm=None):
 
 
 def cinput(string, col=None):
-
     if col:
         col = col[0].lower()
         assert col in ['p', 'b', 'g', 'y', 'r'], \
@@ -746,6 +745,7 @@ def try_funct(funct):
         abc(1, 2, 3)  # runs normally
         abc(1, "no int", 3)  # throws exception
     """
+
     @wraps(funct)
     def wrapper(*args, **kwds):
 

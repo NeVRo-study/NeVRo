@@ -26,13 +26,13 @@ Channel30: [x30_0, ..., x30_250], [x30_251, ..., x30_500], ... ]  ==> LSTM /
 Author: Simon M. Hofmann | <[surname].[lastname][at]pm.me> | 2017, 2019 (Update)
 """
 
-#%% Import
+# %% Import
 
 import copy
 from utils import *
 import pandas as pd
 
-#%% Set paths and vars >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o
+# %% Set paths and vars >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<
 
 # load EEG data of from *.set (EEGlab format) with: mne.io.read_raw_eeglab() and mne.read_epochs_eeglab()
 
@@ -60,13 +60,14 @@ path_ecg_sba = path_data + "ECG/SBA/z_scored_alltog/"
 
 path_results_xcorr = "../../../Results/x_corr/"
 
+
 # # # Initialize variables
 # subjects = [36]  # [36, 37]
 # subjects = range(1, 45+1)
 # dropouts = [1,12,32,33,38,40,45]
 
 
-#%% Functions >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >
+# %% Functions >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o
 
 def t_roller_coasters(sba=True):
     """
@@ -217,9 +218,9 @@ def get_list_components(subject, condition, filetype, selected=True, lstype="lis
         n_all_comps = tab_ncomp[tab_ncomp["# ID"] == subject]["n_all_comps"].item()
         n_all_comps = np.nan if pd.isna(n_all_comps) else int(n_all_comps)
         if not np.isnan(n_all_comps):
-            comp_ls = list(range(1, n_all_comps+1))
+            comp_ls = list(range(1, n_all_comps + 1))
             if lstype == "string":
-                comp_ls = ",".join(str(i) for i in comp_ls)   # '1,2,3,...'
+                comp_ls = ",".join(str(i) for i in comp_ls)  # '1,2,3,...'
         else:
             comp_ls = np.nan
 
@@ -498,9 +499,9 @@ def load_rating_files(subjects, condition, sba=True, bins=False, samp_freq=1.):
 
         else:  # continuous
             rat_fname = path_rating_cont + \
-                            "{}/{}/NVR_S{}_run_{}_alltog_rat_z.txt".format(
-                                condition, "SBA" if sba else "SA",
-                                str(subject).zfill(2), runs)
+                        "{}/{}/NVR_S{}_run_{}_alltog_rat_z.txt".format(
+                            condition, "SBA" if sba else "SA",
+                            str(subject).zfill(2), runs)
 
         if not os.path.isfile(rat_fname):
             cprint("No rating file found for S{}:\t{}".format(str(subject).zfill(2), rat_fname), col="r")
@@ -1002,11 +1003,11 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
 
     for comp_idx, comp in enumerate(component):
 
-        assert comp in range(1, max_comp+1) or comp in range(91, 90 + max_comp+1), \
+        assert comp in range(1, max_comp + 1) or comp in range(91, 90 + max_comp + 1), \
             f"Components must be in range (1, {max_comp})."
 
         # Check demand for noise component
-        if comp in range(91, 90 + max_comp+1):
+        if comp in range(91, 90 + max_comp + 1):
             component[comp_idx] -= 90  # decode
             noise_comp = True  # switch on noise-mode of given component
 
@@ -1036,7 +1037,7 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
     # 1) and choose specific components
     # eeg_cnt = eeg_data[str(subject)]["SBA"][cond][:, 0:2]  # = first 2 components; or best, or other
 
-    eeg_cnt = eeg_data[str(subject)]["SBA" if sba else "SA"][cond][:, [comp-1 for comp in component]]
+    eeg_cnt = eeg_data[str(subject)]["SBA" if sba else "SA"][cond][:, [comp - 1 for comp in component]]
 
     # If Noise-Mode, shuffle component
     if noise_comp:
@@ -1098,7 +1099,8 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
         m = equal_comp_matrix  # m:= column-dimension of input matrix (for readability)
         if m > eeg_cnt.shape[1]:
             # Attach m - (number of column of eeg_cnt) null-vector(s) to input matrix:
-            eeg_cnt = np.concatenate((eeg_cnt, np.zeros(shape=(eeg_cnt.shape[0], m-eeg_cnt.shape[1]))), 1)
+            eeg_cnt = np.concatenate((eeg_cnt, np.zeros(shape=(eeg_cnt.shape[0], m - eeg_cnt.shape[1]))),
+                                     1)
 
     # If Testset, overwrite eeg_cnt data with artifical data (for model testing)
     if testmode:
@@ -1148,19 +1150,20 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
                 while True:
                     np.random.shuffle(idx)
                     temp_val_set = splitter(array_to_split=rating_cnt[idx], n_splits=s_fold)[s_fold_idx]
-                    if (len(temp_val_set[temp_val_set != 0]) == int(len(temp_val_set)*2/3)) and \
-                            (len(temp_val_set[temp_val_set < 0]) == int(len(temp_val_set)*1/3)):
+                    if (len(temp_val_set[temp_val_set != 0]) == int(len(temp_val_set) * 2 / 3)) and \
+                            (len(temp_val_set[temp_val_set < 0]) == int(len(temp_val_set) * 1 / 3)):
                         # del temp_val_set  # Now: n(-1)==n(1) (==n(0), will be ignored during training/testing)
                         break
             else:  # fully-balanced approach for binary classification
                 temp_idx = idx.copy()
-                len_val = int(len(rating_cnt)/s_fold)
+                len_val = int(len(rating_cnt) / s_fold)
                 # Successively go through each fold and balance class-ratio
                 # Note: this shuffle_idx must be passed on at each fold in NeVRo.py (activate via FLAG)
                 for fi in range(s_fold):
                     while True:
                         np.random.shuffle(temp_idx)
-                        idx[fi * len_val:(fi + 1) * len_val] = temp_idx[:len_val]  # overwrite index for each fold
+                        idx[fi * len_val:(fi + 1) * len_val] = temp_idx[
+                                                               :len_val]  # overwrite index for each fold
                         temp_val_set = splitter(array_to_split=rating_cnt[idx], n_splits=s_fold)[fi]
 
                         if (len(temp_val_set[temp_val_set != 0]) == int(len(temp_val_set) * 2 / 3)) and \

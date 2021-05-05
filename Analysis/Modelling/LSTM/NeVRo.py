@@ -4,10 +4,20 @@ Main script
     • run model
     • script should be called via bash files (see parser)
 
-Author: Simon M. Hofmann | <[surname].[lastname][at]pm.me> | 2017, 2019 (Update)
+Author: Simon M. Hofmann | <[surname].[lastname][at]pm.me> | 2017, 2019, 2021 (Update)
 """
 
+<<<<<<< HEAD
 #%% Import
+=======
+# %% Import
+
+# Adaptations if code is run under Python2
+from __future__ import absolute_import
+from __future__ import division  # int/int can result in float now, 1/2 = 0.5 (in python2 1/2=0, 1/2.=0.5)
+from __future__ import print_function  # : Use print as a function as in Python 3: print()
+
+>>>>>>> 80e6cdeb7060493670ba3f8f92b782339e3ee984
 # import sys
 from load_data import *
 
@@ -23,13 +33,13 @@ from write_random_search_bash import update_bashfiles
 
 # os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # Makes TensorFlow less verbose, comment out for debugging
 
-#%% TO DO's >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+# %% TO DO's >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
 # TODO successively adding SSD components, adding more non-alpha related information (non-b-pass)
 # TODO test trained model on different subject dataset.
 # TODO Train model on various subjects
 
-#%% Set Defaults >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<
+# %% Set Defaults >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<
 
 TASK_DEFAULT = 'classification'  # prediction via 'regression' (continuous) or 'classification' (low-high)
 LEARNING_RATE_DEFAULT = 1e-3  # 1e-4
@@ -54,18 +64,19 @@ CONDITION_DEFAULT = "nomov"
 
 PATH_SPECIFICITIES_DEFAULT = ""  # or fill like this: "special_folder/"
 
-#%% Model dicts >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o
+# %% Model dicts >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<
 
 WEIGHT_REGULARIZER_DICT = {'none': lambda x: None,  # No regularization
                            # L1 regularization
                            'l1': tf.keras.regularizers.l1,  # tf.contrib.layers.l1_regularizer,
                            # L2 regularization
-                           'l2': tf.keras.regularizers.l2}   # tf.contrib.layers.l2_regularizer
+                           'l2': tf.keras.regularizers.l2}  # tf.contrib.layers.l2_regularizer
 
 ACTIVATION_FCT_DICT = {'elu': tf.nn.elu,
                        'relu': tf.nn.relu}
 
-#%% Functions: Model training  >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<
+
+# %% Functions: Model training  >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<
 
 
 def train_step(loss):
@@ -99,7 +110,7 @@ def train_lstm():
     assert float(max_steps).is_integer(), "max steps must be integer"
     eval_freq = int(((num_samples - num_samples / FLAGS.s_fold) / FLAGS.batch_size) / 2)
     # approx. 2 times per epoch
-    checkpoint_freq = int(max_steps/2)  # int(max_steps)/2 for chechpoint after half the training
+    checkpoint_freq = int(max_steps / 2)  # int(max_steps)/2 for chechpoint after half the training
     print_freq = int(max_steps / 8)  # if too low, uses much memory
     assert FLAGS.batch_size % FLAGS.successive == 0, \
         "batch_size must be a multiple of successive (batches)."
@@ -170,12 +181,13 @@ def train_lstm():
         elif FLAGS.component == "all":
             n_comp = get_num_components(subject=FLAGS.subject, condition=FLAGS.condition,
                                         filetype=FLAGS.filetype)
-            input_component = list(range(1, n_comp+1))
+            input_component = list(range(1, n_comp + 1))
 
     else:  # given components are in form of list
         assert np.all([comp.isnumeric() for comp in FLAGS.component.split(",")]), \
             "All given components must be numeric"
-        input_component = [int(comp) for comp in FLAGS.component.split(",")]  # list(ast.literal_eval(FLAGS.component))
+        input_component = [int(comp) for comp in
+                           FLAGS.component.split(",")]  # list(ast.literal_eval(FLAGS.component))
 
     print("LSTM model get trained on input_component(s):", input_component)
 
@@ -209,7 +221,7 @@ def train_lstm():
     # ...   ...   ...   ...   ...   ...
     # S Fold predic [0.397, ..., -0.134]
     # S Fold rating [0.412, ..., -0.983]
-    pred_matrix = np.zeros(shape=(FLAGS.s_fold*2, full_length), dtype=np.float32)
+    pred_matrix = np.zeros(shape=(FLAGS.s_fold * 2, full_length), dtype=np.float32)
     pred_matrix[np.where(pred_matrix == 0)] = np.nan  # set to NaN values
     # We create a separate matrix for the validation (which can be merged with the 1. pred_matrix later)
     val_pred_matrix = copy.copy(pred_matrix)
@@ -226,7 +238,7 @@ def train_lstm():
 
     # Run through S-Fold-Cross-Validation (take the mean-performance across all validation sets)
     for rnd, s_fold_idx in enumerate(s_fold_idx_list):
-        cprint(f"\nTrain now on Fold-Nr.{s_fold_idx} (fold {rnd+1}/{len(s_fold_idx_list)}) | "
+        cprint(f"\nTrain now on Fold-Nr.{s_fold_idx} (fold {rnd + 1}/{len(s_fold_idx_list)}) | "
                f"{FLAGS.path_specificities[:-1]} | {s(FLAGS.subject)}", "b")
         start_timer_fold = datetime.now().replace(microsecond=0)
 
@@ -234,7 +246,7 @@ def train_lstm():
         with tf.Session(graph=graph_dict[s_fold_idx]) as sess:  # (re-)initialise the model completely
 
             with tf.variable_scope(name_or_scope=f"Fold_Nr{str(rnd).zfill(len(str(FLAGS.s_fold)))}/"
-                                                 f"{len(s_fold_idx_list)}"):
+            f"{len(s_fold_idx_list)}"):
 
                 # Load Data:
                 if rnd > 0:
@@ -307,7 +319,7 @@ def train_lstm():
 
                 # Define logdir
                 logdir = f'./processed/logs/{FLAGS.condition}/{s(FLAGS.subject)}/' \
-                         f'{FLAGS.path_specificities}'
+                    f'{FLAGS.path_specificities}'
 
                 if not tf.gfile.Exists(logdir):
                     tf.gfile.MakeDirs(logdir)
@@ -373,9 +385,9 @@ def train_lstm():
                         # Set Start Timer
                         start_timer = datetime.now().replace(microsecond=0)
 
-                    if step % (timer_freq/2) == 0.:
+                    if step % (timer_freq / 2) == 0.:
                         cprint(f"Step {step}/{int(max_steps)} in Fold Nr.{s_fold_idx} "
-                               f"({rnd+1}/{len(s_fold_idx_list)}) | {FLAGS.path_specificities[:-1]} | "
+                               f"({rnd + 1}/{len(s_fold_idx_list)}) | {FLAGS.path_specificities[:-1]} | "
                                f"{s(FLAGS.subject)}", "b")
 
                     # Evaluate on training set every print_freq (=10) iterations
@@ -390,8 +402,8 @@ def train_lstm():
                         train_writer.add_run_metadata(run_metadata, f"step{str(step).zfill(4)}")
                         train_writer.add_summary(summary=summary, global_step=step)
 
-                        print(f"\nTrain-Loss:\t{train_loss:.3f} at step: {step+1}")
-                        print(f"Train-Accuracy:\t{train_acc:.3f} at step: {step+1}\n")
+                        print(f"\nTrain-Loss:\t{train_loss:.3f} at step: {step + 1}")
+                        print(f"Train-Accuracy:\t{train_acc:.3f} at step: {step + 1}\n")
 
                         # Update Lists
                         train_acc_list.append(train_acc)
@@ -402,8 +414,8 @@ def train_lstm():
                             [optimization, loss, accuracy, infer, y], feed_dict=_feed_dict(training=True))
 
                         if step % 25 == 0:
-                            print(f"\nTrain-Loss:\t{train_loss:.3f} at step: {step+1}")
-                            print(f"Train-Accuracy:\t{train_acc:.3f} at step: {step+1}\n")
+                            print(f"\nTrain-Loss:\t{train_loss:.3f} at step: {step + 1}")
+                            print(f"Train-Accuracy:\t{train_acc:.3f} at step: {step + 1}\n")
 
                         # Update Lists
                         train_acc_list.append(train_acc)
@@ -431,14 +443,14 @@ def train_lstm():
                             va_ls_loss.append(val_train_loss)
 
                         if step % 25 == 0:
-                            print(f"Val-Loss:\t{np.mean(va_ls_loss):.3f} at step: {step+1}")
-                            print(f"Val-Accuracy:\t{np.mean(va_ls_acc):.3f} at step: {step+1}")
+                            print(f"Val-Loss:\t{np.mean(va_ls_loss):.3f} at step: {step + 1}")
+                            print(f"Val-Accuracy:\t{np.mean(va_ls_acc):.3f} at step: {step + 1}")
 
                         # Update Lists
                         val_acc_training_list.append((np.mean(va_ls_acc), step))  # tuple: val_acc & step
                         val_loss_training_list.append((np.mean(va_ls_loss), step))
 
-                    if step+1 == max_steps:  # Validation in last round
+                    if step + 1 == max_steps:  # Validation in last round
 
                         # for val_step in range(int(val_counter)):
                         for val_step in range(int(val_steps)):
@@ -451,7 +463,7 @@ def train_lstm():
                                 print(f"Validation-Loss:\t{val_loss:.3f} of Fold Nr.{s_fold_idx} "
                                       f"({rnd + 1}/{len(s_fold_idx_list)})")
                                 print(f"Validation-Accuracy:\t{val_acc:.3f} of Fold Nr.{s_fold_idx} "
-                                      f"({rnd+1}/{len(s_fold_idx_list)})")
+                                      f"({rnd + 1}/{len(s_fold_idx_list)})")
 
                             # Update Lists
                             val_acc_list.append(val_acc)
@@ -466,11 +478,11 @@ def train_lstm():
                                                                train=False)
 
                     # Save the variables to disk every checkpoint_freq (=5000) iterations
-                    if (step+1) % checkpoint_freq == 0 or (step+1) == max_steps:
+                    if (step + 1) % checkpoint_freq == 0 or (step + 1) == max_steps:
 
                         # Define checkpoint_dir
                         checkpoint_dir = f'./processed/checkpoints/{FLAGS.condition}/' \
-                                         f'{s(FLAGS.subject)}/{FLAGS.path_specificities}'
+                            f'{s(FLAGS.subject)}/{FLAGS.path_specificities}'
 
                         if not tf.gfile.Exists(checkpoint_dir):
                             tf.gfile.MakeDirs(checkpoint_dir)
@@ -492,7 +504,7 @@ def train_lstm():
                         # Can not take mean(daytime) in python2
                         # estim_t_per_step = np.mean(timer_list) / timer_freq  # only python3
                         mean_timer_list = average_time(list_of_timestamps=timer_list, in_timedelta=False)
-                        estim_t_per_step = mean_timer_list/timer_freq
+                        estim_t_per_step = mean_timer_list / timer_freq
                         remaining_steps_in_fold = (max_steps - (step + 2))
                         rest_duration = remaining_steps_in_fold * estim_t_per_step
 
@@ -500,11 +512,11 @@ def train_lstm():
                         remaining_folds = len(s_fold_idx_list) - (rnd + 1)
                         if rnd == 0:
                             remaining_steps = max_steps * remaining_folds
-                            rest_duration_all_folds = rest_duration + remaining_steps*estim_t_per_step
+                            rest_duration_all_folds = rest_duration + remaining_steps * estim_t_per_step
                         else:  # this is more accurate, but only possible after first round(rnd)/fold
                             rest_duration_all_folds = rest_duration + \
                                                       average_time(timer_fold_list,
-                                                                   in_timedelta=False)*remaining_folds
+                                                                   in_timedelta=False) * remaining_folds
                         # convert back to: timedelta(seconds=27)
                         rest_duration = timedelta(seconds=rest_duration)
                         rest_duration_all_folds = timedelta(seconds=rest_duration_all_folds)
@@ -574,7 +586,7 @@ def train_lstm():
         tf.gfile.MakeDirs(sub_dir)
 
     with open(sub_dir + f"{time.strftime('%Y_%m_%d_')}S{FLAGS.subject}_accuracy_across_{FLAGS.s_fold}"
-                        f"_folds_{FLAGS.path_specificities[:-1]}.txt", "w") as file:
+    f"_folds_{FLAGS.path_specificities[:-1]}.txt", "w") as file:
         file.write(f"Subject {FLAGS.subject}\nCondition: {FLAGS.condition}\nSBA: {FLAGS.sba}"
                    f"\nTask: {FLAGS.task}\nShuffle_data: {FLAGS.shuffle}"
                    f"\nBalanced CV: {FLAGS.balanced_cv}\ndatatype: {FLAGS.filetype}"
@@ -610,13 +622,13 @@ def train_lstm():
             label_export.insert(len(label_export) - 1, "mean(Classification_Accuracy): ")
 
         for i, item in enumerate(lists_export):
-            file.write(label_export[i] + str(item)+"\n")
+            file.write(label_export[i] + str(item) + "\n")
 
     # Save Accuracies in Random/Narrow_Search_Table.csv if applicable
     for search in ['Narrow', 'Random']:
         # Check for narrow or random/broad search.
         table_name = f"./processed/{search}_Search_Table_{FLAGS.condition}_" \
-                     f"{'BiCl' if FLAGS.task=='classification' else 'Reg'}.csv"
+            f"{'BiCl' if FLAGS.task == 'classification' else 'Reg'}.csv"
         # Since condition is given, these two cases (search types) are mutually exclusive.
         if os.path.exists(table_name):
             break
@@ -652,14 +664,14 @@ def train_lstm():
 
     # Save Prediction Matrices in File
     np.savetxt(sub_dir + f"{time.strftime('%Y_%m_%d_')}S{FLAGS.subject}_pred_matrix_{FLAGS.s_fold}"
-                         f"_folds_{FLAGS.path_specificities[:-1]}.csv", pred_matrix, delimiter=",")
+    f"_folds_{FLAGS.path_specificities[:-1]}.csv", pred_matrix, delimiter=",")
 
     np.savetxt(sub_dir + f"{time.strftime('%Y_%m_%d_')}S{FLAGS.subject}_val_pred_matrix_{FLAGS.s_fold}"
-                         f"_folds_{FLAGS.path_specificities[:-1]}.csv", val_pred_matrix, delimiter=",")
+    f"_folds_{FLAGS.path_specificities[:-1]}.csv", val_pred_matrix, delimiter=",")
 
     if FLAGS.shuffle:
         np.save(sub_dir + f"{time.strftime('%Y_%m_%d_')}S{FLAGS.subject}_shuffle_order_matrix"
-                          f"_{FLAGS.s_fold}_folds_{FLAGS.path_specificities[:-1]}.npy",
+        f"_{FLAGS.s_fold}_folds_{FLAGS.path_specificities[:-1]}.npy",
                 shuffle_order_matrix)
 
     # Update bash files
@@ -696,7 +708,7 @@ def fill_pred_matrix(pred, y, current_mat, s_idx, current_batch, sfold, train=Tr
     # S-Fold, for S=10:
     #    FOLD 0          FOLD 1          FOLD 2                FOLD 9
     # [0, ..., 26] | [27, ..., 53] | [54, ..., 80] | ... | [235, ..., 269]
-    fold_length = int(fulllength/sfold)  # len([0, ..., 26]) = 27
+    fold_length = int(fulllength / sfold)  # len([0, ..., 26]) = 27
 
     # S-Fold-Index, e.g. s_idx=1. That is, FOLD 1 is validation set
     verge = s_idx * fold_length  # verge = 27
@@ -714,7 +726,7 @@ def fill_pred_matrix(pred, y, current_mat, s_idx, current_batch, sfold, train=Tr
 
     # Update Matrix
     current_mat[pred_idx, fill_pos] = pred  # inference/prediction
-    current_mat[rat_idx, fill_pos] = y      # ratings
+    current_mat[rat_idx, fill_pos] = y  # ratings
     updated_mat = current_mat
 
     return updated_mat
@@ -754,7 +766,7 @@ def str2bool(v):
         raise argparse.ArgumentTypeError('Boolean value expected.')
 
 
-#%% Main: Run >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >
+# %% Main: Run >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >
 
 if __name__ == '__main__':
     # Command line arguments
