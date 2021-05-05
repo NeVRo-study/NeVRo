@@ -8,7 +8,7 @@ Code base of: <a href="https://doi.org/10.1101/2020.10.24.353722"> Hofmann, Klot
 [![Python.pm](https://img.shields.io/badge/python->3.5-brightgreen.svg?maxAge=259200)](#)
 [![Matlab.pm](https://img.shields.io/badge/matlab->R2016.a-red.svg?maxAge=259200)](#)
 [![R.pm](https://img.shields.io/badge/R->3.4-informational.svg?maxAge=259200)](#)
-[![version](https://img.shields.io/badge/version-2.0.2-yellow.svg?maxAge=259200)](#)
+[![version](https://img.shields.io/badge/version-2.1-yellow.svg?maxAge=259200)](#)
 
 <h2>Introduction</h2>
 
@@ -37,8 +37,13 @@ This part of the study was published at IEEE AIVR 2018 in Taichung, Taiwan:<br>
 
 <h3>Versions</h3>
 
-###### version 2.x
-`2018-2020`: preprocessing for models (SPoC, CSP, LSTM) was harmonized, and their evaluation and metrics were adapted accordingly. Plus, a more detailed documentation is available.
+###### version 2.1+
+
+`2021`: additional linear model, new cross-validation regime, and further sub-analyses. Encouraged by valuable feedback via this [peer-review](https://hyp.is/go?url=https%3A%2F%2Fwww.biorxiv.org%2Fcontent%2F10.1101%2F2020.10.24.353722v3&group=q5X6RWJ6). 
+
+###### version 2.0
+
+`2018-2020`: preprocessing for models (SPoC, CSP, LSTM) was harmonized, and their evaluation and metrics were adapted accordingly. Plus, a more detailed documentation is available. Code for extended & harmonized version of the study (see [bioRxiv preprint](https://www.biorxiv.org/content/10.1101/2020.10.24.353722v3)).
 
 ###### version 1.x
 `2017-2018`: Code of two above mentioned IEEE conference publications.
