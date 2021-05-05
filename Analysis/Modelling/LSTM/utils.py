@@ -321,7 +321,6 @@ def calc_hilbert_z_power(array):
     return hilbert_z_power
 
 
-<<<<<<< HEAD
 def getfactors(n):
     # Create an empty list for factors
     factors = []
@@ -360,9 +359,6 @@ def get_n_cols_and_rows(n_plots, squary=True):
 
 
 #%% Model training >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
-=======
-# %% Model training >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
->>>>>>> 80e6cdeb7060493670ba3f8f92b782339e3ee984
 
 def create_s_fold_idx(s_folds, list_prev_indices=None):
     if not list_prev_indices:  # list_prev_indices == []

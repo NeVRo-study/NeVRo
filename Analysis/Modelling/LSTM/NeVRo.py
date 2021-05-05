@@ -7,17 +7,8 @@ Main script
 Author: Simon M. Hofmann | <[surname].[lastname][at]pm.me> | 2017, 2019, 2021 (Update)
 """
 
-<<<<<<< HEAD
 #%% Import
-=======
-# %% Import
 
-# Adaptations if code is run under Python2
-from __future__ import absolute_import
-from __future__ import division  # int/int can result in float now, 1/2 = 0.5 (in python2 1/2=0, 1/2.=0.5)
-from __future__ import print_function  # : Use print as a function as in Python 3: print()
-
->>>>>>> 80e6cdeb7060493670ba3f8f92b782339e3ee984
 # import sys
 from load_data import *
 
