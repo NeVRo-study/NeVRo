@@ -26,6 +26,7 @@ from write_random_search_bash import update_bashfiles
 
 # %% TO DO's >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
+# TODO implement subblock_cv (see FLAG)
 # TODO successively adding SSD components, adding more non-alpha related information (non-b-pass)
 # TODO test trained model on different subject dataset.
 # TODO Train model on various subjects
@@ -134,6 +135,19 @@ def train_lstm():
     s_fold_idx_list = np.arange(FLAGS.s_fold)
     np.random.shuffle(s_fold_idx_list)
 
+    # TODO adapt get_nevro_data() for stratified rolling S-fold CV (FLAGS.subblock_cv):
+    #  probably move index_subblock_cv() into get_nevro_data().
+    if FLAGS.subblock_cv:
+        raise NotImplementedError("Stratified rolling S-fold cross-validation (FLAGS.subblock_cv) is "
+                                  "not fully implemented yet.")
+
+    def index_subblock_cv(s_fold_idx, s_folds, n_samples):
+        """Produce indices for stratified rolling S-fold cross-validation."""
+        idx_test = [int(s_fold_idx * n_samples/(3*s_folds) + i_ + k_ * n_samples/3) for k_ in range(3)
+                    for i_ in range(int(n_samples/(3*s_folds)))]
+        idx_train = list(set(range(n_samples)) - set(idx_test))
+        return idx_train, idx_test
+
     # Create graph_dic
     graph_dict = dict.fromkeys(s_fold_idx_list)
     for key in graph_dict.keys():
@@ -237,7 +251,7 @@ def train_lstm():
         with tf.Session(graph=graph_dict[s_fold_idx]) as sess:  # (re-)initialise the model completely
 
             with tf.variable_scope(name_or_scope=f"Fold_Nr{str(rnd).zfill(len(str(FLAGS.s_fold)))}/"
-            f"{len(s_fold_idx_list)}"):
+                                                 f"{len(s_fold_idx_list)}"):
 
                 # Load Data:
                 if rnd > 0:
@@ -804,6 +818,9 @@ if __name__ == '__main__':
     parser.add_argument('--balanced_cv', type=str2bool, default=True,
                         help='Balanced CV. False: at each iteration/fold data gets shuffled '
                              '(semi-balanced, this can lead to overlapping samples in validation set)')
+    parser.add_argument('--subblock_cv', type=str2bool, default=False,
+                        help='Stratified rolling 10-fold CV. True: CV is stratified by sub-blocks. Each '
+                             'fold consists of equal parts from each sub-bock. ')
     parser.add_argument('--s_fold', type=int, default=S_FOLD_DEFAULT,
                         help='Number of folds in S-Fold-Cross Validation')
     parser.add_argument('--rand_batch', type=str, default=True,
