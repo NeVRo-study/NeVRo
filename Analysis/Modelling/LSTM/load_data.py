@@ -1152,7 +1152,7 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
                     temp_val_set = splitter(array_to_split=rating_cnt[idx], n_splits=s_fold)[s_fold_idx]
                     if (len(temp_val_set[temp_val_set != 0]) == int(len(temp_val_set) * 2 / 3)) and \
                             (len(temp_val_set[temp_val_set < 0]) == int(len(temp_val_set) * 1 / 3)):
-                        # del temp_val_set  # Now: n(-1)==n(1) (==n(0), will be ignored during training/testing)
+                        # del temp_val_set  # Now: n(-1)==n(1) (==n(0), will be ignored during train/test)
                         break
             else:  # fully-balanced approach for binary classification
                 temp_idx = idx.copy()
@@ -1168,7 +1168,6 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
 
                         if (len(temp_val_set[temp_val_set != 0]) == int(len(temp_val_set) * 2 / 3)) and \
                                 (len(temp_val_set[temp_val_set < 0]) == int(len(temp_val_set) * 1 / 3)):
-                            # del temp_val_set  # Now: n(-1)==n(1) (==n(0), will be ignored during training/testing)
 
                             temp_idx = temp_idx[len_val:]
                             break

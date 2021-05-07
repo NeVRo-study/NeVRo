@@ -136,7 +136,8 @@ def train_lstm():
     np.random.shuffle(s_fold_idx_list)
 
     # TODO adapt get_nevro_data() for stratified rolling S-fold CV (FLAGS.subblock_cv):
-    #  probably move index_subblock_cv() into get_nevro_data().
+    #  probably move index_subblock_cv() into get_nevro_data() OR
+    #  create shuffle corresponding shuffle matrix
     if FLAGS.subblock_cv:
         raise NotImplementedError("Stratified rolling S-fold cross-validation (FLAGS.subblock_cv) is "
                                   "not fully implemented yet.")
