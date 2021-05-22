@@ -983,8 +983,7 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
     # Check inputs
     if s_fold_idx:
         assert s_fold_idx < s_fold, \
-            "s_fold_idx (={}) must be in the range of the number of folds (={})".format(s_fold_idx,
-                                                                                        s_fold)
+            f"s_fold_idx (={s_fold_idx}) must be in the range of the number of folds (={s_fold})"
     assert filetype in ["SSD", "SPOC"], "filetype must be either 'SSD' or 'SPOC'"
     assert task in ["regression", "classification"], "task must be 'regression' or 'classification'"
     if equal_comp_matrix == "None":
@@ -1070,7 +1069,7 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
                 if del_counter == -1:
                     del_counter = 2
                 # starts to delete in the end (Andes), then after Break, then after first part (Space)
-                eeg_cnt = np.delete(arr=eeg_cnt, obj=to_delete[del_counter], axis=0)
+                eeg_cnt = np.delete(arr=eeg_cnt, obj=int(to_delete[del_counter]), axis=0)
                 del_counter -= 1
 
                 len_test = eeg_cnt.shape[0] / s_freq_eeg - rating_cnt.shape[0]
@@ -1095,7 +1094,7 @@ def get_nevro_data(subject, task, cond, component, hr_component, filetype, hilbe
         eeg_cnt = np.concatenate((eeg_cnt, ecg_cnt_streched), 1)
 
     # If the model input should always be equal in size, i.e. a matrix with the same shape (len(eeg), m):
-    if equal_comp_matrix:
+    if equal_comp_matrix is not None:
         m = equal_comp_matrix  # m:= column-dimension of input matrix (for readability)
         if m > eeg_cnt.shape[1]:
             # Attach m - (number of column of eeg_cnt) null-vector(s) to input matrix:
