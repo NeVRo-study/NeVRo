@@ -321,7 +321,44 @@ def calc_hilbert_z_power(array):
     return hilbert_z_power
 
 
-# %% Model training >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+def getfactors(n):
+    # Create an empty list for factors
+    factors = []
+
+    # Loop over all factors
+    for i in range(1, n + 1):
+        if n % i == 0:
+            factors.append(i)
+
+    # Return the list of
+    return factors
+
+
+#%% Sub-plotting >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>>>
+
+def get_n_cols_and_rows(n_plots, squary=True):
+    """Define figure grid-size: with rpl x cpl cells """
+    facs = getfactors(n_plots)
+    if len(facs) <= 2 or squary:  # prime or squary
+        rpl = 1
+        cpl = 1
+        while (rpl * cpl) < n_plots:
+            if rpl == cpl:
+                rpl += 1
+            else:
+                cpl += 1
+    else:
+        rpl = facs[len(facs) // 2]
+        cpl = n_plots // rpl
+
+    ndiff = rpl * cpl - n_plots
+    if ndiff > 0:
+        cprint(f"There will {ndiff} empty plot.", 'y')
+
+    return rpl, cpl
+
+
+#%% Model training >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
 def create_s_fold_idx(s_folds, list_prev_indices=None):
     if not list_prev_indices:  # list_prev_indices == []

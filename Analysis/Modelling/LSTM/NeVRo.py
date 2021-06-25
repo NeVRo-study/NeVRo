@@ -7,19 +7,13 @@ Main script
 Author: Simon M. Hofmann | <[surname].[lastname][at]pm.me> | 2017, 2019, 2021 (Update)
 """
 
-# %% Import
-
-# Adaptations if code is run under Python2
-from __future__ import absolute_import
-from __future__ import division  # int/int can result in float now, 1/2 = 0.5 (in python2 1/2=0, 1/2.=0.5)
-from __future__ import print_function  # : Use print as a function as in Python 3: print()
+#%% Import
 
 # import sys
-# sys.path.insert(0, './LSTM Model')  # or set the folder as source root
 from load_data import *
 
 import numpy as np
-import tensorflow as tf  # implemented with TensorFlow 1.13.1
+import tensorflow as tf  # implemented with TensorFlow 1.14.0-rc1
 import argparse
 import time
 import copy
@@ -32,6 +26,7 @@ from write_random_search_bash import update_bashfiles
 
 # %% TO DO's >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
+# TODO Test subblock_cv (see FLAG)
 # TODO successively adding SSD components, adding more non-alpha related information (non-b-pass)
 # TODO test trained model on different subject dataset.
 # TODO Train model on various subjects
@@ -102,7 +97,8 @@ def train_lstm():
 
     # # Parameters
     # runs max_steps-times through set
-    num_samples = 270 if FLAGS.task == "regression" else 180
+    full_length = 270
+    num_samples = full_length if FLAGS.task == "regression" else 180
     max_steps = FLAGS.repet_scalar * (num_samples - num_samples / FLAGS.s_fold) / FLAGS.batch_size
     assert float(max_steps).is_integer(), "max steps must be integer"
     eval_freq = int(((num_samples - num_samples / FLAGS.s_fold) / FLAGS.batch_size) / 2)
@@ -139,6 +135,55 @@ def train_lstm():
     # s_fold_idx depending on s_fold and previous index
     s_fold_idx_list = np.arange(FLAGS.s_fold)
     np.random.shuffle(s_fold_idx_list)
+
+    # For stratified rolling S-fold cross-validation, create corresponding shuffle matrix
+    global_shuffle_order = None
+    if FLAGS.subblock_cv:
+
+        if FLAGS.balanced_cv:
+            raise NotImplementedError("Stratified rolling S-fold cross-validation (FLAGS.subblock_cv) "
+                                      "has no balanced split yet implemented!")
+
+            # # OR instead, use warning:
+            # FLAGS.balanced_cv = False  # wouldn't have effect with True, but to stay precise ...
+            # cprint("Stratified rolling S-fold cross-validation (FLAGS.subblock_cv) has no balanced "
+            #        "split (yet)! FLAGS.balanced_cv was set to False.", col='r')
+
+        def index_subblock_cv(s_fold_idx, s_fold, n_samples, shuffle_within=True):
+            """
+            Produce indices for stratified rolling S-fold cross-validation.
+
+            Full length:
+            [0, 1, 2, 3, ..., N-2, N-1, N]
+            Split in 3 main chunks:
+            [[0, 1, 2, 3, ..., N/3], [N/3 + 1, N/3 + 2, ..., 2*N/3], [2*N/3 + 1, 2*N/3 + 2, ..., N]]
+            Draw from each each m-samples for validation set:
+            [0, 1, 2, ..., m, N/3 + 1, N/3 + 2, ..., N/3 + m+1, 2*N/3 + 1, 2*N/3 + 2, ..., 2*N/3 + m+1]]
+
+            Rest is for the training set
+            """
+            idx_val = [int(s_fold_idx * n_samples/(3*s_fold) + i_ + k_ * n_samples/3) for k_ in range(3)
+                       for i_ in range(int(n_samples/(3*s_fold)))]
+            idx_train = list(set(range(n_samples)) - set(idx_val))
+
+            if shuffle_within:
+                np.random.shuffle(idx_val)
+                np.random.shuffle(idx_train)
+
+            return idx_train, idx_val
+
+        global_shuffle_order = []
+        for s_fold_idx in s_fold_idx_list:
+            # Indeces for validation set in each fold
+            global_shuffle_order.append(index_subblock_cv(s_fold_idx=s_fold_idx, s_fold=FLAGS.s_fold,
+                                                          n_samples=full_length,
+                                                          shuffle_within=FLAGS.shuffle)[-1])
+
+        global_shuffle_order = np.ravel(global_shuffle_order).tolist()
+        assert len(np.unique(global_shuffle_order)) == full_length, \
+            "All samples must be in suffle order. Revisit implementation of FLAGS.subblock_cv!"
+        # full_length == len(global_shuffle_order)
+        # all([i in global_shuffle_order for i in range(full_length)])
 
     # Create graph_dic
     graph_dict = dict.fromkeys(s_fold_idx_list)
@@ -202,7 +247,7 @@ def train_lstm():
                                 s_fold=FLAGS.s_fold,
                                 sba=FLAGS.sba,
                                 shuffle=FLAGS.shuffle,
-                                shuffle_order=None,
+                                shuffle_order=global_shuffle_order,
                                 balanced_cv=FLAGS.balanced_cv,
                                 testmode=FLAGS.testmodel)
 
@@ -210,7 +255,6 @@ def train_lstm():
 
     # Define graph using class NeVRoNet and its methods:
     ddims = list(nevro_data["train"].eeg.shape[1:])  # [250, n_comp]
-    full_length = len(nevro_data["validation"].ratings) * FLAGS.s_fold  # 270
 
     # Prediction Matrix for each fold
     # 1 Fold predic [0.156, ..., 0.491]
@@ -226,7 +270,8 @@ def train_lstm():
     # In case data was shuffled save corresponding order per fold in matrix and save later
     shuffle_order_matrix = np.zeros(shape=(FLAGS.s_fold, pred_matrix.shape[1]))
     shuffle_order_matrix[s_fold_idx_list[0], :] = nevro_data["order"]
-    global_shuffle_order = nevro_data["order"] if FLAGS.balanced_cv else None
+    if FLAGS.balanced_cv:
+        global_shuffle_order = nevro_data["order"]
 
     # Set Variables for timer
     timer_fold_list = []  # list of duration(time) of each fold
@@ -243,7 +288,7 @@ def train_lstm():
         with tf.Session(graph=graph_dict[s_fold_idx]) as sess:  # (re-)initialise the model completely
 
             with tf.variable_scope(name_or_scope=f"Fold_Nr{str(rnd).zfill(len(str(FLAGS.s_fold)))}/"
-            f"{len(s_fold_idx_list)}"):
+                                                 f"{len(s_fold_idx_list)}"):
 
                 # Load Data:
                 if rnd > 0:
@@ -274,7 +319,6 @@ def train_lstm():
                                                 task=FLAGS.task,
                                                 shuffle=FLAGS.shuffle,
                                                 shuffle_order=global_shuffle_order,
-                                                # is None if not FLAGS.balanced_cv
                                                 balanced_cv=FLAGS.balanced_cv,
                                                 testmode=FLAGS.testmodel)
 
@@ -583,10 +627,11 @@ def train_lstm():
         tf.gfile.MakeDirs(sub_dir)
 
     with open(sub_dir + f"{time.strftime('%Y_%m_%d_')}S{FLAGS.subject}_accuracy_across_{FLAGS.s_fold}"
-    f"_folds_{FLAGS.path_specificities[:-1]}.txt", "w") as file:
+                        f"_folds_{FLAGS.path_specificities[:-1]}.txt", "w") as file:
         file.write(f"Subject {FLAGS.subject}\nCondition: {FLAGS.condition}\nSBA: {FLAGS.sba}"
                    f"\nTask: {FLAGS.task}\nShuffle_data: {FLAGS.shuffle}"
-                   f"\nBalanced CV: {FLAGS.balanced_cv}\ndatatype: {FLAGS.filetype}"
+                   f"\nBalanced CV: {FLAGS.balanced_cv}\nStratified CV: {FLAGS.subblock_cv}"
+                   f"\ndatatype: {FLAGS.filetype}"
                    f"\nband_pass: {FLAGS.band_pass}\nHilbert_z-Power: {FLAGS.hilbert_power}"
                    f"\ns-Fold: {FLAGS.s_fold}\nmax_step: {int(max_steps)}"
                    f"\nrepetition_set: {FLAGS.repet_scalar}\nlearning_rate: {FLAGS.learning_rate}"
@@ -810,6 +855,9 @@ if __name__ == '__main__':
     parser.add_argument('--balanced_cv', type=str2bool, default=True,
                         help='Balanced CV. False: at each iteration/fold data gets shuffled '
                              '(semi-balanced, this can lead to overlapping samples in validation set)')
+    parser.add_argument('--subblock_cv', type=str2bool, default=False,
+                        help='Stratified rolling 10-fold CV. True: CV is stratified by sub-blocks. Each '
+                             'fold consists of equal parts from each sub-bock. ')
     parser.add_argument('--s_fold', type=int, default=S_FOLD_DEFAULT,
                         help='Number of folds in S-Fold-Cross Validation')
     parser.add_argument('--rand_batch', type=str, default=True,
