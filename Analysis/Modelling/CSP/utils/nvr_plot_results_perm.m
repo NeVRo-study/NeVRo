@@ -4,11 +4,12 @@
 % paths:
 rand_files = dir(); %get files in current dir to get link to folder;
 path_orig = rand_files(1).folder;
-mov_cond = 'nomov';
-cropstyle = 'SA';
+mov_cond = 'mov';
+cropstyle = 'SBA';
 path_data = [path_orig '/../../../Data/'];
 path_dataeeg =  [path_data 'EEG/'];
 path_summaries = [path_dataeeg, '08.7_CSP_3x10f_reg_auc_smote_0.2cor/' mov_cond '/' cropstyle '/summaries/'];
+path_results = [path_orig '/../../../Results/Tables/'];
 
 % if scorer==mcr: acc=1-loss
 % if scorer==-auc: auc=0-(-auc)
@@ -106,6 +107,14 @@ results_tab.subID = string(sub_ids)';
 results_tab = results_tab(:, {'subID', 'roc-auc', 'roc-auc_permuted_mean', 'p_val'});
 fname = [path_summaries, 'results_table_' mov_cond '_', cropstyle '.csv'];
 writetable(results_tab, fname, 'Delimiter', ',');
+
+%% write to results table across methods:
+fname = [path_results 'results_across_methods_' mov_cond '_supplementary_analysis.csv'];
+tmp = readtable(fname, 'ReadVariableNames', true, 'Delimiter', ',');
+tmp.([cropstyle '_BLOCK_CSP_auc']) = accs_real;
+tmp.([cropstyle '_BLOCK_CSP_Pvalue']) = p_vals;
+writetable(tmp, fname, 'Delimiter', ',');
+
 
 %% 
 figure
