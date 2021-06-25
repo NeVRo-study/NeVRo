@@ -4,7 +4,7 @@
 % paths:
 rand_files = dir(); %get files in current dir to get link to folder;
 path_orig = rand_files(1).folder;
-mov_cond = 'nomov';
+mov_cond = 'mov';
 cropstyle = 'SA';
 path_data = [path_orig '/../../../Data/'];
 path_dataeeg =  [path_data 'EEG/'];
@@ -104,7 +104,7 @@ results_tab = array2table(results_mat);
 results_tab.Properties.VariableNames = {'roc-auc', 'roc-auc_permuted_mean', 'p_val'};
 results_tab.subID = string(sub_ids)';
 results_tab = results_tab(:, {'subID', 'roc-auc', 'roc-auc_permuted_mean', 'p_val'});
-fname = [path_summaries, 'results_table_' mov_cond '_', cropstyle '.csv'];
+fname = [path_summaries, 'results_table_' mov_cond '.csv'];
 writetable(results_tab, fname, 'Delimiter', ',');
 
 %% 

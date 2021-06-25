@@ -17,6 +17,7 @@ bpm = eye(n_blocks);
 l_m = {bpm};
 tot = zeros(length(y), n_perms);
 for p=1:n_perms
+    fprintf('##########\n');
     searching = true;
     n_max_run = factorial(n_blocks) - 1;
     run_count = 0;
@@ -25,7 +26,10 @@ for p=1:n_perms
         if run_count > n_max_run
             error('No solution found. Decrease number of permutations.');
         end
-        bpm = bpm(randperm(n_blocks),:);
+        rng('shuffle')
+        rand_seq = randperm(n_blocks);
+        fprintf('Rand seq: %i%i%i\n', rand_seq);
+        bpm = bpm(rand_seq,:);
         equals = zeros(length(l_m),1);
         for m = 1:length(l_m)
             equals(m) = isequal(l_m{m}, bpm);
@@ -33,6 +37,7 @@ for p=1:n_perms
         perm_mat = kron(bpm, eye(length(y)/n_blocks));
         if abs(corr(perm_mat * y', y')) > max_cor
             l_m{end+1} = bpm;
+            fprintf('corr too high');
             continue;
         end
         if ~any(equals)
