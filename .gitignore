@@ -30,4 +30,6 @@
 # Exceptions
 !Results/Tables/alphapeaks_FOOOF_fres024_813.csv
 !Results/Tables/results_across_methods_nomov.csv
+!Results/Tables/results_across_methods_novmov_supplementary_analysis.csv
 !Results/Tables/results_across_methods_mov.csv
+!Results/Tables/results_across_methods_mov_supplementary_analysis.csv
