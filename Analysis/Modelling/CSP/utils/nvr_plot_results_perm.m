@@ -5,7 +5,7 @@
 rand_files = dir(); %get files in current dir to get link to folder;
 path_orig = rand_files(1).folder;
 mov_cond = 'mov';
-cropstyle = 'SBA';
+cropstyle = 'SA';
 path_data = [path_orig '/../../../Data/'];
 path_dataeeg =  [path_data 'EEG/'];
 path_summaries = [path_dataeeg, '08.7_CSP_3x10f_reg_auc_smote_0.2cor/' mov_cond '/' cropstyle '/summaries/'];
