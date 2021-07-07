@@ -9,14 +9,15 @@ Create plots for supplementary analysis:
 Author: Simon M. Hofmann | <[surname].[lastname][at]pm.me> | 2021
 """
 
-#%% Import
+# %% Import
+
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from utils import *
 from scipy.stats import norm
 
-#%% Set paths & vars >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >
+# %% Set paths & vars >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o
 
 # Path to tables
 p2results = os.path.join(".", "Results", "Tables")  # asserts being on root level ./NeVRo/
@@ -30,11 +31,11 @@ conditions = ["nomov", "mov"]
 # Data span
 span = ["SBA", "SA"]
 
-#%% Functions >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >
+# %% Functions >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o
 
 pass
 
-#%% __main__ >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+# %% __main__ >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >
 
 # TODO add one-sided ttest
 if __name__ == "__main__":
@@ -45,7 +46,7 @@ if __name__ == "__main__":
         table = pd.read_csv(p2tab, index_col="Subject")
 
         # Create figure
-        fig, axs = plt.subplots(2, 2, num=f"{cond}", figsize=(6, 6), sharex=True, sharey=True)
+        fig, axs = plt.subplots(2, 2, num=f"{cond}", figsize=(10, 6), sharex=True, sharey=True)
 
         ax_ctn = 0
         for sp in span:
@@ -70,7 +71,8 @@ if __name__ == "__main__":
                 h = sns.distplot(table[data_col], bins=15, kde=False, hist=True, fit=norm,
                                  hist_kws=dict(range=(.35, .75)),
                                  color="orange" if ax_ctn % 2 == 0 else "lightgreen",
-                                 fit_kws=dict(color="orange" if ax_ctn % 2 == 0 else "lightgreen"), ax=ax)
+                                 fit_kws=dict(color="orange" if ax_ctn % 2 == 0 else "lightgreen"),
+                                 ax=ax)
 
                 ax.vlines(x=table[perm_data_col].mean(), ymin=0, ymax=h_perm.get_ylim()[-1], ls="dotted",
                           color="blue")
@@ -85,3 +87,12 @@ if __name__ == "__main__":
                     ax.set_title(model)
 
                 ax_ctn += 1
+
+        plt.tight_layout()
+
+        # Save plot
+        p2save = "./Results/Plots/Supplementary_Analysis/"
+        os.makedirs(p2save, exist_ok=True)
+        for fm in ['png', 'pdf']:
+            plt.savefig(fname=os.path.join(p2save, f"SA-vs-SBA_classification_{cond}.{fm}"), dpi=300,
+                        format=fm)
