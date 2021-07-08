@@ -15,7 +15,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from utils import *
-from scipy.stats import norm
+from scipy.stats import norm, ttest_ind
 
 # %% Set paths & vars >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o
 
@@ -37,7 +37,6 @@ pass
 
 # %% __main__ >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >
 
-# TODO add one-sided ttest
 if __name__ == "__main__":
 
     for cond in conditions:
@@ -46,7 +45,7 @@ if __name__ == "__main__":
         table = pd.read_csv(p2tab, index_col="Subject")
 
         # Create figure
-        fig, axs = plt.subplots(2, 2, num=f"{cond}", figsize=(10, 6), sharex=True, sharey=True)
+        fig, axs = plt.subplots(2, 2, num=f"{cond}", figsize=(10, 6), sharex=True, sharey=False)
 
         ax_ctn = 0
         for sp in span:
@@ -74,23 +73,43 @@ if __name__ == "__main__":
                                  fit_kws=dict(color="orange" if ax_ctn % 2 == 0 else "lightgreen"),
                                  ax=ax)
 
+                # Add means
                 ax.vlines(x=table[perm_data_col].mean(), ymin=0, ymax=h_perm.get_ylim()[-1], ls="dotted",
                           color="blue")
 
                 ax.vlines(x=table[data_col].mean(), ymin=0, ymax=h.get_ylim()[-1], ls="dotted",
                           color="orange" if ax_ctn % 2 == 0 else "lightgreen")
 
+                # Add stats: one-sided ttest
+                t, p = ttest_ind(a=table[perm_data_col], b=table[data_col])  # results of two-sided
+                p /= 2  # one-sided
+                m = "ns" if p > .05 else "*" if (.05 >= p > .01) else "**" if (.01 >= p > .001) else "***"
+
+                # Indicate (non-)significance in plot
+                x_pos = (table[perm_data_col].mean() + table[data_col].mean()) / 2
+                y_pos = max(h_perm.get_ylim()[-1], h.get_ylim()[-1]) + .5
+                ax.annotate(m, xy=(x_pos, y_pos + 1.), ha="center", va="bottom")
+                ax.annotate('',
+                            xy=(table[perm_data_col].mean(), y_pos),
+                            xytext=(table[data_col].mean(), y_pos),
+                            arrowprops={'connectionstyle': 'bar', 'arrowstyle': '-',
+                                        'shrinkA': 1, 'shrinkB': 1, 'linewidth': 1})
+
                 # Set labels & titles
-                ax.set_xlabel("AUC")
-                ax.set_ylabel(f"{sp}\nCount")
+                ax.set_ylim(0, round(ax.get_ylim()[-1]) + 5)
+                if ax_ctn % 2 == 0:
+                    ax.set_ylabel(f"{sp}\nCount")
                 if ax_ctn < 2:
                     ax.set_title(model)
+                    ax.set_xlabel("")
+                else:
+                    ax.set_xlabel("AUC")
 
                 ax_ctn += 1
 
         plt.tight_layout()
 
-        # Save plot
+        # # Save plot
         p2save = "./Results/Plots/Supplementary_Analysis/"
         os.makedirs(p2save, exist_ok=True)
         for fm in ['png', 'pdf']:
