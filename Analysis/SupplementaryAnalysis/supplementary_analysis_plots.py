@@ -84,7 +84,8 @@ if __name__ == "__main__":
                 t, p = ttest_ind(a=table[data_col], b=table[perm_data_col])  # results of two-sided
                 p /= 2  # one-sided
 
-                print(f"{cond}-condition: t_{model}={t:.3f}, p_{model}={p:.3f}")
+                cprint(f"{cond}-condition – {sp}: t_{model}={t:.3f}, p_{model}={p:.4f}", col="b", fm="bo")
+                input("press enter to continue")
                 m = "ns" if p > .05 else "*" if (.05 >= p > .01) else "**" if (.01 >= p > .001) else "***"
 
                 # Indicate (non-)significance in plot
@@ -100,7 +101,7 @@ if __name__ == "__main__":
                 # Set labels & titles
                 ax.set_ylim(0, round(ax.get_ylim()[-1]) + 5)
                 if ax_ctn % 2 == 0:
-                    ax.set_ylabel(f"{sp}\nCount")
+                    ax.set_ylabel(f"{'incl. break' if sp == 'SBA' else 'w/o break'}\nCount")
                 if ax_ctn < 2:
                     ax.legend()
                     ax.set_title(model)
