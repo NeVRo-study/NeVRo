@@ -65,13 +65,13 @@ if __name__ == "__main__":
                 h_perm = sns.distplot(table[perm_data_col], bins=15, kde=False, hist=True, fit=norm,
                                       color="blue",
                                       hist_kws=dict(range=(.35, .75)), fit_kws=dict(color="blue"),
-                                      ax=ax)
+                                      ax=ax, label="" if ax_ctn > 0 else "permuted")
 
                 h = sns.distplot(table[data_col], bins=15, kde=False, hist=True, fit=norm,
                                  hist_kws=dict(range=(.35, .75)),
                                  color="orange" if ax_ctn % 2 == 0 else "lightgreen",
                                  fit_kws=dict(color="orange" if ax_ctn % 2 == 0 else "lightgreen"),
-                                 ax=ax)
+                                 ax=ax, label="" if ax_ctn > 1 else "original")
 
                 # Add means
                 ax.vlines(x=table[perm_data_col].mean(), ymin=0, ymax=h_perm.get_ylim()[-1], ls="dotted",
@@ -81,8 +81,10 @@ if __name__ == "__main__":
                           color="orange" if ax_ctn % 2 == 0 else "lightgreen")
 
                 # Add stats: one-sided ttest
-                t, p = ttest_ind(a=table[perm_data_col], b=table[data_col])  # results of two-sided
+                t, p = ttest_ind(a=table[data_col], b=table[perm_data_col])  # results of two-sided
                 p /= 2  # one-sided
+
+                print(f"{cond}-condition: t_{model}={t:.3f}, p_{model}={p:.3f}")
                 m = "ns" if p > .05 else "*" if (.05 >= p > .01) else "**" if (.01 >= p > .001) else "***"
 
                 # Indicate (non-)significance in plot
@@ -100,6 +102,7 @@ if __name__ == "__main__":
                 if ax_ctn % 2 == 0:
                     ax.set_ylabel(f"{sp}\nCount")
                 if ax_ctn < 2:
+                    ax.legend()
                     ax.set_title(model)
                     ax.set_xlabel("")
                 else:
