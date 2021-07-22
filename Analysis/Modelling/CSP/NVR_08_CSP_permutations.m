@@ -8,8 +8,10 @@
 %
 % Arguments: - cropstyle
 %            - mov_cond
-%            - source for alpha peak information (defaults to mov_cond)
-%            - show plots? (defaults to TRUE)
+%            - AlphaPeakSource: source for alpha peak information (defaults to mov_cond)
+%            - subject_subset: run code only for these subjects (e.g.:
+%            {'NVR_S02', 'NVR_S03'})
+%            - smote: use SMOTE to upsample the smaller class (per fold)
 %
 % Requires EEGLAB (e.g., v13.4.4b) and BCILAB (v1.4-devel). 
 % Please note that for an exact replication you will need to mildly tweak
@@ -23,24 +25,44 @@
 function CSP_results = NVR_08_CSP_permutations(cropstyle, mov_cond, varargin)
 
 %% check input:
-if nargin > 4 
-    if isa(varargin{3}, 'char') || isempty(varargin{3})
-        subject_subset = varargin(3);
-    end
-else
-    subject_subset = [];
-end
+% if nargin > 4 
+%     if isa(varargin{3}, 'char') || isempty(varargin{3})
+%         subject_subset = varargin(3);
+%     end
+% else
+%     subject_subset = [];
+% end
+% 
+% if ((nargin > 3) && (~isempty(varargin{1})) && (logical(varargin{2})))
+%     plot_results = true;
+% else
+%     plot_results = false;
+% end
+% if ((nargin > 2) && (~isempty(varargin{1})))
+%     alphaPeakSource = varargin{1};
+% else
+%     alphaPeakSource = mov_cond;
+% end
 
-if ((nargin > 3) && (~isempty(varargin{1})) && (logical(varargin{2})))
-    plot_results = true;
-else
-    plot_results = false;
-end
-if ((nargin > 2) && (~isempty(varargin{1})))
-    alphaPeakSource = varargin{1};
-else
-    alphaPeakSource = mov_cond;
-end
+p = inputParser;
+
+alphaPeakSourceDefault = mov_cond;
+plot_resultsDefault = false;
+subject_subsetDefault = [];
+smoteDefault = false;
+npermsDefault = 1000;
+
+addParameter(p, 'alphaPeakSource', alphaPeakSourceDefault);
+addParameter(p, 'subject_subset', subject_subsetDefault);
+addParameter(p, 'smote', smoteDefault, @(x) islogical(x));
+addParameter(p, 'nperms', npermsDefault, @(x) isnumeric(x));
+
+parse(p, varargin{:});
+
+alphaPeakSource = p.Results.alphaPeakSource;
+subject_subset = p.Results.subject_subset;
+smote = p.Results.smote;
+nperms = p.Results.nperms;
 
 
 %1.1 Set different paths:
@@ -53,7 +75,7 @@ path_in_eeg = [path_dataeeg '07_SSD/' mov_cond '/' cropstyle '/narrowband/'];
 path_in_SSDcomps = [path_dataeeg '07_SSD/' mov_cond '/'];
 
 % output paths:
-path_out_eeg = [path_dataeeg '08.7_CSP_3x10f_reg_auc_smote_0.2cor/' mov_cond '/' cropstyle '/'];
+path_out_eeg = [path_dataeeg '08.8_CSP_3x10f_regauto_auc_smote_1.0cor/' mov_cond '/' cropstyle '/'];
 if ~exist(path_out_eeg, 'dir'); mkdir(path_out_eeg); end
 path_out_summaries = [path_out_eeg '/summaries/'];
 if ~exist(path_out_summaries, 'dir'); mkdir(path_out_summaries); end
@@ -81,9 +103,6 @@ end
 
 bcilab;
 
-% prepare main figures:
-h1 = figure('Visible','Off');
-h2 = figure('Visible','Off');
 
 nsubs = length(files_eeg);
 ncols = 1;
@@ -138,14 +157,14 @@ for isub = (1:nsubs)
     % Get SSD unmixing matrix:
     SSD_W = EEG.etc.SSD.W'; % needs to be transposed for left multiplication
     % Have to save it in base workspace so that bcilab finds it:
-    assignin('base','SSD_W',SSD_W);
+    assignin('base',['SSD_W_' thissubject],SSD_W);
     
     % Define approach:
     approach_CSP = {'CSP' ...
         'SignalProcessing', { ...
             'Resampling', 'off' ...
             'Projection', { ...
-                'ProjectionMatrix', 'SSD_W' ...
+                'ProjectionMatrix', ['SSD_W_' thissubject] ...
                 'ComponentSubset', 'SSD_comps_ch'} ...
             'FIRFilter', 'off' ...
             'EpochExtraction', { ...
@@ -156,18 +175,56 @@ for isub = (1:nsubs)
                 'PatternPairs', 2} ...
             'MachineLearning', { ...
                 'Learner', {'lda', ...
-                    'Lambda', 0.2, ... % search([0:0.2:1]), ...
                     'Regularizer', 'auto'}}}};
+                % 'Lambda', 0.2, ... % search([0:0.2:1]), ...
     
+    % The following chunk will add a parameter to upsample the number of 
+    % samples in the smaller class to equal the number of samples in the
+    % larger class. It does so by modifying the `approach_CSP` cell array. 
+    % For compatibility and to make it able to steer this via a parameter 
+    % in the function call, this is done separately. Above (commented out) 
+    % there is an example how it would look like if this was hardcoded into 
+    % the original formation of `approach_CSP`. 
+    %
+    % In order for this to work, you have to change the BCILAB source:
+    % (1) you need to make sure you have `utl_smote.m` somewhere on your
+    % MATLAB path (preferably in `your\path\NeVRo\Analysis\Modelling\CSP\utils\`)
+    % (2) add the following line (between ###) to line 95 of 
+    %     `\BCILAB-devel\code\machine_learning\ml_trainlda.m`:
+    % ####
+    % arg({'smote','SMOTE'}, false, [], 'Use SMOTE to upsample data.'), ...
+    % ###
+    % If you want to use a different learner (not LDA), you have to do this
+    % for a different file.
+    % (3) Add the following chunk (between ###) to line 165 of 
+    %    `\BCILAB-devel\code\machine_learning\ml_train.m`
+    % ###
+    %     if isfield(learner, 'smote') 
+    %         if learner.smote
+    %             [trials, targets] = utl_smote(trials, [], 5, 'Class', targets);
+    %             disp('USING SMOTE to upsample data.'); 
+    %         end
+    %     end
+    % ###
+    
+    
+    if smote
+        approach_CSP{5}{4}{2}{end+1} = 'smote';
+        approach_CSP{5}{4}{2}{end+1} = true;
+    end
+        
                 
-    shuffled_events_mat = nvr_shuffle_eventtypes([EEG.event.type], [1,3], 10, 500, 0.2);
+    shuffled_events_mat = nvr_shuffle_eventtypes([EEG.event.type], [1,3], 10, round(nperms), 1);
     
     for perm=1:size(shuffled_events_mat, 2)
         shuffled_evs = num2cell(shuffled_events_mat(:,perm));
         [EEG.event.type] = shuffled_evs{:};
-        pop_saveset(EEG, [filename '_perm_tmp.set'] , path_out_tmp);
+        % save tmp file. We need to add the perm number so that BCILAB
+        % overwrites its cache (it wouldn't if the filename does not
+        % change):
+        pop_saveset(EEG, [filename '_perm_tmp_' thissubject '_' num2str(perm) '.set'] , path_out_tmp); %  
         filename_orig = filename;
-        filename_tmp = [filename_orig '_perm_tmp'];
+        filename_tmp = [filename_orig '_perm_tmp_' thissubject '_' num2str(perm)]; % 
         
 
         % Load/link data SET to BCILAB:
@@ -188,11 +245,9 @@ for isub = (1:nsubs)
         % NO FILTERING IS APPLIED BY BCILAB. 
         [trainloss,model,stats] = bci_train('Data',isub_data, ...
             'Approach',approach_CSP, ...
-            'EvaluationScheme', {'subchron', 3, 10}, ... # [10], ... %[3 10]: 3x10-fold CV;  'loo': leave-one-out
-            'EvaluationMetric', 'auc', ...
+            'EvaluationScheme', {'subchron', 3, 10}, ... % [10], ... % [3 10]: 3x10-fold CV;  'loo': leave-one-out
+            'EvaluationMetric', 'auc', ... % 'mcr', ... %
             'TargetMarkers',{'1','3'});
-        %  'OptimizationScheme', {'subchron', 6, 3, 0}, ...
-        %  'OptimizationScheme', 3, ...
 
         % Save to global .mat file:
         CSP_results.results(isub).participant = thissubject;
@@ -200,8 +255,13 @@ for isub = (1:nsubs)
         CSP_results.results(isub).stats.perm(perm).per_fold = stats.per_fold;
         CSP_results.results(isub).stats.perm(perm).targets = [EEG.event.type];
         
+        % delete tmp file
+        delete([path_out_tmp, filename_tmp '.set'])
+        delete([path_out_tmp, filename_tmp '.fdt'])
+        
     end
     save([path_out_summaries 'CSP_results_perm.mat'], 'CSP_results');
+    % parsave_results(isub, results, path_out_summaries)
 end
 
 % back to old pwd:

@@ -9,7 +9,11 @@
 % Arguments: - cropstyle
 %            - mov_cond
 %            - source for alpha peak information (defaults to mov_cond)
-%            - show plots? (defaults to TRUE)
+%            - show plots? (defaults to false)
+%            - subject_subset: run code only for these subjects (e.g.:
+%            {'NVR_S02', 'NVR_S03'}), defaults to [] (i.e., run all)
+%            - smote: use SMOTE to upsample the smaller class (per fold), 
+%                     defaults to false
 %
 % Requires EEGLAB (e.g., v13.4.4b) and BCILAB (v1.4-devel). 
 % Please note that for an exact replication you will need to mildly tweak
@@ -23,24 +27,25 @@
 function NVR_08_CSP(cropstyle, mov_cond, varargin)
 
 %% check input:
-if nargin > 4 
-    if isa(varargin{3}, 'char')
-        subject_subset = varargin(3);
-    end
-else
-    subject_subset = [];
-end
 
-if ((nargin > 3) && (~isempty(varargin{1})) && (logical(varargin{2})))
-    plot_results = true;
-else
-    plot_results = false;
-end
-if ((nargin > 2) && (~isempty(varargin{1})))
-    alphaPeakSource = varargin{1};
-else
-    alphaPeakSource = mov_cond;
-end
+p = inputParser;
+
+alphaPeakSourceDefault = mov_cond;
+plot_resultsDefault = false;
+subject_subsetDefault = [];
+smoteDefault = false;
+
+addParameter(p, 'alphaPeakSource', alphaPeakSourceDefault);
+addParameter(p, 'plot_results', plot_resultsDefault, @(x) islogical(x));
+addParameter(p, 'subject_subset', subject_subsetDefault);
+addParameter(p, 'smote', smoteDefault, @(x) islogical(x));
+
+parse(p, varargin{:});
+
+alphaPeakSource = p.Results.alphaPeakSource;
+plot_results = p.Results.plot_results;
+subject_subset = p.Results.subject_subset;
+smote = p.Results.smote;
 
 
 %1.1 Set different paths:
@@ -53,7 +58,7 @@ path_in_eeg = [path_dataeeg '07_SSD/' mov_cond '/' cropstyle '/narrowband/'];
 path_in_SSDcomps = [path_dataeeg '07_SSD/' mov_cond '/'];
 
 % output paths:
-path_out_eeg = [path_dataeeg '08.7_CSP_3x10f_reg_auc_smote_0.2cor/' mov_cond '/' cropstyle '/'];
+path_out_eeg = [path_dataeeg '08.7_CSP_3x10f_reg_auc_smote_1.0cor__partest_deleteme/' mov_cond '/' cropstyle '/']; % '08.7_CSP_3x10f_reg_acc_NOsmote_0.2cor/'
 if ~exist(path_out_eeg, 'dir'); mkdir(path_out_eeg); end
 path_out_summaries = [path_out_eeg '/summaries/'];
 if ~exist(path_out_summaries, 'dir'); mkdir(path_out_summaries); end
@@ -154,9 +159,45 @@ for isub = (1:nsubs)
                 'PatternPairs', 2} ...
             'MachineLearning', { ...
                 'Learner', {'lda', ...
-                    'Regularizer', 'auto'}}}};
-                %  'Lambda', 0.2, ... % search([0:0.2:1]), ...
+                    'Regularizer', 'auto'}}}}; %, ...
+                %   'smote', true}}}};
+                %   'Lambda', 0.2, ... % search([0:0.2:1]), ...
     
+                
+    % The following chunk will add a parameter to upsample the number of 
+    % samples in the smaller class to equal the number of samples in the
+    % larger class. It does so by modifying the `approach_CSP` cell array. 
+    % For compatibility and to make it able to steer this via a parameter 
+    % in the function call, this is done separately. Above (commented out) 
+    % there is an example how it would look like if this was hardcoded into 
+    % the original formation of `approach_CSP`. 
+    %
+    % In order for this to work, you have to change the BCILAB source:
+    % (1) you need to make sure you have `utl_smote.m` somewhere on your
+    % MATLAB path (preferably in `your\path\NeVRo\Analysis\Modelling\CSP\utils\`)
+    % (2) add the following line (between ###) to line 95 of 
+    %     `\BCILAB-devel\code\machine_learning\ml_trainlda.m`:
+    % ####
+    % arg({'smote','SMOTE'}, false, [], 'Use SMOTE to upsample data.'), ...
+    % ###
+    % If you want to use a different learner (not LDA), you have to do this
+    % for a different file.
+    % (3) Add the following chunk (between ###) to line 165 of 
+    %    `\BCILAB-devel\code\machine_learning\ml_train.m`
+    % ###
+    %     if isfield(learner, 'smote') 
+    %         if learner.smote
+    %             [trials, targets] = utl_smote(trials, [], 5, 'Class', targets);
+    %             disp('USING SMOTE to upsample data.'); 
+    %         end
+    %     end
+    % ###
+    
+    
+    if smote
+        approach_CSP{5}{4}{2}{end+1} = 'smote';
+        approach_CSP{5}{4}{2}{end+1} = true;
+    end
                 
                 
     % Load/link data SET to BCILAB:
@@ -177,11 +218,9 @@ for isub = (1:nsubs)
     % NO FILTERING IS APPLIED BY BCILAB. 
     [trainloss,model,stats] = bci_train('Data',isub_data, ...
         'Approach',approach_CSP, ...
-        'EvaluationScheme', {'subchron', 3, 10}, ... # [10], ... %[3 10]: 3x10-fold CV;  'loo': leave-one-out
-        'EvaluationMetric', 'auc', ...
+        'EvaluationScheme', {'subchron', 3, 10}, ... % [10], ... %  # , ... %[3 10]: 3x10-fold CV;  'loo': leave-one-out
+        'EvaluationMetric', 'auc', ... % 'mcr', ... % 
         'TargetMarkers',{'1','3'});
-    %  'OptimizationScheme', {'subchron', 6, 3, 0}, ...
-    %  'OptimizationScheme', 3, ...
     
     % save to .SET files:
     EEG.etc.CSP.trainloss = trainloss;
@@ -212,33 +251,37 @@ for isub = (1:nsubs)
     struct_classAccs(isub).ID = thissubject;
     struct_classAccs(isub).acc = 1 - trainloss;
     
-    % Plot patterns:
-    isub_rel = isub_rel + 1;
-    patterns_comb = CSP_A * SSD_A_sel';
-%     
-     set(0, 'CurrentFigure', h1);
-     subplot(nrows, ncols, isub_rel);
-% %     set(subplot(nrows, ncols * 2, isub*2-1), ...
-% %         'Position', [0.05, 0.7 * isub, 0.92, 0.27])
-     topoplot(patterns_comb(1,:), EEG.chanlocs);
-%     set(gca, 'OuterPosition', [0, 0.02*(isub), 0.018, 0.018])
-     title([thissubject], 'Interpreter', 'none')
-     
-     set(0, 'CurrentFigure', h2);
-     subplot(nrows, ncols, isub_rel);
-% %     set(subplot(nrows, ncols * 2, isub*2-1), ...
-% %         'Position', [0.05+ 0.8, 0.7 * isub, 0.92, 0.27])
-     topoplot(patterns_comb(4,:), EEG.chanlocs);
-%     set(gca, 'OuterPosition', [0.4, 0.02*(isub), 0.018, 0.018])
-     title([thissubject], 'Interpreter', 'none')
-%     title(['Accuracy: ', num2str(1- trainloss)]);
-    
-    % saveas(gcf, [path_out_summaries thissubject '.png'], 'png');
-    % close(gcf);
+    if plot_results
+        % Plot patterns:
+        isub_rel = isub_rel + 1;
+        patterns_comb = CSP_A * SSD_A_sel';
+    %     
+         set(0, 'CurrentFigure', h1);
+         subplot(nrows, ncols, isub_rel);
+    % %     set(subplot(nrows, ncols * 2, isub*2-1), ...
+    % %         'Position', [0.05, 0.7 * isub, 0.92, 0.27])
+         topoplot(patterns_comb(1,:), EEG.chanlocs);
+    %     set(gca, 'OuterPosition', [0, 0.02*(isub), 0.018, 0.018])
+         title([thissubject], 'Interpreter', 'none')
+
+         set(0, 'CurrentFigure', h2);
+         subplot(nrows, ncols, isub_rel);
+    % %     set(subplot(nrows, ncols * 2, isub*2-1), ...
+    % %         'Position', [0.05+ 0.8, 0.7 * isub, 0.92, 0.27])
+         topoplot(patterns_comb(4,:), EEG.chanlocs);
+    %     set(gca, 'OuterPosition', [0.4, 0.02*(isub), 0.018, 0.018])
+         title([thissubject], 'Interpreter', 'none')
+    %     title(['Accuracy: ', num2str(1- trainloss)]);
+
+        % saveas(gcf, [path_out_summaries thissubject '.png'], 'png');
+        % close(gcf);
+    end
 end
 
-saveas(h1, [path_out_summaries 'topoplots_comp1.png'], 'png');
-saveas(h2, [path_out_summaries 'topoplots_comp4.png'], 'png');
+if plot_results
+    saveas(h1, [path_out_summaries 'topoplots_comp1.png'], 'png');
+    saveas(h2, [path_out_summaries 'topoplots_comp4.png'], 'png');
+end
 
 table_classAccs = struct2table(struct_classAccs);
 writetable(table_classAccs, [path_out_summaries '\_summary.csv']);

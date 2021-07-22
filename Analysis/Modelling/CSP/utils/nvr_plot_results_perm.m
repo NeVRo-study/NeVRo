@@ -5,16 +5,16 @@
 rand_files = dir(); %get files in current dir to get link to folder;
 path_orig = rand_files(1).folder;
 mov_cond = 'mov';
-cropstyle = 'SA';
+cropstyle = 'SBA';
 path_data = [path_orig '/../../../Data/'];
 path_dataeeg =  [path_data 'EEG/'];
-path_summaries = [path_dataeeg, '08.7_CSP_3x10f_reg_auc_smote_0.2cor/' mov_cond '/' cropstyle '/summaries/'];
+path_summaries = [path_dataeeg, '08.7_CSP_3x10f_reg_auc_smote_0.2cor__deleteme/' mov_cond '/' cropstyle '/summaries/']; % '08.7_CSP_3x10f_reg_auc_smote_1.0cor__partest_deleteme/'
 path_results = [path_orig '/../../../Results/Tables/'];
 
 % if scorer==mcr: acc=1-loss
 % if scorer==-auc: auc=0-(-auc)
 offset = 0;
-if contains(path_summaries, 'mcr')
+if contains(path_summaries, {'mcr', 'acc'})
     offset = 1;
     scorer = 'mcr';
 elseif contains(path_summaries, 'auc')
@@ -81,7 +81,7 @@ title(leg, [cropstyle, '  -  ', mov_cond])
 %%
 
 % Calc single subject results:
-accs_real_bc = repmat(accs_real, 1, 500);
+accs_real_bc = repmat(accs_real, 1, 50);
 diff = accs_perm >= accs_real_bc;
 % calc sign. by MC method:
 p_vals = (sum(diff, 2)+1)/(size(accs_perm, 2) + 1);
@@ -112,6 +112,7 @@ writetable(results_tab, fname, 'Delimiter', ',');
 fname = [path_results 'results_across_methods_' mov_cond '_supplementary_analysis.csv'];
 tmp = readtable(fname, 'ReadVariableNames', true, 'Delimiter', ',');
 tmp.([cropstyle '_BLOCK_CSP_auc']) = accs_real;
+tmp.([cropstyle '_BLOCK_CSP_perm_auc']) = accs_perm_mean;
 tmp.([cropstyle '_BLOCK_CSP_Pvalue']) = p_vals;
 writetable(tmp, fname, 'Delimiter', ',');
 

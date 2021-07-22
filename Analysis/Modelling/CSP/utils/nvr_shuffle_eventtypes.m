@@ -16,6 +16,8 @@ n_perms = min(n_perms, n_max_perms);
 bpm = eye(n_blocks);
 l_m = {bpm};
 tot = zeros(length(y), n_perms);
+% set seed for reproducibility:
+rand('seed', 1234);
 for p=1:n_perms
     fprintf('##########\n');
     searching = true;
@@ -26,7 +28,7 @@ for p=1:n_perms
         if run_count > n_max_run
             error('No solution found. Decrease number of permutations.');
         end
-        rng('shuffle')
+        % rng('shuffle')
         rand_seq = randperm(n_blocks);
         fprintf('Rand seq: %i%i%i\n', rand_seq);
         bpm = bpm(rand_seq,:);
