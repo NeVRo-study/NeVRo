@@ -46,10 +46,10 @@ df_full %>% filter(Condition == 'nomov') %>%
 
 ## CBP test:
 tmp <- tibble()
-
-for (i in 1:1000) {
+n_perm <- 5000
+for (i in 1:n_perm) {
   
-  df_full %>% filter(Condition == 'nomov') %>%  
+  df_full %>% filter(Condition == 'mov') %>%  
     select(ID, electrode, matches('.*_norm')) %>% 
     group_by(ID) %>% 
     mutate(electrode = sample(electrode)) %>% 
@@ -60,7 +60,7 @@ for (i in 1:1000) {
 }
 
 # true vals:
-df_full %>% filter(Condition == 'nomov') %>%  
+df_full %>% filter(Condition == 'mov') %>%  
   select(ID, electrode, matches('.*_norm')) %>% 
   mutate(across("CSP_max_norm":"SSD_4_norm",  ~ abs(.))) %>% 
   group_by(electrode) %>% 
@@ -74,8 +74,10 @@ tt <- left_join(tmp_c, true_vals_c, by = c("electrode", "name"), suffix = c('_pe
   mutate(perm_higher = value_perm > value_true)
 
 tt %>%  select(electrode, perm_higher, name) %>% 
-  summarize(
-  %>% pivot_wider(id_cols = c(electrode, name), values_from = perm_higher)
+  group_by(electrode, name) %>% 
+  summarize(r = sum(perm_higher), 
+            p = (r + 1) / (n_perm + 1)) %>% 
+  pivot_wider(id_cols = c(electrode, name), values_from = p) -> p_vals
   
 
 
