@@ -86,6 +86,7 @@ if ~exist(path_out_tmp, 'dir'); mkdir(path_out_tmp); end
 files_eeg = dir([path_in_eeg '*.set']);
 files_eeg = {files_eeg.name};
 
+
 % Get the SSD comp selection table:
 SSDcomps_file = dir([path_in_SSDcomps 'SSD_selected_components_*.csv']);
 SSDcomps_tab = readtable([path_in_SSDcomps SSDcomps_file.name]);
@@ -250,16 +251,26 @@ for isub = (1:nsubs)
             'TargetMarkers',{'1','3'});
 
         % Save to global .mat file:
-        CSP_results.results(isub).participant = thissubject;
-        CSP_results.results(isub).trainloss.perm(perm) = trainloss;
-        CSP_results.results(isub).stats.perm(perm).per_fold = stats.per_fold;
-        CSP_results.results(isub).stats.perm(perm).targets = [EEG.event.type];
+        CSP_results_tmp.results(isub).participant = thissubject;
+        CSP_results_tmp.results(isub).trainloss.perm(perm) = trainloss;
+        CSP_results_tmp.results(isub).stats.perm(perm).per_fold = stats.per_fold;
+        CSP_results_tmp.results(isub).stats.perm(perm).targets = [EEG.event.type];
         
         % delete tmp file
         delete([path_out_tmp, filename_tmp '.set'])
         delete([path_out_tmp, filename_tmp '.fdt'])
         
     end
+    
+    if exist([path_out_summaries 'CSP_results_perm.mat'], 'file')
+        % Get previous results
+        prev_results = load([path_out_summaries 'CSP_results_perm.mat']);
+        CSP_results = prev_results.CSP_results;
+        CSP_results.results(isub) = CSP_results_tmp.results(isub);
+    else
+        CSP_results = CSP_results_tmp;
+    end
+    
     save([path_out_summaries 'CSP_results_perm.mat'], 'CSP_results');
     % parsave_results(isub, results, path_out_summaries)
 end
