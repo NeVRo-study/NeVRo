@@ -1,13 +1,13 @@
 #!/bin/bash -l
 #SBATCH -J MATLAB          # job name
-#SBATCH -o ./job.out.%j    # standard out file
-#SBATCH -e ./job.err.%j    # standard err file
+#SBATCH -o ./job.out.%A_%a    # standard out file
+#SBATCH -e ./job.err.%A_%a    # standard err file
 #SBATCH -D ./              # work directory
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1         # launch job on a single core
 #SBATCH --array=1-44
 #SBATCH --cpus-per-task=72  #   on a shared node
-# #SBATCH --mem=10000
+#SBATCH --mem=100000
 #SBATCH --time=23:00:00
 
 module load matlab
