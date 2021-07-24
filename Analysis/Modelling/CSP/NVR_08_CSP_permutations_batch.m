@@ -222,17 +222,26 @@ for isub = (1:nsubs)
     
     for perm=1:size(shuffled_events_mat, 2)
         
+        fprintf("Step 1\n");
+        
         % pick up where we left off
         path_out_perm = [path_out_summaries '/' thissubject '/' 'perm_' num2str(perm) '/'];
         if ~exist(path_out_perm, 'dir'); mkdir(path_out_perm); end
-        if exist([path_out_perm 'CSP_results.mat'])
+        if exist([path_out_perm 'CSP_results.mat'], 'file')
             continue;
         end
         
+        fprintf("Step 2\n");
+        
         EEGtmp = EEG;
+        
+        fprintf("Step 3\n");
         
         shuffled_evs = num2cell(shuffled_events_mat(:,perm));
         [EEGtmp.event.type] = shuffled_evs{:};
+        
+        fprintf("Step 4\n");
+        
         % save tmp file. We need to add the perm number so that BCILAB
         % overwrites its cache (it wouldn't if the filename does not
         % change):
@@ -240,6 +249,7 @@ for isub = (1:nsubs)
         filename_orig = filename;
         filename_tmp = [filename_orig '_perm_tmp2_' thissubject '_' num2str(perm)]; % 
         
+        fprintf("Step 5\n");
 
         % Load/link data SET to BCILAB:
         isub_data = io_loadset([path_out_tmp, filename_tmp '.set']);

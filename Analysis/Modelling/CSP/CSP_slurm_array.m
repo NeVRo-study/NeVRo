@@ -2,7 +2,7 @@ function CSP_slurm_array(jobID)
 
 
 
-addpath(genpath('/raven/ptmp/fklotzsche/Software/BCILAB/'))
+addpath(genpath('/raven/u/fklotzsche/Software/BCILAB/'))
 addpath(genpath('/raven/ptmp/fklotzsche/Experiments/Nevro/'))
 
 ids = {};
@@ -15,8 +15,13 @@ for i=1:44
     ids{end+1} = {ss};
 end
 
+
+
 id = ids{jobID};
-NVR_08_CSP_permutations_batch_array('SA', 'nomov', 'subject_subset', id, 'smote', true)
+
+fprintf("############# Running Job Array of %s\n", id{1});
+
+NVR_08_CSP_permutations_batch('SBA', 'nomov', 'subject_subset', id, 'smote', true)
 
 % parfor i=1:44
 %     id = ids{i}

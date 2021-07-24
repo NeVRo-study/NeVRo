@@ -30,7 +30,8 @@ for p=1:n_perms
         end
         % rng('shuffle')
         rand_seq = randperm(n_blocks);
-        fprintf('Rand seq: %i%i%i\n', rand_seq);
+        fprintf('Perm#: %i -- Rand seq: %s', p, num2str([rand_seq]));
+        fprintf('\n');
         bpm = bpm(rand_seq,:);
         equals = zeros(length(l_m),1);
         for m = 1:length(l_m)

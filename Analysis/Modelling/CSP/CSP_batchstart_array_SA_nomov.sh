@@ -5,10 +5,10 @@
 #SBATCH -D ./              # work directory
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1         # launch job on a single core
-#SBATCH --array=11-44
+#SBATCH --array=1-44
 #SBATCH --cpus-per-task=72  #   on a shared node
 # #SBATCH --mem=10000
 #SBATCH --time=23:00:00
 
 module load matlab
-srun matlab -nodisplay -nosplash -nodesktop -noFigureWindows -r "run('CSP_slurm_array(${SLURM_ARRAY_TASK_ID}).m')"
+srun matlab -nodisplay -nosplash -nodesktop -noFigureWindows -r "run('CSP_slurm_array_SA_nomov(${SLURM_ARRAY_TASK_ID}).m')"
