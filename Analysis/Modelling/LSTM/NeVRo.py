@@ -705,16 +705,15 @@ def train_lstm():
         cprint(f"There is no Random/Narrow_Search_Table", 'r')
 
     # Save Prediction Matrices in File
-    np.savetxt(sub_dir + f"{time.strftime('%Y_%m_%d_')}S{FLAGS.subject}_pred_matrix_{FLAGS.s_fold}"
-    f"_folds_{FLAGS.path_specificities[:-1]}.csv", pred_matrix, delimiter=",")
+    np.savetxt(f"{sub_dir}{time.strftime('%Y_%m_%d_')}S{FLAGS.subject}_pred_matrix_{FLAGS.s_fold}"
+               f"_folds_{FLAGS.path_specificities[:-1]}.csv", pred_matrix, delimiter=",")
 
-    np.savetxt(sub_dir + f"{time.strftime('%Y_%m_%d_')}S{FLAGS.subject}_val_pred_matrix_{FLAGS.s_fold}"
-    f"_folds_{FLAGS.path_specificities[:-1]}.csv", val_pred_matrix, delimiter=",")
+    np.savetxt(f"{sub_dir}{time.strftime('%Y_%m_%d_')}S{FLAGS.subject}_val_pred_matrix_{FLAGS.s_fold}"
+               f"_folds_{FLAGS.path_specificities[:-1]}.csv", val_pred_matrix, delimiter=",")
 
     if FLAGS.shuffle:
-        np.save(sub_dir + f"{time.strftime('%Y_%m_%d_')}S{FLAGS.subject}_shuffle_order_matrix"
-        f"_{FLAGS.s_fold}_folds_{FLAGS.path_specificities[:-1]}.npy",
-                shuffle_order_matrix)
+        np.save(f"{sub_dir}{time.strftime('%Y_%m_%d_')}S{FLAGS.subject}_shuffle_order_matrix"
+                f"_{FLAGS.s_fold}_folds_{FLAGS.path_specificities[:-1]}.npy", shuffle_order_matrix)
 
     # Update bash files
     update_bashfiles(table_name=table_name, subject=FLAGS.subject, path_specs=FLAGS.path_specificities,
@@ -808,7 +807,7 @@ def str2bool(v):
         raise argparse.ArgumentTypeError('Boolean value expected.')
 
 
-# %% Main: Run >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >
+# %% Main: Run >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o
 
 if __name__ == '__main__':
     # Command line arguments
