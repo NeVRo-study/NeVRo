@@ -4,7 +4,7 @@
 % paths:
 rand_files = dir(); %get files in current dir to get link to folder;
 path_orig = rand_files(1).folder;
-mov_cond = 'mov';
+mov_cond = 'nomov';
 cropstyle = 'SBA';
 path_data = [path_orig '/../../../Data/'];
 path_dataeeg =  [path_data 'EEG/'];
@@ -45,7 +45,7 @@ if ~isempty(dir([path_summaries '/*_merged.mat']))
     data_perm.CSP_results = data_perm.CSP_results_perm_merged;
 else
     fname = [path_summaries 'CSP_results_perm.mat'];
-    data_perm = load(fname, 'CSP_results_perm');
+    data_perm = load(fname, 'CSP_results');
 end
 accs_perm = [];
 for i=1:length(data_perm.CSP_results.results)
