@@ -5,7 +5,7 @@
 rand_files = dir(); %get files in current dir to get link to folder;
 path_orig = rand_files(1).folder;
 mov_cond = 'mov';
-cropstyle = 'SA';
+cropstyle = 'SBA';
 path_data = [path_orig '/../../../Data/'];
 path_dataeeg =  [path_data 'EEG/'];
 path_summaries = [path_dataeeg, '08.8_CSP_3x10f_regauto_auc_smote_1.0cor/' mov_cond '/' cropstyle '/summaries/']; % '08.7_CSP_3x10f_reg_auc_smote_1.0cor__partest_deleteme/'
@@ -39,8 +39,14 @@ for i=1:length(data_real.CSP_results.results)
 end
 
 % permutated accuracies:
-fname = [path_summaries 'CSP_results_perm.mat'];
-data_perm = load(fname, 'CSP_results');
+if ~isempty(dir([path_summaries '/*_merged.mat'])) 
+    fname = [path_summaries 'CSP_results_perm_merged.mat'];
+    data_perm = load(fname, 'CSP_results_perm_merged');
+    data_perm.CSP_results = data_perm.CSP_results_perm_merged;
+else
+    fname = [path_summaries 'CSP_results_perm.mat'];
+    data_perm = load(fname, 'CSP_results_perm');
+end
 accs_perm = [];
 for i=1:length(data_perm.CSP_results.results)
     if ~isempty(data_perm.CSP_results.results(i).participant)
@@ -79,9 +85,9 @@ leg = legend([h_perm(2), h_real(2)], 'shuffled labels', 'real labels');
 title(leg, [cropstyle, '  -  ', mov_cond])
 
 %%
-
+    
 % Calc single subject results:
-accs_real_bc = repmat(accs_real, 1, 50);
+accs_real_bc = repmat(accs_real, 1, size(accs_perm, 2));
 diff = accs_perm >= accs_real_bc;
 % calc sign. by MC method:
 p_vals = (sum(diff, 2)+1)/(size(accs_perm, 2) + 1);
