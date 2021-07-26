@@ -5,10 +5,10 @@
 rand_files = dir(); %get files in current dir to get link to folder;
 path_orig = rand_files(1).folder;
 mov_cond = 'mov';
-cropstyle = 'SBA';
+cropstyle = 'SA';
 path_data = [path_orig '/../../../Data/'];
 path_dataeeg =  [path_data 'EEG/'];
-path_summaries = [path_dataeeg, '08.7_CSP_3x10f_reg_auc_smote_0.2cor__deleteme/' mov_cond '/' cropstyle '/summaries/']; % '08.7_CSP_3x10f_reg_auc_smote_1.0cor__partest_deleteme/'
+path_summaries = [path_dataeeg, '08.8_CSP_3x10f_regauto_auc_smote_1.0cor/' mov_cond '/' cropstyle '/summaries/']; % '08.7_CSP_3x10f_reg_auc_smote_1.0cor__partest_deleteme/'
 path_results = [path_orig '/../../../Results/Tables/'];
 
 % if scorer==mcr: acc=1-loss
