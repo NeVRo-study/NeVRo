@@ -7,6 +7,7 @@ Author: Simon Hofmann | <[surname].[lastname][at]pm.me> | 2017, 2019-2021 (Updat
 
 # %% Import
 
+import argparse
 from datetime import datetime, timedelta
 from functools import wraps
 import numpy as np
@@ -192,6 +193,46 @@ def average_time(list_of_timestamps, in_timedelta=True):
     return mean_time
 
 
+def loop_timer(start_time, loop_length, loop_idx, loop_name: str = None, add_daytime=False):
+    """
+    Estimates remaining time to run through given loop.
+    Function must be placed at the end of the loop inside.
+    Before the loop, take start time by  start_time=datetime.now()
+    Provide position within in the loop via enumerate()
+    In the form:
+        '
+        start = datetime.now()
+        for idx, ... in enumerate(iterable):
+            ... operations ...
+
+            loop_timer(start_time=start, loop_length=len(iterable), loop_idx=idx)
+        '
+    :param start_time: time at start of the loop
+    :param loop_length: total length of loop-object
+    :param loop_idx: position within loop
+    :param loop_name: provide name of loop for print
+    :param add_daytime: add leading day time to print-out
+    """
+    _idx = loop_idx
+    ll = loop_length
+
+    duration = datetime.now() - start_time
+    rest_duration = chop_microseconds(duration / (_idx + 1) * (ll - _idx - 1))
+
+    loop_name = "" if loop_name is None else " of " + loop_name
+
+    nowtime = f"{datetime.now().replace(microsecond=0)} | " if add_daytime else ""
+    string = f"{nowtime}Estimated time to loop over rest{loop_name}: {rest_duration} [hh:mm:ss]\t " \
+        f"[ {'*' * int((_idx + 1) / ll * 30)}{'.' * (30 - int((_idx + 1) / ll * 30))} ] " \
+        f"{(_idx + 1) / ll * 100:.2f} %"
+
+    print(string, '\r' if (_idx + 1) != ll else '\n', end="")
+
+    if (_idx + 1) == ll:
+        cprint(f"{nowtime}Total duration of loop{loop_name.split(' of')[-1]}: "
+               f"{chop_microseconds(duration)} [hh:mm:ss]\n", col='b')
+
+
 # %% Subjects >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >
 
 def s(subject):
@@ -334,7 +375,7 @@ def getfactors(n):
     return factors
 
 
-#%% Sub-plotting >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>>>
+# %% Sub-plotting >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>>>
 
 def get_n_cols_and_rows(n_plots, squary=True):
     """Define figure grid-size: with rpl x cpl cells """
@@ -358,7 +399,7 @@ def get_n_cols_and_rows(n_plots, squary=True):
     return rpl, cpl
 
 
-#%% Model training >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+# %% Model training >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 
 def create_s_fold_idx(s_folds, list_prev_indices=None):
     if not list_prev_indices:  # list_prev_indices == []
@@ -604,6 +645,15 @@ def set_path2data():
     cprint(f"Data dir: \t\t{path_data}", "y")
 
     return path_data
+
+
+def str2bool(v):
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
 
 
 # %% I/O & Print >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<
