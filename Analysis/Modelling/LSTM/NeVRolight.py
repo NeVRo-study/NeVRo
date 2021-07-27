@@ -153,7 +153,8 @@ def tain_val_index_cv(s_fold_idx: int, n_sampl: int, s_fold: int = 10, shuffle_w
     return _idx_train, _idx_val
 
 
-def create_model(n_comps: int, s_idx: int, lstm=(10, 10), fc=(10, 1), activation="relu"):
+def create_model(n_comps: int, s_idx: int, lstm=(10, 10), fc=(10, 1), activation="relu",
+                 summary: bool = True):
 
     sampl_f: int = 250
     n_class: int = 2
@@ -194,7 +195,8 @@ def create_model(n_comps: int, s_idx: int, lstm=(10, 10), fc=(10, 1), activation
 
     # Model build & summary
     _model = keras.Model(inputs=inputs, outputs=logits, name=f"NeVRoNet_fold-{s_idx}")
-    print(_model.summary())
+    if summary:
+        print(_model.summary())
 
     if FLAGS.softmax:
         loss = keras.losses.BinaryCrossentropy(from_logits=True)
@@ -263,7 +265,7 @@ def main():
         else:
             model = create_model(n_comps=FLAGS.n_components, s_idx=sidx,
                                  lstm=ast.literal_eval(FLAGS.lstm_size),
-                                 fc=ast.literal_eval(FLAGS.fc_n_hidden))
+                                 fc=ast.literal_eval(FLAGS.fc_n_hidden), summary=sidx == 0)
 
             # # Fit model
             model.fit(x=x_train, y=y_train,
