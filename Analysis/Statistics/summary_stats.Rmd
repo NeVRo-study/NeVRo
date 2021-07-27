@@ -27,6 +27,15 @@ library("RColorBrewer")
 # Run this for the MAIN or SUPP analysis:
 analysis_mode <- 'MAIN'  #'SUPP' #  
 
+# write results to disk? 
+write_res2disk <- TRUE  # FALSE  # #
+# --> this is set to FALSE automatically if running for SUPP analysis 
+# (proper saving of those is not implemented yet)
+if (analysis_mode == 'SUPP') {
+  write_res2disk <- FALSE
+}
+
+
 
 # disable scientific notation:
 options(scipen=999)
@@ -207,17 +216,19 @@ perf_all_modells <- perf_all %>%
          CSP_Pvalue = p_val_CSP, 
          LSTM_Pvalue = p_val_LSTM) %>% 
   select(Condition, Subject, SPOC_LAMBDA, SPOC_CORR, SPOC_Pvalue, CSP_acc, CSP_Pvalue, LSTM_acc, LSTM_Pvalue)
-  
-# write to files:
-for (cond in c('mov', 'nomov')) {
 
-  fname <- glue('results_across_methods_{cond}.csv')
-  fpath <- file.path(path_results, 'Tables')
+  if (write_res2disk) {
+  # write to files:
+  for (cond in c('mov', 'nomov')) {
   
-  perf_all_modells %>% 
-    filter(Condition == cond) %>% 
-    select(-Condition) %>% 
-    write_csv(file.path(fpath, fname))
+    fname <- glue('results_across_methods_{cond}.csv')
+    fpath <- file.path(path_results, 'Tables')
+    
+    perf_all_modells %>% 
+      filter(Condition == cond) %>% 
+      select(-Condition) %>% 
+      write_csv(file.path(fpath, fname))
+  }
 }
 
 ```
@@ -238,13 +249,14 @@ pwc %>%
   kbl(digits = 10) %>% 
   kable_styling()
 
-## Write out result tables:
-fpath <- file.path(path_results, 'Stats', 'results_binomTest_allsubjects.csv')
-write_csv2(pred_success, fpath)
-
-fpath <- file.path(path_results, 'Stats', 'results_binomTest_summary.csv')
-write_csv2(accuracy_summary, fpath)
-
+if (write_res2disk) {
+  ## Write out result tables:
+  fpath <- file.path(path_results, 'Stats', 'results_binomTest_allsubjects.csv')
+  write_csv2(pred_success, fpath)
+  
+  fpath <- file.path(path_results, 'Stats', 'results_binomTest_summary.csv')
+  write_csv2(accuracy_summary, fpath)
+}
 ```
 
 ### ANOVA
@@ -633,9 +645,11 @@ fig <- ggarrange(
           
 
 fig
-fpath <- file.path(path_plots, "CorrAcrossMeths.svg")
-ggsave(file=fpath, plot=fig, width=8, height=8)
 
+if (write_res2disk) {
+  fpath <- file.path(path_plots, "CorrAcrossMeths.svg")
+  ggsave(file=fpath, plot=fig, width=8, height=8)
+}
 
 ```
 
