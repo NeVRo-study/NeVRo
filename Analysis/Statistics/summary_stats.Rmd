@@ -23,6 +23,11 @@ library(grDevices)
 library(ggsci) # sci color palettes
 library("RColorBrewer")
 
+
+# Run this for the MAIN or SUPP analysis:
+analysis_mode <- 'MAIN'  #'SUPP' #  
+
+
 # disable scientific notation:
 options(scipen=999)
 
@@ -57,12 +62,14 @@ data_pred_df <- NULL
 
 samp_col_names <- sprintf('S%d', 1:270)
 
+analysis_mode_folder <- ifelse(analysis_mode == 'MAIN', '', 'suppANalyses')
+
 for (model in list('CSP', 'LSTM')) {
 
   for (cond in conds) {
     # Get prediction data:
     fname <- str_c('predictionTable', model, '_', cond, '.csv')
-    fpath <- file.path(path_data, model, cond, fname)
+    fpath <- file.path(path_data, model, analysis_mode_folder, cond, fname)
     dat <- read_csv(fpath, col_names = FALSE, na = c("", "NaN"))
     # Recode CSP data to [-1,1]:
     if (model == 'CSP') {
@@ -158,7 +165,7 @@ pred_success %>%
             n_sig_pval = sum(pval_sign)) %>% 
   mutate(prop_sign_pval = n_sig_pval/n)  -> accuracy_summary
 
-accuracy_summary %>%  select(-c(n, Ncorr_median, Ntot_median, n_sig_pval)) %>% 
+accuracy_summary %>%  select(-c(n, Ncorr_median, Ntot_median)) %>% 
   kbl() %>%
   kable_styling()
                                

@@ -39,7 +39,7 @@ plt_corr <- function(df, v1_str, v2_str) {
 }
 
 
-df_ <- get_tab('nomov')
+df_ <- get_tab('mov')
 
 
 plt_corr(df_, 'SPOC_CORR', 'SA_SPOC_CORR')
