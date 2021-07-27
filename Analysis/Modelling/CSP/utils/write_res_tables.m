@@ -4,13 +4,20 @@
 % load results:
 
 dirData = './Data/';
-dirOut = './Results/CSP/';
+dirOut = './Results/CSP/suppAnalyses/';
+
 
 for cond = {'mov', 'nomov'}
 
     % load model output:
-    load([dirData, 'EEG/08.6_CSP_10f/' cond{1} '/SBA/summaries/CSP_results_' cond{1} '.mat'])
-
+    if ~contains(dirOut, 'suppAnalyses')
+        % main analysis:
+        load([dirData, 'EEG/08.6_CSP_10f/' cond{1} '/SBA/summaries/CSP_results_' cond{1} '.mat'])
+    else
+        % supp. analysis:
+        load([dirData, 'EEG/08.8_CSP_3x10f_regauto_auc_smote_1.0cor/' cond{1} '/SBA/summaries/CSP_results.mat'])
+    end
+    
     % load binarized ratings (i.e., ground truth):
     ratFolder = [dirData 'ratings/class_bins/' cond{1} '/SBA/'];
     ratFiles = dir([ratFolder 'NVR_*']);
@@ -60,6 +67,7 @@ for cond = {'mov', 'nomov'}
             valTab = [ratings(subIdx).values]';
             
             if size(folds(f).targ, 1) < 18
+                fprintf('PADDING!\n');
                 padIdx = valTab(:,1) ~= 2; % pad problematic rows
             elseif size(folds(f).targ, 1) == 18
                 padIdx = zeros(size(valTab(:,1))); % no padding required if length correct 
@@ -90,13 +98,15 @@ for cond = {'mov', 'nomov'}
     pred_table = array2table(predict, 'RowNames', subjects);
     predProbs_table = array2table(pred_prob, 'RowNames', subjects);
     
-    writetable(targ_table, [dirOut, cond{1}, '/targetTableCSP_' cond{1} '.csv'], ...
+    dirOut_cond = [dirOut, cond{1} '/'];
+    if ~exist(dirOut_cond, 'dir') mkdir(dirOut_cond); end
+    writetable(targ_table, [dirOut_cond, '/targetTableCSP_' cond{1} '.csv'], ...
         'WriteRowNames',true, ...
         'WriteVariableNames',false);
-    writetable(pred_table, [dirOut, cond{1}, '/predictionTableCSP_' cond{1} '.csv'], ...
+    writetable(pred_table, [dirOut_cond, '/predictionTableCSP_' cond{1} '.csv'], ...
         'WriteRowNames',true, ...
         'WriteVariableNames',false);
-    writetable(predProbs_table, [dirOut, cond{1}, '/predictionTableProbabilitiesCSP_' cond{1} '.csv'], ...
+    writetable(predProbs_table, [dirOut_cond, '/predictionTableProbabilitiesCSP_' cond{1} '.csv'], ...
         'WriteRowNames',true, ...
         'WriteVariableNames',false);
 end
