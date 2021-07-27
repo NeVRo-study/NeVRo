@@ -10,7 +10,7 @@ Author: Simon M. Hofmann | <[surname].[lastname][at]pm.me> | 2021
 # % Import
 import ast
 import pandas as pd
-import tensorflow as tf
+import tensorflow as tf  # for version >= 2.
 import tensorflow.keras as keras
 from sklearn.metrics import roc_auc_score
 # import matplotlib.pyplot as plt
@@ -185,10 +185,10 @@ def create_model(n_comps: int, s_idx: int, lstm=(10, 10), fc=(10, 1), activation
             kernel_regularizer=wreg[FLAGS.weight_reg](FLAGS.weight_reg_strength),
             kernel_initializer="glorot_normal")(inputs=hidden_inputs)  # glorot_normal == xavier
 
-    # TODO change back to tanh
+    #
     if FLAGS.softmax:
-        logits = keras.layers.Activation("softmax" if FLAGS.subblock_cv else "linear")(hidden_inputs)
-        # TODO for AUC the output must be > 0 & class prediction is argmax([a,b]), results remain the same
+        logits = keras.layers.Activation("linear")(hidden_inputs)
+        # or use Activation("softmax")
     else:
         logits = keras.layers.Activation("tanh")(hidden_inputs)
 
@@ -197,8 +197,9 @@ def create_model(n_comps: int, s_idx: int, lstm=(10, 10), fc=(10, 1), activation
     print(_model.summary())
 
     if FLAGS.softmax:
-        loss = keras.losses.BinaryCrossentropy(from_logits=not FLAGS.subblock_cv)
+        loss = keras.losses.BinaryCrossentropy(from_logits=True)
         metrics = [keras.metrics.CategoricalAccuracy()] if not FLAGS.subblock_cv else []
+        # keras.metrics.AUC() causes issues
     else:
         loss = keras.losses.MeanSquaredError()
         metrics = []
@@ -206,9 +207,6 @@ def create_model(n_comps: int, s_idx: int, lstm=(10, 10), fc=(10, 1), activation
     # Define loss and metrics and compile
     _model.compile(optimizer=keras.optimizers.Adam(learning_rate=FLAGS.learning_rate), loss=loss,
                    metrics=metrics)
-
-    # keras.metrics.AUC(from_logits=not FLAGS.subblock_cv)
-    # got an unexpected keyword argument 'from_logits' ?
 
     return _model
 
@@ -237,7 +235,8 @@ def main():
                             sba=FLAGS.sba, task=FLAGS.task)
 
     # Prep data
-    performs = []
+    accuracies = []
+    aucs = []
     start_time = datetime.now()
     for sidx in range(FLAGS.s_fold):
         idx_train, idx_val = tain_val_index_cv(s_fold_idx=sidx, n_sampl=eeg.shape[0], s_fold=FLAGS.s_fold,
@@ -284,16 +283,16 @@ def main():
         # Evaluate
         predictions = model.predict(x=x_val)
 
-        if FLAGS.subblock_cv:
-            perform = roc_auc_score(y_true=y_val, y_score=predictions)  # AUC
+        auc = roc_auc_score(y_true=y_val, y_score=predictions)  # AUC
+        if FLAGS.softmax:
+            accuracy = np.sum(predictions.argmax(1) == y_val.argmax(1)) / len(predictions)  # accuracy
         else:
-            if FLAGS.softmax:
-                perform = np.sum(predictions.argmax(1) == y_val.argmax(1)) / len(predictions)  # accuracy
-            else:
-                perform = np.sum(np.sign(predictions.ravel()) == y_val) / len(predictions)
-        print(f"Fold {sidx}: Model {'AUC' if FLAGS.subblock_cv else 'accuracy'} = {perform:.3f}")
+            accuracy = np.sum(np.sign(predictions.ravel()) == y_val) / len(predictions)
 
-        performs.append(perform)
+        print(f"{model_name} performance:\n\t• Acc = {accuracy:.3f}\n\t• AUC = {auc:.3f}")
+
+        aucs.append(auc)
+        accuracies.append(accuracy)
 
         # Save prediction - y_true pairs for each fold
         traindf = pd.DataFrame(data=None, columns=["train_y", "train_pred"])
@@ -310,59 +309,75 @@ def main():
         loop_timer(start_time=start_time, loop_length=FLAGS.s_fold, loop_idx=sidx,
                    loop_name=f"{model_name.split('_fold')[0]}", add_daytime=True)
 
-    cprint(f"\nAverage performance across CV folds: {'AUC' if FLAGS.subblock_cv else 'accuracy'} = "
-           f"{np.mean(performs):.3f}", col='b', fm='bo')
+    cprint(f"\nAverage performance across CV folds:\n\t"
+           f"• Acc = {np.mean(accuracies):.3f}\n\t"
+           f"• AUC = {np.mean(aucs):.3f} ", col='b', fm='bo')
+
+    # Save in table
+    p2perform_tab = os.path.join(os.getcwd(), "processed", f"performance_table_{FLAGS.condition}.csv")
+    if os.path.isfile(p2perform_tab):
+        perform_tab = pd.read_csv(filepath_or_buffer=p2perform_tab)
+    else:
+        perform_tab = pd.DataFrame(data=None,
+                                   columns=[key for key, _ in vars(FLAGS).items()] + ["acc", "auc"])
+
+    perform_tab = perform_tab.append(dict(zip(perform_tab.columns,
+                                              list(vars(FLAGS).values()) + [np.mean(accuracies),
+                                                                            np.mean(aucs)])),
+                                     ignore_index=True, verify_integrity=True)
+
+    perform_tab.to_csv(p2perform_tab)
 
 
 # % Main >> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<<< o >
 
 if __name__ == "__main__":
 
+    # # Parser setup
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--sba', type=str2bool, default=True,
-                        help="True for SBA; False for SA")
-    parser.add_argument('--task', type=str, default="classification",
-                        help="Either 'classification' or 'regression'")
-    parser.add_argument('--learning_rate', type=float, default=1e-3,
-                        help='Learning rate')
-    parser.add_argument('--repet_scalar', type=int, default=20,
-                        help='Number of times it should run through set. repet_scalar*(270 - 270/s_fold)')
-    parser.add_argument('--batch_size', type=int, default=9,
-                        help='Batch size to run trainer.')
-    parser.add_argument('--weight_reg', type=str, default="l2",
-                        help='Regularizer type for weights of fully-connected layers [none, l1, l2].')
-    parser.add_argument('--weight_reg_strength', type=float, default=0.18,
-                        help='Regularizer strength for weights of fully-connected layers.')
-    parser.add_argument('--activation_fct', type=str, default="relu",
-                        help='Type of activation function from LSTM to fully-connected layers: elu, relu')
-    parser.add_argument('--subject', type=int, default=36,
-                        help='Which subject data to process')
+    parser.add_argument('--subject', type=int, default=36, help='Which subject data to process')
     parser.add_argument('--condition', type=str, default="nomov",
                         help="Which condition: 'nomov' (no movement) or 'mov'")
-    parser.add_argument('--lstm_size', type=str, default="20,15",
-                        help='Comma separated list of size of hidden states in each LSTM layer')
+    parser.add_argument('--sba', type=str2bool, default=True, help="True for SBA; False for SA")
+    parser.add_argument('--task', type=str, default="classification",
+                        help="Either 'classification' or 'regression'")
+    parser.add_argument('--s_fold', type=int, default=10,
+                        help='Number of folds in S-Fold-Cross Validation')
     parser.add_argument('--balanced_cv', type=str2bool, default=True,
                         help='Balanced CV. False: at each iteration/fold data gets shuffled '
                              '(semi-balanced, this can lead to overlapping samples in validation set)')
     parser.add_argument('--subblock_cv', type=str2bool, default=False,
                         help='Stratified rolling 10-fold CV. True: CV is stratified by sub-blocks. Each '
                              'fold consists of equal parts from each sub-bock. ')
-    parser.add_argument('--s_fold', type=int, default=10,
-                        help='Number of folds in S-Fold-Cross Validation')
-    parser.add_argument('--fc_n_hidden', type=str, default="10",
-                        help="Comma separated list of N of hidden units in each FC layer")
-    parser.add_argument('--n_components', type=int, default=3,
-                        help="How many components are to be fed to model")
+    parser.add_argument('--repet_scalar', type=int, default=20,
+                        help='Number of times it should run through set. repet_scalar*(270 - 270/s_fold)')
+    parser.add_argument('--batch_size', type=int, default=9, help='Batch size to run trainer.')
     parser.add_argument('--permutation', type=str2bool, default=False,
                         help="Compute block-permutation (n=1000).")
+    parser.add_argument('--n_components', type=int, default=3,
+                        help="How many components are to be fed to model")
+    parser.add_argument('--learning_rate', type=float, default=1e-3, help='Learning rate')
+    parser.add_argument('--weight_reg', type=str, default="l2",
+                        help='Regularizer type for weights of fully-connected layers [none, l1, l2].')
+    parser.add_argument('--weight_reg_strength', type=float, default=0.18,
+                        help='Regularizer strength for weights of fully-connected layers.')
+    parser.add_argument('--activation_fct', type=str, default="relu",
+                        help='Type of activation function from LSTM to fully-connected layers: elu, relu')
+    parser.add_argument('--lstm_size', type=str, default="20,15",
+                        help='Comma separated list of size of hidden states in each LSTM layer')
+    parser.add_argument('--fc_n_hidden', type=str, default="10",
+                        help="Comma separated list of N of hidden units in each FC layer")
     parser.add_argument('--softmax', type=str2bool, default=False,
                         help="Use softmax for classification, else tanh.")
 
     FLAGS, unparsed = parser.parse_known_args()
     print_flags()
 
+    # Run main
     main()
     end()
 
     # TODO 1000 permutation 10 blocks, shuffle blocks (of ratings) and feed through same pipeline
+
+# << o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< END
