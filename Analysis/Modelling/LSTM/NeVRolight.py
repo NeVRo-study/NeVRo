@@ -7,7 +7,7 @@ Main script (light)
 Author: Simon M. Hofmann | <[surname].[lastname][at]pm.me> | 2021
 """
 
-# % Import
+# %% Import
 import ast
 import pandas as pd
 import tensorflow as tf  # for version >= 2.
@@ -23,17 +23,76 @@ except ModuleNotFoundError:
 
 from utils import *
 
-# % Set global vars & paths >> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<<
+# %% Set global vars & paths >> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<
 setwd("Modelling/LSTM")
 p2nevro = os.getcwd()[:os.getcwd().find("NeVRo")+5]
+
+create_bash: bool = True
 
 wreg = {"l1": keras.regularizers.l1,
         "l2": keras.regularizers.l2}
 
 
-# % Functions >> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<<
+# %% Functions >> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<
+
+def create_training_bash_file(condition: str, sba: bool, subblock_cv: bool, permutation: bool = False,
+                              softmax: bool = False, task: str = "classification", n_hps: int = 2):
+
+    hps = ["subject", "condition", "sba", "task", "s_fold", "balanced_cv", "subblock_cv", "repet_scalar",
+           "batch_size", "permutation", "n_components", "learning_rate", "weight_reg",
+           "weight_reg_strength", "activation_fct", "lstm_size", "fc_n_hidden", "softmax"]
+
+    # Preps args
+    condition = condition.lower()
+    task = task.lower()
+
+    # Prep paths
+    p2hps = os.path.join(os.getcwd(), "processed", "Random_Search_Tables", condition, "1_narrow_search",
+                         task, "per_subject")
+    p2bash = os.path.join(os.getcwd(), "bashfiles",
+                          f"{str(datetime.now()).split(' ')[0]}_bashfile_"
+                          f"{'subblock_cv'if subblock_cv else 'vanilla_cv'}_{condition}_"
+                          f"{'BiCl' if 'classi' in task else 'Reg'}_NeVRolight.sh")
+
+    # Prep bashfile
+    with open(p2bash, "w") as f:
+        f.write("#!/usr/bin/env bash\n\n")
+        f.write(f"# Bashfile: {p2bash.split('/')[-1]}\n")
+
+    for sub_hps_fn in os.listdir(p2hps):
+        if not sub_hps_fn.startswith("S"):
+            continue
+        # Load hyperparameter (HP) table of each subject and take the n best HP sets
+        sub_hps = pd.read_csv(os.path.join(p2hps, sub_hps_fn), sep=";")[:n_hps]
+        sub_hps.rename(columns={"cond": "condition"}, inplace=True)
+
+        # Fill HPs in bash string
+        for i in range(n_hps):
+            bash_str = "\npython3 NeVRolight.py"
+            for hp in hps:
+                if hp in ["sba", "subblock_cv", "permutation", "softmax"]:
+                    bash_str += f" --{hp} {locals()[hp]}"
+
+                elif hp == "n_components":
+                    # Convert list of components into number of components
+                    n_comps = ast.literal_eval(sub_hps.iloc[i]['component'])
+                    n_comps = 1 if isinstance(n_comps, int) else len(n_comps)
+                    bash_str += f" --{hp} {n_comps}"
+                else:
+                    bash_str += f" --{hp} {sub_hps.iloc[i][hp]}"
+
+            # bash_str = f"python3 NeVRolight.py --subject 36 --condition nomov --sba True " \
+            #            f"--task classification --s_fold 10 --balanced_cv True --subblock_cv False " \
+            #            f"--repet_scalar 20 --batch_size 9 --permutation False --n_components 3 " \
+            #            f"--learning_rate 0.001 --weight_reg l2 --weight_reg_strength 0.18 " \
+            #            f"--activation_fct relu --lstm_size 20,15 --fc_n_hidden 10 --softmax False"
+
+            with open(p2bash, "a") as f:
+                f.write(bash_str)
+
 
 def one_hot(y):
+    """Create one-hot encoding of given label-data."""
     _one_hot = np.zeros(shape=(len(y), len(np.unique(y))))  # init
     for i, u in enumerate(np.unique(y)):
         _one_hot[:, i] = (y == u) * 1
@@ -41,6 +100,15 @@ def one_hot(y):
 
 
 def load_data(subject: int, n_comps: int, condition: str, sba: bool, task: str = "classification"):
+    """
+    Load subject data (EEG, ratings) in given movement condition.
+    :param subject: subject number
+    :param n_comps: number of EEG components
+    :param condition: movement condition 'nomov' OR 'mov'
+    :param sba: True: using data with break
+    :param task: Decoding task "classification" OR "regression"
+    :return: EEG, rating data
+    """
 
     cl: bool = "class" in task.lower()
 
@@ -75,7 +143,13 @@ def load_data(subject: int, n_comps: int, condition: str, sba: bool, task: str =
     return _eeg, _rating
 
 
-def balance_training_set(xtrain, ytrain):
+def balance_training_set(xtrain: np.ndarray, ytrain: np.ndarray):
+    """
+    Use SMOTE to balance training dataset with respect to classes.
+    :param xtrain: model input data
+    :param ytrain: ground truth class labels
+    :return: balanced training set
+    """
 
     sm = SMOTE(random_state=42)
     org_shape = xtrain.shape
@@ -153,8 +227,19 @@ def tain_val_index_cv(s_fold_idx: int, n_sampl: int, s_fold: int = 10, shuffle_w
     return _idx_train, _idx_val
 
 
-def create_model(n_comps: int, s_idx: int, lstm=(10, 10), fc=(10, 1), activation="relu",
-                 summary: bool = True):
+def create_model(n_comps: int, s_idx: int, lstm: tuple = (10, 10), fc: (tuple, int) = (10, 1),
+                 activation: str = "relu", summary: bool = True):
+    """
+    Create (keras) LSTM model.
+
+    :param n_comps: number of fed components
+    :param s_idx: index of S-fold cross-validation
+    :param lstm: size per LSTM LSTM layer
+    :param fc: size per fully-connected layer
+    :param activation: activation function between layers
+    :param summary: print model summary
+    :return: model
+    """
 
     sampl_f: int = 250
     n_class: int = 2
@@ -220,7 +305,7 @@ def print_flags():
 
 
 def mdir():
-    """Path to model dir."""
+    """Create path to model directory."""
     # t = str(datetime.now()).split(" ")[0]  # e.g. 2021-07-27
     fld = f"{'BiCl' if 'class' in FLAGS.task.lower() else 'Reg'}_{FLAGS.condition}_" \
           f"lstm-{FLAGS.lstm_size.replace(',', '-')}_fc-{FLAGS.fc_n_hidden.replace(',', '-')}_" \
@@ -313,7 +398,7 @@ def main():
 
     cprint(f"\nAverage performance across CV folds:\n\t"
            f"• Acc = {np.mean(accuracies):.3f}\n\t"
-           f"• AUC = {np.mean(aucs):.3f} ", col='b', fm='bo')
+           f"• AUC = {np.mean(aucs):.3f}\n", col='b', fm='bo')
 
     # Save in table
     p2perform_tab = os.path.join(os.getcwd(), "processed", f"performance_table_{FLAGS.condition}.csv")
@@ -331,11 +416,11 @@ def main():
     perform_tab.to_csv(p2perform_tab)
 
 
-# % Main >> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<<< o >
+# %% Main >> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<<< o
 
 if __name__ == "__main__":
 
-    # # Parser setup
+    # Parser setup << o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><<
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--subject', type=int, default=36, help='Which subject data to process')
@@ -376,8 +461,16 @@ if __name__ == "__main__":
     FLAGS, unparsed = parser.parse_known_args()
     print_flags()
 
-    # Run main
-    main()
+    # Run main << o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+    if create_bash:
+        for cond in ["nomov", "mov"]:
+            for sbcv in [True, False]:
+                # TODO tain SA case, too
+                create_training_bash_file(condition=cond, sba=True, subblock_cv=sbcv, permutation=False,
+                                          softmax=False, task="classification", n_hps=2)
+
+    else:
+        main()
     end()
 
     # TODO 1000 permutation 10 blocks, shuffle blocks (of ratings) and feed through same pipeline
