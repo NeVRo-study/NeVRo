@@ -27,7 +27,7 @@ from utils import *
 setwd("Modelling/LSTM")
 p2nevro = os.getcwd()[:os.getcwd().find("NeVRo")+5]
 
-create_bash: bool = True
+create_bash: bool = False  # toggle to create bash-files or run models
 
 wreg = {"l1": keras.regularizers.l1,
         "l2": keras.regularizers.l2}
@@ -403,7 +403,7 @@ def main():
     # Save in table
     p2perform_tab = os.path.join(os.getcwd(), "processed", f"performance_table_{FLAGS.condition}.csv")
     if os.path.isfile(p2perform_tab):
-        perform_tab = pd.read_csv(filepath_or_buffer=p2perform_tab)
+        perform_tab = pd.read_csv(filepath_or_buffer=p2perform_tab, sep=";")
     else:
         perform_tab = pd.DataFrame(data=None,
                                    columns=[key for key, _ in vars(FLAGS).items()] + ["acc", "auc"])
@@ -413,7 +413,7 @@ def main():
                                                                             np.mean(aucs)])),
                                      ignore_index=True, verify_integrity=True)
 
-    perform_tab.to_csv(p2perform_tab)
+    perform_tab.to_csv(p2perform_tab, sep=";")
 
 
 # %% Main >> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<<< o
