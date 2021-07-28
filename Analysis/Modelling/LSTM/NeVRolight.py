@@ -328,7 +328,7 @@ def main():
     for sidx in range(FLAGS.s_fold):
         idx_train, idx_val = tain_val_index_cv(s_fold_idx=sidx, n_sampl=eeg.shape[0], s_fold=FLAGS.s_fold,
                                                kind="subblock" if FLAGS.subblock_cv else 'vanilla',
-                                               balance_y=not FLAGS.subblock_cv, y=rating)
+                                               balance_y=FLAGS.balanced_cv, y=rating)
 
         x_train = eeg[idx_train]
         y_train = rating[idx_train]
@@ -336,7 +336,7 @@ def main():
         y_val = rating[idx_val]
 
         # To account for unbalanced classes
-        if FLAGS.subblock_cv:
+        if FLAGS.subblock_cv and FLAGS.balanced_cv:
             x_train, y_train = balance_training_set(xtrain=x_train, ytrain=y_train)
 
         # Create or load trained model
