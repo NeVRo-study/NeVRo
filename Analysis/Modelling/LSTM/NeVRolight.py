@@ -384,10 +384,11 @@ def main():
         # Save prediction - y_true pairs for each fold
         traindf = pd.DataFrame(data=None, columns=["train_y", "train_pred"])
         traindf["train_y"] = y_train[:, 1].astype(int) if FLAGS.softmax else y_train.astype(int)
-        traindf["train_pred"] = model.predict(x=x_train).argmax(1)
+        traindf["train_pred"] = model.predict(x=x_train).argmax(1) if FLAGS.softmax else \
+            np.sign(model.predict(x=x_train)).astype(int)
         valdf = pd.DataFrame(data=None, columns=["val_y", "val_pred"])
         valdf["val_y"] = y_val[:, 1].astype(int) if FLAGS.softmax else y_val.astype(int)
-        valdf["val_pred"] = predictions.argmax(1)
+        valdf["val_pred"] = predictions.argmax(1) if FLAGS.softmax else np.sign(predictions).astype(int)
         os.makedirs(os.path.join(mdir(), "predictions"), exist_ok=True)
         traindf.to_csv(p2model.replace('models', 'predictions').replace('.h5', '_train.csv'))
         valdf.to_csv(p2model.replace('models', 'predictions').replace('.h5', '_val.csv'))
@@ -413,7 +414,7 @@ def main():
                                                                             np.mean(aucs)])),
                                      ignore_index=True, verify_integrity=True)
 
-    perform_tab.to_csv(p2perform_tab, sep=";")
+    perform_tab.to_csv(p2perform_tab, sep=";", index=False)
 
 
 # %% Main >> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<<< o
