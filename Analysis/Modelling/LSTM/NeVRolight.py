@@ -8,20 +8,23 @@ Author: Simon M. Hofmann | <[surname].[lastname][at]pm.me> | 2021
 """
 
 # %% Import
+import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  # don't use GPU
+
+import sys
+import argparse
 import ast
+import fileinput
+from datetime import datetime
+import numpy as np
 import pandas as pd
 import tensorflow as tf  # for version >= 2.
 import tensorflow.keras as keras
 from sklearn.metrics import roc_auc_score
+from imblearn.over_sampling import SMOTE
 # import matplotlib.pyplot as plt
 
-try:
-    from imblearn.over_sampling import SMOTE   # scikit package
-except ModuleNotFoundError:
-    print("imblearn must be installed with scikit-learn, but currently not working together with tf via "
-          "conda!")
-
-from utils import *
+from utils import setwd, cprint, loop_timer, str2bool, s, end
 
 # %% Set global vars & paths >> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<
 setwd("Modelling/LSTM")
@@ -33,14 +36,41 @@ wreg = {"l1": keras.regularizers.l1,
         "l2": keras.regularizers.l2}
 
 
+# Hyperparameters
+hps = ["subject", "condition", "sba", "task", "s_fold", "balanced_cv", "subblock_cv", "repet_scalar",
+       "batch_size", "permutation", "n_components", "learning_rate", "weight_reg",
+       "weight_reg_strength", "activation_fct", "lstm_size", "fc_n_hidden", "softmax"]  # keep order
+
+
 # %% Functions >> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<
+
+def bash_line_from_flags():
+    """Create bashline from FLAGS."""
+    bash_str = "python3 NeVRolight.py"
+    for hp in hps:
+        bash_str += f" --{hp} {vars(FLAGS)[hp]}"
+    bash_str += "\n"
+
+    return bash_str
+
+
+def update_bashfiles():
+
+    bash_str = bash_line_from_flags()
+
+    p2bash = os.path.join(os.getcwd(), "bashfiles")
+    for bfn in os.listdir(p2bash):
+        if bfn.endswith("_NeVRoligth.sh"):
+            for line in fileinput.input(files=os.path.join(p2bash, bfn), inplace=True):
+                if bash_str in line and "#" not in line:
+                    sys.stdout.write(f'# {line}')
+                else:
+                    sys.stdout.write(line)
+            pass
+
 
 def create_training_bash_file(condition: str, sba: bool, subblock_cv: bool, permutation: bool = False,
                               softmax: bool = False, task: str = "classification", n_hps: int = 2):
-
-    hps = ["subject", "condition", "sba", "task", "s_fold", "balanced_cv", "subblock_cv", "repet_scalar",
-           "batch_size", "permutation", "n_components", "learning_rate", "weight_reg",
-           "weight_reg_strength", "activation_fct", "lstm_size", "fc_n_hidden", "softmax"]
 
     # Preps args
     condition = condition.lower()
@@ -416,6 +446,9 @@ def main():
 
     perform_tab.to_csv(p2perform_tab, sep=";", index=False)
 
+    # Update bashfiles
+    update_bashfiles()
+
 
 # %% Main >> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<<< o
 
@@ -460,10 +493,12 @@ if __name__ == "__main__":
                         help="Use softmax for classification, else tanh.")
 
     FLAGS, unparsed = parser.parse_known_args()
-    print_flags()
+    assert list(vars(FLAGS).keys()) == hps, "FLAGS must match hps (also in order)!"
 
     # Run main << o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
     if create_bash:
+        cprint("Writing bashfiles ...", col='b')
+
         for cond in ["nomov", "mov"]:
             for sbcv in [True, False]:
                 # TODO tain SA case, too
@@ -471,6 +506,7 @@ if __name__ == "__main__":
                                           softmax=False, task="classification", n_hps=2)
 
     else:
+        print_flags()
         main()
     end()
 
