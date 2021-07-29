@@ -35,7 +35,6 @@ p2nevro = os.getcwd()[:os.getcwd().find("NeVRo")+5]
 wreg = {"l1": keras.regularizers.l1,
         "l2": keras.regularizers.l2}
 
-
 # Hyperparameters
 hps = ["subject", "condition", "sba", "task", "s_fold", "balanced_cv", "subblock_cv", "repet_scalar",
        "batch_size", "permutation", "n_components", "learning_rate", "weight_reg",
