@@ -27,10 +27,10 @@ from imblearn.over_sampling import SMOTE
 from utils import setwd, cprint, loop_timer, str2bool, s, end
 
 # %% Set global vars & paths >> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<
+create_bash: bool = False  # toggle to create bash-files or run models
+
 setwd("Modelling/LSTM")
 p2nevro = os.getcwd()[:os.getcwd().find("NeVRo")+5]
-
-create_bash: bool = False  # toggle to create bash-files or run models
 
 wreg = {"l1": keras.regularizers.l1,
         "l2": keras.regularizers.l2}
