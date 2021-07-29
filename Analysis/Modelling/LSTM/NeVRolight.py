@@ -44,29 +44,36 @@ hps = ["subject", "condition", "sba", "task", "s_fold", "balanced_cv", "subblock
 
 # %% Functions >> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<<< o >>>> o <<
 
-def bash_line_from_flags():
-    """Create bashline from FLAGS."""
+def bash_line_from(source: pd.Series = None):
+    """
+    Create bashline from FLAGS or row of prediction table.
+
+    :param source: None: uses variables in FLAGS OR row of prediction table
+    :return: line for bashline
+    """
+
+    source = vars(FLAGS) if source is None else source
+
     bash_str = "python3 NeVRolight.py"
     for hp in hps:
-        bash_str += f" --{hp} {vars(FLAGS)[hp]}"
+        bash_str += f" --{hp} {source[hp]}"
     bash_str += "\n"
 
     return bash_str
 
 
-def update_bashfiles():
+def update_bashfiles(source: pd.Series = None):
 
-    bash_str = bash_line_from_flags()
+    bash_str = bash_line_from(source=source)
 
     p2bash = os.path.join(os.getcwd(), "bashfiles")
     for bfn in os.listdir(p2bash):
-        if bfn.endswith("_NeVRoligth.sh"):
+        if bfn.endswith("_NeVRolight.sh"):
             for line in fileinput.input(files=os.path.join(p2bash, bfn), inplace=True):
                 if bash_str in line and "#" not in line:
-                    sys.stdout.write(f'# {line}')
+                    sys.stdout.write(f"# {line}")
                 else:
                     sys.stdout.write(line)
-            pass
 
 
 def create_training_bash_file(condition: str, sba: bool, subblock_cv: bool, permutation: bool = False,
@@ -347,6 +354,22 @@ def mdir():
 
 def main():
 
+    # Load performance table
+    p2perform_tab = os.path.join(os.getcwd(), "processed", f"performance_table_{FLAGS.condition}.csv")
+    if os.path.isfile(p2perform_tab):
+        perform_tab = pd.read_csv(filepath_or_buffer=p2perform_tab, sep=";")
+    else:
+        perform_tab = pd.DataFrame(data=None,
+                                   columns=[key for key, _ in vars(FLAGS).items()] + ["acc", "auc"])
+
+    # Check whether already computed
+    if any([bash_line_from(row) == bash_line_from(None) for _, row in perform_tab.iterrows()]):
+        cprint("Model for given hyperparameters and subject was trained already!", col='y')
+        # Update bashfiles
+        for r, row in perform_tab.iterrows():
+            update_bashfiles(source=row)
+        return None
+
     # Load data
     eeg, rating = load_data(subject=FLAGS.subject, n_comps=FLAGS.n_components, condition=FLAGS.condition,
                             sba=FLAGS.sba, task=FLAGS.task)
@@ -432,18 +455,12 @@ def main():
            f"• AUC = {np.mean(aucs):.3f}\n", col='b', fm='bo')
 
     # Save in table
-    p2perform_tab = os.path.join(os.getcwd(), "processed", f"performance_table_{FLAGS.condition}.csv")
-    if os.path.isfile(p2perform_tab):
-        perform_tab = pd.read_csv(filepath_or_buffer=p2perform_tab, sep=";")
-    else:
-        perform_tab = pd.DataFrame(data=None,
-                                   columns=[key for key, _ in vars(FLAGS).items()] + ["acc", "auc"])
-
     perform_tab = perform_tab.append(dict(zip(perform_tab.columns,
                                               list(vars(FLAGS).values()) + [np.mean(accuracies),
                                                                             np.mean(aucs)])),
                                      ignore_index=True, verify_integrity=True)
 
+    perform_tab = perform_tab[~perform_tab.duplicated(keep="first")]
     perform_tab.to_csv(p2perform_tab, sep=";", index=False)
 
     # Update bashfiles
