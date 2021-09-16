@@ -34,7 +34,7 @@ for cond = {'mov', 'nomov'}
     end
     
     % load model output:
-    load([dirData, 'EEG/08.6_CSP_10f/' cond{1} '/SBA/summaries/CSP_results.mat'])
+    load([dirData, 'EEG/08.6_CSP_10f/' cond{1} '/SBA/summaries/CSP_results_' cond{1} '.mat'])
     load([dirData, 'EEG/08.1_SPOC/' cond{1} '/SBA/summaries/SPOC_results_' cond{1} '.mat'])
  
     res_CSP = CSP_results.results;
