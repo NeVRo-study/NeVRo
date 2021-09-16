@@ -2,7 +2,7 @@
 """
 Plot predictions made by the different models of the study
 
-Author: Simon M. Hofmann | <[surname].[lastname][at]pm.me> | 2020
+Author: Simon M. Hofmann | <[surname].[lastname][at]pm.me> | 2020, 2021
 """
 
 #%% Import
@@ -41,6 +41,7 @@ if __name__ == "__main__":
         # subjects = [25]
 
         for subject in subjects:
+            print(f"\nCreate plot of subject {str(subject).zfill(2)} in {cond}-condition ...")
 
             # Models
             models = ["LSTM", "CSP", "SPoC"]
@@ -122,6 +123,7 @@ if __name__ == "__main__":
                 # Normalize for plotting
                 if model == "SPoC":
                     # z_est only>=0, now zero-centred (adapt to visually compare to fluctuation in rating
+                    model_prediction += np.abs(model_prediction.min())
                     model_prediction = z_score(-np.sqrt(model_prediction))  # altern. to sqrt: np.log()
                     model_prediction = savgol_filter(model_prediction,
                                                      window_length=7,
@@ -158,7 +160,7 @@ if __name__ == "__main__":
                     ax2.plot(only_entries_rating, color="teal", alpha=.3, lw=lw * 2)
                     #  , label="ground-truth rating")
                     ax.plot(whole_rating_shift, ls="None", marker="s", markerfacecolor="None", ms=3,
-                             color="black", label="arousal classes: low & high")
+                            color="black", label="arousal classes: low & high")
 
                     ax2.hlines(y=lower_tert_bound, xmin=0, xmax=pred_matrix.shape[1], linestyle="dashed",
                                colors="darkgrey", lw=lw, alpha=.8)
@@ -168,20 +170,20 @@ if __name__ == "__main__":
                     # Correct classified
                     correct_class = np.sign(model_prediction * whole_rating)
                     # mean_acc2 = correct_class[correct_class == 1].sum()/np.sum(~np.isnan(correct_class))
-                    mean_acc = float(result_tab.loc[f"NVR_{s(subject)}"][model])
+                    mean_acc = float(result_tab.loc[f"NVR_{s(subject)}"][model+"_acc"])
                     print(f"Calculated {model} accuracy: {mean_acc:.4f}")
 
                     plt.fill_between(x=np.arange(0, correct_class.shape[0], 1), y1=model_prediction,
                                      y2=real_rating,
                                      where=correct_class == 1,
                                      color="lime",
-                                     alpha='0.2')
+                                     alpha=0.2)
 
                     plt.fill_between(x=np.arange(0, correct_class.shape[0], 1), y1=model_prediction,
                                      y2=real_rating,
                                      where=correct_class == -1,
                                      color="orangered",
-                                     alpha='0.2')
+                                     alpha=0.2)
 
                     for i in range(correct_class.shape[0]):
                         corr_col = "lime" if correct_class[i] == 1 else "orangered"
@@ -248,7 +250,7 @@ if __name__ == "__main__":
                     # Set title
                     r = float(result_tab.loc[f"NVR_{s(subject)}"][model.upper()+"_CORR"])
                     neg = np.sign(r) == -1
-                    plt.title(label=f"{model} (" + r"$r_{max}=$" + f"{'-' if neg else ''}" +
+                    plt.title(label=f"{model} (" + r"$r=$" + f"{'-' if neg else ''}" +
                                     f"{r:.3f})".lstrip(f"{'-' if neg else ''}0"),
                               fontdict={"fontsize": fs+2})
                     plt.legend(fontsize=fs - 1)

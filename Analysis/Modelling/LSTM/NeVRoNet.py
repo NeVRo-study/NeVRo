@@ -5,12 +5,12 @@ Build LSTM architecture
 Author: Simon Hofmann | <[surname].[lastname][at]pm.me> | 2017, 2019 (Update)
 """
 
-#%% Import
+# %% Import
 
 import tensorflow as tf  # implemented with TensorFlow 1.13.1
 
 
-#%% Network >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
+# %% Network >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >><< o >>
 class NeVRoNet:
     """
     This class implements a LSTM neural network in TensorFlow.
