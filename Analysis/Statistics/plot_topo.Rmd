@@ -18,7 +18,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Get libs:
 library(tidyverse)
-library(eegUtils)
+library(eegUtils) #v0.5.0 
 library(R.matlab)
 library(grid)
 library(gtable)
@@ -29,7 +29,7 @@ source(here('Analysis',
             'Modelling', 
             'CSP', 
             'utils_R', 
-            'plot_fig4.R'))
+            'plot_fig6.R'))
 
 
 norm_vec <- function(x) sqrt(sum(x^2))
@@ -109,8 +109,8 @@ We plot the ingredients (topoplots) for Figure 4 in the paper.
 
 ```{r message=TRUE, warning=FALSE}
 
-fig4_csp <- plot_fig4_csp(df_full, plt, path_out, show_legend = T)
-plot(fig4_csp)
+fig6_csp <- plot_fig6_csp(df_full, plt, path_out, show_legend = T)
+plot(fig6_csp)
 
 ```
 
@@ -118,8 +118,8 @@ plot(fig4_csp)
 
 ```{r}
 
-fig4_spoc <- plot_fig4_spoc(df_full, plt, path_out)
-plot(fig4_spoc)
+fig6_spoc <- plot_fig6_spoc(df_full, plt, path_out)
+plot(fig6_spoc)
 ```
 
 
@@ -127,8 +127,8 @@ plot(fig4_spoc)
 
 ## Plot SSD:
 
-fig4_ssd <- plot_fig4_ssd(df_full, plt, path_out)
-plot(fig4_ssd)
+fig6_ssd <- plot_fig6_ssd(df_full, plt, path_out)
+plot(fig6_ssd)
 
 
 ```
@@ -137,12 +137,12 @@ plot(fig4_ssd)
 # Supplementary figure (topos per subject):
 
 # nomov condition:
-fig4_supp_nomov <- plot_fig4_supp(df_full, 'nomov', plt, path_out)
-plot(fig4_supp_nomov)
+fig6_supp_nomov <- plot_fig6_supp(df_full, 'nomov', plt, path_out)
+plot(fig6_supp_nomov)
 
 # mov condition
-fig4_supp_mov <- plot_fig4_supp(df_full, 'mov', plt, path_out)
-plot(fig4_supp_mov)
+fig6_supp_mov <- plot_fig6_supp(df_full, 'mov', plt, path_out)
+plot(fig6_supp_mov)
 
 ```
 
