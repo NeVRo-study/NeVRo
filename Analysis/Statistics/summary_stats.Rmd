@@ -71,7 +71,7 @@ data_pred_df <- NULL
 
 samp_col_names <- sprintf('S%d', 1:270)
 
-analysis_mode_folder <- ifelse(analysis_mode == 'MAIN', '', 'suppANalyses')
+analysis_mode_folder <- ifelse(analysis_mode == 'MAIN', '', 'suppAnalyses')
 
 for (model in list('CSP', 'LSTM')) {
 
