@@ -1,6 +1,6 @@
 # coding=utf-8
 """
-Some meta functions
+A collection of utility functions
 
 Author: Simon Hofmann | <[surname].[lastname][at]pm.me> | 2017, 2019-2021 (Update)
 """

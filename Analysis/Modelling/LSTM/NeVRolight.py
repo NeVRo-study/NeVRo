@@ -4,6 +4,8 @@ Main script (light)
 • Light-weight version of NeVRo.py.
 • Compatible with tensorflow >= 2.
 
+Note: This in not fully tested yet [Dec 6, 2021]. The published model training was implemented in NeVRo.py
+
 Author: Simon M. Hofmann | <[surname].[lastname][at]pm.me> | 2021
 """
 
@@ -517,7 +519,7 @@ if __name__ == "__main__":
 
         for cond in ["nomov", "mov"]:
             for sbcv in [True, False]:
-                # TODO tain SA case, too
+                # TODO train SA case, too
                 create_training_bash_file(condition=cond, sba=True, subblock_cv=sbcv, permutation=False,
                                           softmax=False, task="classification", n_hps=2)
 
