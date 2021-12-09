@@ -4,7 +4,7 @@
 
 <h2>Decoding subjective emotional arousal from EEG during an immersive Virtual Reality experience</h2>
 Code base of: <a href="https://elifesciences.org/articles/64812"> Hofmann*, Klotzsche*, Mariola*, Nikulin, Villringer, & Gaebler. <i>eLife</i>, 2021</a><br>
-<small>* : equal contribution <br><br></small>
+<small><i>* : equal contribution </i> <br><br></small>
 
 [![Matlab.pm](https://img.shields.io/badge/matlab->R2016.a-red.svg?maxAge=259200)](#)
 [![Python.pm](https://img.shields.io/badge/python->3.5-brightgreen.svg?maxAge=259200)](#)
