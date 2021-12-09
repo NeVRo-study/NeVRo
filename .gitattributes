@@ -1,0 +1,4 @@
+# Don't count html files in the repo statistics.
+# https://github.com/github/linguist/blob/master/docs/overrides.md
+
+*.html linguist-documentation
