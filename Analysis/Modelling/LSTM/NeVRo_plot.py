@@ -1505,7 +1505,7 @@ class NeVRoPlot:
                         shift_counter = 1
                     shift = 1 if shift_counter > 2 else 0  # switch between 1 and zero
 
-                    t_event = float(events_space[1, idxe]) - subtractor  # timepoint of event
+                    t_event = float(events_space[1, idxe]) - subtractor  # time point of event
                     up_down = -1 if idxe % 2 == 0 else 1
 
                     if up_down > 0:
@@ -1594,7 +1594,7 @@ if __name__ == "__main__":
     # # Explore difference of ratings between conditions
     from scipy.stats import ttest_rel
     pt = ttest_rel(a=mean_rat_across_subs_mov, b=mean_rat_across_subs_nomov, nan_policy="omit")
-    dgf = (len(mean_rat_across_subs_mov) + len(mean_rat_across_subs_nomov))/2 - 1  # degress of freedom
+    dgf = (len(mean_rat_across_subs_mov) + len(mean_rat_across_subs_nomov))/2 - 1  # degrees of freedom
 
     fig, (ax1, ax2) = plt.subplots(ncols=2, figsize=(12, 6))
     fig.suptitle(f"Difference of mean-ratings (mov - nomov),  "
